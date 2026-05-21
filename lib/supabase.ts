@@ -70,8 +70,7 @@ export async function getRandomKanjis(count: number, grade = 1) {
     .select('kanji')
     .eq('grade', grade)
   if (error) throw error
-  // Get unique kanjis
-  const unique = [...new Set(data.map((d: any) => d.kanji))]
+  const unique = Array.from(new Set((data || []).map((d: any) => d.kanji))) as string[]
   const shuffled = unique.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count) as string[]
+  return shuffled.slice(0, count)
 }
