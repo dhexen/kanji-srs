@@ -86,3 +86,4 @@ lib/
 "# kanji-srs" 
 "# kanji-srs" 
 "# kanji-srs" 
+"# kanji-srs" 
