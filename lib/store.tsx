@@ -1,24 +1,23 @@
 'use client'
-// lib/store.tsx  — global state via React context + useReducer
-
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react'
-import { VocabItem, migrateItem, MODE_CONFIG, ReviewMode, applyResult, SRS_INTERVALS } from './srs'
-import { supabase, uploadProgress, downloadProgress } from './supabase'
+import { VocabItem, migrateItem, MODE_CONFIG, ReviewMode, applyResult } from './srs'
+import { supabase, uploadProgress, downloadProgress, getUserRole } from './supabase'
 
 const LS_KEY = 'kanji_srs_official_db2'
 
 interface State {
   db: VocabItem[]
-  user: { email: string } | null
+  user: { email: string; id: string } | null
+  role: 'admin' | 'user'
   syncing: boolean
 }
 
 type Action =
   | { type: 'SET_DB'; payload: VocabItem[] }
-  | { type: 'SET_USER'; payload: { email: string } | null }
+  | { type: 'SET_USER'; payload: { email: string; id: string } | null }
+  | { type: 'SET_ROLE'; payload: 'admin' | 'user' }
   | { type: 'SET_SYNCING'; payload: boolean }
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
-  | { type: 'UPDATE_ITEM'; payload: VocabItem }
   | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; isCorrect: boolean } }
   | { type: 'RESET' }
 
@@ -26,14 +25,12 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_DB': return { ...state, db: action.payload }
     case 'SET_USER': return { ...state, user: action.payload }
+    case 'SET_ROLE': return { ...state, role: action.payload }
     case 'SET_SYNCING': return { ...state, syncing: action.payload }
     case 'ADD_ITEMS': {
       const existing = new Set(state.db.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
       return { ...state, db: [...state.db, ...newItems] }
-    }
-    case 'UPDATE_ITEM': {
-      return { ...state, db: state.db.map(i => i.jp === action.payload.jp ? action.payload : i) }
     }
     case 'APPLY_RESULT': {
       return {
@@ -63,7 +60,7 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { db: [], user: null, syncing: false })
+  const [state, dispatch] = useReducer(reducer, { db: [], user: null, role: 'user', syncing: false })
 
   const saveLocal = useCallback((db: VocabItem[]) => {
     try { localStorage.setItem(LS_KEY, JSON.stringify(db)) } catch {}
@@ -87,29 +84,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (state.db.length > 0) saveLocal(state.db)
   }, [state.db, saveLocal])
 
-  // Check Supabase session on mount
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        dispatch({ type: 'SET_USER', payload: { email: session.user.email! } })
-        syncDown()
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const syncUp = useCallback(async (silent = false) => {
-    try {
-      dispatch({ type: 'SET_SYNCING', payload: true })
-      await uploadProgress(state.db)
-      if (!silent) console.log('✅ Progreso subido')
-    } catch (e) {
-      console.error('Error subiendo progreso:', e)
-    } finally {
-      dispatch({ type: 'SET_SYNCING', payload: false })
-    }
-  }, [state.db])
-
   const syncDown = useCallback(async () => {
     try {
       dispatch({ type: 'SET_SYNCING', payload: true })
@@ -126,22 +100,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [saveLocal])
 
+  // Check Supabase session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        dispatch({ type: 'SET_USER', payload: { email: session.user.email!, id: session.user.id } })
+        const role = await getUserRole(session.user.id)
+        dispatch({ type: 'SET_ROLE', payload: role })
+        syncDown()
+      }
+    })
+  }, [syncDown])
+
+  const syncUp = useCallback(async (silent = false) => {
+    try {
+      dispatch({ type: 'SET_SYNCING', payload: true })
+      await uploadProgress(state.db)
+    } catch (e) {
+      console.error('Error subiendo progreso:', e)
+    } finally {
+      dispatch({ type: 'SET_SYNCING', payload: false })
+    }
+  }, [state.db])
+
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    dispatch({ type: 'SET_USER', payload: { email: data.user.email! } })
+    dispatch({ type: 'SET_USER', payload: { email: data.user.email!, id: data.user.id } })
+    const role = await getUserRole(data.user.id)
+    dispatch({ type: 'SET_ROLE', payload: role })
     await syncDown()
   }, [syncDown])
 
   const signup = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
-    if (data.user) dispatch({ type: 'SET_USER', payload: { email: data.user.email! } })
+    if (data.user) {
+      dispatch({ type: 'SET_USER', payload: { email: data.user.email!, id: data.user.id } })
+      dispatch({ type: 'SET_ROLE', payload: 'user' })
+    }
   }, [])
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     dispatch({ type: 'SET_USER', payload: null })
+    dispatch({ type: 'SET_ROLE', payload: 'user' })
   }, [])
 
   return (
