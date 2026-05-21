@@ -1,0 +1,63 @@
+'use client'
+import { MODE_CONFIG, ReviewMode } from '@/lib/srs'
+
+interface Props {
+  selectedModes: ReviewMode[]
+  onToggle: (m: ReviewMode) => void
+  pendingCount: number
+  onStart: (practice: boolean) => void
+  hasWords: boolean
+}
+
+export default function ModeSelector({ selectedModes, onToggle, pendingCount, onStart, hasWords }: Props) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <h3 className="font-bold text-slate-800 mb-1">🎯 Tipo de repaso</h3>
+        <p className="text-slate-400 text-xs mb-4">Selecciona uno o varios modos. Cada modo tiene su propio nivel SRS por palabra.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-5">
+          {(Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]).map(([id, cfg]) => {
+            const active = selectedModes.includes(id)
+            return (
+              <button
+                key={id}
+                onClick={() => onToggle(id)}
+                className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${active ? cfg.colorOn : cfg.colorOff}`}
+              >
+                <span>{cfg.label}</span>
+                <span className="text-xs font-normal opacity-70">{cfg.desc}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-100">
+          <button
+            onClick={() => onStart(false)}
+            disabled={!hasWords}
+            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-sm"
+          >
+            ▶ Iniciar Repaso SRS
+            <span className="ml-2 opacity-70 font-normal">
+              {pendingCount > 0 ? `(${pendingCount} pendientes)` : '(al día ✓)'}
+            </span>
+          </button>
+          <button
+            onClick={() => onStart(true)}
+            disabled={!hasWords}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-600 font-bold rounded-xl text-sm transition"
+          >
+            🔄 Práctica libre
+          </button>
+        </div>
+
+        {!hasWords && (
+          <p className="mt-3 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            No tienes palabras activas. Ve al <strong>Importador IA</strong> o a <strong>Estudiar Nuevos</strong> para empezar.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
