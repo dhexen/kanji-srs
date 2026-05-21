@@ -54,7 +54,7 @@ export default function StatsClient() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Kanjis Activos', val: [...new Set(active.map(i => i.kanji))].length, color: 'text-indigo-600' },
+          { label: 'Kanjis Activos', val: Array.from(new Set(active.map(i => i.kanji))).length, color: 'text-indigo-600' },
           { label: 'Palabras Totales', val: state.db.length, color: 'text-emerald-600' },
           { label: 'Pendientes', val: pending, color: 'text-amber-600' },
           { label: 'Dominadas', val: mastered, color: 'text-purple-600' },
