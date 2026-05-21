@@ -1,13 +1,12 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { MODE_CONFIG, ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
+import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
 import ModeSelector from './ModeSelector'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
 
 export type SessionItem = { item: VocabItem; mode: ReviewMode }
-
 type Phase = 'select' | 'playing' | 'done'
 
 export default function ReviewClient() {
@@ -40,10 +39,7 @@ export default function ReviewClient() {
   function start(practice: boolean) {
     if (activeWords.length === 0) return
     const seq = buildSequence(practice)
-    if (!practice && seq.length === 0) {
-      setPhase('done')
-      return
-    }
+    if (!practice && seq.length === 0) { setPhase('done'); return }
     setIsPractice(practice)
     setSequence(seq)
     setIndex(0)
@@ -51,18 +47,22 @@ export default function ReviewClient() {
   }
 
   function onNext() {
-    if (index + 1 >= sequence.length) {
-      setPhase('done')
-    } else {
-      setIndex(i => i + 1)
-    }
+    if (index + 1 >= sequence.length) setPhase('done')
+    else setIndex(i => i + 1)
+  }
+
+  // Quit mid-session → back to selector
+  function onQuit() {
+    setPhase('select')
+    setSequence([])
+    setIndex(0)
   }
 
   if (phase === 'select') {
     return (
       <ModeSelector
         selectedModes={selectedModes}
-        onToggle={(m) => setSelectedModes(prev =>
+        onToggle={m => setSelectedModes(prev =>
           prev.includes(m) ? (prev.length > 1 ? prev.filter(x => x !== m) : prev) : [...prev, m]
         )}
         pendingCount={pendingCount}
@@ -86,6 +86,7 @@ export default function ReviewClient() {
       total={sequence.length}
       isPractice={isPractice}
       onNext={onNext}
+      onQuit={onQuit}
     />
   )
 }
