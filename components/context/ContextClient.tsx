@@ -4,6 +4,7 @@ import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+import { supabase } from '@/lib/supabase'
 
 const TOPICS = [
   { v: 'vida cotidiana', e: '🏠' }, { v: 'viajes y transporte', e: '✈️' },
@@ -63,9 +64,13 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
   "words_used": ["palabra1", "palabra2"]
 }`
 
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
         body: JSON.stringify({ prompt, userApiKey: key }),
       })
 

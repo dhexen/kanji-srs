@@ -632,7 +632,8 @@ export async function getKanjiGrade(kanji: string): Promise<number | null> {
   return data?.grade ?? null
 }
 
-/** Inserts a user-submitted word into the shared vocabulary table as unofficial. */
+/** Inserts a user-submitted word into the shared vocabulary table as unofficial.
+ *  Client-side limits mirror the DB RLS policy — the DB is the authoritative check. */
 export async function insertUnofficialVocab(entry: {
   kanji: string
   word: string
@@ -640,17 +641,30 @@ export async function insertUnofficialVocab(entry: {
   meaning_es: string
   grade: number
 }): Promise<void> {
+  const { kanji, word, reading, meaning_es } = entry
+  if (!kanji || kanji.trim().length < 1 || kanji.trim().length > 5)
+    throw new Error('El kanji debe tener entre 1 y 5 caracteres.')
+  if (!word || word.trim().length < 1 || word.trim().length > 20)
+    throw new Error('La palabra debe tener entre 1 y 20 caracteres.')
+  if (!reading || reading.trim().length < 1 || reading.trim().length > 50)
+    throw new Error('La lectura debe tener entre 1 y 50 caracteres.')
+  if (!meaning_es || meaning_es.trim().length < 1 || meaning_es.trim().length > 300)
+    throw new Error('El significado debe tener entre 1 y 300 caracteres.')
+
   const { error } = await supabase.from('vocabulary').insert({
-    kanji: entry.kanji,
-    word: entry.word,
-    reading: entry.reading,
-    meaning_es: entry.meaning_es,
+    kanji: kanji.trim(),
+    word: word.trim(),
+    reading: reading.trim(),
+    meaning_es: meaning_es.trim(),
     grade: entry.grade,
     is_official: false,
     sort_order: 99999,
+    // added_by y created_at los pone el trigger del servidor — no los enviamos desde el cliente
   })
-  // Ignore duplicate inserts (word already exists in table)
-  if (error && error.code !== '23505') throw error
+  if (error?.code === '23505') return           // duplicado: ya existe, no es un error
+  if (error?.message?.includes('check_vocab_insert_rate'))
+    throw new Error('Has alcanzado el límite de 20 palabras nuevas en 24 horas. Inténtalo mañana.')
+  if (error) throw error
 }
 
 export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {

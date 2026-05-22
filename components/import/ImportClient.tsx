@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { VocabItem } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
+import { supabase } from '@/lib/supabase'
 
 const GRADES = [
   { label: '1.º Primaria (80)', value: '1.º de Primaria (小学1年生)' },
@@ -18,8 +19,9 @@ const GRADES = [
 
 const MODELS = [
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recomendado)' },
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-  { value: 'gemini-2.5-pro',   label: 'Gemini 2.5 Pro (Máxima precisión)' },
+  { value: 'gemini-1.5-pro',   label: 'Gemini 1.5 Pro (Máxima precisión)' },
 ]
 
 export default function ImportClient() {
@@ -37,9 +39,13 @@ export default function ImportClient() {
   }
 
   async function callGemini(prompt: string) {
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/gemini', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token ?? ''}`,
+      },
       body: JSON.stringify({ prompt, model, userApiKey: apiKey }),
     })
     const data = await res.json()

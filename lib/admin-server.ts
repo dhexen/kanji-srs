@@ -47,8 +47,8 @@ export async function requireAdmin(request: Request): Promise<{
 
   const isDbAdmin = roleRow?.role === 'admin'
 
-  // Fallback: check env-based admin list
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
+  // Fallback: check env-based admin list (server-only env var — never exposed to client bundle)
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean)
