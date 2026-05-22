@@ -27,11 +27,16 @@ export default function Header() {
   return (
     <>
       <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full shrink-0 ${state.user ? 'bg-emerald-400' : 'bg-amber-500 animate-pulse'}`} />
           <span className="truncate">
             {state.user ? `${t(lang, 'header_connected')} ${state.user.email}` : t(lang, 'header_local')}
           </span>
+          {state.user && (
+            <span className="ml-2 text-xs text-slate-200/80 bg-slate-700/40 px-2 py-0.5 rounded-full">
+              {state.role}
+            </span>
+          )}
         </div>
         {state.syncing && (
           <span className="text-indigo-400 animate-pulse text-xs shrink-0">{t(lang, 'header_syncing')}</span>
