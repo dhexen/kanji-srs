@@ -14,16 +14,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="bg-slate-50 text-slate-800 min-h-screen pb-12">
+      <body className="bg-slate-50 text-slate-800 min-h-screen">
         <StoreProvider>
           <Toast />
-          <Header />
-          <main className="max-w-4xl mx-auto px-4 mt-6">
-            <Nav />
-            <AuthGuard>
-              {children}
-            </AuthGuard>
-          </main>
+          {/* Sidebar navigation */}
+          <Nav />
+
+          {/* Main content area — offset on desktop for the sidebar */}
+          <div className="lg:pl-56 min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-12">
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </main>
+          </div>
         </StoreProvider>
       </body>
     </html>
