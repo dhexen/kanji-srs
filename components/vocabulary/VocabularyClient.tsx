@@ -19,6 +19,7 @@ function activateItem(item: VocabItem, level: number, due: number): VocabItem {
 const GRADES = [
   { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1, kanjis: 80, words: 240 },
   { label: '2º Primaria', labelCa: '2n Primària', labelEn: '2nd Grade', labelJa: '小学2年生', value: 2, kanjis: 160, words: 480 },
+  { label: '3º Primaria', labelCa: '3r Primària', labelEn: '3rd Grade', labelJa: '小学3年生', value: 3, kanjis: 200, words: 600 },
 ]
 
 export default function VocabularyClient() {
@@ -63,14 +64,14 @@ export default function VocabularyClient() {
     if (!state.user) { showToast(t(lang, 'vocab_no_login'), 'error'); return }
     setLoading(true)
     try {
-      const kanjis = await getRandomKanjis(packSize * 3, grade)
-      const newKanjis = (kanjis as string[]).filter(k => !activeKanjis.has(k)).slice(0, packSize)
+      const allKanjis = await getRandomKanjis(0, grade)
+      const newKanjis = (allKanjis as string[]).filter(k => !activeKanjis.has(k)).slice(0, packSize)
       if (newKanjis.length === 0) {
         showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? 'Ja tens tots els kanjis d\'aquest curs' : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
         setLoading(false)
         return
       }
-      const vocab = await getVocabularyByKanjis(newKanjis)
+      const vocab = await getVocabularyByKanjis(newKanjis, grade)
       const newVocab = (vocab || []).filter((v: any) => !existingWords.has(v.word))
       setPreview(newVocab)
       setDiscarded(new Set())

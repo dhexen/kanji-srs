@@ -584,17 +584,26 @@ export async function fetchVocabCountsByUser(): Promise<Record<string, number>> 
   return map
 }
 
-export async function getVocabularyByKanjis(kanjis: string[]) {
-  const { data, error } = await supabase.from('vocabulary').select('*').in('kanji', kanjis).eq('grade', 1)
+export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('*')
+    .in('kanji', kanjis)
+    .eq('grade', grade)
+    .order('sort_order', { ascending: true })
   if (error) throw error
   return data
 }
 
-export async function getRandomKanjis(count: number, grade = 1) {
-  const { data, error } = await supabase.from('vocabulary').select('kanji').eq('grade', grade)
+export async function getRandomKanjis(_count: number, grade = 1) {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('kanji')
+    .eq('grade', grade)
+    .order('sort_order', { ascending: true })
   if (error) throw error
-  const unique = Array.from(new Set((data || []).map((d: { kanji: string }) => d.kanji))) as string[]
-  return unique.sort(() => Math.random() - 0.5).slice(0, count)
+  // Deduplicate preserving sort_order (Set keeps insertion order)
+  return Array.from(new Set((data || []).map((d: { kanji: string }) => d.kanji))) as string[]
 }
 
 // ---------------------------------------------------------------------------
