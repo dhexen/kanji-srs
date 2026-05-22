@@ -5,17 +5,21 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(url, key)
 
-export async function uploadProgress(vocabDb: any[]) {
+export async function uploadProgress(vocabDb: any[], geminiApiKey?: string, contextTexts?: any[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
+  const payload: any = {
+    user_id: user.id,
+    vocab_db: vocabDb,
+    updated_at: new Date().toISOString(),
+  }
+  if (geminiApiKey !== undefined) payload.gemini_api_key = geminiApiKey
+  if (contextTexts !== undefined) payload.context_texts = contextTexts
+
   const { error } = await supabase
     .from('srs_progress')
-    .upsert({
-      user_id: user.id,
-      vocab_db: vocabDb,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    .upsert(payload, { onConflict: 'user_id' })
 
   if (error) {
     console.error('Supabase upload error:', error)
@@ -29,7 +33,7 @@ export async function downloadProgress() {
 
   const { data, error } = await supabase
     .from('srs_progress')
-    .select('vocab_db')
+    .select('vocab_db, gemini_api_key, context_texts')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -37,7 +41,25 @@ export async function downloadProgress() {
     console.error('Supabase download error:', error)
     return null
   }
-  return data?.vocab_db ?? null
+  return data ?? null
+}
+
+export async function saveGeminiKey(key: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { error } = await supabase
+    .from('srs_progress')
+    .upsert({ user_id: user.id, gemini_api_key: key, vocab_db: [] }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
+export async function saveContextTexts(texts: any[]) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { error } = await supabase
+    .from('srs_progress')
+    .upsert({ user_id: user.id, context_texts: texts.slice(-10), vocab_db: [] }, { onConflict: 'user_id' })
+  if (error) throw error
 }
 
 export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
