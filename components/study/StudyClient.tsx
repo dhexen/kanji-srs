@@ -27,6 +27,8 @@ export default function StudyClient() {
     if (!groups[item.kanji]) groups[item.kanji] = []
     groups[item.kanji].push(item)
   })
+  const kanjiEntries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b, 'ja'))
+  const kanjiCount = kanjiEntries.length
 
   async function addManual() {
     const { kanji, jp, reading, meaning } = form
@@ -74,15 +76,32 @@ export default function StudyClient() {
 
   return (
     <div className="space-y-6">
-      {Object.keys(groups).length === 0 ? (
+      {kanjiCount === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
           <p className="text-4xl mb-2">🎓</p>
           <p className="font-bold text-slate-800 text-lg">{t(lang, 'study_empty')}</p>
           <p className="text-slate-500 text-sm mt-1">{t(lang, 'study_empty_sub')}</p>
         </div>
       ) : (
-        <div className="space-y-5">
-          {Object.entries(groups).map(([kanjiChar, words]) => (
+        <div className="space-y-5 overflow-visible">
+          <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-slate-50/95 backdrop-blur-sm border-y border-slate-200/80 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-700">
+                {t(lang, 'study_pending_bar')
+                  .replace('{words}', String(locked.length))
+                  .replace('{kanjis}', String(kanjiCount))}
+              </p>
+              <button
+                type="button"
+                onClick={activateAll}
+                className="shrink-0 w-full sm:w-auto px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-sm text-sm"
+              >
+                {t(lang, 'study_activate_short')} ({locked.length})
+              </button>
+            </div>
+          </div>
+
+          {kanjiEntries.map(([kanjiChar, words]) => (
             <section
               key={kanjiChar}
               className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 space-y-5"
@@ -134,14 +153,6 @@ export default function StudyClient() {
               </div>
             </section>
           ))}
-
-          <button
-            type="button"
-            onClick={activateAll}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-sm text-sm"
-          >
-            {t(lang, 'study_activate')} ({locked.length})
-          </button>
         </div>
       )}
 
