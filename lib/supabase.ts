@@ -603,6 +603,23 @@ export async function getVocabGradeWords(grade: number): Promise<Array<{ word: s
   return (data ?? []).map(d => ({ word: d.word, kanji: d.kanji, is_official: d.is_official ?? true }))
 }
 
+/** Full-text search across kanji, word, reading and meanings. */
+export async function searchVocabulary(query: string): Promise<any[]> {
+  const q = query.trim()
+  if (!q) return []
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('*')
+    .or(
+      `kanji.ilike.%${q}%,word.ilike.%${q}%,reading.ilike.%${q}%,` +
+      `meaning_es.ilike.%${q}%,meaning_ca.ilike.%${q}%,meaning_en.ilike.%${q}%`
+    )
+    .order('sort_order', { ascending: true })
+    .limit(40)
+  if (error) throw error
+  return data ?? []
+}
+
 /** Looks up the grade of a kanji in the vocabulary table. Returns null if not found. */
 export async function getKanjiGrade(kanji: string): Promise<number | null> {
   const { data, error } = await supabase

@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
-import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab } from '@/lib/supabase'
+import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab, searchVocabulary } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -39,6 +39,10 @@ export default function VocabularyClient() {
   const [shownKanjis, setShownKanjis] = useState<Set<string>>(new Set())
   const [allOrderedKanjis, setAllOrderedKanjis] = useState<string[]>([])
   const [dominatingKanji, setDominatingKanji] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [addingWord, setAddingWord] = useState<string | null>(null)
   const lang = state.lang
 
   const existingWords = useMemo(() => new Set(state.db.map(i => i.jp)), [state.db])
@@ -84,6 +88,47 @@ export default function VocabularyClient() {
   }
 
   useEffect(() => { loadGradeStats() }, [])
+
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); return }
+    setSearchLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchVocabulary(searchQuery)
+        setSearchResults(results)
+      } catch { /* ignore */ } finally { setSearchLoading(false) }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  async function addWordToSrs(w: any) {
+    setAddingWord(w.word)
+    try {
+      const now = Date.now()
+      const base: VocabItem = {
+        kanji: w.kanji, jp: w.word, reading: w.reading,
+        meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
+        srsLevel: 1, due: now, status: 'active',
+      } as VocabItem
+      await addVocabItems([activateItem(base, 1, now)])
+      loadGradeStats()
+    } catch { showToast('Error', 'error') } finally { setAddingWord(null) }
+  }
+
+  async function markWordKnown(w: any) {
+    setAddingWord(w.word)
+    try {
+      const now = Date.now()
+      const masterDue = now + 30 * 24 * 60 * 60 * 1000
+      const base: VocabItem = {
+        kanji: w.kanji, jp: w.word, reading: w.reading,
+        meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
+        srsLevel: 8, due: masterDue, status: 'active',
+      } as VocabItem
+      await addVocabItems([activateItem(base, 8, masterDue)])
+      loadGradeStats()
+    } catch { showToast('Error', 'error') } finally { setAddingWord(null) }
+  }
 
   async function loadPreview() {
     if (!state.user) { showToast(t(lang, 'vocab_no_login'), 'error'); return }
@@ -224,9 +269,79 @@ export default function VocabularyClient() {
     )
   }
 
+  const isSearching = searchQuery.trim().length > 0
+
   return (
     <div className="space-y-6">
-      {step === 'select' && (
+
+      {/* Search bar — always visible */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
+        <span className="text-slate-400 text-lg shrink-0">🔍</span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Buscar kanji, palabra, lectura o significado..."
+          className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 text-slate-800"
+        />
+        {isSearching && (
+          <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0">×</button>
+        )}
+      </div>
+
+      {/* Search results */}
+      {isSearching && (
+        <div>
+          {searchLoading ? (
+            <p className="text-center text-slate-400 py-8 text-sm">Buscando...</p>
+          ) : searchResults.length === 0 ? (
+            <p className="text-center text-slate-400 py-8 text-sm">Sin resultados para «{searchQuery}»</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {searchResults.map((w: any) => {
+                const alreadyHas = existingWords.has(w.word)
+                const isBusy = addingWord === w.word
+                const isUnofficial = w.is_official === false
+                return (
+                  <div key={w.word} className={`bg-white rounded-2xl border p-4 shadow-sm transition-all ${alreadyHas ? 'border-emerald-200' : isUnofficial ? 'border-red-200' : 'border-slate-100'}`}>
+                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
+                        {isUnofficial && <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">no oficial</span>}
+                      </div>
+                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-1">{t(lang, 'study_kanji_label')} {w.kanji}</p>
+                    <p className="text-slate-500 text-sm mb-3">{meaning(w)}</p>
+                    {alreadyHas ? (
+                      <span className="text-xs text-emerald-600 font-semibold">✓ {t(lang, 'vocab_already')}</span>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          disabled={isBusy}
+                          onClick={() => addWordToSrs(w)}
+                          className="flex-1 text-xs font-semibold rounded-lg px-2 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 transition"
+                        >
+                          {isBusy ? '...' : `+ ${t(lang, 'vocab_activate_srs')}`}
+                        </button>
+                        <button
+                          disabled={isBusy}
+                          onClick={() => markWordKnown(w)}
+                          className="flex-1 text-xs font-semibold rounded-lg px-2 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-40 transition"
+                        >
+                          {isBusy ? '...' : `✓ ${t(lang, 'study_known_btn')}`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isSearching && step === 'select' && (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{t(lang, 'vocab_title')}</h2>
           <p className="text-slate-500 text-sm mb-6">{t(lang, 'vocab_sub')}</p>
@@ -324,7 +439,7 @@ export default function VocabularyClient() {
         </div>
       )}
 
-      {step === 'preview' && (
+      {!isSearching && step === 'preview' && (
         <div className="space-y-6">
           {/* Action bar */}
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -425,7 +540,7 @@ export default function VocabularyClient() {
       )}
 
       {/* Manual add section */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {!isSearching && <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <button
           type="button"
           onClick={() => setShowManual(v => !v)}
@@ -464,7 +579,8 @@ export default function VocabularyClient() {
             </button>
           </div>
         )}
-      </div>
+      </div>}
+
     </div>
   )
 }
