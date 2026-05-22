@@ -23,7 +23,7 @@ const MODELS = [
 ]
 
 export default function ImportClient() {
-  const { state, dispatch, syncUp } = useStore()
+  const { state, dispatch } = useStore()
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem('kanji_srs_gemini_api_key') || '' } catch { return '' } })
   const [model, setModel] = useState('gemini-2.5-flash')
   const [grade, setGrade] = useState(GRADES[0].value)
@@ -54,7 +54,7 @@ export default function ImportClient() {
       srsLevel: 0, due: 0, status: 'locked',
     }))
     dispatch({ type: 'ADD_ITEMS', payload: newItems })
-    syncUp(true)
+    // sync automático
     return newItems.length
   }
 
