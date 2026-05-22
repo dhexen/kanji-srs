@@ -5,7 +5,7 @@ import { VocabItem, MODE_CONFIG, SRS_INTERVALS, migrateItem } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
 
 export default function StudyClient() {
-  const { state, dispatch, syncUp } = useStore()
+  const { state, dispatch } = useStore()
   const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
 
   const locked = state.db.filter(i => i.status === 'locked')
@@ -23,7 +23,7 @@ export default function StudyClient() {
     if (state.db.some(d => d.jp === jp)) { showToast('Esa palabra ya existe', 'error'); return }
     const newItem: VocabItem = { kanji, jp, reading, meaning, srsLevel: 0, due: 0, status: 'locked' }
     dispatch({ type: 'ADD_ITEMS', payload: [newItem] })
-    syncUp(true)
+    
     setForm({ kanji: '', jp: '', reading: '', meaning: '' })
     showToast('Palabra añadida', 'success')
   }
@@ -40,7 +40,7 @@ export default function StudyClient() {
       return migrateItem(activated)
     })
     dispatch({ type: 'SET_DB', payload: activated })
-    syncUp(true)
+    
     showToast(`${locked.length} palabras activadas`, 'success')
   }
 
@@ -56,7 +56,7 @@ export default function StudyClient() {
       return upd
     })
     dispatch({ type: 'SET_DB', payload: updated })
-    syncUp(true)
+    
     showToast(`Kanji ${kanjiChar} marcado como dominado`, 'success')
   }
 

@@ -16,7 +16,7 @@ const GRADES = [
 ]
 
 export default function VocabularyClient() {
-  const { state, dispatch, syncUp } = useStore()
+  const { state, dispatch } = useStore()
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -72,7 +72,7 @@ export default function VocabularyClient() {
       })
 
     dispatch({ type: 'ADD_ITEMS', payload: newItems })
-    syncUp(true)
+    
     showToast(`✅ ${newItems.length} palabras añadidas a Estudiar Nuevos`, 'success')
     setStep('select')
     setPreview([])
