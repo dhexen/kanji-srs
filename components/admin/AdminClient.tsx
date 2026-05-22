@@ -9,9 +9,12 @@ import {
   updateAdminUserRole,
   fetchUserSnapshots,
   restoreUserSnapshot,
+  fetchAdminConfig,
+  saveAdminSrsIntervals,
   type AdminUserRow,
   type AdminSnapshotRow,
 } from '@/lib/admin-client'
+import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
 export default function AdminClient() {
   const { state } = useStore()
@@ -24,11 +27,102 @@ export default function AdminClient() {
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<number | null>(null)
 
+  // SRS intervals editor
+  const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
+  const [srsIntervalsLoading, setSrsIntervalsLoading] = useState(true)
+  const [srsIntervalsSaving, setSrsIntervalsSaving] = useState(false)
+  const [srsIntervalsChanged, setSrsIntervalsChanged] = useState(false)
+
   const isAdmin = state.role === 'admin'
 
   useEffect(() => {
-    if (isAdmin) loadUsers()
+    if (isAdmin) {
+      loadUsers()
+      loadSrsIntervals()
+    }
   }, [isAdmin])
+
+  async function loadSrsIntervals() {
+    setSrsIntervalsLoading(true)
+    try {
+      const config = await fetchAdminConfig()
+      const intervals = config?.srs_intervals as number[] | undefined
+      if (Array.isArray(intervals) && intervals.length === 8) {
+        setSrsIntervalsLocal(intervals)
+        setSrsIntervals(intervals)
+      } else {
+        setSrsIntervalsLocal([...DEFAULT_SRS_INTERVALS])
+      }
+      setSrsIntervalsChanged(false)
+    } catch (e) {
+      // If table doesn't exist yet, use defaults
+      setSrsIntervalsLocal([...DEFAULT_SRS_INTERVALS])
+    } finally {
+      setSrsIntervalsLoading(false)
+    }
+  }
+
+  function msToHumanInput(ms: number): { value: number; unit: 'minutes' | 'hours' | 'days' } {
+    if (ms === 0) return { value: 0, unit: 'hours' }
+    const days = ms / (24 * 60 * 60 * 1000)
+    if (days >= 1 && Number.isInteger(days)) return { value: days, unit: 'days' }
+    const hours = ms / (60 * 60 * 1000)
+    if (hours >= 1) return { value: Math.round(hours * 10) / 10, unit: 'hours' }
+    return { value: Math.round(ms / 60000), unit: 'minutes' }
+  }
+
+  function humanInputToMs(value: number, unit: 'minutes' | 'hours' | 'days'): number {
+    if (unit === 'minutes') return value * 60 * 1000
+    if (unit === 'hours') return value * 60 * 60 * 1000
+    return value * 24 * 60 * 60 * 1000
+  }
+
+  function formatMsHuman(ms: number): string {
+    if (ms === 0) return '—'
+    const hours = ms / 3600000
+    if (hours < 1) return `${Math.round(ms / 60000)}min`
+    if (hours < 24) return `${Math.round(hours * 10) / 10}h`
+    const days = Math.round(hours / 24)
+    return `${days}d`
+  }
+
+  function handleIntervalChange(index: number, ms: number) {
+    const next = [...srsIntervals]
+    next[index] = Math.max(0, ms)
+    setSrsIntervalsLocal(next)
+    setSrsIntervalsChanged(true)
+  }
+
+  async function handleSaveSrsIntervals() {
+    // Validate non-decreasing
+    for (let i = 1; i < srsIntervals.length; i++) {
+      if (srsIntervals[i] < srsIntervals[i - 1]) {
+        showToast(`El intervalo del nivel ${i} no puede ser menor que el del nivel ${i - 1}`, 'error')
+        return
+      }
+    }
+    if (srsIntervals[0] !== 0) {
+      showToast('El nivel 0 debe tener intervalo 0', 'error')
+      return
+    }
+
+    setSrsIntervalsSaving(true)
+    try {
+      await saveAdminSrsIntervals(srsIntervals)
+      setSrsIntervals(srsIntervals) // Update runtime
+      setSrsIntervalsChanged(false)
+      showToast('Intervalos SRS guardados', 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error guardando intervalos', 'error')
+    } finally {
+      setSrsIntervalsSaving(false)
+    }
+  }
+
+  function handleResetSrsIntervals() {
+    setSrsIntervalsLocal([...DEFAULT_SRS_INTERVALS])
+    setSrsIntervalsChanged(true)
+  }
 
   async function loadUsers() {
     setLoading(true)
@@ -329,10 +423,172 @@ export default function AdminClient() {
         </div>
       )}
 
+      {/* SRS Intervals Editor */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-slate-800">Intervalos SRS</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Define cuánto tiempo esperar entre repasos por nivel. Se aplica a todos los usuarios.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleResetSrsIntervals}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+            >
+              Restaurar defecto
+            </button>
+          </div>
+        </div>
+
+        {srsIntervalsLoading ? (
+          <div className="py-6 text-center text-slate-400 text-sm">Cargando intervalos...</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Nivel</th>
+                    <th className="py-2.5 px-3">Etapa</th>
+                    <th className="py-2.5 px-3">Intervalo</th>
+                    <th className="py-2.5 px-3 text-center">Actual</th>
+                    <th className="py-2.5 px-3 text-center text-slate-400">Defecto</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {srsIntervals.map((ms, i) => {
+                    const human = msToHumanInput(ms)
+                    const defaultMs = DEFAULT_SRS_INTERVALS[i]
+                    const isModified = ms !== defaultMs
+                    const isLevel0 = i === 0
+
+                    return (
+                      <tr
+                        key={i}
+                        className={`border-b border-slate-100 ${
+                          isModified ? 'bg-amber-50/50' : ''
+                        } ${isLevel0 ? 'opacity-50' : ''}`}
+                      >
+                        <td className="py-2.5 px-3">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">
+                            {i}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 font-medium text-slate-700">{STAGE_NAMES[i]}</td>
+                        <td className="py-2.5 px-3">
+                          {isLevel0 ? (
+                            <span className="text-slate-400 text-xs">Siempre 0 (inmediato)</span>
+                          ) : (
+                            <SrsIntervalInput
+                              ms={ms}
+                              onChange={(newMs) => handleIntervalChange(i, newMs)}
+                            />
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`text-xs font-semibold ${
+                            isModified ? 'text-amber-600' : 'text-slate-500'
+                          }`}>
+                            {formatMsHuman(ms)}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="text-xs text-slate-400">{formatMsHuman(defaultMs)}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {srsIntervalsChanged && (
+              <div className="mt-4 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <p className="text-xs text-amber-700 font-medium">Hay cambios sin guardar</p>
+                <button
+                  type="button"
+                  disabled={srsIntervalsSaving}
+                  onClick={handleSaveSrsIntervals}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold rounded-lg text-sm transition"
+                >
+                  {srsIntervalsSaving ? 'Guardando...' : 'Guardar intervalos'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <p className="text-xs text-slate-400 text-center px-4">
         Crear/eliminar usuarios requiere{' '}
         <code className="bg-slate-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> en el servidor (Vercel / .env.local).
       </p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SrsIntervalInput — inline editor for a single interval
+// ---------------------------------------------------------------------------
+
+function SrsIntervalInput({ ms, onChange }: { ms: number; onChange: (ms: number) => void }) {
+  function msToFields(ms: number): { value: number; unit: 'minutes' | 'hours' | 'days' } {
+    if (ms === 0) return { value: 0, unit: 'hours' }
+    const days = ms / (24 * 60 * 60 * 1000)
+    if (days >= 1 && days === Math.round(days)) return { value: days, unit: 'days' }
+    const hours = ms / (60 * 60 * 1000)
+    if (hours >= 1) return { value: Math.round(hours * 100) / 100, unit: 'hours' }
+    return { value: Math.round(ms / 60000), unit: 'minutes' }
+  }
+
+  const fields = msToFields(ms)
+  const [value, setValue] = useState(fields.value)
+  const [unit, setUnit] = useState(fields.unit)
+
+  useEffect(() => {
+    const f = msToFields(ms)
+    setValue(f.value)
+    setUnit(f.unit)
+  }, [ms])
+
+  function emitChange(v: number, u: 'minutes' | 'hours' | 'days') {
+    let newMs = 0
+    if (u === 'minutes') newMs = v * 60 * 1000
+    else if (u === 'hours') newMs = v * 60 * 60 * 1000
+    else newMs = v * 24 * 60 * 60 * 1000
+    onChange(Math.round(newMs))
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        min={0}
+        step="any"
+        value={value}
+        onChange={e => {
+          const v = parseFloat(e.target.value) || 0
+          setValue(v)
+          emitChange(v, unit)
+        }}
+        className="w-20 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      />
+      <select
+        value={unit}
+        onChange={e => {
+          const u = e.target.value as 'minutes' | 'hours' | 'days'
+          setUnit(u)
+          emitChange(value, u)
+        }}
+        className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      >
+        <option value="minutes">min</option>
+        <option value="hours">horas</option>
+        <option value="days">días</option>
+      </select>
     </div>
   )
 }

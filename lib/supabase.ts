@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { VocabItem, ReviewMode } from './srs'
+import { DEFAULT_SRS_INTERVALS } from './srs'
 import {
   vocabItemToRow,
   rowToVocabItem,
@@ -594,4 +595,29 @@ export async function getRandomKanjis(count: number, grade = 1) {
   if (error) throw error
   const unique = Array.from(new Set((data || []).map((d: { kanji: string }) => d.kanji))) as string[]
   return unique.sort(() => Math.random() - 0.5).slice(0, count)
+}
+
+// ---------------------------------------------------------------------------
+// App config (global settings — e.g. SRS intervals)
+// ---------------------------------------------------------------------------
+
+export async function fetchAppConfig<T = unknown>(key: string): Promise<T | null> {
+  const { data, error } = await supabase
+    .from('app_config')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle()
+  if (error) {
+    // Table might not exist yet
+    if (isSchemaUnavailable(error) || (error.message ?? '').toLowerCase().includes('app_config')) return null
+    console.error('fetchAppConfig:', error)
+    return null
+  }
+  return data?.value as T ?? null
+}
+
+export async function fetchSrsIntervalsConfig(): Promise<number[] | null> {
+  const val = await fetchAppConfig<number[]>('srs_intervals')
+  if (!Array.isArray(val) || val.length !== 8) return null
+  return val
 }

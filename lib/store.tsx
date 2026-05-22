@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react'
-import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue } from './srs'
+import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals } from './srs'
 import type { ContextText } from './progress'
 import {
   supabase,
@@ -13,6 +13,7 @@ import {
   saveGeminiKey,
   saveContextTexts,
   saveLanguage,
+  fetchSrsIntervalsConfig,
 } from './supabase'
 import type { Lang } from './i18n'
 import { showToast } from '@/components/ui/Toast'
@@ -293,6 +294,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Load global SRS intervals config (independent of user)
+    fetchSrsIntervalsConfig().then(intervals => {
+      if (intervals) setSrsIntervals(intervals)
+    }).catch(e => console.warn('Could not load SRS intervals config:', e))
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const user = { email: session.user.email!, id: session.user.id }

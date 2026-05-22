@@ -1,6 +1,6 @@
 // lib/srs.ts
 
-export const SRS_INTERVALS = [
+export const DEFAULT_SRS_INTERVALS = [
   0,
   4 * 60 * 60 * 1000,
   12 * 60 * 60 * 1000,
@@ -10,6 +10,30 @@ export const SRS_INTERVALS = [
   12 * 24 * 60 * 60 * 1000,
   30 * 24 * 60 * 60 * 1000,
 ]
+
+/** Runtime SRS intervals — can be overridden by admin config */
+let _srsIntervals = [...DEFAULT_SRS_INTERVALS]
+
+export function getSrsIntervals(): number[] {
+  return _srsIntervals
+}
+
+export function setSrsIntervals(intervals: number[]) {
+  if (intervals.length === 8) _srsIntervals = [...intervals]
+}
+
+/** @deprecated Use getSrsIntervals() — kept for backward compat in imports */
+export const SRS_INTERVALS = new Proxy(DEFAULT_SRS_INTERVALS, {
+  get(target, prop) {
+    const idx = typeof prop === 'string' ? Number(prop) : NaN
+    if (!isNaN(idx) && idx >= 0 && idx < 8) return _srsIntervals[idx]
+    if (prop === 'length') return _srsIntervals.length
+    if (prop === Symbol.iterator) return () => _srsIntervals[Symbol.iterator]()
+    if (prop === 'map') return _srsIntervals.map.bind(_srsIntervals)
+    if (prop === 'forEach') return _srsIntervals.forEach.bind(_srsIntervals)
+    return (target as any)[prop]
+  },
+})
 
 export const STAGE_NAMES = [
   'Sin estudiar', 'Aprendiz I', 'Aprendiz II',
@@ -118,7 +142,7 @@ export function applyResult(item: VocabItem, mode: ReviewMode, isCorrect: boolea
   return {
     ...item,
     [lvlKey]: newLevel,
-    [dueKey]: Date.now() + SRS_INTERVALS[newLevel],
+    [dueKey]: Date.now() + getSrsIntervals()[newLevel],
   }
 }
 

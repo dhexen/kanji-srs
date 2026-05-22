@@ -79,3 +79,22 @@ export async function restoreUserSnapshot(userId: string, snapshotId: number) {
   })
   return parseAdminResponse<{ word_count: number }>(res)
 }
+
+// ---------------------------------------------------------------------------
+// App config (SRS intervals etc.)
+// ---------------------------------------------------------------------------
+
+export async function fetchAdminConfig(): Promise<Record<string, unknown>> {
+  const res = await fetch('/api/admin/config', { headers: await adminAuthHeaders() })
+  const data = await parseAdminResponse<{ config: Record<string, unknown> }>(res)
+  return data.config
+}
+
+export async function saveAdminSrsIntervals(intervals: number[]): Promise<void> {
+  const res = await fetch('/api/admin/config', {
+    method: 'PUT',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ srs_intervals: intervals }),
+  })
+  await parseAdminResponse<{ ok: boolean }>(res)
+}
