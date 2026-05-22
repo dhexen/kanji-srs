@@ -29,11 +29,9 @@ export default function Nav() {
   }, [mobileOpen])
 
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
-  const pendingStudy = state.db.filter(i => i.status === 'locked').length
 
   const tabs = [
     { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500' },
-    { href: '/study',      icon: '📖', label: t(lang, 'nav_study'),      badge: pendingStudy,  badgeColor: 'bg-emerald-500' },
     { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '' },
     { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '' },
     { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '' },

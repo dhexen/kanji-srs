@@ -1,10 +1,20 @@
 'use client'
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
-import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
+import { VocabItem, MODE_CONFIG, migrateItem, getMeaningForLang } from '@/lib/srs'
 import { getRandomKanjis, getVocabularyByKanjis } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+
+function activateItem(item: VocabItem, level: number, due: number): VocabItem {
+  const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
+  Object.values(MODE_CONFIG).forEach(cfg => {
+    const row = upd as unknown as Record<string, number>
+    row[`${cfg.key}_level`] = level
+    row[`${cfg.key}_due`] = due
+  })
+  return migrateItem(upd)
+}
 
 const GRADES = [
   { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1, kanjis: 80, words: 240 },
@@ -12,13 +22,16 @@ const GRADES = [
 ]
 
 export default function VocabularyClient() {
-  const { state, addVocabItems } = useStore()
+  const { state, addVocabItems, saveVocabDb } = useStore()
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<any[]>([])
   const [previewKanjis, setPreviewKanjis] = useState<string[]>([])
   const [step, setStep] = useState<'select' | 'preview'>('select')
+  const [discarded, setDiscarded] = useState<Set<string>>(new Set())
+  const [showManual, setShowManual] = useState(false)
+  const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
   const lang = state.lang
 
   const existingWords = new Set(state.db.map(i => i.jp))
@@ -62,30 +75,73 @@ export default function VocabularyClient() {
       const newVocab = (vocab || []).filter((v: any) => !existingWords.has(v.word))
       setPreview(newVocab)
       setPreviewKanjis(newKanjis)
+      setDiscarded(new Set())
       setStep('preview')
     } catch (e) {
       showToast('Error', 'error')
     } finally { setLoading(false) }
   }
 
-  async function addToStudy() {
-    const newItems: VocabItem[] = preview.filter(v => !existingWords.has(v.word)).map(v => ({
-      kanji: v.kanji, jp: v.word, reading: v.reading,
-      meaning: v.meaning_es,
-      meaning_ca: v.meaning_ca,
-      meaning_en: v.meaning_en,
-      srsLevel: 0, due: 0, status: 'locked',
-    } as VocabItem))
-    if (newItems.length === 0) return
+  function toggleDiscard(word: string) {
+    setDiscarded(prev => {
+      const next = new Set(prev)
+      if (next.has(word)) next.delete(word)
+      else next.add(word)
+      return next
+    })
+  }
+
+  function discardAllKanji(kanjiChar: string) {
+    setDiscarded(prev => {
+      const next = new Set(prev)
+      preview.filter(v => v.kanji === kanjiChar && !existingWords.has(v.word)).forEach(v => next.add(v.word))
+      return next
+    })
+  }
+
+  async function addSelectedToSrs() {
+    const now = Date.now()
+    const selected = preview.filter(v => !existingWords.has(v.word) && !discarded.has(v.word))
+    if (selected.length === 0) {
+      showToast(t(lang, 'vocab_none_selected'), 'info')
+      return
+    }
+    const newItems: VocabItem[] = selected.map(v => {
+      const base: VocabItem = {
+        kanji: v.kanji, jp: v.word, reading: v.reading,
+        meaning: v.meaning_es,
+        meaning_ca: v.meaning_ca,
+        meaning_en: v.meaning_en,
+        srsLevel: 1, due: now, status: 'active',
+      } as VocabItem
+      return activateItem(base, 1, now)
+    })
     try {
       await addVocabItems(newItems)
-      showToast(`✅ ${newItems.length} ${t(lang, 'study_words')}`, 'success')
+      showToast(`${newItems.length} ${t(lang, 'vocab_added_srs')}`, 'success')
       setStep('select')
       setPreview([])
+      setDiscarded(new Set())
     } catch {
       /* toast ya mostrado por el store */
     }
   }
+
+  async function addManual() {
+    const { kanji, jp, reading, meaning: m } = form
+    if (!kanji || !jp || !reading || !m) { showToast('Error', 'error'); return }
+    if (state.db.some(d => d.jp === jp)) { showToast('Error', 'error'); return }
+    const now = Date.now()
+    const base: VocabItem = { kanji, jp, reading, meaning: m, srsLevel: 1, due: now, status: 'active' }
+    const item = activateItem(base, 1, now)
+    try {
+      await addVocabItems([item])
+      setForm({ kanji: '', jp: '', reading: '', meaning: '' })
+      showToast('OK', 'success')
+    } catch { /* toast en store */ }
+  }
+
+  const selectedCount = preview.filter(v => !existingWords.has(v.word) && !discarded.has(v.word)).length
 
   const grouped: Record<string, any[]> = {}
   preview.forEach(v => { if (!grouped[v.kanji]) grouped[v.kanji] = []; grouped[v.kanji].push(v) })
@@ -179,6 +235,7 @@ export default function VocabularyClient() {
 
       {step === 'preview' && (
         <div className="space-y-4">
+          {/* Sticky action bar */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -189,17 +246,23 @@ export default function VocabularyClient() {
                   </span>
                 </h3>
                 <p className="text-slate-400 text-sm">
-                  {preview.filter(v => !existingWords.has(v.word)).length} {t(lang, 'vocab_preview_new')}
+                  {selectedCount} {t(lang, 'vocab_selected_count')}
+                  {discarded.size > 0 && (
+                    <span className="ml-2 text-rose-400">
+                      · {discarded.size} {t(lang, 'vocab_discarded_count')}
+                    </span>
+                  )}
                 </p>
               </div>
-              <button onClick={() => setStep('select')} className="text-slate-400 hover:text-slate-600 text-sm underline">
+              <button onClick={() => { setStep('select'); setDiscarded(new Set()) }} className="text-slate-400 hover:text-slate-600 text-sm underline">
                 {t(lang, 'vocab_back')}
               </button>
             </div>
+            <p className="text-xs text-slate-400 mb-3">{t(lang, 'vocab_hint')}</p>
             <div className="flex gap-3">
-              <button onClick={addToStudy}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">
-                {t(lang, 'vocab_add')}
+              <button onClick={addSelectedToSrs} disabled={selectedCount === 0}
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition">
+                {t(lang, 'vocab_activate_srs')} ({selectedCount})
               </button>
               <button onClick={loadPreview} disabled={loading}
                 className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition text-sm">
@@ -208,31 +271,106 @@ export default function VocabularyClient() {
             </div>
           </div>
 
+          {/* Words grouped by kanji */}
           <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scroll pr-1">
-            {Object.entries(grouped).map(([kanji, words]) => (
-              <div key={kanji} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                <div className="bg-slate-50 px-4 py-3 flex items-center gap-3">
-                  <span className="kanji-font text-3xl font-bold text-slate-700">{kanji}</span>
-                  <span className="text-xs text-slate-400">{words.length} {t(lang, 'study_words')}</span>
+            {Object.entries(grouped).map(([kanji, words]) => {
+              const newWords = words.filter((w: any) => !existingWords.has(w.word))
+              const allDiscarded = newWords.length > 0 && newWords.every((w: any) => discarded.has(w.word))
+              return (
+                <div key={kanji} className={`bg-white rounded-2xl border overflow-hidden shadow-sm transition-all ${allDiscarded ? 'border-rose-200 opacity-60' : 'border-slate-100'}`}>
+                  <div className="bg-slate-50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="kanji-font text-3xl font-bold text-slate-700">{kanji}</span>
+                      <span className="text-xs text-slate-400">{words.length} {t(lang, 'study_words')}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => discardAllKanji(kanji)}
+                      className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs border border-rose-200/80 transition"
+                    >
+                      {t(lang, 'vocab_discard_kanji')}
+                    </button>
+                  </div>
+                  <div className="divide-y divide-slate-50">
+                    {words.map((w: any) => {
+                      const alreadyHas = existingWords.has(w.word)
+                      const isDiscarded = discarded.has(w.word)
+                      return (
+                        <div key={w.word}
+                          className={`px-4 py-3 flex items-center gap-4 transition-all ${
+                            alreadyHas ? 'opacity-30 bg-slate-50'
+                            : isDiscarded ? 'opacity-40 bg-rose-50/50'
+                            : 'hover:bg-indigo-50/30'
+                          }`}>
+                          <span className="kanji-font text-xl font-bold text-slate-800 w-24">{w.word}</span>
+                          <span className="text-indigo-600 font-semibold text-sm w-28">{w.reading}</span>
+                          <span className="text-slate-500 text-sm flex-1">{meaning(w)}</span>
+                          {alreadyHas ? (
+                            <span className="text-xs text-slate-300 shrink-0">{t(lang, 'vocab_already')}</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleDiscard(w.word)}
+                              className={`shrink-0 px-3 py-1.5 rounded-lg font-semibold text-xs border transition ${
+                                isDiscarded
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200/80'
+                              }`}
+                            >
+                              {isDiscarded ? t(lang, 'vocab_undo') : t(lang, 'vocab_discard')}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="divide-y divide-slate-50">
-                  {words.map((w: any) => {
-                    const alreadyHas = existingWords.has(w.word)
-                    return (
-                      <div key={w.word} className={`px-4 py-3 flex items-center gap-4 ${alreadyHas ? 'opacity-40' : ''}`}>
-                        <span className="kanji-font text-xl font-bold text-slate-800 w-24">{w.word}</span>
-                        <span className="text-indigo-600 font-semibold text-sm w-28">{w.reading}</span>
-                        <span className="text-slate-500 text-sm flex-1">{meaning(w)}</span>
-                        {alreadyHas && <span className="text-xs text-slate-300 shrink-0">{t(lang, 'vocab_already')}</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
+
+      {/* Manual add section */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowManual(v => !v)}
+          className="w-full px-5 py-3.5 flex items-center justify-between text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+        >
+          {t(lang, 'study_add_title')}
+          <span className="text-slate-400">{showManual ? '−' : '+'}</span>
+        </button>
+        {showManual && (
+          <div className="px-5 pb-5 pt-0 border-t border-slate-100 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {(['kanji', 'jp', 'reading', 'meaning'] as const).map(field => (
+                <input
+                  key={field}
+                  type="text"
+                  autoComplete="off"
+                  value={form[field]}
+                  onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+                  placeholder={{
+                    kanji: t(lang, 'study_kanji_ph'),
+                    jp: t(lang, 'study_word_ph'),
+                    reading: t(lang, 'study_reading_ph'),
+                    meaning: t(lang, 'study_meaning_ph'),
+                  }[field]}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addManual}
+              className="px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition"
+            >
+              {t(lang, 'study_add_btn')}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
