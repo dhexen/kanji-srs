@@ -27,7 +27,6 @@ export default function VocabularyClient() {
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<any[]>([])
-  const [previewKanjis, setPreviewKanjis] = useState<string[]>([])
   const [step, setStep] = useState<'select' | 'preview'>('select')
   const [discarded, setDiscarded] = useState<Set<string>>(new Set())
   const [showManual, setShowManual] = useState(false)
@@ -74,7 +73,6 @@ export default function VocabularyClient() {
       const vocab = await getVocabularyByKanjis(newKanjis)
       const newVocab = (vocab || []).filter((v: any) => !existingWords.has(v.word))
       setPreview(newVocab)
-      setPreviewKanjis(newKanjis)
       setDiscarded(new Set())
       setStep('preview')
     } catch (e) {
@@ -234,31 +232,21 @@ export default function VocabularyClient() {
       )}
 
       {step === 'preview' && (
-        <div className="space-y-4">
-          {/* Sticky action bar */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-slate-800 text-lg">
-                  {t(lang, 'vocab_preview_title')} — {previewKanjis.length} kanjis
-                  <span className="ml-2 text-xs font-normal text-slate-400">
-                    ({GRADES.find(g => g.value === grade) ? gradeLabel(GRADES.find(g => g.value === grade)!) : ''})
-                  </span>
-                </h3>
-                <p className="text-slate-400 text-sm">
-                  {selectedCount} {t(lang, 'vocab_selected_count')}
-                  {discarded.size > 0 && (
-                    <span className="ml-2 text-rose-400">
-                      · {discarded.size} {t(lang, 'vocab_discarded_count')}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <button onClick={() => { setStep('select'); setDiscarded(new Set()) }} className="text-slate-400 hover:text-slate-600 text-sm underline">
+        <div className="space-y-6">
+          {/* Action bar */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-slate-500 text-sm">
+                {selectedCount} {t(lang, 'vocab_selected_count')}
+                {discarded.size > 0 && (
+                  <span className="ml-2 text-slate-400">· {discarded.size} {t(lang, 'vocab_discarded_count')}</span>
+                )}
+              </p>
+              <button onClick={() => { setStep('select'); setDiscarded(new Set()) }}
+                className="text-slate-400 hover:text-slate-600 text-sm underline">
                 {t(lang, 'vocab_back')}
               </button>
             </div>
-            <p className="text-xs text-slate-400 mb-3">{t(lang, 'vocab_hint')}</p>
             <div className="flex gap-3">
               <button onClick={addSelectedToSrs} disabled={selectedCount === 0}
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition">
@@ -271,63 +259,67 @@ export default function VocabularyClient() {
             </div>
           </div>
 
-          {/* Words grouped by kanji */}
-          <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scroll pr-1">
-            {Object.entries(grouped).map(([kanji, words]) => {
-              const newWords = words.filter((w: any) => !existingWords.has(w.word))
-              const allDiscarded = newWords.length > 0 && newWords.every((w: any) => discarded.has(w.word))
-              return (
-                <div key={kanji} className={`bg-white rounded-2xl border overflow-hidden shadow-sm transition-all ${allDiscarded ? 'border-rose-200 opacity-60' : 'border-slate-100'}`}>
-                  <div className="bg-slate-50 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="kanji-font text-3xl font-bold text-slate-700">{kanji}</span>
-                      <span className="text-xs text-slate-400">{words.length} {t(lang, 'study_words')}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => discardAllKanji(kanji)}
-                      className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs border border-rose-200/80 transition"
-                    >
-                      {t(lang, 'vocab_discard_kanji')}
-                    </button>
+          {/* Words grouped by kanji — card layout */}
+          {Object.entries(grouped).map(([kanji, words]) => (
+            <div key={kanji}>
+              {/* Kanji group header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
+                    <span className="kanji-font text-2xl font-bold text-indigo-500">{kanji}</span>
                   </div>
-                  <div className="divide-y divide-slate-50">
-                    {words.map((w: any) => {
-                      const alreadyHas = existingWords.has(w.word)
-                      const isDiscarded = discarded.has(w.word)
-                      return (
-                        <div key={w.word}
-                          className={`px-4 py-3 flex items-center gap-4 transition-all ${
-                            alreadyHas ? 'opacity-30 bg-slate-50'
-                            : isDiscarded ? 'opacity-40 bg-rose-50/50'
-                            : 'hover:bg-indigo-50/30'
-                          }`}>
-                          <span className="kanji-font text-xl font-bold text-slate-800 w-24">{w.word}</span>
-                          <span className="text-indigo-600 font-semibold text-sm w-28">{w.reading}</span>
-                          <span className="text-slate-500 text-sm flex-1">{meaning(w)}</span>
-                          {alreadyHas ? (
-                            <span className="text-xs text-slate-300 shrink-0">{t(lang, 'vocab_already')}</span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleDiscard(w.word)}
-                              className={`shrink-0 px-3 py-1.5 rounded-lg font-semibold text-xs border transition ${
-                                isDiscarded
-                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
-                                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200/80'
-                              }`}
-                            >
-                              {isDiscarded ? t(lang, 'vocab_undo') : t(lang, 'vocab_discard')}
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
+                  <div>
+                    <h3 className="font-bold text-slate-800">{t(lang, 'study_kanji_label')} {kanji}</h3>
+                    <p className="text-slate-400 text-sm">{t(lang, 'study_keywords_sub')}</p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
+                <button
+                  type="button"
+                  onClick={() => discardAllKanji(kanji)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold text-sm border border-indigo-100 transition shrink-0"
+                >
+                  🎓 {t(lang, 'study_master_kanji')}
+                </button>
+              </div>
+
+              {/* Word cards grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {words.map((w: any) => {
+                  const alreadyHas = existingWords.has(w.word)
+                  const isDiscarded = discarded.has(w.word)
+                  return (
+                    <div key={w.word}
+                      className={`bg-white rounded-2xl border p-4 shadow-sm transition-all ${
+                        alreadyHas ? 'opacity-40 border-slate-100'
+                        : isDiscarded ? 'border-slate-200 opacity-50'
+                        : 'border-slate-100'
+                      }`}>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
+                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
+                      </div>
+                      <p className="text-slate-500 text-sm mb-3">{meaning(w)}</p>
+                      {alreadyHas ? (
+                        <span className="text-xs text-slate-300">{t(lang, 'vocab_already')}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleDiscard(w.word)}
+                          className={`flex items-center gap-1.5 text-sm font-semibold rounded-lg px-3 py-1.5 transition border ${
+                            isDiscarded
+                              ? 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {isDiscarded ? t(lang, 'vocab_undo') : <>✓ {t(lang, 'study_known_btn')}</>}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
