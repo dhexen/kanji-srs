@@ -20,11 +20,16 @@ npm install
 ```
 
 ### 3. Variables de entorno
-El archivo `.env.local` ya tiene las credenciales de Supabase configuradas.  
-Si quieres añadir tu propia API Key de Gemini en el servidor:
+El archivo `.env.local` debe incluir:
+
 ```
-GEMINI_API_KEY=tu_key_aqui
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...   # Panel Admin: crear/eliminar usuarios y restaurar backups
+GEMINI_API_KEY=tu_key_aqui      # opcional, servidor
 ```
+
+La **service role** solo se usa en rutas API del servidor (`/api/admin/*`). No la expongas en el cliente.
 
 ### 4. Arrancar en local
 ```bash
@@ -43,7 +48,8 @@ Abre http://localhost:3000
 
 Ejecuta el script de migración en el SQL Editor de Supabase:
 
-`supabase/migrations/001_vocab_progress_schema.sql`
+- `supabase/migrations/001_vocab_progress_schema.sql`
+- `supabase/migrations/002_admin_policies.sql`
 
 Crea estas tablas:
 
