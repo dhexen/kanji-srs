@@ -15,6 +15,7 @@ import {
   saveLanguage,
 } from './supabase'
 import type { Lang } from './i18n'
+import { showToast } from '@/components/ui/Toast'
 
 export type { ContextText }
 
@@ -69,6 +70,10 @@ function appReducer(state: State, action: Action): State {
   }
 }
 
+function canPersist(userRef: React.RefObject<{ email: string; id: string } | null>, hydratingRef: React.RefObject<boolean>) {
+  return Boolean(userRef.current) && !hydratingRef.current
+}
+
 async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: VocabItem[]) {
   switch (action.type) {
     case 'APPLY_RESULT': {
@@ -84,17 +89,17 @@ async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: Voc
         levelBefore,
         levelAfter,
         dueAfter,
-      })
+      }, nextDb)
       break
     }
     case 'ADD_ITEMS': {
       const existing = new Set(prevDb.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
-      if (newItems.length > 0) await upsertVocabItems(newItems)
+      if (newItems.length > 0) await upsertVocabItems(newItems, nextDb)
       break
     }
     case 'SET_DB': {
-      if (nextDb.length > 0) await upsertVocabItems(nextDb)
+      if (nextDb.length > 0) await upsertVocabItems(nextDb, nextDb)
       break
     }
     default:
@@ -102,9 +107,17 @@ async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: Voc
   }
 }
 
+function reportPersistError(e: unknown) {
+  console.error('Persist failed:', e)
+  const msg = e instanceof Error ? e.message : 'Error guardando en la nube'
+  showToast(msg.includes('autenticado') ? 'Inicia sesión para guardar' : `No se pudo guardar: ${msg}`, 'error')
+}
+
 interface StoreContextType {
   state: State
   dispatch: React.Dispatch<Action>
+  addVocabItems: (items: VocabItem[]) => Promise<void>
+  saveVocabDb: (db: VocabItem[]) => Promise<void>
   applyReviewResult: (jp: string, mode: ReviewMode, isCorrect: boolean) => void
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
@@ -129,12 +142,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const dbRef = useRef<VocabItem[]>([])
   const userRef = useRef<{ email: string; id: string } | null>(null)
   const loadedRef = useRef(false)
+  const hydratingRef = useRef(false)
   const contextTextsRef = useRef<ContextText[]>([])
 
   useEffect(() => { dbRef.current = state.db }, [state.db])
   useEffect(() => { userRef.current = state.user }, [state.user])
   useEffect(() => { loadedRef.current = state.loaded }, [state.loaded])
   useEffect(() => { contextTextsRef.current = state.contextTexts }, [state.contextTexts])
+
+  const runPersist = useCallback((action: Action, prevDb: VocabItem[], nextDb: VocabItem[]) => {
+    if (!canPersist(userRef, hydratingRef)) return
+    void persistForAction(action, prevDb, nextDb).catch(reportPersistError)
+  }, [])
 
   const dispatchPersist = useCallback((action: Action) => {
     const prevDb = dbRef.current
@@ -145,11 +164,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       )
       dbRef.current = nextDb
       dispatch({ type: 'SET_DB', payload: nextDb })
-      if (userRef.current && loadedRef.current) {
-        void persistForAction(action, prevDb, nextDb).catch(e =>
-          console.error('Persist failed:', e),
-        )
-      }
+      runPersist(action, prevDb, nextDb)
       return
     }
 
@@ -158,46 +173,86 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dbRef.current = nextState.db
     }
     dispatch(action)
-    if (userRef.current && loadedRef.current && action.type !== 'RESET') {
-      void persistForAction(action, prevDb, nextState.db).catch(e =>
-        console.error('Persist failed:', e),
-      )
+    if (action.type !== 'RESET') {
+      runPersist(action, prevDb, nextState.db)
     }
-  }, [state])
+  }, [state, runPersist])
+
+  const addVocabItems = useCallback(async (items: VocabItem[]) => {
+    if (!userRef.current) {
+      showToast('Inicia sesión para guardar el vocabulario', 'error')
+      throw new Error('No autenticado')
+    }
+    const prevDb = dbRef.current
+    const existing = new Set(prevDb.map(i => i.jp))
+    const newItems = items.filter(i => !existing.has(i.jp))
+    if (newItems.length === 0) return
+
+    const nextDb = [...prevDb, ...newItems]
+    dbRef.current = nextDb
+    dispatch({ type: 'SET_DB', payload: nextDb })
+
+    try {
+      await upsertVocabItems(newItems, nextDb)
+    } catch (e) {
+      reportPersistError(e)
+      throw e
+    }
+  }, [])
+
+  const saveVocabDb = useCallback(async (db: VocabItem[]) => {
+    if (!userRef.current) {
+      showToast('Inicia sesión para guardar el vocabulario', 'error')
+      throw new Error('No autenticado')
+    }
+    dbRef.current = db
+    dispatch({ type: 'SET_DB', payload: db })
+    try {
+      await upsertVocabItems(db, db)
+    } catch (e) {
+      reportPersistError(e)
+      throw e
+    }
+  }, [])
 
   const applyReviewResult = useCallback((jp: string, mode: ReviewMode, isCorrect: boolean) => {
     dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
   }, [dispatchPersist])
 
   const syncDown = useCallback(async () => {
+    hydratingRef.current = true
     try {
       dispatch({ type: 'SET_SYNCING', payload: true })
       const data = await downloadAccountData()
       if (data) {
-        if (data.vocab.length > 0) {
-          const migrated = data.vocab.map(migrateItem)
-          dispatch({ type: 'SET_DB', payload: migrated })
-          dbRef.current = migrated
-        }
+        const migrated = data.vocab.length > 0 ? data.vocab.map(migrateItem) : []
+        dispatch({ type: 'SET_DB', payload: migrated })
+        dbRef.current = migrated
         if (data.gemini_api_key) dispatch({ type: 'SET_GEMINI_KEY', payload: data.gemini_api_key })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
       }
     } catch (e) {
       console.error('Error descargando progreso:', e)
+      showToast('Error cargando tu progreso', 'error')
     } finally {
+      hydratingRef.current = false
+      loadedRef.current = true
       dispatch({ type: 'SET_SYNCING', payload: false })
       dispatch({ type: 'SET_LOADED' })
     }
   }, [])
 
   const syncUp = useCallback(async () => {
+    if (!userRef.current) return
     try {
       dispatch({ type: 'SET_SYNCING', payload: true })
-      await upsertVocabItems(dbRef.current)
+      await upsertVocabItems(dbRef.current, dbRef.current)
       await createManualSnapshot(dbRef.current, 'manual_sync')
+      showToast('Progreso guardado en la nube', 'success')
     } catch (e) {
-      console.error('Error subiendo progreso:', e)
+      reportPersistError(e)
+      throw e
     } finally {
       dispatch({ type: 'SET_SYNCING', payload: false })
     }
@@ -247,6 +302,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_ROLE', payload: role })
         await syncDown()
       } else {
+        hydratingRef.current = false
+        loadedRef.current = true
         dispatch({ type: 'SET_DB', payload: [] })
         dispatch({ type: 'SET_LOADED' })
       }
@@ -271,6 +328,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const user = { email: data.user.email!, id: data.user.id }
       dispatch({ type: 'SET_USER', payload: user })
       userRef.current = user
+      hydratingRef.current = false
+      loadedRef.current = true
       dispatch({ type: 'SET_ROLE', payload: 'user' })
       dispatch({ type: 'SET_LOADED' })
     }
@@ -278,6 +337,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
+    hydratingRef.current = false
+    loadedRef.current = false
     dispatch({ type: 'SET_USER', payload: null })
     dispatch({ type: 'SET_ROLE', payload: 'user' })
     dispatch({ type: 'SET_DB', payload: [] })
@@ -293,6 +354,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     <StoreContext.Provider value={{
       state,
       dispatch: dispatchPersist,
+      addVocabItems,
+      saveVocabDb,
       applyReviewResult,
       syncUp,
       syncDown,

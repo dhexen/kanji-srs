@@ -12,6 +12,26 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(url, key)
 
+/** True after we detect user_vocab_progress is unavailable (migration not applied). */
+let legacyVocabMode = false
+
+export function isLegacyVocabMode() {
+  return legacyVocabMode
+}
+
+function isSchemaUnavailable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  const msg = (error.message ?? '').toLowerCase()
+  return (
+    error.code === '42P01'
+    || error.code === 'PGRST205'
+    || msg.includes('does not exist')
+    || msg.includes('schema cache')
+    || msg.includes('user_vocab_progress')
+    || msg.includes('user_settings')
+  )
+}
+
 async function requireUser() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
@@ -25,61 +45,167 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 // ---------------------------------------------------------------------------
-// Vocabulary progress (normalized)
+// Legacy srs_progress (fallback when normalized tables are missing)
+// ---------------------------------------------------------------------------
+
+interface LegacyProgress {
+  vocab_db?: VocabItem[]
+  gemini_api_key?: string
+  context_texts?: ContextText[]
+  language?: string
+}
+
+export async function fetchLegacyProgress(): Promise<LegacyProgress | null> {
+  const user = await requireUser()
+  const { data, error } = await supabase
+    .from('srs_progress')
+    .select('vocab_db, gemini_api_key, context_texts, language')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (error) { console.error('legacy progress:', error); return null }
+  return data ?? null
+}
+
+async function uploadLegacyVocab(vocabDb: VocabItem[]): Promise<void> {
+  const user = await requireUser()
+  const legacy = await fetchLegacyProgress()
+  const { error } = await supabase.from('srs_progress').upsert({
+    user_id: user.id,
+    vocab_db: vocabDb,
+    gemini_api_key: legacy?.gemini_api_key ?? null,
+    context_texts: legacy?.context_texts ?? [],
+    language: legacy?.language ?? 'es',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
+// Vocabulary progress
 // ---------------------------------------------------------------------------
 
 export async function fetchUserVocab(): Promise<VocabItem[]> {
+  if (legacyVocabMode) {
+    const legacy = await fetchLegacyProgress()
+    return Array.isArray(legacy?.vocab_db) ? legacy.vocab_db : []
+  }
+
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_vocab_progress')
     .select('*')
     .eq('user_id', user.id)
     .order('jp')
-  if (error) throw error
+
+  if (error) {
+    if (isSchemaUnavailable(error)) {
+      legacyVocabMode = true
+      return fetchUserVocab()
+    }
+    throw error
+  }
   return (data || []).map(rowToVocabItem)
 }
 
-export async function upsertVocabItem(item: VocabItem): Promise<void> {
+export async function upsertVocabItem(item: VocabItem, fullDb?: VocabItem[]): Promise<void> {
+  if (legacyVocabMode) {
+    const db = fullDb ?? (await fetchUserVocab())
+    const merged = db.some(i => i.jp === item.jp)
+      ? db.map(i => i.jp === item.jp ? item : i)
+      : [...db, item]
+    await uploadLegacyVocab(merged)
+    return
+  }
+
   const user = await requireUser()
   const { error } = await supabase
     .from('user_vocab_progress')
     .upsert(vocabItemToRow(user.id, item), { onConflict: 'user_id,jp' })
-  if (error) throw error
+
+  if (error) {
+    if (isSchemaUnavailable(error)) {
+      legacyVocabMode = true
+      await upsertVocabItem(item, fullDb)
+      return
+    }
+    throw error
+  }
 }
 
-export async function upsertVocabItems(items: VocabItem[]): Promise<void> {
-  if (items.length === 0) return
+export async function upsertVocabItems(items: VocabItem[], fullDb?: VocabItem[]): Promise<void> {
+  if (items.length === 0 && !fullDb?.length) return
+
+  if (legacyVocabMode) {
+    const db = fullDb ?? await fetchUserVocab()
+    const byJp = new Map(db.map(i => [i.jp, i]))
+    for (const item of items) byJp.set(item.jp, item)
+    await uploadLegacyVocab(Array.from(byJp.values()))
+    return
+  }
+
   const user = await requireUser()
   const rows = items.map(i => vocabItemToRow(user.id, i))
-  for (const part of chunk(rows, UPSERT_CHUNK_SIZE)) {
-    const { error } = await supabase
-      .from('user_vocab_progress')
-      .upsert(part, { onConflict: 'user_id,jp' })
-    if (error) throw error
+  try {
+    for (const part of chunk(rows, UPSERT_CHUNK_SIZE)) {
+      const { error } = await supabase
+        .from('user_vocab_progress')
+        .upsert(part, { onConflict: 'user_id,jp' })
+      if (error) throw error
+    }
+  } catch (error) {
+    if (isSchemaUnavailable(error as { code?: string; message?: string })) {
+      legacyVocabMode = true
+      await upsertVocabItems(items, fullDb)
+      return
+    }
+    throw error
   }
 }
 
 export async function deleteAllUserVocab(): Promise<void> {
   const user = await requireUser()
-  const { error } = await supabase
-    .from('user_vocab_progress')
-    .delete()
-    .eq('user_id', user.id)
-  if (error) throw error
+  if (!legacyVocabMode) {
+    const { error } = await supabase
+      .from('user_vocab_progress')
+      .delete()
+      .eq('user_id', user.id)
+    if (error && !isSchemaUnavailable(error)) throw error
+  }
+  const legacy = await fetchLegacyProgress()
+  await supabase.from('srs_progress').upsert({
+    user_id: user.id,
+    vocab_db: [],
+    gemini_api_key: legacy?.gemini_api_key ?? null,
+    context_texts: legacy?.context_texts ?? [],
+    language: legacy?.language ?? 'es',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
 }
 
 export async function countUserVocab(userId?: string): Promise<number> {
+  if (legacyVocabMode) {
+    const legacy = await fetchLegacyProgress()
+    return Array.isArray(legacy?.vocab_db) ? legacy.vocab_db.length : 0
+  }
+
   const id = userId ?? (await requireUser()).id
   const { count, error } = await supabase
     .from('user_vocab_progress')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', id)
-  if (error) throw error
+
+  if (error) {
+    if (isSchemaUnavailable(error)) {
+      legacyVocabMode = true
+      return countUserVocab(userId)
+    }
+    throw error
+  }
   return count ?? 0
 }
 
 // ---------------------------------------------------------------------------
-// Settings (separate from progress)
+// Settings
 // ---------------------------------------------------------------------------
 
 export async function fetchUserSettings(): Promise<{
@@ -93,7 +219,20 @@ export async function fetchUserSettings(): Promise<{
     .select('gemini_api_key, context_texts, language')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (error) { console.error('fetchUserSettings:', error); return null }
+
+  if (error) {
+    if (isSchemaUnavailable(error)) {
+      const legacy = await fetchLegacyProgress()
+      if (!legacy) return null
+      return {
+        gemini_api_key: legacy.gemini_api_key ?? '',
+        context_texts: (legacy.context_texts as ContextText[]) ?? [],
+        language: legacy.language ?? 'es',
+      }
+    }
+    console.error('fetchUserSettings:', error)
+    return null
+  }
   if (!data) return null
   return {
     gemini_api_key: data.gemini_api_key ?? '',
@@ -104,40 +243,81 @@ export async function fetchUserSettings(): Promise<{
 
 async function ensureUserSettingsRow(): Promise<string> {
   const user = await requireUser()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_settings')
     .select('user_id')
     .eq('user_id', user.id)
     .maybeSingle()
+
+  if (error && isSchemaUnavailable(error)) return user.id
+
   if (!data) {
-    const { error } = await supabase.from('user_settings').insert({ user_id: user.id })
-    if (error) throw error
+    const { error: insertErr } = await supabase.from('user_settings').insert({ user_id: user.id })
+    if (insertErr && !isSchemaUnavailable(insertErr)) throw insertErr
   }
   return user.id
 }
 
-export async function saveGeminiKey(key: string) {
-  const userId = await ensureUserSettingsRow()
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert({ user_id: userId, gemini_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+async function upsertLegacySettings(patch: Partial<LegacyProgress>) {
+  const user = await requireUser()
+  const legacy = await fetchLegacyProgress()
+  const { error } = await supabase.from('srs_progress').upsert({
+    user_id: user.id,
+    vocab_db: legacy?.vocab_db ?? [],
+    gemini_api_key: patch.gemini_api_key ?? legacy?.gemini_api_key ?? null,
+    context_texts: patch.context_texts ?? legacy?.context_texts ?? [],
+    language: patch.language ?? legacy?.language ?? 'es',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
   if (error) throw error
+}
+
+export async function saveGeminiKey(key: string) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, gemini_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
+      await upsertLegacySettings({ gemini_api_key: key })
+      return
+    }
+    throw e
+  }
 }
 
 export async function saveContextTexts(texts: ContextText[]) {
-  const userId = await ensureUserSettingsRow()
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert({ user_id: userId, context_texts: texts.slice(0, 10), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-  if (error) throw error
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, context_texts: texts.slice(0, 10), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
+      await upsertLegacySettings({ context_texts: texts.slice(0, 10) })
+      return
+    }
+    throw e
+  }
 }
 
 export async function saveLanguage(lang: string) {
-  const userId = await ensureUserSettingsRow()
-  const { error } = await supabase
-    .from('user_settings')
-    .upsert({ user_id: userId, language: lang, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-  if (error) throw error
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, language: lang, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
+      await upsertLegacySettings({ language: lang })
+      return
+    }
+    throw e
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -147,31 +327,39 @@ export async function saveLanguage(lang: string) {
 export async function saveReviewResult(
   item: VocabItem,
   meta: { jp: string; mode: ReviewMode; isCorrect: boolean; levelBefore: number; levelAfter: number; dueAfter: number },
+  fullDb: VocabItem[],
 ): Promise<void> {
   const user = await requireUser()
-  await upsertVocabItem(item)
+  await upsertVocabItem(item, fullDb)
 
-  const { error: logError } = await supabase.from('srs_review_log').insert({
-    user_id: user.id,
-    jp: meta.jp,
-    mode: meta.mode,
-    is_correct: meta.isCorrect,
-    level_before: meta.levelBefore,
-    level_after: meta.levelAfter,
-    due_after: meta.dueAfter,
-  })
-  if (logError) console.error('srs_review_log:', logError)
-
-  await maybeCreateSnapshot(user.id)
+  if (!legacyVocabMode) {
+    const { error: logError } = await supabase.from('srs_review_log').insert({
+      user_id: user.id,
+      jp: meta.jp,
+      mode: meta.mode,
+      is_correct: meta.isCorrect,
+      level_before: meta.levelBefore,
+      level_after: meta.levelAfter,
+      due_after: meta.dueAfter,
+    })
+    if (logError && !isSchemaUnavailable(logError)) console.error('srs_review_log:', logError)
+    await maybeCreateSnapshot(user.id)
+  }
 }
 
 async function maybeCreateSnapshot(userId: string): Promise<void> {
+  if (legacyVocabMode) return
+
   const { data: settings, error: readErr } = await supabase
     .from('user_settings')
     .select('reviews_since_snapshot')
     .eq('user_id', userId)
     .maybeSingle()
-  if (readErr) { console.error('snapshot counter read:', readErr); return }
+  if (readErr) {
+    if (isSchemaUnavailable(readErr)) return
+    console.error('snapshot counter read:', readErr)
+    return
+  }
 
   const prev = settings?.reviews_since_snapshot ?? 0
   const next = prev + 1
@@ -195,7 +383,7 @@ async function maybeCreateSnapshot(userId: string): Promise<void> {
     snapshot,
     reason: 'scheduled',
   })
-  if (snapErr) console.error('snapshot insert:', snapErr)
+  if (snapErr && !isSchemaUnavailable(snapErr)) console.error('snapshot insert:', snapErr)
 
   await supabase
     .from('user_settings')
@@ -203,66 +391,54 @@ async function maybeCreateSnapshot(userId: string): Promise<void> {
 }
 
 export async function createManualSnapshot(vocab: VocabItem[], reason = 'manual'): Promise<void> {
+  if (legacyVocabMode) return
   const user = await requireUser()
   const { error } = await supabase.from('srs_progress_snapshots').insert({
     user_id: user.id,
     snapshot: vocab,
     reason,
   })
-  if (error) throw error
-}
-
-// ---------------------------------------------------------------------------
-// Legacy srs_progress migration
-// ---------------------------------------------------------------------------
-
-interface LegacyProgress {
-  vocab_db?: VocabItem[]
-  gemini_api_key?: string
-  context_texts?: ContextText[]
-  language?: string
-}
-
-export async function fetchLegacyProgress(): Promise<LegacyProgress | null> {
-  const user = await requireUser()
-  const { data, error } = await supabase
-    .from('srs_progress')
-    .select('vocab_db, gemini_api_key, context_texts, language')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (error) { console.error('legacy progress:', error); return null }
-  return data ?? null
+  if (error && !isSchemaUnavailable(error)) throw error
 }
 
 export async function migrateLegacyProgressIfNeeded(): Promise<boolean> {
-  const user = await requireUser()
-  const count = await countUserVocab(user.id)
-  if (count > 0) return false
+  if (legacyVocabMode) return false
 
-  const legacy = await fetchLegacyProgress()
-  if (!legacy) return false
+  try {
+    const user = await requireUser()
+    const count = await countUserVocab(user.id)
+    if (count > 0) return false
 
-  const vocab = legacy.vocab_db
-  if (Array.isArray(vocab) && vocab.length > 0) {
-    await upsertVocabItems(vocab)
-    await createManualSnapshot(vocab, 'legacy_migration')
+    const legacy = await fetchLegacyProgress()
+    if (!legacy) return false
+
+    const vocab = legacy.vocab_db
+    if (Array.isArray(vocab) && vocab.length > 0) {
+      await upsertVocabItems(vocab, vocab)
+      try { await createManualSnapshot(vocab, 'legacy_migration') } catch { /* optional */ }
+    }
+
+    const hasSettings = legacy.gemini_api_key || legacy.context_texts?.length || legacy.language
+    if (hasSettings && !legacyVocabMode) {
+      await supabase.from('user_settings').upsert({
+        user_id: user.id,
+        gemini_api_key: legacy.gemini_api_key ?? null,
+        context_texts: legacy.context_texts ?? [],
+        language: legacy.language ?? 'es',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+    }
+
+    return true
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
+      legacyVocabMode = true
+    }
+    return false
   }
-
-  const hasSettings = legacy.gemini_api_key || legacy.context_texts?.length || legacy.language
-  if (hasSettings) {
-    await supabase.from('user_settings').upsert({
-      user_id: user.id,
-      gemini_api_key: legacy.gemini_api_key ?? null,
-      context_texts: legacy.context_texts ?? [],
-      language: legacy.language ?? 'es',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
-  }
-
-  return true
 }
 
-/** Load vocab + settings; migrates from srs_progress when needed. */
+/** Load vocab + settings; never throws — falls back to srs_progress. */
 export async function downloadAccountData(): Promise<{
   vocab: VocabItem[]
   gemini_api_key: string
@@ -272,32 +448,37 @@ export async function downloadAccountData(): Promise<{
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  await migrateLegacyProgressIfNeeded()
-
-  const [vocab, settings] = await Promise.all([
-    fetchUserVocab(),
-    fetchUserSettings(),
-  ])
-
-  if (!settings) {
-    const legacy = await fetchLegacyProgress()
-    return {
-      vocab,
-      gemini_api_key: legacy?.gemini_api_key ?? '',
-      context_texts: legacy?.context_texts ?? [],
-      language: legacy?.language ?? 'es',
-    }
+  try {
+    await migrateLegacyProgressIfNeeded()
+  } catch (e) {
+    console.error('migrate:', e)
   }
 
+  let vocab: VocabItem[] = []
+  try {
+    vocab = await fetchUserVocab()
+  } catch (e) {
+    console.error('fetchUserVocab:', e)
+    legacyVocabMode = true
+    const legacy = await fetchLegacyProgress()
+    vocab = Array.isArray(legacy?.vocab_db) ? legacy.vocab_db : []
+  }
+
+  const settings = await fetchUserSettings()
+  if (settings) {
+    return { vocab, ...settings }
+  }
+
+  const legacy = await fetchLegacyProgress()
   return {
     vocab,
-    gemini_api_key: settings.gemini_api_key,
-    context_texts: settings.context_texts,
-    language: settings.language,
+    gemini_api_key: legacy?.gemini_api_key ?? '',
+    context_texts: (legacy?.context_texts as ContextText[]) ?? [],
+    language: legacy?.language ?? 'es',
   }
 }
 
-/** @deprecated Use downloadAccountData */
+/** @deprecated */
 export async function downloadProgress() {
   const data = await downloadAccountData()
   if (!data) return null
@@ -309,10 +490,9 @@ export async function downloadProgress() {
   }
 }
 
-/** @deprecated Use upsertVocabItems */
+/** @deprecated */
 export async function uploadProgress(vocabDb: VocabItem[]) {
-  await upsertVocabItems(vocabDb)
-  await createManualSnapshot(vocabDb, 'bulk_upload')
+  await upsertVocabItems(vocabDb, vocabDb)
 }
 
 // ---------------------------------------------------------------------------
@@ -331,8 +511,24 @@ export async function setUserRole(userId: string, role: 'admin' | 'user') {
 }
 
 export async function fetchVocabCountsByUser(): Promise<Record<string, number>> {
+  if (legacyVocabMode) {
+    const { data, error } = await supabase.from('srs_progress').select('user_id, vocab_db')
+    if (error) throw error
+    const map: Record<string, number> = {}
+    for (const row of data || []) {
+      map[row.user_id] = Array.isArray(row.vocab_db) ? row.vocab_db.length : 0
+    }
+    return map
+  }
+
   const { data, error } = await supabase.from('user_vocab_progress').select('user_id')
-  if (error) throw error
+  if (error) {
+    if (isSchemaUnavailable(error)) {
+      legacyVocabMode = true
+      return fetchVocabCountsByUser()
+    }
+    throw error
+  }
   const map: Record<string, number> = {}
   for (const row of data || []) {
     map[row.user_id] = (map[row.user_id] || 0) + 1

@@ -6,7 +6,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, login, signup, logout, setLang, resetRemoteProgress } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, login, signup, logout, setLang, resetRemoteProgress } = useStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
@@ -38,9 +38,12 @@ export default function StatsClient() {
       try {
         const parsed = JSON.parse(ev.target?.result as string)
         if (Array.isArray(parsed)) {
-          dispatch({ type: 'SET_DB', payload: parsed })
-          if (state.user) syncUp().catch(() => showToast('Error', 'error'))
-          showToast('OK', 'success')
+          if (state.user) {
+            saveVocabDb(parsed).then(() => showToast('OK', 'success')).catch(() => {})
+          } else {
+            dispatch({ type: 'SET_DB', payload: parsed })
+            showToast('OK', 'success')
+          }
         }
       } catch { showToast('Error', 'error') }
     }

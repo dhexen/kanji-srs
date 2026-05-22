@@ -6,7 +6,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
 export default function StudyClient() {
-  const { state, dispatch } = useStore()
+  const { state, addVocabItems, saveVocabDb } = useStore()
   const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
   const lang = state.lang
 
@@ -17,16 +17,18 @@ export default function StudyClient() {
     groups[item.kanji].push(item)
   })
 
-  function addManual() {
+  async function addManual() {
     const { kanji, jp, reading, meaning } = form
     if (!kanji || !jp || !reading || !meaning) { showToast('Error', 'error'); return }
     if (state.db.some(d => d.jp === jp)) { showToast('Error', 'error'); return }
-    dispatch({ type: 'ADD_ITEMS', payload: [{ kanji, jp, reading, meaning, srsLevel: 0, due: 0, status: 'locked' }] })
-    setForm({ kanji: '', jp: '', reading: '', meaning: '' })
-    showToast('OK', 'success')
+    try {
+      await addVocabItems([{ kanji, jp, reading, meaning, srsLevel: 0, due: 0, status: 'locked' }])
+      setForm({ kanji: '', jp: '', reading: '', meaning: '' })
+      showToast('OK', 'success')
+    } catch { /* toast en store */ }
   }
 
-  function activateAll() {
+  async function activateAll() {
     const now = Date.now()
     const updated = state.db.map(item => {
       if (item.status !== 'locked') return item
@@ -34,11 +36,13 @@ export default function StudyClient() {
       Object.values(MODE_CONFIG).forEach(cfg => { (act as any)[cfg.key + '_level'] = 1; (act as any)[cfg.key + '_due'] = now })
       return migrateItem(act)
     })
-    dispatch({ type: 'SET_DB', payload: updated })
-    showToast(`${locked.length} ${t(lang, 'study_words')}`, 'success')
+    try {
+      await saveVocabDb(updated)
+      showToast(`${locked.length} ${t(lang, 'study_words')}`, 'success')
+    } catch { /* toast en store */ }
   }
 
-  function skipKanji(kanjiChar: string) {
+  async function skipKanji(kanjiChar: string) {
     const far = Date.now() + 365 * 10 * 24 * 60 * 60 * 1000
     const updated = state.db.map(item => {
       if (item.kanji !== kanjiChar || item.status !== 'locked') return item
@@ -46,8 +50,10 @@ export default function StudyClient() {
       Object.values(MODE_CONFIG).forEach(cfg => { (upd as any)[cfg.key + '_level'] = 7; (upd as any)[cfg.key + '_due'] = far })
       return upd
     })
-    dispatch({ type: 'SET_DB', payload: updated })
-    showToast(kanjiChar, 'success')
+    try {
+      await saveVocabDb(updated)
+      showToast(kanjiChar, 'success')
+    } catch { /* toast en store */ }
   }
 
   const meaning = (item: VocabItem) =>

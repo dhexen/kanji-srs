@@ -12,7 +12,7 @@ const GRADES = [
 ]
 
 export default function VocabularyClient() {
-  const { state, dispatch } = useStore()
+  const { state, addVocabItems } = useStore()
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -68,7 +68,7 @@ export default function VocabularyClient() {
     } finally { setLoading(false) }
   }
 
-  function addToStudy() {
+  async function addToStudy() {
     const newItems: VocabItem[] = preview.filter(v => !existingWords.has(v.word)).map(v => ({
       kanji: v.kanji, jp: v.word, reading: v.reading,
       meaning: v.meaning_es,
@@ -76,9 +76,15 @@ export default function VocabularyClient() {
       meaning_en: v.meaning_en,
       srsLevel: 0, due: 0, status: 'locked',
     } as VocabItem))
-    dispatch({ type: 'ADD_ITEMS', payload: newItems })
-    showToast(`✅ ${newItems.length} ${t(lang, 'study_words')}`, 'success')
-    setStep('select'); setPreview([])
+    if (newItems.length === 0) return
+    try {
+      await addVocabItems(newItems)
+      showToast(`✅ ${newItems.length} ${t(lang, 'study_words')}`, 'success')
+      setStep('select')
+      setPreview([])
+    } catch {
+      /* toast ya mostrado por el store */
+    }
   }
 
   const grouped: Record<string, any[]> = {}

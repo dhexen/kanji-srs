@@ -23,7 +23,7 @@ const MODELS = [
 ]
 
 export default function ImportClient() {
-  const { state, dispatch } = useStore()
+  const { state, addVocabItems } = useStore()
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem('kanji_srs_gemini_api_key') || '' } catch { return '' } })
   const [model, setModel] = useState('gemini-2.5-flash')
   const [grade, setGrade] = useState(GRADES[0].value)
@@ -47,14 +47,13 @@ export default function ImportClient() {
     return JSON.parse(data.text)
   }
 
-  function addItems(items: any[]) {
+  async function addItems(items: any[]) {
     const newItems: VocabItem[] = items.map(i => ({
       kanji: i.kanji || i.jp?.substring(0, 1),
       jp: i.jp, reading: i.reading, meaning: i.meaning,
       srsLevel: 0, due: 0, status: 'locked',
     }))
-    dispatch({ type: 'ADD_ITEMS', payload: newItems })
-    // sync automático
+    await addVocabItems(newItems)
     return newItems.length
   }
 
@@ -65,7 +64,7 @@ export default function ImportClient() {
     try {
       const prompt = `Eres un experto en japonés. Extrae 10 vocablos representativos del curso "${grade}" japonés. Para cada uno proporciona: kanji (un solo carácter), jp (palabra completa), reading (hiragana), meaning (español). Responde SOLO con JSON array.`
       const items = await callGemini(prompt)
-      const added = addItems(items)
+      const added = await addItems(items)
       setLog(`✅ ${added} palabras añadidas`)
       showToast(`¡${added} palabras importadas de ${grade}!`, 'success')
     } catch (e: any) {
@@ -83,7 +82,7 @@ export default function ImportClient() {
     try {
       const prompt = `Lee el contenido de ${url} y extrae 5-12 vocablos japoneses importantes con su traducción al español y lectura en hiragana. Responde SOLO con JSON array: [{kanji, jp, reading, meaning}]`
       const items = await callGemini(prompt)
-      const added = addItems(items)
+      const added = await addItems(items)
       setLog(`✅ ${added} palabras añadidas desde la URL`)
       showToast(`¡${added} palabras importadas!`, 'success')
     } catch (e: any) {
