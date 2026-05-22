@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
-import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
+import { VocabItem, MODE_CONFIG, migrateItem, getMeaningForLang } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -27,13 +27,6 @@ export default function StudyClient() {
     if (!groups[item.kanji]) groups[item.kanji] = []
     groups[item.kanji].push(item)
   })
-
-  const meaning = (item: VocabItem) =>
-    lang === 'ca' && (item as { meaning_ca?: string }).meaning_ca
-      ? (item as { meaning_ca: string }).meaning_ca
-      : lang === 'en' && (item as { meaning_en?: string }).meaning_en
-        ? (item as { meaning_en: string }).meaning_en
-        : item.meaning
 
   async function addManual() {
     const { kanji, jp, reading, meaning } = form
@@ -126,7 +119,7 @@ export default function StudyClient() {
                     <div className="flex-1 space-y-1">
                       <p className="kanji-font text-2xl font-bold text-slate-900 leading-tight">{w.jp}</p>
                       <p className="text-violet-600 font-medium text-sm">{w.reading}</p>
-                      <p className="text-slate-500 text-sm leading-snug">{meaning(w)}</p>
+                      <p className="text-slate-500 text-sm leading-snug">{getMeaningForLang(w, lang)}</p>
                     </div>
                     <button
                       type="button"
