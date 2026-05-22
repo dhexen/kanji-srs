@@ -19,6 +19,7 @@ export default function Nav() {
     { href: '/study',      label: t(lang, 'nav_study'),      badge: pendingStudy,  badgeColor: 'bg-emerald-500' },
     { href: '/vocabulary', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '' },
     { href: '/context',    label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '' },
+    { href: '/progress',   label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '' },
     { href: '/stats',      label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '' },
     ...(isAdmin ? [
       { href: '/import',   label: t(lang, 'nav_import'),     badge: 0,             badgeColor: '' },
