@@ -501,12 +501,24 @@ export async function uploadProgress(vocabDb: VocabItem[]) {
 
 /**
  * Resolve user role with multiple fallbacks:
- * 1. Query user_roles table in Supabase
- * 2. If the table is missing / RLS blocks / no row → check NEXT_PUBLIC_ADMIN_EMAILS env var
- * 3. If env-match found, try to bootstrap the row in user_roles so future queries work
+ * 1. RPC get_my_role() — security definer, bypasses RLS (preferred)
+ * 2. Direct SELECT on user_roles table (legacy / if RPC missing)
+ * 3. NEXT_PUBLIC_ADMIN_EMAILS env var (emergency fallback)
  */
 export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
-  // 1. Try DB lookup
+  // 1. Try RPC (bypasses RLS — most reliable)
+  try {
+    const { data, error } = await supabase.rpc('get_my_role')
+    if (!error && typeof data === 'string') {
+      console.log('[getUserRole] RPC hit:', userId, '→', data)
+      return data as 'admin' | 'user'
+    }
+    if (error) console.warn('[getUserRole] RPC error:', error.code, error.message)
+  } catch (e) {
+    console.warn('[getUserRole] RPC exception:', e)
+  }
+
+  // 2. Fallback: direct table query (may be blocked by RLS)
   try {
     const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle()
     if (!error && data) {
@@ -516,10 +528,10 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
     if (error) console.warn('[getUserRole] DB error:', error.code, error.message)
     else console.warn('[getUserRole] No row in user_roles for', userId)
   } catch (e) {
-    console.warn('[getUserRole] Exception querying user_roles:', e)
+    console.warn('[getUserRole] DB exception:', e)
   }
 
-  // 2. Fallback: check env-based admin list
+  // 3. Fallback: check env-based admin list
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
     .split(',')
     .map(e => e.trim().toLowerCase())
@@ -530,7 +542,6 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
     const email = user?.email?.toLowerCase() ?? ''
     if (email && adminEmails.includes(email)) {
       console.log('[getUserRole] Admin matched via NEXT_PUBLIC_ADMIN_EMAILS:', email)
-      // Try to bootstrap the DB row so future lookups work without env fallback
       try {
         await supabase.from('user_roles').upsert({ user_id: userId, role: 'admin' }, { onConflict: 'user_id' })
       } catch { /* best-effort */ }
