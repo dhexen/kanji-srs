@@ -142,3 +142,10 @@ export function getPendingCount(items: VocabItem[], modes: ReviewMode[]) {
   })
   return count
 }
+
+// Returns meaning in the correct language for display
+export function getMeaningForLang(item: VocabItem, lang: string): string {
+  if (lang === 'ca' && (item as any).meaning_ca) return (item as any).meaning_ca
+  if (lang === 'en' && (item as any).meaning_en) return (item as any).meaning_en
+  return item.meaning
+}
