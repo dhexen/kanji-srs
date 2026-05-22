@@ -1,10 +1,15 @@
 'use client'
 import { useStore } from '@/lib/store'
+import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
 import Link from 'next/link'
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const { state } = useStore()
+  const pathname = usePathname()
+
+  // Stats page is always accessible (login form lives there)
+  if (pathname === '/stats') return <>{children}</>
 
   // Still checking session
   if (!state.loaded) {
@@ -34,6 +39,5 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     )
   }
 
-  // Session active — show content
   return <>{children}</>
 }
