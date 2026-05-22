@@ -58,6 +58,19 @@ export async function requireAdmin(request: Request): Promise<{
     throw new AdminApiError('Se requiere rol de administrador', 403)
   }
 
+  // Verificar AAL2 — el JWT debe contener aal: 'aal2' (sesión con 2FA completado)
+  try {
+    const jwtPayload = JSON.parse(
+      Buffer.from(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+    )
+    if (jwtPayload.aal !== 'aal2') {
+      throw new AdminApiError('Se requiere verificación de dos factores (2FA) para acceder al panel de administración.', 403)
+    }
+  } catch (e) {
+    if (e instanceof AdminApiError) throw e
+    throw new AdminApiError('Token inválido', 401)
+  }
+
     // Bootstrap DB row if matched via env but missing in DB
   if (isEnvAdmin && !isDbAdmin) {
     try {

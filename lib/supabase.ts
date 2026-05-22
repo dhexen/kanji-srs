@@ -699,3 +699,18 @@ export async function fetchSrsIntervalsConfig(): Promise<number[] | null> {
   if (!Array.isArray(val) || val.length !== 8) return null
   return val
 }
+
+// ---------------------------------------------------------------------------
+// MFA helpers
+// ---------------------------------------------------------------------------
+
+export async function getMfaFactors() {
+  const { data, error } = await supabase.auth.mfa.listFactors()
+  if (error) return { totp: [] as { id: string; status: string; friendly_name?: string }[] }
+  return { totp: (data?.totp ?? []) as { id: string; status: string; friendly_name?: string }[] }
+}
+
+export async function getCurrentAal(): Promise<'aal1' | 'aal2'> {
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  return (data?.currentLevel as 'aal1' | 'aal2') ?? 'aal1'
+}

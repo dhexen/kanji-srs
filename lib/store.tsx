@@ -128,7 +128,8 @@ interface StoreContextType {
   removeContextText: (id: number) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
   login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string) => Promise<void>
+  signup: (email: string, password: string) => Promise<'ok' | 'needs_confirmation'>
+  signInWithGoogle: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -327,9 +328,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await syncDown()
   }, [syncDown])
 
-  const signup = useCallback(async (email: string, password: string) => {
+  const signup = useCallback(async (email: string, password: string): Promise<'ok' | 'needs_confirmation'> => {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
+    // No session means Supabase sent a confirmation email — account not active yet
+    if (!data.session) return 'needs_confirmation'
     if (data.user) {
       const user = { email: data.user.email!, id: data.user.id }
       dispatch({ type: 'SET_USER', payload: user })
@@ -339,6 +342,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_ROLE', payload: 'user' })
       dispatch({ type: 'SET_LOADED' })
     }
+    return 'ok'
+  }, [])
+
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : '/' },
+    })
+    if (error) throw error
   }, [])
 
   const logout = useCallback(async () => {
@@ -372,6 +384,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setLang,
       login,
       signup,
+      signInWithGoogle,
       logout,
     }}>
       {children}

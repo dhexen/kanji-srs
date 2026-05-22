@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
+import AdminMfaGate from '@/components/ui/AdminMfaGate'
+import { getCurrentAal } from '@/lib/supabase'
 import {
   fetchAdminUsers,
   createAdminUser,
@@ -34,13 +36,19 @@ export default function AdminClient() {
   const [srsIntervalsChanged, setSrsIntervalsChanged] = useState(false)
 
   const isAdmin = state.role === 'admin'
+  const [aal, setAal] = useState<'aal1' | 'aal2' | 'checking'>('checking')
 
   useEffect(() => {
-    if (isAdmin) {
+    if (!isAdmin) { setAal('aal1'); return }
+    getCurrentAal().then(setAal)
+  }, [isAdmin])
+
+  useEffect(() => {
+    if (isAdmin && aal === 'aal2') {
       loadUsers()
       loadSrsIntervals()
     }
-  }, [isAdmin])
+  }, [isAdmin, aal])
 
   async function loadSrsIntervals() {
     setSrsIntervalsLoading(true)
@@ -217,6 +225,23 @@ export default function AdminClient() {
         <div className="text-5xl mb-3">🚫</div>
         <h2 className="text-xl font-bold text-slate-800 mb-2">Acceso restringido</h2>
         <p className="text-slate-500 text-sm">Solo los administradores pueden acceder a este panel.</p>
+      </div>
+    )
+  }
+
+  if (aal === 'checking') {
+    return (
+      <div className="flex items-center justify-center py-24 text-slate-400">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500"></div>
+      </div>
+    )
+  }
+
+  if (aal === 'aal1') {
+    return (
+      <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100">
+        <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Panel de Administración</h2>
+        <AdminMfaGate onVerified={() => setAal('aal2')} />
       </div>
     )
   }
