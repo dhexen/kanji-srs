@@ -5,9 +5,19 @@ import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
+function activateItem(item: VocabItem, level: number, due: number): VocabItem {
+  const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
+  Object.values(MODE_CONFIG).forEach(cfg => {
+    (upd as Record<string, unknown>)[cfg.key + '_level'] = level
+    ;(upd as Record<string, unknown>)[cfg.key + '_due'] = due
+  })
+  return migrateItem(upd)
+}
+
 export default function StudyClient() {
   const { state, addVocabItems, saveVocabDb } = useStore()
   const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
+  const [showManual, setShowManual] = useState(false)
   const lang = state.lang
 
   const locked = state.db.filter(i => i.status === 'locked')
@@ -16,6 +26,13 @@ export default function StudyClient() {
     if (!groups[item.kanji]) groups[item.kanji] = []
     groups[item.kanji].push(item)
   })
+
+  const meaning = (item: VocabItem) =>
+    lang === 'ca' && (item as { meaning_ca?: string }).meaning_ca
+      ? (item as { meaning_ca: string }).meaning_ca
+      : lang === 'en' && (item as { meaning_en?: string }).meaning_en
+        ? (item as { meaning_en: string }).meaning_en
+        : item.meaning
 
   async function addManual() {
     const { kanji, jp, reading, meaning } = form
@@ -28,91 +45,147 @@ export default function StudyClient() {
     } catch { /* toast en store */ }
   }
 
+  async function persistDb(updated: VocabItem[]) {
+    try {
+      await saveVocabDb(updated)
+    } catch { /* toast en store */ }
+  }
+
+  async function markWordKnown(jp: string) {
+    const far = Date.now() + 365 * 10 * 24 * 60 * 60 * 1000
+    const updated = state.db.map(item =>
+      item.jp !== jp || item.status !== 'locked' ? item : activateItem(item, 7, far),
+    )
+    await persistDb(updated)
+    showToast(t(lang, 'study_known_btn'), 'success')
+  }
+
+  async function masterKanji(kanjiChar: string) {
+    const far = Date.now() + 365 * 10 * 24 * 60 * 60 * 1000
+    const updated = state.db.map(item =>
+      item.kanji !== kanjiChar || item.status !== 'locked' ? item : activateItem(item, 7, far),
+    )
+    await persistDb(updated)
+    showToast(`${t(lang, 'study_master_kanji')}: ${kanjiChar}`, 'success')
+  }
+
   async function activateAll() {
     const now = Date.now()
-    const updated = state.db.map(item => {
-      if (item.status !== 'locked') return item
-      const act: VocabItem = { ...item, status: 'active', srsLevel: 1, due: now }
-      Object.values(MODE_CONFIG).forEach(cfg => { (act as any)[cfg.key + '_level'] = 1; (act as any)[cfg.key + '_due'] = now })
-      return migrateItem(act)
-    })
-    try {
-      await saveVocabDb(updated)
-      showToast(`${locked.length} ${t(lang, 'study_words')}`, 'success')
-    } catch { /* toast en store */ }
+    const updated = state.db.map(item =>
+      item.status !== 'locked' ? item : activateItem(item, 1, now),
+    )
+    await persistDb(updated)
+    showToast(`${locked.length} ${t(lang, 'study_words')}`, 'success')
   }
-
-  async function skipKanji(kanjiChar: string) {
-    const far = Date.now() + 365 * 10 * 24 * 60 * 60 * 1000
-    const updated = state.db.map(item => {
-      if (item.kanji !== kanjiChar || item.status !== 'locked') return item
-      const upd: VocabItem = { ...item, status: 'active', srsLevel: 7, due: far }
-      Object.values(MODE_CONFIG).forEach(cfg => { (upd as any)[cfg.key + '_level'] = 7; (upd as any)[cfg.key + '_due'] = far })
-      return upd
-    })
-    try {
-      await saveVocabDb(updated)
-      showToast(kanjiChar, 'success')
-    } catch { /* toast en store */ }
-  }
-
-  const meaning = (item: VocabItem) =>
-    lang === 'ca' && (item as any).meaning_ca ? (item as any).meaning_ca
-    : lang === 'en' && (item as any).meaning_en ? (item as any).meaning_en
-    : item.meaning
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h3 className="text-lg font-bold text-slate-800 mb-3">{t(lang, 'study_add_title')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {(['kanji', 'jp', 'reading', 'meaning'] as const).map(field => (
-            <input key={field} type="text" autoComplete="off" value={form[field]}
-              onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-              placeholder={{ kanji: t(lang,'study_kanji_ph'), jp: t(lang,'study_word_ph'), reading: t(lang,'study_reading_ph'), meaning: t(lang,'study_meaning_ph') }[field]}
-              className="px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500" />
-          ))}
+      {Object.keys(groups).length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
+          <p className="text-4xl mb-2">🎓</p>
+          <p className="font-bold text-slate-800 text-lg">{t(lang, 'study_empty')}</p>
+          <p className="text-slate-500 text-sm mt-1">{t(lang, 'study_empty_sub')}</p>
         </div>
-        <button onClick={addManual} className="mt-3 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition">
-          {t(lang, 'study_add_btn')}
-        </button>
-      </div>
-
-      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-2xl font-bold text-slate-800 mb-1">{t(lang, 'study_locked_title')}</h2>
-        <p className="text-slate-500 text-sm mb-6">{t(lang, 'study_locked_sub')}</p>
-        <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scroll pr-2">
-          {Object.keys(groups).length === 0 ? (
-            <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-4xl mb-2">🎓</p>
-              <p className="font-bold text-slate-700">{t(lang, 'study_empty')}</p>
-              <p className="text-slate-500 text-sm">{t(lang, 'study_empty_sub')}</p>
-            </div>
-          ) : Object.entries(groups).map(([kanjiChar, words]) => (
-            <div key={kanjiChar} className="border border-slate-100 rounded-2xl overflow-hidden">
-              <div className="bg-slate-50 px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="kanji-font text-3xl font-bold text-slate-700">{kanjiChar}</span>
-                  <span className="text-xs text-slate-400">{words.length} {t(lang, 'study_words')}</span>
-                </div>
-                <button onClick={() => skipKanji(kanjiChar)} className="text-xs text-slate-400 hover:text-indigo-600 transition">{t(lang, 'study_skip')}</button>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {words.map(w => (
-                  <div key={w.jp} className="px-4 py-3 flex items-center gap-4">
-                    <span className="kanji-font text-xl font-bold text-slate-800 w-20">{w.jp}</span>
-                    <span className="text-indigo-600 font-semibold text-sm w-24">{w.reading}</span>
-                    <span className="text-slate-500 text-sm">{meaning(w)}</span>
+      ) : (
+        <div className="space-y-5">
+          {Object.entries(groups).map(([kanjiChar, words]) => (
+            <section
+              key={kanjiChar}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 space-y-5"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-14 h-14 shrink-0 rounded-xl bg-violet-100 border border-violet-200/80 flex items-center justify-center">
+                    <span className="kanji-font text-3xl font-bold text-violet-700 leading-none">
+                      {kanjiChar}
+                    </span>
                   </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold text-slate-800">
+                      {t(lang, 'study_kanji_label')} {kanjiChar}
+                    </h2>
+                    <p className="text-sm text-slate-500">{t(lang, 'study_keywords_sub')}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => masterKanji(kanjiChar)}
+                  className="shrink-0 px-4 py-2.5 rounded-xl bg-violet-100 hover:bg-violet-200 text-violet-800 font-semibold text-sm border border-violet-200/80 transition"
+                >
+                  🎓 {t(lang, 'study_master_kanji')}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {words.map(w => (
+                  <article
+                    key={w.jp}
+                    className="flex flex-col rounded-xl border border-slate-200 bg-slate-50/50 p-4 min-h-[140px]"
+                  >
+                    <div className="flex-1 space-y-1">
+                      <p className="kanji-font text-2xl font-bold text-slate-900 leading-tight">{w.jp}</p>
+                      <p className="text-violet-600 font-medium text-sm">{w.reading}</p>
+                      <p className="text-slate-500 text-sm leading-snug">{meaning(w)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => markWordKnown(w.jp)}
+                      className="mt-4 w-full py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-sm border border-emerald-200/80 transition flex items-center justify-center gap-1.5"
+                    >
+                      <span aria-hidden>✓</span>
+                      {t(lang, 'study_known_btn')}
+                    </button>
+                  </article>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
+
+          <button
+            type="button"
+            onClick={activateAll}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-sm text-sm"
+          >
+            {t(lang, 'study_activate')} ({locked.length})
+          </button>
         </div>
-        {locked.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <button onClick={activateAll} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl transition shadow-md">
-              {t(lang, 'study_activate')} ({locked.length})
+      )}
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowManual(v => !v)}
+          className="w-full px-5 py-3.5 flex items-center justify-between text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+        >
+          {t(lang, 'study_add_title')}
+          <span className="text-slate-400">{showManual ? '−' : '+'}</span>
+        </button>
+        {showManual && (
+          <div className="px-5 pb-5 pt-0 border-t border-slate-100 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {(['kanji', 'jp', 'reading', 'meaning'] as const).map(field => (
+                <input
+                  key={field}
+                  type="text"
+                  autoComplete="off"
+                  value={form[field]}
+                  onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+                  placeholder={{
+                    kanji: t(lang, 'study_kanji_ph'),
+                    jp: t(lang, 'study_word_ph'),
+                    reading: t(lang, 'study_reading_ph'),
+                    meaning: t(lang, 'study_meaning_ph'),
+                  }[field]}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addManual}
+              className="px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition"
+            >
+              {t(lang, 'study_add_btn')}
             </button>
           </div>
         )}
