@@ -131,6 +131,8 @@ export function getSrsClass(level: number, status: string, due: number) {
   return 'bg-emerald-50 text-emerald-700 border border-emerald-100'
 }
 
+export const ALL_REVIEW_MODES: ReviewMode[] = ['multi', 'meaning', 'kanji', 'reading', 'reverse']
+
 export function getPendingCount(items: VocabItem[], modes: ReviewMode[]) {
   const now = Date.now()
   let count = 0
@@ -141,6 +143,57 @@ export function getPendingCount(items: VocabItem[], modes: ReviewMode[]) {
     })
   })
   return count
+}
+
+export interface DayForecast {
+  date: Date
+  dayLabel: string
+  newDue: number
+  cumulative: number
+  isToday: boolean
+}
+
+/** Repasos (palabra × modo) previstos por día; el acumulado suma los “+N” de cada día. */
+export function getReviewForecast(items: VocabItem[], locale: string, dayCount = 7): DayForecast[] {
+  const now = Date.now()
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayStartMs = todayStart.getTime()
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const localeTag = locale === 'ja' ? 'ja-JP' : locale === 'ca' ? 'ca-ES' : locale === 'en' ? 'en-GB' : 'es-ES'
+
+  const newDue = Array(dayCount).fill(0)
+
+  items.filter(i => i.status === 'active').forEach(item => {
+    ALL_REVIEW_MODES.forEach(mode => {
+      const { due } = getModeLevelAndDue(item, mode)
+      if (due <= now) {
+        newDue[0]++
+        return
+      }
+      for (let d = 0; d < dayCount; d++) {
+        const start = todayStartMs + d * DAY_MS
+        const end = start + DAY_MS
+        if (due >= start && due < end) {
+          newDue[d]++
+          break
+        }
+      }
+    })
+  })
+
+  let cumulative = 0
+  return newDue.map((n, d) => {
+    cumulative += n
+    const date = new Date(todayStartMs + d * DAY_MS)
+    return {
+      date,
+      dayLabel: date.toLocaleDateString(localeTag, { weekday: 'short' }),
+      newDue: n,
+      cumulative,
+      isToday: d === 0,
+    }
+  })
 }
 
 // Returns meaning in the correct language for display

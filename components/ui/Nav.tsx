@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useStore } from '@/lib/store'
-import { getPendingCount } from '@/lib/srs'
+import { getPendingCount, ALL_REVIEW_MODES } from '@/lib/srs'
 import { t } from '@/lib/i18n'
 
 export default function Nav() {
@@ -11,7 +11,7 @@ export default function Nav() {
   const isAdmin = state.role === 'admin'
   const lang = state.lang
 
-  const pendingReview = getPendingCount(state.db, ['multi', 'meaning', 'kanji', 'reading', 'reverse'])
+  const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
   const pendingStudy = state.db.filter(i => i.status === 'locked').length
 
   const tabs = [
