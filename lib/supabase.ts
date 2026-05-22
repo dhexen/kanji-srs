@@ -1,4 +1,3 @@
-// lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -9,23 +8,35 @@ export const supabase = createClient(url, key)
 export async function uploadProgress(vocabDb: any[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
-  const { error } = await supabase.from('srs_progress').upsert({
-    user_id: user.id,
-    vocab_db: vocabDb,
-    updated_at: new Date().toISOString(),
-  })
-  if (error) throw error
+
+  const { error } = await supabase
+    .from('srs_progress')
+    .upsert({
+      user_id: user.id,
+      vocab_db: vocabDb,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+
+  if (error) {
+    console.error('Supabase upload error:', error)
+    throw error
+  }
 }
 
 export async function downloadProgress() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
   const { data, error } = await supabase
     .from('srs_progress')
     .select('vocab_db')
     .eq('user_id', user.id)
-    .single()
-  if (error) return null
+    .maybeSingle()
+
+  if (error) {
+    console.error('Supabase download error:', error)
+    return null
+  }
   return data?.vocab_db ?? null
 }
 
@@ -34,23 +45,15 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
     .from('user_roles')
     .select('role')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
   if (error || !data) return 'user'
   return data.role as 'admin' | 'user'
-}
-
-export async function getAllUsers() {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('user_id, role, created_at')
-  if (error) throw error
-  return data
 }
 
 export async function setUserRole(userId: string, role: 'admin' | 'user') {
   const { error } = await supabase
     .from('user_roles')
-    .upsert({ user_id: userId, role })
+    .upsert({ user_id: userId, role }, { onConflict: 'user_id' })
   if (error) throw error
 }
 
@@ -71,6 +74,5 @@ export async function getRandomKanjis(count: number, grade = 1) {
     .eq('grade', grade)
   if (error) throw error
   const unique = Array.from(new Set((data || []).map((d: any) => d.kanji))) as string[]
-  const shuffled = unique.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
+  return unique.sort(() => Math.random() - 0.5).slice(0, count)
 }

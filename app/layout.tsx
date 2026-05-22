@@ -4,6 +4,7 @@ import { StoreProvider } from '@/lib/store'
 import Header from '@/components/ui/Header'
 import Nav from '@/components/ui/Nav'
 import Toast from '@/components/ui/Toast'
+import AuthGuard from '@/components/ui/AuthGuard'
 
 export const metadata: Metadata = {
   title: '小学校漢字 SRS',
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main className="max-w-4xl mx-auto px-4 mt-6">
             <Nav />
-            {children}
+            <AuthGuard>
+              {children}
+            </AuthGuard>
           </main>
         </StoreProvider>
       </body>
