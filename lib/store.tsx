@@ -1,20 +1,22 @@
 'use client'
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react'
-import { VocabItem, migrateItem, ReviewMode, applyResult } from './srs'
-import { supabase, uploadProgress, downloadProgress, getUserRole, saveGeminiKey, saveContextTexts, saveLanguage } from './supabase'
+import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue } from './srs'
+import type { ContextText } from './progress'
+import {
+  supabase,
+  downloadAccountData,
+  upsertVocabItems,
+  saveReviewResult,
+  deleteAllUserVocab,
+  createManualSnapshot,
+  getUserRole,
+  saveGeminiKey,
+  saveContextTexts,
+  saveLanguage,
+} from './supabase'
 import type { Lang } from './i18n'
 
-export interface ContextText {
-  id: number
-  topic: string
-  emoji: string
-  level: string
-  japanese: string
-  spanish: string
-  catalan: string
-  english: string
-  words_used: string[]
-}
+export type { ContextText }
 
 interface State {
   db: VocabItem[]
@@ -42,7 +44,7 @@ type Action =
   | { type: 'SET_LANG'; payload: Lang }
   | { type: 'RESET' }
 
-function reducer(state: State, action: Action): State {
+function appReducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_DB': return { ...state, db: action.payload }
     case 'SET_USER': return { ...state, user: action.payload }
@@ -67,11 +69,46 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: VocabItem[]) {
+  switch (action.type) {
+    case 'APPLY_RESULT': {
+      const item = nextDb.find(i => i.jp === action.payload.jp)
+      const prev = prevDb.find(i => i.jp === action.payload.jp)
+      if (!item || !prev) return
+      const { level: levelBefore } = getModeLevelAndDue(prev, action.payload.mode)
+      const { level: levelAfter, due: dueAfter } = getModeLevelAndDue(item, action.payload.mode)
+      await saveReviewResult(item, {
+        jp: action.payload.jp,
+        mode: action.payload.mode,
+        isCorrect: action.payload.isCorrect,
+        levelBefore,
+        levelAfter,
+        dueAfter,
+      })
+      break
+    }
+    case 'ADD_ITEMS': {
+      const existing = new Set(prevDb.map(i => i.jp))
+      const newItems = action.payload.filter(i => !existing.has(i.jp))
+      if (newItems.length > 0) await upsertVocabItems(newItems)
+      break
+    }
+    case 'SET_DB': {
+      if (nextDb.length > 0) await upsertVocabItems(nextDb)
+      break
+    }
+    default:
+      break
+  }
+}
+
 interface StoreContextType {
   state: State
   dispatch: React.Dispatch<Action>
+  applyReviewResult: (jp: string, mode: ReviewMode, isCorrect: boolean) => void
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
+  resetRemoteProgress: () => Promise<void>
   updateGeminiKey: (key: string) => Promise<void>
   addContextText: (text: ContextText) => Promise<void>
   removeContextText: (id: number) => Promise<void>
@@ -84,7 +121,7 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, {
+  const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user', syncing: false, loaded: false,
     geminiApiKey: '', contextTexts: [], lang: 'es',
   })
@@ -99,13 +136,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { loadedRef.current = state.loaded }, [state.loaded])
   useEffect(() => { contextTextsRef.current = state.contextTexts }, [state.contextTexts])
 
+  const dispatchPersist = useCallback((action: Action) => {
+    const prevDb = dbRef.current
+
+    if (action.type === 'APPLY_RESULT') {
+      const nextDb = prevDb.map(i =>
+        i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.isCorrect),
+      )
+      dbRef.current = nextDb
+      dispatch({ type: 'SET_DB', payload: nextDb })
+      if (userRef.current && loadedRef.current) {
+        void persistForAction(action, prevDb, nextDb).catch(e =>
+          console.error('Persist failed:', e),
+        )
+      }
+      return
+    }
+
+    const nextState = appReducer(state, action)
+    if (action.type === 'ADD_ITEMS' || action.type === 'SET_DB' || action.type === 'RESET') {
+      dbRef.current = nextState.db
+    }
+    dispatch(action)
+    if (userRef.current && loadedRef.current && action.type !== 'RESET') {
+      void persistForAction(action, prevDb, nextState.db).catch(e =>
+        console.error('Persist failed:', e),
+      )
+    }
+  }, [state])
+
+  const applyReviewResult = useCallback((jp: string, mode: ReviewMode, isCorrect: boolean) => {
+    dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
+  }, [dispatchPersist])
+
   const syncDown = useCallback(async () => {
     try {
       dispatch({ type: 'SET_SYNCING', payload: true })
-      const data = await downloadProgress()
+      const data = await downloadAccountData()
       if (data) {
-        if (data.vocab_db?.length > 0) {
-          const migrated = (data.vocab_db as VocabItem[]).map(migrateItem)
+        if (data.vocab.length > 0) {
+          const migrated = data.vocab.map(migrateItem)
           dispatch({ type: 'SET_DB', payload: migrated })
           dbRef.current = migrated
         }
@@ -124,7 +194,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const syncUp = useCallback(async () => {
     try {
       dispatch({ type: 'SET_SYNCING', payload: true })
-      await uploadProgress(dbRef.current)
+      await upsertVocabItems(dbRef.current)
+      await createManualSnapshot(dbRef.current, 'manual_sync')
     } catch (e) {
       console.error('Error subiendo progreso:', e)
     } finally {
@@ -132,14 +203,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Auto-sync db changes
-  useEffect(() => {
-    if (!loadedRef.current || !userRef.current || dbRef.current.length === 0) return
-    const timer = setTimeout(async () => {
-      try { await uploadProgress(dbRef.current) } catch (e) { console.error('Auto-sync failed:', e) }
-    }, 1500)
-    return () => clearTimeout(timer)
-  }, [state.db])
+  const resetRemoteProgress = useCallback(async () => {
+    await deleteAllUserVocab()
+  }, [])
 
   const updateGeminiKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_GEMINI_KEY', payload: key })
@@ -224,7 +290,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <StoreContext.Provider value={{ state, dispatch, syncUp, syncDown, updateGeminiKey, addContextText, removeContextText, setLang, login, signup, logout }}>
+    <StoreContext.Provider value={{
+      state,
+      dispatch: dispatchPersist,
+      applyReviewResult,
+      syncUp,
+      syncDown,
+      resetRemoteProgress,
+      updateGeminiKey,
+      addContextText,
+      removeContextText,
+      setLang,
+      login,
+      signup,
+      logout,
+    }}>
       {children}
     </StoreContext.Provider>
   )

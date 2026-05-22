@@ -41,23 +41,20 @@ Abre http://localhost:3000
 
 ## Base de datos Supabase
 
-Asegúrate de tener esta tabla en tu proyecto Supabase:
+Ejecuta el script de migración en el SQL Editor de Supabase:
 
-```sql
-create table public.srs_progress (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null unique,
-  vocab_db jsonb not null default '[]',
-  updated_at timestamptz default now()
-);
+`supabase/migrations/001_vocab_progress_schema.sql`
 
-alter table public.srs_progress enable row level security;
+Crea estas tablas:
 
-create policy "Users can manage their own progress"
-  on public.srs_progress for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-```
+- **`user_vocab_progress`** — una fila por palabra y usuario (lectura/escritura rápida al repasar)
+- **`user_settings`** — API key Gemini, idioma, textos de contexto (sin tocar el progreso)
+- **`srs_review_log`** — auditoría de cada acierto/fallo SRS
+- **`srs_progress_snapshots`** — copias de seguridad del vocabulario completo (se conservan las 10 más recientes)
+
+Al iniciar sesión, si `user_vocab_progress` está vacío pero existe `srs_progress.vocab_db` (esquema antiguo), la app migra los datos automáticamente.
+
+La tabla legacy `srs_progress` puede mantenerse como respaldo; la app ya no escribe en `vocab_db`.
 
 ## Estructura del proyecto
 

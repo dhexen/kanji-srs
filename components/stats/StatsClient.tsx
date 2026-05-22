@@ -6,7 +6,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, syncDown, login, signup, logout, setLang } = useStore()
+  const { state, dispatch, syncUp, login, signup, logout, setLang, resetRemoteProgress } = useStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
@@ -37,7 +37,11 @@ export default function StatsClient() {
     reader.onload = ev => {
       try {
         const parsed = JSON.parse(ev.target?.result as string)
-        if (Array.isArray(parsed)) { dispatch({ type: 'SET_DB', payload: parsed }); showToast('OK', 'success') }
+        if (Array.isArray(parsed)) {
+          dispatch({ type: 'SET_DB', payload: parsed })
+          if (state.user) syncUp().catch(() => showToast('Error', 'error'))
+          showToast('OK', 'success')
+        }
       } catch { showToast('Error', 'error') }
     }
     reader.readAsText(file)
@@ -45,8 +49,13 @@ export default function StatsClient() {
 
   async function resetAll() {
     if (!confirm(t(lang, 'stats_reset') + '?')) return
-    dispatch({ type: 'RESET' })
-    showToast('OK', 'success')
+    try {
+      if (state.user) await resetRemoteProgress()
+      dispatch({ type: 'RESET' })
+      showToast('OK', 'success')
+    } catch {
+      showToast('Error', 'error')
+    }
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
-import { supabase, setUserRole } from '@/lib/supabase'
+import { supabase, setUserRole, fetchVocabCountsByUser } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 
 interface UserRow {
@@ -33,15 +33,7 @@ export default function AdminClient() {
 
       if (error) throw error
 
-      // Get progress count per user
-      const { data: progress } = await supabase
-        .from('srs_progress')
-        .select('user_id, vocab_db')
-
-      const progressMap: Record<string, number> = {}
-      progress?.forEach((p: any) => {
-        progressMap[p.user_id] = Array.isArray(p.vocab_db) ? p.vocab_db.length : 0
-      })
+      const progressMap = await fetchVocabCountsByUser()
 
       setUsers((roles || []).map((r: any) => ({
         ...r,

@@ -22,7 +22,7 @@ function normalizeJP(str: string) {
 }
 
 export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onNext, onQuit }: Props) {
-  const { dispatch, state } = useStore()
+  const { applyReviewResult, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
   const { level } = getModeLevelAndDue(item, mode)
@@ -58,7 +58,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const handleResult = (isCorrect: boolean) => {
     setAnswerState(isCorrect ? 'correct' : 'incorrect')
     if (!isPractice) {
-      dispatch({ type: 'APPLY_RESULT', payload: { jp: item.jp, mode, isCorrect } })
+      applyReviewResult(item.jp, mode, isCorrect)
     }
   }
 
