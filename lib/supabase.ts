@@ -584,13 +584,22 @@ export async function fetchVocabCountsByUser(): Promise<Record<string, number>> 
   return map
 }
 
-/** Returns word+kanji+is_official for all rows of a grade — used for stats. */
+/** Returns word+kanji+is_official for all rows of a grade — used for stats.
+ *  Falls back to a query without is_official if the column doesn't exist yet. */
 export async function getVocabGradeWords(grade: number): Promise<Array<{ word: string; kanji: string; is_official: boolean }>> {
   const { data, error } = await supabase
     .from('vocabulary')
     .select('word, kanji, is_official')
     .eq('grade', grade)
-  if (error) throw error
+  if (error) {
+    // is_official column not yet added — fall back to basic query
+    const { data: fallback, error: fallbackErr } = await supabase
+      .from('vocabulary')
+      .select('word, kanji')
+      .eq('grade', grade)
+    if (fallbackErr) throw fallbackErr
+    return (fallback ?? []).map(d => ({ word: d.word, kanji: d.kanji, is_official: true }))
+  }
   return (data ?? []).map(d => ({ word: d.word, kanji: d.kanji, is_official: d.is_official ?? true }))
 }
 

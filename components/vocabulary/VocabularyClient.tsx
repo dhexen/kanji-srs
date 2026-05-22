@@ -36,6 +36,9 @@ export default function VocabularyClient() {
   const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
   const [gradeWords, setGradeWords] = useState<Record<number, GradeWordEntry[]>>({})
   const [statsLoading, setStatsLoading] = useState(true)
+  const [shownKanjis, setShownKanjis] = useState<Set<string>>(new Set())
+  const [allOrderedKanjis, setAllOrderedKanjis] = useState<string[]>([])
+  const [dominatingKanji, setDominatingKanji] = useState<string | null>(null)
   const lang = state.lang
 
   const existingWords = useMemo(() => new Set(state.db.map(i => i.jp)), [state.db])
@@ -57,11 +60,13 @@ export default function VocabularyClient() {
 
   function getGradeStats(gradeVal: number) {
     const words = gradeWords[gradeVal] ?? []
-    const total = words.length
-    const unofficial = words.filter(w => !w.is_official).length
-    const userHas = words.filter(w => existingWords.has(w.word)).length
+    const totalWords = words.length
     const totalKanjis = new Set(words.map(w => w.kanji)).size
-    return { total, unofficial, userHas, remaining: total - userHas, totalKanjis }
+    const unofficial = words.filter(w => !w.is_official).length
+    const userWords = words.filter(w => existingWords.has(w.word))
+    const userWordCount = userWords.length
+    const userKanjiCount = new Set(userWords.map(w => w.kanji)).size
+    return { totalWords, totalKanjis, unofficial, userWordCount, userKanjiCount, remaining: totalWords - userWordCount }
   }
 
   async function loadGradeStats() {
@@ -84,8 +89,10 @@ export default function VocabularyClient() {
     if (!state.user) { showToast(t(lang, 'vocab_no_login'), 'error'); return }
     setLoading(true)
     try {
-      const allKanjis = await getRandomKanjis(0, grade)
-      const newKanjis = (allKanjis as string[]).filter(k => !activeKanjis.has(k)).slice(0, packSize)
+      const allKanjis = await getRandomKanjis(0, grade) as string[]
+      setAllOrderedKanjis(allKanjis)
+      const newKanjis = allKanjis.filter(k => !activeKanjis.has(k) && !shownKanjis.has(k)).slice(0, packSize)
+      setShownKanjis(prev => new Set([...prev, ...newKanjis]))
       if (newKanjis.length === 0) {
         showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? "Ja tens tots els kanjis d'aquest curs" : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
         setLoading(false)
@@ -110,12 +117,48 @@ export default function VocabularyClient() {
     })
   }
 
-  function discardAllKanji(kanjiChar: string) {
-    setDiscarded(prev => {
-      const next = new Set(prev)
-      preview.filter(v => v.kanji === kanjiChar && !existingWords.has(v.word)).forEach(v => next.add(v.word))
-      return next
-    })
+  async function dominateKanji(kanjiChar: string) {
+    setDominatingKanji(kanjiChar)
+    try {
+      // Save all new words for this kanji at Maestro level (8)
+      const kanjiWords = preview.filter(v => v.kanji === kanjiChar && !existingWords.has(v.word))
+      if (kanjiWords.length > 0) {
+        const now = Date.now()
+        const masterDue = now + 30 * 24 * 60 * 60 * 1000
+        const newItems: VocabItem[] = kanjiWords.map(v => {
+          const base: VocabItem = {
+            kanji: v.kanji, jp: v.word, reading: v.reading,
+            meaning: v.meaning_es, meaning_ca: v.meaning_ca, meaning_en: v.meaning_en,
+            srsLevel: 8, due: masterDue, status: 'active',
+          } as VocabItem
+          return activateItem(base, 8, masterDue)
+        })
+        await addVocabItems(newItems)
+      }
+
+      // Find next kanji in sorted order not yet shown nor active
+      const currentKanjis = new Set(Object.keys(grouped).filter(k => k !== kanjiChar))
+      const nextKanji = allOrderedKanjis.find(
+        k => !activeKanjis.has(k) && !shownKanjis.has(k) && !currentKanjis.has(k)
+      )
+
+      // Remove dominated kanji from preview
+      setPreview(prev => prev.filter(v => v.kanji !== kanjiChar))
+
+      // Fetch and append next kanji if available
+      if (nextKanji) {
+        setShownKanjis(prev => new Set([...prev, nextKanji]))
+        const vocab = await getVocabularyByKanjis([nextKanji], grade)
+        const newWords = (vocab || []).filter((v: any) => !existingWords.has(v.word))
+        setPreview(prev => [...prev, ...newWords])
+      }
+
+      loadGradeStats()
+    } catch {
+      showToast('Error', 'error')
+    } finally {
+      setDominatingKanji(null)
+    }
   }
 
   async function addSelectedToSrs() {
@@ -197,7 +240,7 @@ export default function VocabularyClient() {
                   const gStats = getGradeStats(g.value)
                   const isSelected = grade === g.value
                   return (
-                    <button key={g.value} onClick={() => setGrade(g.value)}
+                    <button key={g.value} onClick={() => { setGrade(g.value); setShownKanjis(new Set()) }}
                       className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
                         isSelected
                           ? 'bg-indigo-600 text-white border-indigo-600'
@@ -205,11 +248,11 @@ export default function VocabularyClient() {
                       }`}>
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span>🏫 {gradeLabel(g)}</span>
-                        <div className="flex items-center gap-1 flex-wrap">
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
                           <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                             {statsLoading
                               ? '...'
-                              : `${gStats.totalKanjis} kanjis · ${gStats.total} ${t(lang, 'study_words')}`}
+                              : `${gStats.totalKanjis} kanjis · ${gStats.totalWords} ${t(lang, 'study_words')}`}
                           </span>
                           {!statsLoading && gStats.unofficial > 0 && (
                             <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
@@ -218,6 +261,11 @@ export default function VocabularyClient() {
                           )}
                         </div>
                       </div>
+                      {!statsLoading && gStats.userWordCount > 0 && (
+                        <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                          ({gStats.userKanjiCount} kanjis · {gStats.userWordCount} {t(lang, 'study_words')} aprendiendo)
+                        </div>
+                      )}
                       {!statsLoading && (
                         <div className={`text-xs font-normal mt-1 ${isSelected ? 'text-indigo-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
                           {gStats.remaining === 0 ? '✓ Vocabulario completo' : `Te faltan: ${gStats.remaining} palabras`}
@@ -255,7 +303,7 @@ export default function VocabularyClient() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-emerald-600">
-                {statsLoading ? '...' : currentStats.total}
+                {statsLoading ? '...' : currentStats.totalWords}
               </div>
               <div className="text-xs text-slate-400">{t(lang, 'vocab_total')}</div>
             </div>
@@ -287,7 +335,7 @@ export default function VocabularyClient() {
                   <span className="ml-2 text-slate-400">· {discarded.size} {t(lang, 'vocab_discarded_count')}</span>
                 )}
               </p>
-              <button onClick={() => { setStep('select'); setDiscarded(new Set()) }}
+              <button onClick={() => { setStep('select'); setDiscarded(new Set()); setShownKanjis(new Set()) }}
                 className="text-slate-400 hover:text-slate-600 text-sm underline">
                 {t(lang, 'vocab_back')}
               </button>
@@ -320,7 +368,8 @@ export default function VocabularyClient() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => discardAllKanji(kanji)}
+                  onClick={() => dominateKanji(kanji)}
+                  disabled={dominatingKanji === kanji}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold text-sm border border-indigo-100 transition shrink-0"
                 >
                   🎓 {t(lang, 'study_master_kanji')}
