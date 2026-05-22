@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { getPendingCount } from '@/lib/srs'
-import { t, LANG_NAMES, Lang } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 
 export default function Nav() {
   const pathname = usePathname()
-  const { state, setLang } = useStore()
+  const { state } = useStore()
   const isAdmin = state.role === 'admin'
   const lang = state.lang
 
@@ -27,7 +27,7 @@ export default function Nav() {
   ]
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="mb-6">
       <div className="flex flex-wrap border-b border-slate-200 bg-white rounded-xl shadow-sm overflow-hidden p-1 gap-1">
         {tabs.map(tab => {
           const active = pathname === tab.href
@@ -45,22 +45,6 @@ export default function Nav() {
             </Link>
           )
         })}
-      </div>
-
-      {/* Language selector */}
-      <div className="flex justify-end">
-        <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-slate-100 p-1">
-          {(Object.entries(LANG_NAMES) as [Lang, string][]).map(([code, name]) => (
-            <button key={code} onClick={() => setLang(code)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                state.lang === code
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-500 hover:bg-slate-50'
-              }`}>
-              {name.split(' ')[0]} {code.toUpperCase()}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   )

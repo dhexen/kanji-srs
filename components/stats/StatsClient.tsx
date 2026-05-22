@@ -122,17 +122,19 @@ export default function StatsClient() {
         <div className="space-y-4">
           {/* Language selector */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-900 mb-3">{t(lang, 'stats_language')}</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <label htmlFor="ui-lang" className="block font-bold text-slate-900 mb-3">
+              {t(lang, 'stats_language')}
+            </label>
+            <select
+              id="ui-lang"
+              value={state.lang}
+              onChange={e => setLang(e.target.value as Lang)}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+            >
               {(Object.entries(LANG_NAMES) as [Lang, string][]).map(([code, name]) => (
-                <button key={code} onClick={() => setLang(code)}
-                  className={`py-2.5 px-3 rounded-xl font-semibold text-sm border-2 transition-all ${
-                    state.lang === code ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                  }`}>
-                  {name}
-                </button>
+                <option key={code} value={code}>{name}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Backup */}
