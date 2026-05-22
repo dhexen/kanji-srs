@@ -27,6 +27,7 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # Panel Admin: crear/eliminar usuarios y restaurar backups
 GEMINI_API_KEY=tu_key_aqui      # opcional, servidor
+NEXT_PUBLIC_ADMIN_EMAILS=tu@email.com   # emails admin separados por coma (fallback si user_roles no tiene fila)
 ```
 
 La **service role** solo se usa en rutas API del servidor (`/api/admin/*`). No la expongas en el cliente.

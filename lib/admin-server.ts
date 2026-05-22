@@ -38,15 +38,31 @@ export async function requireAdmin(request: Request): Promise<{
   const { data: { user }, error } = await userClient.auth.getUser(token)
   if (error || !user) throw new AdminApiError('Sesión inválida', 401)
 
-  const service = createServiceClient()
+    const service = createServiceClient()
   const { data: roleRow } = await service
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (roleRow?.role !== 'admin') {
+  const isDbAdmin = roleRow?.role === 'admin'
+
+  // Fallback: check env-based admin list
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+  const isEnvAdmin = Boolean(user.email && adminEmails.includes(user.email.toLowerCase()))
+
+  if (!isDbAdmin && !isEnvAdmin) {
     throw new AdminApiError('Se requiere rol de administrador', 403)
+  }
+
+    // Bootstrap DB row if matched via env but missing in DB
+  if (isEnvAdmin && !isDbAdmin) {
+    try {
+      await service.from('user_roles').upsert({ user_id: user.id, role: 'admin' }, { onConflict: 'user_id' })
+    } catch { /* best-effort */ }
   }
 
   return { adminId: user.id, service }

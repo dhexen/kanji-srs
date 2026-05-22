@@ -499,10 +499,46 @@ export async function uploadProgress(vocabDb: VocabItem[]) {
 // Admin helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve user role with multiple fallbacks:
+ * 1. Query user_roles table in Supabase
+ * 2. If the table is missing / RLS blocks / no row → check NEXT_PUBLIC_ADMIN_EMAILS env var
+ * 3. If env-match found, try to bootstrap the row in user_roles so future queries work
+ */
 export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
-  const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle()
-  if (error || !data) return 'user'
-  return data.role as 'admin' | 'user'
+  // 1. Try DB lookup
+  try {
+    const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle()
+    if (!error && data) {
+      console.log('[getUserRole] DB hit:', userId, '→', data.role)
+      return data.role as 'admin' | 'user'
+    }
+    if (error) console.warn('[getUserRole] DB error:', error.code, error.message)
+    else console.warn('[getUserRole] No row in user_roles for', userId)
+  } catch (e) {
+    console.warn('[getUserRole] Exception querying user_roles:', e)
+  }
+
+  // 2. Fallback: check env-based admin list
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+
+  if (adminEmails.length > 0) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const email = user?.email?.toLowerCase() ?? ''
+    if (email && adminEmails.includes(email)) {
+      console.log('[getUserRole] Admin matched via NEXT_PUBLIC_ADMIN_EMAILS:', email)
+      // Try to bootstrap the DB row so future lookups work without env fallback
+      try {
+        await supabase.from('user_roles').upsert({ user_id: userId, role: 'admin' }, { onConflict: 'user_id' })
+      } catch { /* best-effort */ }
+      return 'admin'
+    }
+  }
+
+  return 'user'
 }
 
 export async function setUserRole(userId: string, role: 'admin' | 'user') {
