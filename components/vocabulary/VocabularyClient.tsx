@@ -6,7 +6,10 @@ import { getRandomKanjis, getVocabularyByKanjis } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
-const GRADES = [{ label: '1º Primaria', value: 1 }]
+const GRADES = [
+  { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1, kanjis: 80, words: 240 },
+  { label: '2º Primaria', labelCa: '2n Primària', labelEn: '2nd Grade', labelJa: '小学2年生', value: 2, kanjis: 160, words: 480 },
+]
 
 export default function VocabularyClient() {
   const { state, dispatch } = useStore()
@@ -32,13 +35,29 @@ export default function VocabularyClient() {
     : lang === 'en' && v.meaning_en ? v.meaning_en
     : v.meaning_es
 
+  const gradeLabel = (g: typeof GRADES[0]) =>
+    lang === 'ca' ? g.labelCa : lang === 'en' ? g.labelEn : lang === 'ja' ? g.labelJa : g.label
+
+  // Count how many kanjis of each grade the user already has
+  const gradeKanjiCount = (gradeVal: number) => {
+    return state.db.filter(i => {
+      // We don't store grade per word, so we count based on approximate kanji coverage
+      // Instead just show total active kanjis
+      return i.status === 'active'
+    }).length
+  }
+
   async function loadPreview() {
     if (!state.user) { showToast(t(lang, 'vocab_no_login'), 'error'); return }
     setLoading(true)
     try {
       const kanjis = await getRandomKanjis(packSize * 3, grade)
       const newKanjis = (kanjis as string[]).filter(k => !activeKanjis.has(k)).slice(0, packSize)
-      if (newKanjis.length === 0) { showToast('Sin kanjis nuevos', 'info'); setLoading(false); return }
+      if (newKanjis.length === 0) {
+        showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? 'Ja tens tots els kanjis d\'aquest curs' : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
+        setLoading(false)
+        return
+      }
       const vocab = await getVocabularyByKanjis(newKanjis)
       const newVocab = (vocab || []).filter((v: any) => !existingWords.has(v.word))
       setPreview(newVocab)
@@ -50,7 +69,6 @@ export default function VocabularyClient() {
   }
 
   function addToStudy() {
-    const now = Date.now()
     const newItems: VocabItem[] = preview.filter(v => !existingWords.has(v.word)).map(v => ({
       kanji: v.kanji, jp: v.word, reading: v.reading,
       meaning: v.meaning_es,
@@ -82,36 +100,73 @@ export default function VocabularyClient() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{t(lang, 'vocab_title')}</h2>
           <p className="text-slate-500 text-sm mb-6">{t(lang, 'vocab_sub')}</p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Grade selector */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_course')}</label>
-              {GRADES.map(g => (
-                <button key={g.value} onClick={() => setGrade(g.value)}
-                  className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${grade === g.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
-                  🏫 {g.label} <span className="opacity-70 font-normal text-xs">(80 kanjis · 240 {t(lang, 'study_words')})</span>
-                </button>
-              ))}
+              <div className="space-y-2">
+                {GRADES.map(g => (
+                  <button key={g.value} onClick={() => setGrade(g.value)}
+                    className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                      grade === g.value
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <span>🏫 {gradeLabel(g)}</span>
+                      <span className={`text-xs font-normal px-2 py-0.5 rounded ${grade === g.value ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        {g.kanjis} kanjis · {g.words} {t(lang, 'study_words')}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Pack size */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_amount')}</label>
               <div className="space-y-2">
                 {PACKS.map(p => (
                   <button key={p.value} onClick={() => setPackSize(p.value)}
-                    className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${packSize === p.value ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'}`}>
-                    {p.label} <span className="opacity-70 font-normal text-xs">{p.desc}</span>
+                    className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                      packSize === p.value
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                    }`}>
+                    {p.label} <span className={`text-xs font-normal ${packSize === p.value ? 'opacity-80' : 'text-slate-400'}`}>{p.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
           </div>
+
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6 p-4 bg-slate-50 rounded-xl">
-            <div className="text-center"><div className="text-2xl font-bold text-indigo-600">{activeKanjis.size}</div><div className="text-xs text-slate-400">{t(lang,'vocab_active')}</div></div>
-            <div className="text-center"><div className="text-2xl font-bold text-emerald-600">{state.db.length}</div><div className="text-xs text-slate-400">{t(lang,'vocab_total')}</div></div>
-            <div className="text-center"><div className="text-2xl font-bold text-amber-600">{80 - activeKanjis.size}</div><div className="text-xs text-slate-400">{t(lang,'vocab_available')}</div></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-indigo-600">{activeKanjis.size}</div>
+              <div className="text-xs text-slate-400">{t(lang, 'vocab_active')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600">{state.db.length}</div>
+              <div className="text-xs text-slate-400">{t(lang, 'vocab_total')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-amber-600">
+                {GRADES.find(g => g.value === grade)!.kanjis - [...activeKanjis].length > 0
+                  ? GRADES.find(g => g.value === grade)!.kanjis - [...activeKanjis].length
+                  : '✓'}
+              </div>
+              <div className="text-xs text-slate-400">{t(lang, 'vocab_available')}</div>
+            </div>
           </div>
+
           <button onClick={loadPreview} disabled={loading}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-lg rounded-xl transition shadow-md flex items-center justify-center gap-2">
-            {loading ? `⏳ ${t(lang,'vocab_loading')}` : `${t(lang,'vocab_load')} ${packSize} ${t(lang,'vocab_load2')}`}
+            {loading
+              ? `⏳ ${t(lang, 'vocab_loading')}`
+              : `${t(lang, 'vocab_load')} ${packSize} ${t(lang, 'vocab_load2')}`}
           </button>
         </div>
       )}
@@ -121,22 +176,38 @@ export default function VocabularyClient() {
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-bold text-slate-800 text-lg">{t(lang,'vocab_preview_title')} — {previewKanjis.length} kanjis</h3>
-                <p className="text-slate-400 text-sm">{preview.filter(v => !existingWords.has(v.word)).length} {t(lang,'vocab_preview_new')}</p>
+                <h3 className="font-bold text-slate-800 text-lg">
+                  {t(lang, 'vocab_preview_title')} — {previewKanjis.length} kanjis
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    ({GRADES.find(g => g.value === grade) ? gradeLabel(GRADES.find(g => g.value === grade)!) : ''})
+                  </span>
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  {preview.filter(v => !existingWords.has(v.word)).length} {t(lang, 'vocab_preview_new')}
+                </p>
               </div>
-              <button onClick={() => setStep('select')} className="text-slate-400 hover:text-slate-600 text-sm underline">{t(lang,'vocab_back')}</button>
+              <button onClick={() => setStep('select')} className="text-slate-400 hover:text-slate-600 text-sm underline">
+                {t(lang, 'vocab_back')}
+              </button>
             </div>
             <div className="flex gap-3">
-              <button onClick={addToStudy} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">{t(lang,'vocab_add')}</button>
-              <button onClick={loadPreview} disabled={loading} className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition text-sm">{t(lang,'vocab_other')}</button>
+              <button onClick={addToStudy}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">
+                {t(lang, 'vocab_add')}
+              </button>
+              <button onClick={loadPreview} disabled={loading}
+                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition text-sm">
+                {t(lang, 'vocab_other')}
+              </button>
             </div>
           </div>
+
           <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scroll pr-1">
             {Object.entries(grouped).map(([kanji, words]) => (
               <div key={kanji} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                 <div className="bg-slate-50 px-4 py-3 flex items-center gap-3">
                   <span className="kanji-font text-3xl font-bold text-slate-700">{kanji}</span>
-                  <span className="text-xs text-slate-400">{words.length} {t(lang,'study_words')}</span>
+                  <span className="text-xs text-slate-400">{words.length} {t(lang, 'study_words')}</span>
                 </div>
                 <div className="divide-y divide-slate-50">
                   {words.map((w: any) => {
@@ -146,7 +217,7 @@ export default function VocabularyClient() {
                         <span className="kanji-font text-xl font-bold text-slate-800 w-24">{w.word}</span>
                         <span className="text-indigo-600 font-semibold text-sm w-28">{w.reading}</span>
                         <span className="text-slate-500 text-sm flex-1">{meaning(w)}</span>
-                        {alreadyHas && <span className="text-xs text-slate-300 shrink-0">{t(lang,'vocab_already')}</span>}
+                        {alreadyHas && <span className="text-xs text-slate-300 shrink-0">{t(lang, 'vocab_already')}</span>}
                       </div>
                     )
                   })}
