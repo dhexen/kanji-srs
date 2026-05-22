@@ -532,24 +532,6 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
     console.warn('[getUserRole] DB exception:', e)
   }
 
-  // 3. Fallback: check env-based admin list
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
-    .split(',')
-    .map(e => e.trim().toLowerCase())
-    .filter(Boolean)
-
-  if (adminEmails.length > 0) {
-    const { data: { user } } = await supabase.auth.getUser()
-    const email = user?.email?.toLowerCase() ?? ''
-    if (email && adminEmails.includes(email)) {
-      console.log('[getUserRole] Admin matched via NEXT_PUBLIC_ADMIN_EMAILS:', email)
-      try {
-        await supabase.from('user_roles').upsert({ user_id: userId, role: 'admin' }, { onConflict: 'user_id' })
-      } catch { /* best-effort */ }
-      return 'admin'
-    }
-  }
-
   return 'user'
 }
 
@@ -606,13 +588,17 @@ export async function getVocabGradeWords(grade: number): Promise<Array<{ word: s
 /** Full-text search across kanji, word, reading and meanings. */
 export async function searchVocabulary(query: string): Promise<any[]> {
   const q = query.trim()
-  if (!q) return []
+  if (!q || q.length > 100) return []
+  // Strip characters that have special meaning in PostgREST filter strings
+  // to prevent filter injection via the raw .or() string.
+  const safe = q.replace(/[(),."\\]/g, '')
+  if (!safe) return []
   const { data, error } = await supabase
     .from('vocabulary')
     .select('*')
     .or(
-      `kanji.ilike.%${q}%,word.ilike.%${q}%,reading.ilike.%${q}%,` +
-      `meaning_es.ilike.%${q}%,meaning_ca.ilike.%${q}%,meaning_en.ilike.%${q}%`
+      `kanji.ilike.%${safe}%,word.ilike.%${safe}%,reading.ilike.%${safe}%,` +
+      `meaning_es.ilike.%${safe}%,meaning_ca.ilike.%${safe}%,meaning_en.ilike.%${safe}%`
     )
     .order('sort_order', { ascending: true })
     .limit(40)

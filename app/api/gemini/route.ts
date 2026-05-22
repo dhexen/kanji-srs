@@ -9,6 +9,24 @@ const ALLOWED_MODELS = new Set([
 ])
 const MAX_PROMPT_CHARS = 10_000
 
+// Rate limiter: applies only when the SERVER key is used (not user's own key).
+// 10 requests per user per hour. In-memory — resets on cold start (acceptable for small deployment).
+const SERVER_KEY_RATE_LIMIT = 10
+const SERVER_KEY_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+const serverKeyUsage = new Map<string, { count: number; windowStart: number }>()
+
+function checkServerKeyRateLimit(userId: string): boolean {
+  const now = Date.now()
+  const entry = serverKeyUsage.get(userId)
+  if (!entry || now - entry.windowStart > SERVER_KEY_WINDOW_MS) {
+    serverKeyUsage.set(userId, { count: 1, windowStart: now })
+    return true
+  }
+  if (entry.count >= SERVER_KEY_RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
 export async function POST(req: NextRequest) {
   // 1. Verificar sesión activa — cualquier petición sin sesión se rechaza
   const authHeader = req.headers.get('Authorization')
@@ -41,11 +59,13 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Resolver API key (la del usuario tiene prioridad; si no, la del servidor)
-  const apiKey = (typeof userApiKey === 'string' && userApiKey.trim())
-    ? userApiKey.trim()
-    : process.env.GEMINI_API_KEY
+  const usingUserKey = typeof userApiKey === 'string' && userApiKey.trim().length > 0
+  const apiKey = usingUserKey ? userApiKey.trim() : process.env.GEMINI_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'No hay API Key configurada. Añade tu clave de Gemini en la sección de Contexto.' }, { status: 401 })
+  }
+  if (!usingUserKey && !checkServerKeyRateLimit(user.id)) {
+    return NextResponse.json({ error: 'Has alcanzado el límite de solicitudes (10/hora). Añade tu propia API Key de Gemini para uso ilimitado.' }, { status: 429 })
   }
 
   // 4. Llamada a Gemini

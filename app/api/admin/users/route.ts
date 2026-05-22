@@ -23,8 +23,12 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ error: 'Email y contraseña son obligatorios' }, { status: 400 })
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(String(email))) {
+      return NextResponse.json({ error: 'El email no tiene un formato válido' }, { status: 400 })
+    }
+    if (String(password).length < 8) {
+      return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 })
     }
     const user = await createAdminUser(service, email, password, role === 'admin' ? 'admin' : 'user')
     return NextResponse.json(user)
