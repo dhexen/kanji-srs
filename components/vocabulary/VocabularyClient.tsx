@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { VocabItem, MODE_CONFIG, migrateItem, getMeaningForLang } from '@/lib/srs'
-import { getRandomKanjis, getVocabularyByKanjis } from '@/lib/supabase'
+import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
+import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -17,13 +17,15 @@ function activateItem(item: VocabItem, level: number, due: number): VocabItem {
 }
 
 const GRADES = [
-  { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1, kanjis: 80, words: 240 },
-  { label: '2º Primaria', labelCa: '2n Primària', labelEn: '2nd Grade', labelJa: '小学2年生', value: 2, kanjis: 160, words: 480 },
-  { label: '3º Primaria', labelCa: '3r Primària', labelEn: '3rd Grade', labelJa: '小学3年生', value: 3, kanjis: 200, words: 600 },
+  { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1 },
+  { label: '2º Primaria', labelCa: '2n Primària', labelEn: '2nd Grade', labelJa: '小学2年生', value: 2 },
+  { label: '3º Primaria', labelCa: '3r Primària', labelEn: '3rd Grade', labelJa: '小学3年生', value: 3 },
 ]
 
+type GradeWordEntry = { word: string; kanji: string; is_official: boolean }
+
 export default function VocabularyClient() {
-  const { state, addVocabItems, saveVocabDb } = useStore()
+  const { state, addVocabItems } = useStore()
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -32,10 +34,12 @@ export default function VocabularyClient() {
   const [discarded, setDiscarded] = useState<Set<string>>(new Set())
   const [showManual, setShowManual] = useState(false)
   const [form, setForm] = useState({ kanji: '', jp: '', reading: '', meaning: '' })
+  const [gradeWords, setGradeWords] = useState<Record<number, GradeWordEntry[]>>({})
+  const [statsLoading, setStatsLoading] = useState(true)
   const lang = state.lang
 
-  const existingWords = new Set(state.db.map(i => i.jp))
-  const activeKanjis = new Set(state.db.map(i => i.kanji))
+  const existingWords = useMemo(() => new Set(state.db.map(i => i.jp)), [state.db])
+  const activeKanjis = useMemo(() => new Set(state.db.map(i => i.kanji)), [state.db])
 
   const PACKS = [
     { value: 3, label: t(lang, 'vocab_k3'), desc: t(lang, 'vocab_k3_desc') },
@@ -51,14 +55,30 @@ export default function VocabularyClient() {
   const gradeLabel = (g: typeof GRADES[0]) =>
     lang === 'ca' ? g.labelCa : lang === 'en' ? g.labelEn : lang === 'ja' ? g.labelJa : g.label
 
-  // Count how many kanjis of each grade the user already has
-  const gradeKanjiCount = (gradeVal: number) => {
-    return state.db.filter(i => {
-      // We don't store grade per word, so we count based on approximate kanji coverage
-      // Instead just show total active kanjis
-      return i.status === 'active'
-    }).length
+  function getGradeStats(gradeVal: number) {
+    const words = gradeWords[gradeVal] ?? []
+    const total = words.length
+    const unofficial = words.filter(w => !w.is_official).length
+    const userHas = words.filter(w => existingWords.has(w.word)).length
+    const totalKanjis = new Set(words.map(w => w.kanji)).size
+    return { total, unofficial, userHas, remaining: total - userHas, totalKanjis }
   }
+
+  async function loadGradeStats() {
+    setStatsLoading(true)
+    try {
+      const results = await Promise.all(
+        GRADES.map(g => getVocabGradeWords(g.value).then(data => ({ grade: g.value, data })))
+      )
+      const byGrade: Record<number, GradeWordEntry[]> = {}
+      for (const { grade: g, data } of results) byGrade[g] = data
+      setGradeWords(byGrade)
+    } catch { /* stats are optional */ } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  useEffect(() => { loadGradeStats() }, [])
 
   async function loadPreview() {
     if (!state.user) { showToast(t(lang, 'vocab_no_login'), 'error'); return }
@@ -67,7 +87,7 @@ export default function VocabularyClient() {
       const allKanjis = await getRandomKanjis(0, grade)
       const newKanjis = (allKanjis as string[]).filter(k => !activeKanjis.has(k)).slice(0, packSize)
       if (newKanjis.length === 0) {
-        showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? 'Ja tens tots els kanjis d\'aquest curs' : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
+        showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? "Ja tens tots els kanjis d'aquest curs" : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
         setLoading(false)
         return
       }
@@ -121,6 +141,7 @@ export default function VocabularyClient() {
       setStep('select')
       setPreview([])
       setDiscarded(new Set())
+      loadGradeStats()
     } catch {
       /* toast ya mostrado por el store */
     }
@@ -135,15 +156,20 @@ export default function VocabularyClient() {
     const item = activateItem(base, 1, now)
     try {
       await addVocabItems([item])
+      // Add to shared vocabulary table as unofficial (grade from kanji lookup, or 0 if unknown)
+      const kanjiGrade = await getKanjiGrade(kanji).catch(() => null)
+      await insertUnofficialVocab({ kanji, word: jp, reading, meaning_es: m, grade: kanjiGrade ?? 0 }).catch(() => {})
       setForm({ kanji: '', jp: '', reading: '', meaning: '' })
       showToast('OK', 'success')
+      loadGradeStats()
     } catch { /* toast en store */ }
   }
 
   const selectedCount = preview.filter(v => !existingWords.has(v.word) && !discarded.has(v.word)).length
-
   const grouped: Record<string, any[]> = {}
   preview.forEach(v => { if (!grouped[v.kanji]) grouped[v.kanji] = []; grouped[v.kanji].push(v) })
+
+  const currentStats = getGradeStats(grade)
 
   if (!state.user) {
     return (
@@ -167,21 +193,39 @@ export default function VocabularyClient() {
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_course')}</label>
               <div className="space-y-2">
-                {GRADES.map(g => (
-                  <button key={g.value} onClick={() => setGrade(g.value)}
-                    className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
-                      grade === g.value
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                    }`}>
-                    <div className="flex items-center justify-between">
-                      <span>🏫 {gradeLabel(g)}</span>
-                      <span className={`text-xs font-normal px-2 py-0.5 rounded ${grade === g.value ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                        {g.kanjis} kanjis · {g.words} {t(lang, 'study_words')}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                {GRADES.map(g => {
+                  const gStats = getGradeStats(g.value)
+                  const isSelected = grade === g.value
+                  return (
+                    <button key={g.value} onClick={() => setGrade(g.value)}
+                      className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                      }`}>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span>🏫 {gradeLabel(g)}</span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            {statsLoading
+                              ? '...'
+                              : `${gStats.totalKanjis} kanjis · ${gStats.total} ${t(lang, 'study_words')}`}
+                          </span>
+                          {!statsLoading && gStats.unofficial > 0 && (
+                            <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
+                              {gStats.unofficial} no oficiales
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {!statsLoading && (
+                        <div className={`text-xs font-normal mt-1 ${isSelected ? 'text-indigo-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                          {gStats.remaining === 0 ? '✓ Vocabulario completo' : `Te faltan: ${gStats.remaining} palabras`}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -210,14 +254,14 @@ export default function VocabularyClient() {
               <div className="text-xs text-slate-400">{t(lang, 'vocab_active')}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-600">{state.db.length}</div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {statsLoading ? '...' : currentStats.total}
+              </div>
               <div className="text-xs text-slate-400">{t(lang, 'vocab_total')}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-amber-600">
-                {GRADES.find(g => g.value === grade)!.kanjis - [...activeKanjis].length > 0
-                  ? GRADES.find(g => g.value === grade)!.kanjis - [...activeKanjis].length
-                  : '✓'}
+              <div className={`text-2xl font-bold ${statsLoading ? 'text-slate-400' : currentStats.remaining === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {statsLoading ? '...' : currentStats.remaining === 0 ? '✓' : currentStats.remaining}
               </div>
               <div className="text-xs text-slate-400">{t(lang, 'vocab_available')}</div>
             </div>
@@ -288,15 +332,22 @@ export default function VocabularyClient() {
                 {words.map((w: any) => {
                   const alreadyHas = existingWords.has(w.word)
                   const isDiscarded = discarded.has(w.word)
+                  const isUnofficial = w.is_official === false
                   return (
                     <div key={w.word}
                       className={`bg-white rounded-2xl border p-4 shadow-sm transition-all ${
                         alreadyHas ? 'opacity-40 border-slate-100'
                         : isDiscarded ? 'border-slate-200 opacity-50'
+                        : isUnofficial ? 'border-red-200'
                         : 'border-slate-100'
                       }`}>
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
+                          {isUnofficial && (
+                            <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">no oficial</span>
+                          )}
+                        </div>
                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                       </div>
                       <p className="text-slate-500 text-sm mb-3">{meaning(w)}</p>
@@ -336,6 +387,7 @@ export default function VocabularyClient() {
         </button>
         {showManual && (
           <div className="px-5 pb-5 pt-0 border-t border-slate-100 space-y-3">
+            <p className="text-xs text-slate-400 pt-3">La palabra se añadirá a tu SRS y a la lista compartida marcada como <span className="text-red-500 font-medium">no oficial</span>.</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {(['kanji', 'jp', 'reading', 'meaning'] as const).map(field => (
                 <input

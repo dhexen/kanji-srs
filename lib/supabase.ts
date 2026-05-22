@@ -584,6 +584,49 @@ export async function fetchVocabCountsByUser(): Promise<Record<string, number>> 
   return map
 }
 
+/** Returns word+kanji+is_official for all rows of a grade — used for stats. */
+export async function getVocabGradeWords(grade: number): Promise<Array<{ word: string; kanji: string; is_official: boolean }>> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('word, kanji, is_official')
+    .eq('grade', grade)
+  if (error) throw error
+  return (data ?? []).map(d => ({ word: d.word, kanji: d.kanji, is_official: d.is_official ?? true }))
+}
+
+/** Looks up the grade of a kanji in the vocabulary table. Returns null if not found. */
+export async function getKanjiGrade(kanji: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('grade')
+    .eq('kanji', kanji)
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return data?.grade ?? null
+}
+
+/** Inserts a user-submitted word into the shared vocabulary table as unofficial. */
+export async function insertUnofficialVocab(entry: {
+  kanji: string
+  word: string
+  reading: string
+  meaning_es: string
+  grade: number
+}): Promise<void> {
+  const { error } = await supabase.from('vocabulary').insert({
+    kanji: entry.kanji,
+    word: entry.word,
+    reading: entry.reading,
+    meaning_es: entry.meaning_es,
+    grade: entry.grade,
+    is_official: false,
+    sort_order: 99999,
+  })
+  // Ignore duplicate inserts (word already exists in table)
+  if (error && error.code !== '23505') throw error
+}
+
 export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {
   const { data, error } = await supabase
     .from('vocabulary')
