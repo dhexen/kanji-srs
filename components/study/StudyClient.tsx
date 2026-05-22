@@ -8,8 +8,9 @@ import { t } from '@/lib/i18n'
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
   Object.values(MODE_CONFIG).forEach(cfg => {
-    (upd as Record<string, unknown>)[cfg.key + '_level'] = level
-    ;(upd as Record<string, unknown>)[cfg.key + '_due'] = due
+    const row = upd as unknown as Record<string, number>
+    row[`${cfg.key}_level`] = level
+    row[`${cfg.key}_due`] = due
   })
   return migrateItem(upd)
 }
