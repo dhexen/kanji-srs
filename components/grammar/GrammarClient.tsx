@@ -1,11 +1,13 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { GRAMMAR_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { fetchKnownGrammar, setGrammarKnown } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
+import { t } from '@/lib/i18n'
 
 type JlptFilter = 'all' | 'N5' | 'N4'
 
@@ -173,6 +175,21 @@ export default function GrammarClient() {
 
   return (
     <div className="space-y-4">
+      {/* API Key banner (only for AI explanation feature) */}
+      {!state.geminiApiKey && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">🔑 {t(lang, 'api_missing_banner')}</p>
+          </div>
+          <Link
+            href="/stats"
+            className="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition"
+          >
+            {t(lang, 'api_go_settings')}
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">📖 Gramática</h1>

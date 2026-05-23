@@ -26,7 +26,10 @@ const MODELS = [
 
 export default function ImportClient() {
   const { state, addVocabItems } = useStore()
-  const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem('kanji_srs_gemini_api_key') || '' } catch { return '' } })
+  const [apiKey, setApiKey] = useState(() => {
+    try { return localStorage.getItem('kanji_srs_gemini_api_key') || '' } catch { return '' }
+  })
+  const effectiveKey = apiKey || state.geminiApiKey
   const [model, setModel] = useState('gemini-2.5-flash')
   const [grade, setGrade] = useState(GRADES[0].value)
   const [url, setUrl] = useState('')
@@ -46,7 +49,7 @@ export default function ImportClient() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session?.access_token ?? ''}`,
       },
-      body: JSON.stringify({ prompt, model, userApiKey: apiKey }),
+      body: JSON.stringify({ prompt, model, userApiKey: effectiveKey }),
     })
     const data = await res.json()
     if (data.error) throw new Error(data.error)

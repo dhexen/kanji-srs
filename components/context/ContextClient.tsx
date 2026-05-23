@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
@@ -21,27 +22,20 @@ const LEVELS = [
 ]
 
 export default function ContextClient() {
-  const { state, updateGeminiKey, addContextText, removeContextText } = useStore()
+  const { state, addContextText, removeContextText } = useStore()
+  const lang = state.lang
   const [topic, setTopic] = useState(TOPICS[0].v)
   const [level, setLevel] = useState('normal')
   const [loading, setLoading] = useState(false)
-  const [apiKeyOpen, setApiKeyOpen] = useState(!state.geminiApiKey)
-  const [apiKeyInput, setApiKeyInput] = useState(state.geminiApiKey)
   const [errorMsg, setErrorMsg] = useState('')
 
   const activeWords = state.db.filter(i => i.status === 'active')
   const userKanjis = useMemo(() => new Set(state.db.map(i => i.kanji)), [state.db])
 
-  async function saveKey() {
-    await updateGeminiKey(apiKeyInput)
-    setApiKeyOpen(false)
-    showToast('API Key guardada', 'success')
-  }
-
   async function generate() {
-    const key = state.geminiApiKey || apiKeyInput
-    if (!key) { showToast('Introduce tu API Key de Gemini', 'error'); return }
-    if (activeWords.length === 0) { showToast('Activa palabras en el ciclo SRS primero', 'error'); return }
+    const key = state.geminiApiKey
+    if (!key) { showToast(t(lang, 'api_missing_banner'), 'error'); return }
+    if (activeWords.length === 0) { showToast(t(lang, 'review_no_words'), 'error'); return }
 
     setLoading(true)
     setErrorMsg('')
@@ -121,42 +115,20 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
         <h2 className="text-2xl font-bold text-slate-800 mb-1">💬 Textos en Contexto con IA</h2>
         <p className="text-slate-500 text-sm mb-5">Genera textos en japonés usando tu vocabulario aprendido. Se guardan las últimas 10 frases.</p>
 
-        {/* API Key section */}
-        <div className="mb-5 border border-slate-200 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setApiKeyOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-700"
-          >
-            <span className="flex items-center gap-2">
-              🔑 API Key de Gemini
-              {state.geminiApiKey
-                ? <span className="text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Configurada ✓</span>
-                : <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Sin configurar</span>}
-            </span>
-            <span className={`transition-transform ${apiKeyOpen ? 'rotate-180' : ''}`}>▼</span>
-          </button>
-          {apiKeyOpen && (
-            <div className="p-4 space-y-3 border-t border-slate-200">
-              <p className="text-xs text-slate-400">
-                Obtén tu API Key gratuita en{' '}
-                <a href="https://aistudio.google.com" target="_blank" className="text-indigo-600 underline">Google AI Studio</a>.
-                Se guarda en tu cuenta.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={e => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                />
-                <button onClick={saveKey} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition">
-                  Guardar
-                </button>
-              </div>
+        {/* API Key banner */}
+        {!state.geminiApiKey && (
+          <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800">🔑 {t(lang, 'api_missing_banner')}</p>
             </div>
-          )}
-        </div>
+            <Link
+              href="/stats"
+              className="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition"
+            >
+              {t(lang, 'api_go_settings')}
+            </Link>
+          </div>
+        )}
 
         {/* Topic + Level + Button */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

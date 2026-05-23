@@ -1,5 +1,7 @@
 'use client'
+'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { MODE_CONFIG, ReviewMode, STAGE_NAMES, getSrsClass, getModeLevelAndDue } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
@@ -7,11 +9,13 @@ import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey } = useStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [geminiKey, setGeminiKey] = useState(state.geminiApiKey ?? '')
+  const [geminiStepsOpen, setGeminiStepsOpen] = useState(false)
   const lang = state.lang
 
   const active = state.db.filter(i => i.status === 'active')
@@ -50,6 +54,12 @@ export default function StatsClient() {
       } catch { showToast('Error', 'error') }
     }
     reader.readAsText(file)
+  }
+
+  async function handleSaveGeminiKey() {
+    const key = geminiKey.trim()
+    await updateGeminiKey(key)
+    showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
   }
 
   async function resetAll() {
@@ -182,6 +192,87 @@ export default function StatsClient() {
             >
               {t(lang, 'tutorial_restart')}
             </button>
+          </div>
+
+          {/* Gemini API Key */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-900">{t(lang, 'api_title')}</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{t(lang, 'api_subtitle')}</p>
+            </div>
+
+            {/* Sections that use it */}
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 font-medium">💬 Contexto IA</span>
+              <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 font-medium">📖 Gramática IA</span>
+            </div>
+
+            {/* Step-by-step guide */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setGeminiStepsOpen(o => !o)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+              >
+                <span className={`transition-transform inline-block ${geminiStepsOpen ? 'rotate-90' : ''}`}>▶</span>
+                {t(lang, 'api_steps_title')}
+              </button>
+
+              {geminiStepsOpen && (
+                <div className="mt-3 bg-slate-50 rounded-xl p-4">
+                  <ol className="space-y-2.5 text-xs text-slate-600">
+                    {[
+                      { n: 1, es: <>Ve a <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> e inicia sesión con tu cuenta de Google</>, en: <>Go to <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> and sign in with your Google account</>, ca: <>Ves a <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> i inicia sessió amb el teu compte de Google</>, ja: <><a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> にアクセスし、Googleアカウントでログイン</> },
+                      { n: 2, es: <>Haz clic en <strong>«Get API key»</strong> en el menú lateral izquierdo</>, en: <>Click <strong>"Get API key"</strong> in the left sidebar</>, ca: <>Fes clic a <strong>«Get API key»</strong> al menú lateral esquerre</>, ja: <>左メニューの <strong>「Get API key」</strong> をクリック</> },
+                      { n: 3, es: <>Pulsa <strong>«Create API key»</strong> y selecciona o crea un proyecto</>, en: <>Click <strong>"Create API key"</strong> and select or create a project</>, ca: <>Prem <strong>«Create API key»</strong> i selecciona o crea un projecte</>, ja: <><strong>「Create API key」</strong> を押してプロジェクトを選択または作成</> },
+                      { n: 4, es: <>Copia la clave generada — empieza por <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, en: <>Copy the generated key — starts with <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, ca: <>Copia la clau generada — comença per <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, ja: <>生成されたキーをコピー — <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code> で始まります</> },
+                      { n: 5, es: <>Pégala en el campo de abajo y pulsa <strong>Guardar</strong></>, en: <>Paste it in the field below and press <strong>Save</strong></>, ca: <>Enganxa-la al camp de sota i prem <strong>Guardar</strong></>, ja: <>下のフィールドに貼り付けて <strong>保存</strong> を押す</> },
+                    ].map(step => (
+                      <li key={step.n} className="flex gap-2.5 items-start">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-bold text-[10px] flex items-center justify-center mt-0.5">
+                          {step.n}
+                        </span>
+                        <span>{(step as any)[lang] ?? step.es}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+
+            {/* Input + save */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-600">API Key</label>
+                {state.geminiApiKey
+                  ? <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
+                  : <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
+                }
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={geminiKey}
+                  onChange={e => setGeminiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={handleSaveGeminiKey}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition"
+                >
+                  {t(lang, 'ctx_key_save')}
+                </button>
+              </div>
+              {state.geminiApiKey && (
+                <button
+                  onClick={() => { setGeminiKey(''); updateGeminiKey('') }}
+                  className="text-xs text-slate-400 hover:text-rose-500 transition underline"
+                >
+                  {t(lang, 'api_remove')}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Language selector */}
