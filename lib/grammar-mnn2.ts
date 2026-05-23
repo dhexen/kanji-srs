@@ -191,10 +191,302 @@ const ch30: GrammarPoint[] = [
 // Export — batch 1: lessons 26-30
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── CHAPTER 31 ───────────────────────────────────────────────────────────────
+const ch31: GrammarPoint[] = [
+  {
+    id: 'mnn2-31-1', lesson: 31, number: 8, jlpt: 'N4',
+    pattern: '普通形 + かもしれません',
+    name_es: 'Quizás ~ / Puede que ~',
+    name_ca: 'Potser ~ / Pot ser que ~',
+    name_en: 'Maybe ~ / Might ~',
+    explanation_es: 'Expresa posibilidad o incertidumbre. La probabilidad es inferior a でしょう y no implica ninguna evidencia. Plain form + かもしれません. Para な-adj y N: sin だ en afirmativa.',
+    explanation_ca: 'Expressa possibilitat o incertesa. La probabilitat és inferior a でしょう i no implica cap evidència. Forma curta + かもしれません. Per a な-adj i N: sense だ en afirmativa.',
+    explanation_en: 'Expresses possibility or uncertainty. Lower probability than でしょう and implies no evidence. Plain form + かもしれません. For な-adj and N: no だ in affirmative.',
+    structure: [
+      { text: 'S (普通形)', role: 'noun', isSlot: true, label_es: 'oración (forma corta)', label_ca: 'oració (forma curta)', label_en: 'clause (plain form)' },
+      { text: 'かもしれません', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '明日は', furigana: 'あしたは', role: 'time', gloss_es: 'mañana', gloss_ca: 'demà', gloss_en: 'tomorrow' },
+      { text: '雨が', furigana: 'あめが', role: 'subject', gloss_es: 'lluvia', gloss_ca: 'pluja', gloss_en: 'rain' },
+      { text: '降る', furigana: 'ふる', role: 'verb', gloss_es: 'caerá', gloss_ca: 'caurà', gloss_en: 'will fall' },
+      { text: 'かもしれません', role: 'key', gloss_es: 'quizás', gloss_ca: 'potser', gloss_en: 'might' },
+    ],
+    tip_es: 'Escala de certeza: かもしれません (quizás, ~30%) < でしょう (probablemente, ~70%) < はずです (se supone que, expectativa lógica). Coloquial: かも。',
+    tip_ca: 'Escala de certesa: かもしれません (potser, ~30%) < でしょう (probablement, ~70%) < はずです (se suposa que, expectativa lògica). Col·loquial: かも。',
+    tip_en: 'Certainty scale: かもしれません (maybe, ~30%) < でしょう (probably, ~70%) < はずです (should/supposed to, logical expectation). Colloquial: かも。',
+  },
+  {
+    id: 'mnn2-31-2', lesson: 31, number: 9, jlpt: 'N4',
+    pattern: '普通形 + でしょう',
+    name_es: 'Probablemente ~ / Creo que ~ (certeza alta)',
+    name_ca: 'Probablement ~ / Crec que ~ (certesa alta)',
+    name_en: 'Probably ~ / I think ~ (high certainty)',
+    explanation_es: 'Expresa conjetura con mayor probabilidad que かもしれません. También se usa para pedir confirmación (con entonación ascendente: でしょう↗). Para な-adj y N: sin だ en afirmativa.',
+    explanation_ca: 'Expressa conjectura amb major probabilitat que かもしれません. També s\'usa per demanar confirmació (amb entonació ascendent: でしょう↗). Per a な-adj i N: sense だ en afirmativa.',
+    explanation_en: 'Expresses conjecture with higher probability than かもしれません. Also used to ask for confirmation (with rising intonation: でしょう↗). For な-adj and N: no だ in affirmative.',
+    structure: [
+      { text: 'S (普通形)', role: 'noun', isSlot: true, label_es: 'oración (forma corta)', label_ca: 'oració (forma curta)', label_en: 'clause (plain form)' },
+      { text: 'でしょう', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '彼は', furigana: 'かれは', role: 'topic', gloss_es: 'él', gloss_ca: 'ell', gloss_en: 'he' },
+      { text: 'もう', role: 'noun', gloss_es: 'ya', gloss_ca: 'ja', gloss_en: 'already' },
+      { text: '家に', furigana: 'いえに', role: 'direction', gloss_es: 'a casa', gloss_ca: 'a casa', gloss_en: 'home' },
+      { text: '帰った', furigana: 'かえった', role: 'verb', gloss_es: 'volvió', gloss_ca: 'va tornar', gloss_en: 'went home' },
+      { text: 'でしょう', role: 'key', gloss_es: 'probablemente', gloss_ca: 'probablement', gloss_en: 'probably' },
+    ],
+    tip_es: 'Formal: でしょう. Casual/informal: だろう. Con entonación ascendente でしょう↗ = "¿verdad? ¿no?" (buscando confirmación).',
+    tip_ca: 'Formal: でしょう. Col·loquial/informal: だろう. Amb entonació ascendent でしょう↗ = "oi? ¿oi que sí?" (buscant confirmació).',
+    tip_en: 'Formal: でしょう. Casual/informal: だろう. With rising intonation でしょう↗ = "right? isn\'t it?" (seeking confirmation).',
+  },
+  {
+    id: 'mnn2-31-3', lesson: 31, number: 10, jlpt: 'N4',
+    pattern: '普通形 + はずです',
+    name_es: 'Debería ~ / Se supone que ~ (expectativa lógica)',
+    name_ca: 'Hauria de ~ / Se suposa que ~ (expectativa lògica)',
+    name_en: 'Should ~ / Is supposed to ~ (logical expectation)',
+    explanation_es: 'Expresa que el hablante espera algo basándose en evidencia o conocimiento previo. No es una orden, sino una deducción lógica. はずがありません = no puede ser que.',
+    explanation_ca: 'Expressa que el parlant espera alguna cosa basant-se en evidència o coneixement previ. No és una ordre, sinó una deducció lògica. はずがありません = no pot ser que.',
+    explanation_en: 'Expresses that the speaker expects something based on evidence or prior knowledge. Not an obligation, but a logical deduction. はずがありません = there is no way that.',
+    structure: [
+      { text: 'S (普通形)', role: 'noun', isSlot: true, label_es: 'oración (forma corta)', label_ca: 'oració (forma curta)', label_en: 'clause (plain form)' },
+      { text: 'はずです', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '彼女は', furigana: 'かのじょは', role: 'topic', gloss_es: 'ella', gloss_ca: 'ella', gloss_en: 'she' },
+      { text: 'もう', role: 'noun', gloss_es: 'ya', gloss_ca: 'ja', gloss_en: 'already' },
+      { text: '知っている', furigana: 'しっている', role: 'verb', gloss_es: 'sabe', gloss_ca: 'sap', gloss_en: 'knows' },
+      { text: 'はずです', role: 'key', gloss_es: 'debería (lo sé)', gloss_ca: 'hauria (ho sé)', gloss_en: 'should (I know so)' },
+    ],
+    tip_es: 'はずです vs でしょう: はずです se basa en evidencia o lógica concreta. でしょう es una suposición más vaga. "彼はもう知っているはずです" = tengo razón para creerlo.',
+    tip_ca: 'はずです vs でしょう: はずです es basa en evidència o lògica concreta. でしょう és una suposició més vaga. "彼はもう知っているはずです" = tinc raó per creure-ho.',
+    tip_en: 'はずです vs でしょう: はずです is based on concrete evidence or logic. でしょう is a vaguer assumption. "彼はもう知っているはずです" = I have reason to believe it.',
+  },
+]
+
+// ─── CHAPTER 32 ───────────────────────────────────────────────────────────────
+const ch32: GrammarPoint[] = [
+  {
+    id: 'mnn2-32-1', lesson: 32, number: 11, jlpt: 'N4',
+    pattern: 'S₁ のに、S₂',
+    name_es: 'Aunque ~ / A pesar de ~ (resultado inesperado / queja)',
+    name_ca: 'Tot i que ~ / Malgrat ~ (resultat inesperat / queixa)',
+    name_en: 'Although ~ / Despite ~ (unexpected result / complaint)',
+    explanation_es: '「のに」 une dos oraciones cuando el resultado es inesperado o frustrante. Implica una queja o decepción del hablante. S₁ es la condición esperada, S₂ es la realidad contraria. S₁ va en forma corta.',
+    explanation_ca: '「のに」 uneix dues oracions quan el resultat és inesperat o frustrant. Implica una queixa o decepció del parlant. S₁ és la condició esperada, S₂ és la realitat contrària. S₁ va en forma curta.',
+    explanation_en: '「のに」 connects two clauses when the result is unexpected or frustrating. Implies the speaker\'s complaint or disappointment. S₁ is the expected condition; S₂ is the contrary reality. S₁ is in plain form.',
+    structure: [
+      { text: 'S₁ (普通形)', role: 'noun', isSlot: true, label_es: 'condición (forma corta)', label_ca: 'condició (forma curta)', label_en: 'condition (plain form)' },
+      { text: 'のに', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado inesperado', label_ca: 'resultat inesperat', label_en: 'unexpected result' },
+    ],
+    example: [
+      { text: '一生懸命', furigana: 'いっしょうけんめい', role: 'noun', gloss_es: 'con esfuerzo', gloss_ca: 'amb esforç', gloss_en: 'hard' },
+      { text: '勉強した', furigana: 'べんきょうした', role: 'verb', gloss_es: 'estudié', gloss_ca: 'vaig estudiar', gloss_en: 'I studied' },
+      { text: 'のに', role: 'key', gloss_es: 'aunque', gloss_ca: 'tot i que', gloss_en: 'despite' },
+      { text: '試験に', furigana: 'しけんに', role: 'location', gloss_es: 'al examen', gloss_ca: "a l'examen", gloss_en: 'the exam' },
+      { text: '落ちました', furigana: 'おちました', role: 'verb', gloss_es: 'suspendí', gloss_ca: 'vaig suspendre', gloss_en: 'I failed' },
+    ],
+    tip_es: 'のに siempre lleva emoción negativa (queja, decepción, sorpresa adversa). No uses のに para contraste neutro — en ese caso usa が o けど.',
+    tip_ca: 'のに sempre porta emoció negativa (queixa, decepció, sorpresa adversa). No facis servir のに per a contrast neutre — en aquest cas usa が o けど.',
+    tip_en: 'のに always carries negative emotion (complaint, disappointment, adverse surprise). Don\'t use のに for neutral contrast — use が or けど instead.',
+  },
+  {
+    id: 'mnn2-32-2', lesson: 32, number: 12, jlpt: 'N4',
+    pattern: 'V て form / adj + も',
+    name_es: 'Aunque ~ / Incluso si ~ (concesivo)',
+    name_ca: 'Encara que ~ / Fins i tot si ~ (concessiu)',
+    name_en: 'Even if ~ / Even though ~ (concessive)',
+    explanation_es: 'Expresa que la segunda acción/estado ocurre independientemente de la primera. V て form + も. い-adj: adj くても. な-adj/N: adj/N でも. Indica que la condición no cambia el resultado.',
+    explanation_ca: "Expressa que la segona acció/estat ocorre independentment de la primera. V て form + も. い-adj: adj くても. な-adj/N: adj/N でも. Indica que la condició no canvia el resultat.",
+    explanation_en: 'Expresses that the second action/state occurs regardless of the first. V て-form + も. い-adj: adj くても. な-adj/N: adj/N でも. Indicates the condition does not change the outcome.',
+    structure: [
+      { text: 'V て / adj く / N で', role: 'verb', isSlot: true, label_es: 'condición (て/く/で)', label_ca: 'condició (て/く/で)', label_en: 'condition (て/く/で)' },
+      { text: 'も', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado (no cambia)', label_ca: 'resultat (no canvia)', label_en: 'result (unchanged)' },
+    ],
+    example: [
+      { text: '雨が', furigana: 'あめが', role: 'subject', gloss_es: 'lluvia', gloss_ca: 'pluja', gloss_en: 'rain' },
+      { text: '降っ', furigana: 'ふっ', role: 'verb', gloss_es: 'caiga', gloss_ca: 'caigui', gloss_en: 'falls' },
+      { text: 'ても', role: 'key', gloss_es: 'aunque', gloss_ca: 'encara que', gloss_en: 'even if' },
+      { text: '行きます', furigana: 'いきます', role: 'verb', gloss_es: 'iré', gloss_ca: 'aniré', gloss_en: "I'll go" },
+    ],
+    tip_es: 'のに vs ても: ても es neutro (hecho o hipótesis). のに lleva decepción/queja. "雨が降っても行きます" (ても, neutro) vs "雨が降ったのに行った" (のに, queja).',
+    tip_ca: 'のに vs ても: ても és neutre (fet o hipòtesi). のに porta decepció/queixa. "雨が降っても行きます" (ても, neutre) vs "雨が降ったのに行った" (のに, queixa).',
+    tip_en: 'のに vs ても: ても is neutral (fact or hypothesis). のに carries disappointment/complaint. "雨が降っても行きます" (ても, neutral) vs "雨が降ったのに行った" (のに, complaint).',
+  },
+]
+
+// ─── CHAPTER 33 ───────────────────────────────────────────────────────────────
+const ch33: GrammarPoint[] = [
+  {
+    id: 'mnn2-33-1', lesson: 33, number: 13, jlpt: 'N4',
+    pattern: 'S なら / N なら',
+    name_es: 'Si ~ (condicional de tema) / En el caso de que sea ~',
+    name_ca: 'Si ~ (condicional de tema) / En el cas que sigui ~',
+    name_en: 'If ~ (topic-based conditional) / In the case of ~',
+    explanation_es: '「なら」 es una condicional que asume la situación del interlocutor como punto de partida. "Si es el caso de que X, entonces Y". Responde implícitamente a algo que se acaba de decir o que se sabe. S + なら o N + なら.',
+    explanation_ca: '「なら」 és una condicional que assumeix la situació de l\'interlocutor com a punt de partida. "Si és el cas que X, aleshores Y". Respon implícitament a alguna cosa que s\'acaba de dir o que se sap. S + なら o N + なら.',
+    explanation_en: '「なら」 is a conditional that takes the listener\'s situation as its starting point. "If that\'s the case, then Y". Implicitly responds to something just said or known. S + なら or N + なら.',
+    structure: [
+      { text: 'S / N', role: 'noun', isSlot: true, label_es: 'condición/tema asumido', label_ca: 'condició/tema assumit', label_en: 'assumed condition/topic' },
+      { text: 'なら', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'recomendación / consecuencia', label_ca: 'recomanació / conseqüència', label_en: 'recommendation / consequence' },
+    ],
+    example: [
+      { text: '京都に', furigana: 'きょうとに', role: 'direction', gloss_es: 'a Kioto', gloss_ca: 'a Kyoto', gloss_en: 'to Kyoto' },
+      { text: '行く', furigana: 'いく', role: 'verb', gloss_es: 'vas a ir', gloss_ca: "vas anar", gloss_en: 'you\'re going' },
+      { text: 'なら', role: 'key', gloss_es: 'si es así', gloss_ca: 'si és així', gloss_en: 'if that\'s the case' },
+      { text: 'バスが', role: 'subject', gloss_es: 'el autobús', gloss_ca: "l'autobús", gloss_en: 'the bus' },
+      { text: '便利ですよ', furigana: 'べんりですよ', role: 'adjective', gloss_es: 'es conveniente', gloss_ca: 'és convenient', gloss_en: 'is convenient' },
+    ],
+    tip_es: 'なら asume la premisa del oyente, no la del hablante. Si alguien dice "voy a Kioto", puedes responder "京都なら〜". Es una condicional reactiva, no hipotética.',
+    tip_ca: 'なら assumeix la premissa de l\'oient, no la del parlant. Si algú diu "vaig a Kyoto", pots respondre "京都なら〜". És una condicional reactiva, no hipotètica.',
+    tip_en: 'なら assumes the listener\'s premise, not the speaker\'s. If someone says "I\'m going to Kyoto", you can reply "京都なら〜". It\'s a reactive, not hypothetical, conditional.',
+  },
+  {
+    id: 'mnn2-33-2', lesson: 33, number: 14, jlpt: 'N4',
+    pattern: 'V ば / adj ければ / N であれば (condicional ば)',
+    name_es: 'Si ~ (condicional hipotético / formal)',
+    name_ca: 'Si ~ (condicional hipotètic / formal)',
+    name_en: 'If ~ (hypothetical / formal conditional)',
+    explanation_es: 'La condicional ば expresa "si X ocurre, entonces Y". Formación — Verbos: final う→えば (食べる→食べれば, 書く→書けば). い-adj: い→ければ. な-adj/N: であれば. Uso frecuente en proverbios y frases fijas.',
+    explanation_ca: "La condicional ば expressa \"si X ocorre, aleshores Y\". Formació — Verbs: final う→えば (食べる→食べれば, 書く→書けば). い-adj: い→ければ. な-adj/N: であれば. Ús freqüent en proverbis i frases fixes.",
+    explanation_en: 'The ば conditional expresses "if X happens, then Y". Formation — Verbs: final う→えば (食べる→食べれば, 書く→書けば). い-adj: い→ければ. な-adj/N: であれば. Common in proverbs and fixed phrases.',
+    structure: [
+      { text: 'V う→えば / adj い→ければ', role: 'key', isSlot: true, label_es: 'condición (forma ば)', label_ca: 'condició (forma ば)', label_en: 'condition (ば form)' },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado / consecuencia', label_ca: 'resultat / conseqüència', label_en: 'result / consequence' },
+    ],
+    example: [
+      { text: '早く', furigana: 'はやく', role: 'adjective', gloss_es: 'pronto', gloss_ca: 'aviat', gloss_en: 'early' },
+      { text: '起きれば', furigana: 'おきれば', role: 'key', gloss_es: 'si me levanto', gloss_ca: "si m'aixeco", gloss_en: 'if I get up' },
+      { text: '電車に', furigana: 'でんしゃに', role: 'direction', gloss_es: 'el tren', gloss_ca: 'el tren', gloss_en: 'the train' },
+      { text: '乗れます', furigana: 'のれます', role: 'verb', gloss_es: 'puedo coger', gloss_ca: 'puc agafar', gloss_en: 'I can catch' },
+    ],
+    tip_es: 'ば vs たら: ば es más formal y habitual en proverbios. たら es más versátil y cotidiana. "早く起きれば" (ば) vs "早く起きたら" (たら) — ambas correctas pero con matices.',
+    tip_ca: 'ば vs たら: ば és més formal i habitual en proverbis. たら és més versàtil i quotidiana. "早く起きれば" (ば) vs "早く起きたら" (たら) — totes dues correctes però amb matisos.',
+    tip_en: 'ば vs たら: ば is more formal and common in proverbs. たら is more versatile and everyday. "早く起きれば" (ば) vs "早く起きたら" (たら) — both correct with subtle differences.',
+  },
+]
+
+// ─── CHAPTER 34 ───────────────────────────────────────────────────────────────
+const ch34: GrammarPoint[] = [
+  {
+    id: 'mnn2-34-1', lesson: 34, number: 15, jlpt: 'N4',
+    pattern: 'N しか V ません',
+    name_es: 'Solo ~ (con verbo negativo)',
+    name_ca: 'Només ~ (amb verb negatiu)',
+    name_en: 'Only ~ (with negative verb)',
+    explanation_es: '「しか〜ない」 significa "solo/únicamente". Siempre va con un verbo en forma negativa (ません, ない). しか reemplaza la partícula を/が. Tiene énfasis de LIMITACIÓN o INSUFICIENCIA, a diferencia de だけ (neutral).',
+    explanation_ca: '「しか〜ない」 significa "només/únicament". Sempre va amb un verb en forma negativa (ません, ない). しか reemplaça la partícula を/が. Té èmfasi de LIMITACIÓ o INSUFICIÈNCIA, a diferència de だけ (neutre).',
+    explanation_en: '「しか〜ない」 means "only/just". Always used with a negative verb (ません, ない). しか replaces the particle を/が. Emphasizes LIMITATION or INSUFFICIENCY, unlike だけ (neutral).',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'lo único', label_ca: "l'únic", label_en: 'the only thing' },
+      { text: 'しか', role: 'key', isSlot: false },
+      { text: 'V ません', role: 'verb', isSlot: true, label_es: 'verbo (negativo)', label_ca: 'verb (negatiu)', label_en: 'verb (negative)' },
+    ],
+    example: [
+      { text: '財布に', furigana: 'さいふに', role: 'location', gloss_es: 'en la cartera', gloss_ca: 'a la cartera', gloss_en: 'in my wallet' },
+      { text: '100円', furigana: 'ひゃくえん', role: 'noun', gloss_es: '100 yenes', gloss_ca: '100 yens', gloss_en: '100 yen' },
+      { text: 'しか', role: 'key', gloss_es: 'solo', gloss_ca: 'només', gloss_en: 'only' },
+      { text: 'ありません', role: 'verb', gloss_es: 'hay (neg.)', gloss_ca: 'hi ha (neg.)', gloss_en: 'there is (neg.)' },
+    ],
+    tip_es: 'しか vs だけ: "100円しかない" = solo 100 ¥ (poca cantidad, insuficiente). "100円だけある" = hay justo 100 ¥ (neutro). しか siempre requiere negativo.',
+    tip_ca: 'しか vs だけ: "100円しかない" = només 100 ¥ (poca quantitat, insuficient). "100円だけある" = hi ha just 100 ¥ (neutre). しか sempre requereix negatiu.',
+    tip_en: 'しか vs だけ: "100円しかない" = only 100 ¥ (small amount, insufficient). "100円だけある" = there are just 100 ¥ (neutral). しか always requires a negative verb.',
+  },
+  {
+    id: 'mnn2-34-2', lesson: 34, number: 16, jlpt: 'N4',
+    pattern: 'V 辞書形 こと に します / こと に なりました',
+    name_es: 'Decidir hacer ~ / Se ha decidido que ~',
+    name_ca: 'Decidir fer ~ / S\'ha decidit que ~',
+    name_en: 'Decide to do ~ / It has been decided that ~',
+    explanation_es: 'ことにします: decisión personal y voluntaria del hablante. ことになりました: decisión externa, circunstancial o impersonal (no del hablante). La diferencia está en quién decide.',
+    explanation_ca: "ことにします: decisió personal i voluntària del parlant. ことになりました: decisió externa, circumstancial o impersonal (no del parlant). La diferència és qui decideix.",
+    explanation_en: 'ことにします: personal, voluntary decision of the speaker. ことになりました: external, circumstantial or impersonal decision (not by the speaker). The difference is who decides.',
+    structure: [
+      { text: 'V 辞書形 / V ない', role: 'verb', isSlot: true, label_es: 'acción (V dicc. / V ない)', label_ca: 'acció (V dicc. / V ない)', label_en: 'action (V dict. / V ない)' },
+      { text: 'ことに', role: 'key', isSlot: false },
+      { text: 'します / なりました', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '来年', furigana: 'らいねん', role: 'time', gloss_es: 'el año que viene', gloss_ca: "l'any que ve", gloss_en: 'next year' },
+      { text: '日本に', furigana: 'にほんに', role: 'direction', gloss_es: 'a Japón', gloss_ca: 'al Japó', gloss_en: 'to Japan' },
+      { text: '行く', furigana: 'いく', role: 'verb', gloss_es: 'ir', gloss_ca: 'anar', gloss_en: 'go' },
+      { text: 'ことにしました', role: 'key', gloss_es: 'he decidido', gloss_ca: 'he decidit', gloss_en: 'I have decided' },
+    ],
+    tip_es: '"ことにしました" = yo decidí. "ことになりました" = resultó que / fue decidido (por circunstancias o terceros). "転勤することになりました" = me trasladan (decisión de la empresa).',
+    tip_ca: '"ことにしました" = jo vaig decidir. "ことになりました" = va resultar que / va ser decidit (per circumstàncies o tercers). "転勤することになりました" = em traslladen (decisió de l\'empresa).',
+    tip_en: '"ことにしました" = I decided. "ことになりました" = it turned out / was decided (by circumstances or others). "転勤することになりました" = I\'m being transferred (company\'s decision).',
+  },
+]
+
+// ─── CHAPTER 35 ───────────────────────────────────────────────────────────────
+const ch35: GrammarPoint[] = [
+  {
+    id: 'mnn2-35-1', lesson: 35, number: 17, jlpt: 'N4',
+    pattern: '〜 という N',
+    name_es: 'Llamado ~ / Que se llama ~',
+    name_ca: 'Anomenat ~ / Que es diu ~',
+    name_en: 'Called ~ / Named ~ / A thing called ~',
+    explanation_es: '「という」 se usa para presentar un nombre o definir una cosa. N₁ という N₂ = "N₂ que se llama N₁". También se usa para parafrasear: "〜というのは〜ということです" (lo que se llama X significa Y).',
+    explanation_ca: '「という」 s\'usa per presentar un nom o definir una cosa. N₁ という N₂ = "N₂ que es diu N₁". També s\'usa per parafrasejar: "〜というのは〜ということです" (el que s\'anomena X significa Y).',
+    explanation_en: '「という」 is used to introduce a name or define something. N₁ という N₂ = "an N₂ called N₁". Also used to paraphrase: "〜というのは〜ということです" (what is called X means Y).',
+    structure: [
+      { text: 'N₁ / S', role: 'noun', isSlot: true, label_es: 'nombre / contenido', label_ca: 'nom / contingut', label_en: 'name / content' },
+      { text: 'という', role: 'key', isSlot: false },
+      { text: 'N₂', role: 'noun', isSlot: true, label_es: 'sustantivo clasificado', label_ca: 'substantiu classificat', label_en: 'classified noun' },
+    ],
+    example: [
+      { text: '「侘び寂び」', furigana: 'わびさび', role: 'noun', gloss_es: '"wabi-sabi"', gloss_ca: '"wabi-sabi"', gloss_en: '"wabi-sabi"' },
+      { text: 'という', role: 'key', gloss_es: 'llamada', gloss_ca: 'anomenada', gloss_en: 'called' },
+      { text: '日本の', furigana: 'にほんの', role: 'noun', gloss_es: 'filosofía japonesa', gloss_ca: 'filosofia japonesa', gloss_en: 'Japanese' },
+      { text: '美意識', furigana: 'びいしき', role: 'noun', gloss_es: 'de la belleza', gloss_ca: 'de la bellesa', gloss_en: 'aesthetic sense' },
+    ],
+    tip_es: 'Otros usos: "〜ということを聞きました" (oí que...). "〜というのは" = en cuanto a lo que se llama X / el concepto de X. Muy útil para definiciones y explicaciones.',
+    tip_ca: 'Altres usos: "〜ということを聞きました" (vaig sentir que...). "〜というのは" = pel que fa al que s\'anomena X / el concepte de X. Molt útil per a definicions i explicacions.',
+    tip_en: 'Other uses: "〜ということを聞きました" (I heard that...). "〜というのは" = as for what is called X / the concept of X. Very useful for definitions and explanations.',
+  },
+  {
+    id: 'mnn2-35-2', lesson: 35, number: 18, jlpt: 'N4',
+    pattern: 'V stem + すぎます',
+    name_es: 'Demasiado ~ / Exceso de ~',
+    name_ca: 'Massa ~ / Excés de ~',
+    name_en: 'Too much ~ / Excessively ~',
+    explanation_es: '「すぎます」 indica exceso. Se añade al stem del verbo (forma ます sin ます) o al stem del adjetivo. い-adj: い→すぎます. な-adj: な→すぎます. Negativo: V すぎません (no demasiado).',
+    explanation_ca: '「すぎます」 indica excés. S\'afegeix al stem del verb (forma ます sense ます) o al stem de l\'adjectiu. い-adj: い→すぎます. な-adj: な→すぎます. Negatiu: V すぎません (no massa).',
+    explanation_en: '「すぎます」 indicates excess. Added to the verb stem (ます-form without ます) or adjective stem. い-adj: い→すぎます. な-adj: な→すぎます. Negative: V すぎません (not too much).',
+    structure: [
+      { text: 'V stem / adj stem', role: 'verb', isSlot: true, label_es: 'stem verbo / adj', label_ca: 'stem verb / adj', label_en: 'verb / adj stem' },
+      { text: 'すぎます', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '昨日', furigana: 'きのう', role: 'time', gloss_es: 'ayer', gloss_ca: 'ahir', gloss_en: 'yesterday' },
+      { text: '食べ', furigana: 'たべ', role: 'verb', gloss_es: 'comer', gloss_ca: 'menjar', gloss_en: 'eat' },
+      { text: 'すぎて', role: 'key', gloss_es: 'demasiado (por eso)', gloss_ca: 'massa (per això)', gloss_en: 'too much (so)' },
+      { text: 'お腹が', furigana: 'おなかが', role: 'subject', gloss_es: 'barriga', gloss_ca: 'panxa', gloss_en: 'stomach' },
+      { text: '痛いです', furigana: 'いたいです', role: 'adjective', gloss_es: 'me duele', gloss_ca: 'em fa mal', gloss_en: 'hurts' },
+    ],
+    tip_es: 'すぎて + consecuencia es muy natural: "食べすぎて気持ち悪い". Para adjetivos: "高すぎる" (demasiado caro), "難しすぎる" (demasiado difícil).',
+    tip_ca: 'すぎて + conseqüència és molt natural: "食べすぎて気持ち悪い". Per a adjectius: "高すぎる" (massa car), "難しすぎる" (massa difícil).',
+    tip_en: 'すぎて + consequence is very natural: "食べすぎて気持ち悪い" (ate too much and feel sick). For adjectives: "高すぎる" (too expensive), "難しすぎる" (too difficult).',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export — batches 1-2: lessons 26-35
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch26,
   ...ch27,
   ...ch28,
   ...ch29,
   ...ch30,
+  ...ch31,
+  ...ch32,
+  ...ch33,
+  ...ch34,
+  ...ch35,
 ]
