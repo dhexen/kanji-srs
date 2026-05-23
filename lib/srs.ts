@@ -228,6 +228,44 @@ export function getReviewForecast(items: VocabItem[], locale: string, dayCount =
   })
 }
 
+export interface HourForecast {
+  hour: number
+  label: string
+  due: number
+  isCurrent: boolean
+}
+
+export function getHourlyForecast(items: VocabItem[]): HourForecast[] {
+  const now = new Date()
+  const nowMs = now.getTime()
+  const currentHour = now.getHours()
+  const todayEnd = new Date()
+  todayEnd.setHours(23, 59, 59, 999)
+  const todayEndMs = todayEnd.getTime()
+
+  const hourCounts = Array(24).fill(0)
+
+  items.filter(i => i.status === 'active').forEach(item => {
+    ALL_REVIEW_MODES.forEach(mode => {
+      const { due } = getModeLevelAndDue(item, mode)
+      if (due <= nowMs) {
+        hourCounts[currentHour]++
+      } else if (due <= todayEndMs) {
+        hourCounts[new Date(due).getHours()]++
+      }
+    })
+  })
+
+  return hourCounts
+    .map((due, hour) => ({
+      hour,
+      label: `${hour.toString().padStart(2, '0')}:00`,
+      due,
+      isCurrent: hour === currentHour,
+    }))
+    .filter(h => h.due > 0)
+}
+
 // Returns meaning in the correct language for display
 export function getMeaningForLang(item: VocabItem, lang: string): string {
   if (lang === 'ca' && (item as any).meaning_ca) return (item as any).meaning_ca

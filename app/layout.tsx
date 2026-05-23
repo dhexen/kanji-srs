@@ -5,6 +5,7 @@ import Header from '@/components/ui/Header'
 import Nav from '@/components/ui/Nav'
 import Toast from '@/components/ui/Toast'
 import AuthGuard from '@/components/ui/AuthGuard'
+import Tutorial from '@/components/ui/Tutorial'
 
 export const metadata: Metadata = {
   title: '小学校漢字 SRS',
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-slate-50 text-slate-800 min-h-screen">
         <StoreProvider>
           <Toast />
+          <Tutorial />
           {/* Sidebar navigation */}
           <Nav />
 

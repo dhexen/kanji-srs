@@ -346,7 +346,7 @@ export default function VocabularyClient() {
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{t(lang, 'vocab_title')}</h2>
           <p className="text-slate-500 text-sm mb-6">{t(lang, 'vocab_sub')}</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div data-tutorial-id="vocab-load-controls" className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Grade selector */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_course')}</label>
@@ -456,7 +456,7 @@ export default function VocabularyClient() {
               </button>
             </div>
             <div className="flex gap-3">
-              <button onClick={addSelectedToSrs} disabled={selectedCount === 0}
+              <button data-tutorial-id="vocab-activate-btn" onClick={addSelectedToSrs} disabled={selectedCount === 0}
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition">
                 {t(lang, 'vocab_activate_srs')} ({selectedCount})
               </button>

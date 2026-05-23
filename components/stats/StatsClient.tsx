@@ -4,6 +4,7 @@ import { useStore } from '@/lib/store'
 import { MODE_CONFIG, ReviewMode, STAGE_NAMES, getSrsClass, getModeLevelAndDue } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
+import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
 
 export default function StatsClient() {
   const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress } = useStore()
@@ -173,6 +174,16 @@ export default function StatsClient() {
         </div>
 
         <div className="space-y-4">
+          {/* Tutorial restart */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <button
+              onClick={() => { localStorage.removeItem(TUTORIAL_DONE_KEY); window.location.reload() }}
+              className="w-full py-2.5 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-sm transition"
+            >
+              {t(lang, 'tutorial_restart')}
+            </button>
+          </div>
+
           {/* Language selector */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <label htmlFor="ui-lang" className="block font-bold text-slate-900 mb-3">

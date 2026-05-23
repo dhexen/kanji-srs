@@ -31,15 +31,15 @@ export default function Nav() {
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
 
   const tabs = [
-    { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500' },
-    { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '' },
-    { href: '/grammar',    icon: '📖', label: t(lang, 'nav_grammar'),    badge: 0,             badgeColor: '' },
-    { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '' },
-    { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '' },
-    { href: '/stats',      icon: '📊', label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '' },
+    { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500', tutorialId: 'nav-review' },
+    { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '',           tutorialId: 'nav-vocabulary' },
+    { href: '/grammar',    icon: '📖', label: t(lang, 'nav_grammar'),    badge: 0,             badgeColor: '',           tutorialId: undefined },
+    { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '',           tutorialId: undefined },
+    { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '',           tutorialId: undefined },
+    { href: '/stats',      icon: '📊', label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '',           tutorialId: undefined },
     ...(isAdmin ? [
-      { href: '/import',   icon: '⚡', label: t(lang, 'nav_import'),     badge: 0,             badgeColor: '' },
-      { href: '/admin',    icon: '🔧', label: t(lang, 'nav_admin'),      badge: 0,             badgeColor: '' },
+      { href: '/import',   icon: '⚡', label: t(lang, 'nav_import'),     badge: 0,             badgeColor: '',           tutorialId: undefined },
+      { href: '/admin',    icon: '🔧', label: t(lang, 'nav_admin'),      badge: 0,             badgeColor: '',           tutorialId: undefined },
     ] : []),
   ]
 
@@ -96,6 +96,7 @@ export default function Nav() {
             <Link
               key={tab.href}
               href={tab.href}
+              {...(tab.tutorialId ? { 'data-tutorial-id': tab.tutorialId } : {})}
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 active
                   ? 'bg-white/15 text-white shadow-sm shadow-black/10'
