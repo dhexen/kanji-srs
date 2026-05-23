@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
 const DEFAULT_BATCH = 40
-const WIKI_THUMB_PX = 300
 
 interface GeminiClassification {
   jp: string
   imageable: boolean
-  title?: string
+  search_term?: string
 }
 
 async function classifyWithGemini(
@@ -16,18 +15,18 @@ async function classifyWithGemini(
 ): Promise<GeminiClassification[]> {
   const wordList = words.map(w => `${w.word} (${w.reading}) = ${w.meaning}`).join('\n')
 
-  const prompt = `Classify these Japanese vocabulary words. Determine if each can be effectively shown as a concrete, recognizable image (photo of a real object, animal, food, plant, body part, building type, vehicle, tool, clothing, geographical feature like mountain or river).
+  const prompt = `Classify these Japanese vocabulary words. Determine if each can be shown as a concrete, recognizable image (photo of a real object, animal, food, plant, body part, building, vehicle, tool, clothing, geographical feature).
 
-IMAGEABLE: objects (car, house, apple), animals (dog, cat, fish), foods (rice, sushi, bread), body parts (hand, eye, nose), nature (mountain, river, flower, tree), tools, clothing, vehicles, buildings (school, hospital, temple), furniture, musical instruments.
+IMAGEABLE: objects (car, house, apple), animals (dog, cat, fish), foods (rice, sushi), body parts (hand, eye), nature (mountain, river, flower, tree), tools, clothing, vehicles, buildings (school, hospital, temple), furniture, musical instruments.
 
-NOT imageable: abstract nouns (love, peace, idea, freedom, effort), verbs without clear visual referent (run, think, become, exist), adjectives without shape (big, sad, easy, fast), particles, pronouns, time expressions (now, tomorrow, yesterday, always), numbers alone, counters, colors used abstractly.
+NOT imageable: abstract nouns (love, peace, idea, freedom), pure action verbs (run, think, become), pure adjectives (big, sad, fast), particles, pronouns, time expressions (now, tomorrow), numbers/counters alone.
 
-For each imageable word, provide the exact English Wikipedia article title that shows that thing (e.g. "Dog" not "dog", "Cherry blossom" not "sakura").
+For imageable words provide a short English search term (1–3 words) suitable for a Wikipedia search.
 
-Respond ONLY with a valid JSON array, no markdown fences, no extra text:
-[{"jp":"犬","imageable":true,"title":"Dog"},{"jp":"愛","imageable":false}]
+Respond ONLY with a valid JSON array, no markdown, no extra text:
+[{"jp":"犬","imageable":true,"search_term":"dog"},{"jp":"愛","imageable":false}]
 
-Words to classify:
+Words:
 ${wordList}`
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
@@ -59,21 +58,30 @@ ${wordList}`
   }
 }
 
-async function fetchWikipediaThumb(title: string): Promise<string | null> {
+// Searches Wikipedia by keyword and returns the thumbnail of the most relevant result.
+// Uses generator=search so it's a single HTTP request per word.
+async function fetchWikipediaSearchImage(searchTerm: string): Promise<string | null> {
   const url =
-    `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}` +
-    `&prop=pageimages&format=json&pithumbsize=${WIKI_THUMB_PX}&redirects=1`
+    `https://en.wikipedia.org/w/api.php?action=query&generator=search` +
+    `&gsrsearch=${encodeURIComponent(searchTerm)}&gsrnamespace=0&gsrlimit=3` +
+    `&prop=pageimages&format=json&pithumbsize=300`
 
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'KanjiSRS/1.0 (educational SRS app; contact via github)' },
+    headers: { 'User-Agent': 'KanjiSRS/1.0 (educational SRS app)' },
   })
   if (!res.ok) return null
 
   const data = await res.json()
-  const pages = data?.query?.pages
+  const pages = data?.query?.pages as Record<string, any> | undefined
   if (!pages) return null
-  const page = Object.values(pages)[0] as Record<string, any>
-  return (page?.thumbnail?.source as string) ?? null
+
+  // Sort by search relevance index, pick first page that has a thumbnail
+  const sorted = Object.values(pages).sort((a, b) => (a.index ?? 99) - (b.index ?? 99))
+  for (const page of sorted) {
+    const src = page?.thumbnail?.source as string | undefined
+    if (src) return src
+  }
+  return null
 }
 
 // GET — stats about image coverage
@@ -112,15 +120,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const limit = Math.min(Math.max(1, Number(body.limit) || DEFAULT_BATCH), 100)
+
     const geminiApiKey = (typeof body.geminiApiKey === 'string' && body.geminiApiKey.trim())
       ? body.geminiApiKey.trim()
       : process.env.GEMINI_API_KEY
 
     if (!geminiApiKey) {
-      throw new AdminApiError(
-        'No hay GEMINI_API_KEY en el servidor. Pasa "geminiApiKey" en el body.',
-        400,
-      )
+      throw new AdminApiError('Falta la Gemini API Key (env GEMINI_API_KEY o parámetro geminiApiKey).', 400)
     }
 
     // Fetch words not yet checked (image_url IS NULL)
@@ -141,7 +147,7 @@ export async function POST(request: NextRequest) {
       meaning: (v.meaning_es as string) || '',
     }))
 
-    // Classify with Gemini
+    // Classify with Gemini (one batch request for all words)
     let classifications: GeminiClassification[]
     try {
       classifications = await classifyWithGemini(words, geminiApiKey)
@@ -151,12 +157,12 @@ export async function POST(request: NextRequest) {
 
     const classMap = new Map(classifications.map(c => [c.jp, c]))
 
-    // Fetch Wikipedia thumbnails in parallel for imageable words
-    const imageableWords = classifications.filter(c => c.imageable && c.title)
+    // Fetch Wikipedia images in parallel for imageable words
+    const imageableWords = classifications.filter(c => c.imageable && c.search_term)
     const wikiResults = await Promise.allSettled(
       imageableWords.map(async c => ({
         word: c.jp,
-        imageUrl: await fetchWikipediaThumb(c.title!),
+        imageUrl: await fetchWikipediaSearchImage(c.search_term!),
       })),
     )
 
@@ -167,7 +173,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update each word in the vocabulary table
+    // Update each word — empty string marks it as "checked, no image found"
     let newImages = 0
     const updatePromises = words.map(async w => {
       const imageUrl = imageMap.get(w.word) ?? ''

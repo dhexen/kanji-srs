@@ -123,11 +123,22 @@ export async function fetchImageStats(): Promise<ImageStats> {
   return parseAdminResponse<ImageStats>(res)
 }
 
-export async function processImageBatch(opts: { limit?: number; geminiApiKey?: string }): Promise<ImageBatchResult> {
+export async function processImageBatch(opts: {
+  limit?: number
+  geminiApiKey?: string
+}): Promise<ImageBatchResult> {
   const res = await fetch('/api/admin/process-images', {
     method: 'POST',
     headers: await adminAuthHeaders(),
     body: JSON.stringify(opts),
   })
   return parseAdminResponse<ImageBatchResult>(res)
+}
+
+export async function resetCheckedNoImage(): Promise<{ reset: number }> {
+  const res = await fetch('/api/admin/process-images/reset', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+  })
+  return parseAdminResponse<{ reset: number }>(res)
 }

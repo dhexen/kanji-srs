@@ -148,6 +148,7 @@ export default function VocabularyClient() {
       setPreview(newVocab)
       setDiscarded(new Set())
       setStep('preview')
+      window.dispatchEvent(new CustomEvent('tutorial-action', { detail: { action: 'vocab-loaded' } }))
     } catch (e) {
       showToast('Error', 'error')
     } finally { setLoading(false) }
@@ -230,6 +231,7 @@ export default function VocabularyClient() {
       setPreview([])
       setDiscarded(new Set())
       loadGradeStats()
+      window.dispatchEvent(new CustomEvent('tutorial-action', { detail: { action: 'vocab-activated' } }))
     } catch {
       /* toast ya mostrado por el store */
     }

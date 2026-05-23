@@ -12,8 +12,9 @@ type ML = Record<string, string>
 type StepDef = {
   id: string
   targetId: string | null
-  route?: string
-  navigateTo?: string
+  route?: string           // must be on this route to show spotlight
+  navigateOnNext?: string  // auto-navigate here when next() is called
+  waitFor?: string         // custom event action name to auto-advance
   pos: 'center' | 'top' | 'bottom' | 'right' | 'left'
   title: ML
   body: ML
@@ -23,6 +24,7 @@ const STEPS: StepDef[] = [
   {
     id: 'welcome',
     targetId: null,
+    navigateOnNext: '/vocabulary',
     pos: 'center',
     title: {
       es: '¡Bienvenido! 🌸',
@@ -31,100 +33,49 @@ const STEPS: StepDef[] = [
       ja: 'ようこそ！🌸',
     },
     body: {
-      es: 'Aprende kanji con repetición espaciada e inteligencia artificial. En unos pocos pasos te explicamos cómo funciona.',
-      ca: 'Aprèn kanji amb repetició espaïda i intel·ligència artificial. En uns pocs passos t\'expliquem com funciona.',
-      en: 'Learn kanji with spaced repetition and AI. In a few steps we\'ll show you how it works.',
-      ja: '間隔反復とAIで漢字を学びましょう。数ステップで使い方を説明します。',
-    },
-  },
-  {
-    id: 'vocabulary-nav',
-    targetId: 'nav-vocabulary',
-    navigateTo: '/vocabulary',
-    pos: 'right',
-    title: {
-      es: '1 · Ve a Vocabulario 📚',
-      ca: '1 · Ves a Vocabulari 📚',
-      en: '1 · Go to Vocabulary 📚',
-      ja: '1 · 語彙へ移動 📚',
-    },
-    body: {
-      es: 'Empieza por la sección Vocabulario. Aquí cargarás las palabras que vas a estudiar, organizadas por curso y kanji.',
-      ca: 'Comença per la secció Vocabulari. Aquí carregaràs les paraules que estudiaràs, organitzades per curs i kanji.',
-      en: 'Start with the Vocabulary section. Here you\'ll load the words you\'re going to study, organized by grade and kanji.',
-      ja: '語彙セクションから始めましょう。学習する単語を学年・漢字別に読み込みます。',
+      es: 'Aprende kanji con repetición espaciada e inteligencia artificial. Te guiaremos por los primeros pasos para que puedas empezar a estudiar.',
+      ca: 'Aprèn kanji amb repetició espaïda i intel·ligència artificial. Et guiarem pels primers passos perquè puguis començar a estudiar.',
+      en: 'Learn kanji with spaced repetition and AI. We\'ll guide you through the first steps so you can start studying.',
+      ja: '間隔反復とAIで漢字を学びましょう。最初のステップをご案内します。',
     },
   },
   {
     id: 'load-vocab',
     targetId: 'vocab-load-controls',
     route: '/vocabulary',
+    waitFor: 'vocab-loaded',
     pos: 'bottom',
     title: {
-      es: '2 · Elige el curso y la cantidad 📥',
-      ca: '2 · Tria el curs i la quantitat 📥',
-      en: '2 · Choose grade and amount 📥',
-      ja: '2 · 学年と数量を選ぶ 📥',
+      es: '1 · Carga tu vocabulario 📥',
+      ca: '1 · Carrega el teu vocabulari 📥',
+      en: '1 · Load your vocabulary 📥',
+      ja: '1 · 語彙を読み込む 📥',
     },
     body: {
-      es: 'Selecciona el curso (nivel) y la cantidad de kanjis que quieres estudiar esta sesión. Luego pulsa el botón azul "Cargar" para ver las palabras.',
-      ca: 'Selecciona el curs (nivell) i la quantitat de kanjis que vols estudiar aquesta sessió. Després prem el botó blau "Carregar" per veure les paraules.',
-      en: 'Select the grade and the number of kanji for this session. Then press the blue "Load" button to see the words.',
-      ja: '学年と今回学習する漢字数を選んでください。青い「読み込む」ボタンを押すと単語が表示されます。',
+      es: 'Selecciona el curso escolar y cuántos kanjis quieres aprender hoy. Luego pulsa el botón azul "Cargar" para ver las palabras disponibles.',
+      ca: 'Selecciona el curs escolar i quants kanjis vols aprendre avui. Després prem el botó blau "Carregar" per veure les paraules disponibles.',
+      en: 'Select the school grade and how many kanji you want to learn today. Then press the blue "Load" button to see the available words.',
+      ja: '学年と今日学習する漢字数を選んでください。青い「読み込む」ボタンを押すと単語が表示されます。',
     },
   },
   {
-    id: 'mark-known',
-    targetId: 'vocab-load-controls',
-    route: '/vocabulary',
-    pos: 'bottom',
-    title: {
-      es: '3 · Opcional: descarta las que ya sabes ✓',
-      ca: '3 · Opcional: descarta les que ja saps ✓',
-      en: '3 · Optional: discard what you know ✓',
-      ja: '3 · 任意：知っている単語をスキップ ✓',
-    },
-    body: {
-      es: 'Después de cargar, puedes marcar con "Ya lo sé" las palabras que ya conoces para excluirlas. O usa "Dominar Kanji Completo" para saltarte todo un kanji de golpe.',
-      ca: 'Després de carregar, pots marcar amb "Ja me la sé" les paraules que ja coneixes per excloure-les. O usa "Dominar Kanji Complet" per saltar-te tot un kanji d\'una vegada.',
-      en: 'After loading, you can mark words you already know with "I already know it" to exclude them. Or use "Master Full Kanji" to skip an entire kanji at once.',
-      ja: '読み込んだ後、知っている単語に「もう知っている」をつけて除外できます。「漢字を完全習得」で漢字全体を一度にスキップすることも可能です。',
-    },
-  },
-  {
-    id: 'activate',
+    id: 'vocab-preview',
     targetId: 'vocab-activate-btn',
     route: '/vocabulary',
+    waitFor: 'vocab-activated',
+    navigateOnNext: '/review',
     pos: 'top',
     title: {
-      es: '4 · Añade las palabras a tus repasos 🚀',
-      ca: '4 · Afegeix les paraules als teus repasos 🚀',
-      en: '4 · Add words to your reviews 🚀',
-      ja: '4 · 単語を復習に追加 🚀',
+      es: '2 · Revisa y añade a repasos 🚀',
+      ca: '2 · Revisa i afegeix als repasos 🚀',
+      en: '2 · Review and add to reviews 🚀',
+      ja: '2 · 確認して復習に追加 🚀',
     },
     body: {
-      es: 'Pulsa "Añadir a repasos" para activar el aprendizaje. El sistema programará automáticamente cuándo debes repasar cada palabra según tu progreso.',
-      ca: 'Prem "Afegir als repasos" per activar l\'aprenentatge. El sistema programarà automàticament quan has de repassar cada paraula.',
-      en: 'Press "Add to reviews" to start learning. The system will automatically schedule when to review each word based on your progress.',
-      ja: '「復習に追加」を押して学習を開始しましょう。システムが進捗に応じて各単語の復習スケジュールを自動設定します。',
-    },
-  },
-  {
-    id: 'go-review',
-    targetId: 'nav-review',
-    navigateTo: '/review',
-    pos: 'right',
-    title: {
-      es: '5 · Ir a Mis Repasos 📝',
-      ca: '5 · Ves als Meus Repasos 📝',
-      en: '5 · Go to My Reviews 📝',
-      ja: '5 · 復習へ移動 📝',
-    },
-    body: {
-      es: 'Ahora ve a "Mis Repasos" para empezar a estudiar. Aquí verás todas las palabras que tienes pendientes de repasar hoy.',
-      ca: 'Ara ves als "Meus Repasos" per començar a estudiar. Aquí veuràs totes les paraules que tens pendents de repassar avui.',
-      en: 'Now go to "My Reviews" to start studying. Here you\'ll see all the words pending review for today.',
-      ja: '「復習」へ移動して学習を始めましょう。今日復習すべき単語がすべて表示されます。',
+      es: 'Estas son las palabras cargadas. Puedes marcar "Ya me la sé" en las que ya conozcas para excluirlas. Cuando estés listo, pulsa "Añadir a repasos" para empezar a aprenderlas.',
+      ca: 'Aquestes són les paraules carregades. Pots marcar "Ja me la sé" a les que ja coneguis per excloure-les. Quan estiguis llest, prem "Afegir als repasos" per començar.',
+      en: 'These are the loaded words. You can mark "I already know it" on words to exclude them. When ready, press "Add to reviews" to start learning them.',
+      ja: '読み込んだ単語が表示されています。知っている単語に「もう知っている」をつけて除外できます。準備ができたら「復習に追加」を押して学習を始めましょう。',
     },
   },
   {
@@ -133,56 +84,58 @@ const STEPS: StepDef[] = [
     route: '/review',
     pos: 'bottom',
     title: {
-      es: '6 · Elige el tipo de repaso 🎯',
-      ca: '6 · Tria el tipus de repàs 🎯',
-      en: '6 · Choose the review type 🎯',
-      ja: '6 · 復習タイプを選ぶ 🎯',
+      es: '3 · Elige el tipo de repaso 🎯',
+      ca: '3 · Tria el tipus de repàs 🎯',
+      en: '3 · Choose the review type 🎯',
+      ja: '3 · 復習タイプを選ぶ 🎯',
     },
     body: {
-      es: 'Elige cómo practicar: lectura en hiragana, significado, escritura de kanji... Puedes combinar varios modos. Luego pulsa "Iniciar Repaso".',
-      ca: 'Tria com practicar: lectura en hiragana, significat, escriptura de kanji... Pots combinar diversos modes. Després prem "Iniciar Repàs".',
-      en: 'Choose how to practice: reading in hiragana, meaning, kanji writing... You can combine modes. Then press "Start Review".',
+      es: 'Elige cómo practicar: lectura en hiragana, significado, escritura de kanji... Puedes combinar varios modos. Luego pulsa "Iniciar Repaso" para empezar a estudiar.',
+      ca: 'Tria com practicar: lectura en hiragana, significat, escriptura de kanji... Pots combinar diversos modes. Prem "Iniciar Repàs" per començar.',
+      en: 'Choose how to practice: hiragana reading, meaning, kanji writing... You can combine modes. Press "Start Review" to begin.',
       ja: '練習方法を選びましょう：ひらがな読み・意味・漢字書き取りなど。複数組み合わせ可能。「復習を開始」を押してください。',
-    },
-  },
-  {
-    id: 'study',
-    targetId: 'review-mode-selector',
-    route: '/review',
-    pos: 'top',
-    title: {
-      es: '7 · ¡A estudiar! 🧠',
-      ca: '7 · A estudiar! 🧠',
-      en: '7 · Time to study! 🧠',
-      ja: '7 · 学習スタート！🧠',
-    },
-    body: {
-      es: 'Responde las preguntas. Cuanto mejor respondas, más tiempo pasará hasta el próximo repaso. El sistema se adapta a ti para que memorices de forma eficiente a largo plazo.',
-      ca: 'Respon les preguntes. Quant millor responguis, més temps fins al proper repàs. El sistema s\'adapta a tu perquè memoritzis de forma eficient a llarg termini.',
-      en: 'Answer the questions. The better you respond, the longer until the next review. The system adapts to you for efficient long-term memorization.',
-      ja: '問題に答えましょう。正確に答えるほど次の復習まで時間が延びます。効率的な長期記憶のためにシステムがあなたに適応します。',
     },
   },
   {
     id: 'calendar',
     targetId: 'header-forecast',
+    route: '/review',
+    navigateOnNext: '/stats',
     pos: 'bottom',
     title: {
-      es: '8 · Tu calendario de repasos 📅',
-      ca: '8 · El teu calendari de repasos 📅',
-      en: '8 · Your review calendar 📅',
-      ja: '8 · 復習カレンダー 📅',
+      es: '4 · Tu calendario de repasos 📅',
+      ca: '4 · El teu calendari de repasos 📅',
+      en: '4 · Your review calendar 📅',
+      ja: '4 · 復習カレンダー 📅',
     },
     body: {
-      es: 'Aquí puedes ver cuántos repasos tienes hoy y los próximos días. El sistema programa las palabras para que no se te olviden a largo plazo. ¡Ya estás listo para empezar!',
-      ca: 'Aquí pots veure quants repasos tens avui i els propers dies. El sistema programa les paraules perquè no se\'t oblidin a llarg termini. Ja estàs a punt per començar!',
-      en: 'Here you can see how many reviews you have today and upcoming days. The system schedules words so you don\'t forget them long-term. You\'re all set!',
-      ja: '今日と今後の復習数がここで確認できます！システムが長期記憶のために単語をスケジューリングします。準備完了です！',
+      es: 'Cada vez que estudias, el sistema programa cuándo volver a repasar cada palabra para que no se te olvide a largo plazo. Aquí ves los repasos de hoy y los próximos días.',
+      ca: 'Cada vegada que estudies, el sistema programa quan tornar a repassar cada paraula perquè no se\'t oblidi a llarg termini. Aquí veus els repasos d\'avui i els propers dies.',
+      en: 'Each time you study, the system schedules when to review each word again so you don\'t forget it. Here you see today\'s and upcoming reviews.',
+      ja: '学習するたびに、システムが各単語の次の復習日程を自動設定します。今日と今後の復習数がここで確認できます。',
+    },
+  },
+  {
+    id: 'profile',
+    targetId: 'profile-api-section',
+    route: '/stats',
+    pos: 'top',
+    title: {
+      es: '5 · Mi Perfil ⚙️',
+      ca: '5 · El Meu Perfil ⚙️',
+      en: '5 · My Profile ⚙️',
+      ja: '5 · マイプロフィール ⚙️',
+    },
+    body: {
+      es: 'Aquí están los ajustes de tu cuenta: la API de Google Gemini para las funciones de IA, el idioma de la interfaz y las copias de seguridad. ¡Ya estás listo para empezar!',
+      ca: 'Aquí estan els ajustos del teu compte: l\'API de Google Gemini per a funcions d\'IA, l\'idioma de la interfície i les còpies de seguretat. Ja estàs a punt per començar!',
+      en: 'Here are your account settings: Google Gemini API for AI features, interface language, and backups of your progress. You\'re all set!',
+      ja: 'アカウント設定がここにあります：AI機能用Google Gemini API、インターフェース言語、バックアップ。準備完了です！',
     },
   },
 ]
 
-// Maps each route to the first step index that requires being on that route
+// Maps route → first step index requiring that route (for manual navigation auto-advance)
 const ROUTE_TO_STEP: Record<string, number> = {}
 STEPS.forEach((step, i) => {
   if (step.route && !(step.route in ROUTE_TO_STEP)) {
@@ -229,7 +182,7 @@ export default function Tutorial() {
     localStorage.setItem(TUTORIAL_STEP_KEY, String(stepIdx))
   }, [stepIdx, active])
 
-  // Auto-advance when the user navigates (manually or via button) to a section
+  // Auto-advance when user manually navigates to a relevant section (only forward)
   useEffect(() => {
     if (!active) return
     const targetStep = ROUTE_TO_STEP[pathname]
@@ -238,25 +191,34 @@ export default function Tutorial() {
     }
   }, [pathname, active])
 
+  // Spotlight update with retry for async-rendered elements
   useEffect(() => {
     if (!active) return
     const step = STEPS[stepIdx]
     if (!step?.targetId) { setSpotRect(null); return }
 
+    let retries = 0
+    let retryTimer: ReturnType<typeof setTimeout>
+
     const update = () => {
       const r = getSpotlightRect(step.targetId!)
       if (r) {
-        // scroll target into view first if needed
         const el = document.querySelector(`[data-tutorial-id="${step.targetId}"]`)
         el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        setSpotRect(r)
+      } else if (retries < 15) {
+        retries++
+        retryTimer = setTimeout(update, 80)
+      } else {
+        setSpotRect(null)
       }
-      setSpotRect(r)
     }
 
     update()
     window.addEventListener('resize', update)
     window.addEventListener('scroll', update, true)
     return () => {
+      clearTimeout(retryTimer)
       window.removeEventListener('resize', update)
       window.removeEventListener('scroll', update, true)
     }
@@ -269,16 +231,37 @@ export default function Tutorial() {
   }, [])
 
   const next = useCallback(() => {
-    if (stepIdx >= STEPS.length - 1) {
+    const currentStep = STEPS[stepIdxRef.current]
+    if (stepIdxRef.current >= STEPS.length - 1) {
       close()
-    } else {
-      setStepIdx(s => s + 1)
+      return
     }
-  }, [stepIdx, close])
+    if (currentStep?.navigateOnNext) {
+      router.push(currentStep.navigateOnNext)
+    }
+    setStepIdx(s => s + 1)
+  }, [close, router])
 
   const prev = useCallback(() => {
-    if (stepIdx > 0) setStepIdx(s => s - 1)
-  }, [stepIdx])
+    if (stepIdxRef.current > 0) setStepIdx(s => s - 1)
+  }, [])
+
+  // Listen for custom tutorial-action events (vocab-loaded, vocab-activated, etc.)
+  useEffect(() => {
+    if (!active) return
+    const step = STEPS[stepIdx]
+    if (!step.waitFor) return
+
+    function handler(e: Event) {
+      const ce = e as CustomEvent
+      if (ce.detail?.action === step.waitFor) {
+        next()
+      }
+    }
+
+    window.addEventListener('tutorial-action', handler)
+    return () => window.removeEventListener('tutorial-action', handler)
+  }, [active, stepIdx, next])
 
   if (!mounted || !active) return null
 
@@ -289,22 +272,17 @@ export default function Tutorial() {
   const isLast = stepIdx === STEPS.length - 1
   const isMobile = window.innerWidth < 640
 
-  const needsNavigation = !!step.route && pathname !== step.route
-
-  // Labels
   const skipLabel = { es: 'Saltar tutorial', ca: 'Saltar tutorial', en: 'Skip tutorial', ja: 'スキップ' }[lang] ?? 'Saltar'
   const nextLabel = { es: 'Siguiente →', ca: 'Següent →', en: 'Next →', ja: '次へ →' }[lang] ?? 'Siguiente →'
   const backLabel = { es: '← Atrás', ca: '← Enrere', en: '← Back', ja: '← 戻る' }[lang] ?? '← Atrás'
   const finishLabel = { es: '🎉 ¡Empezar!', ca: '🎉 Endavant!', en: '🎉 Get started!', ja: '🎉 さあ始めよう！' }[lang] ?? '🎉 ¡Empezar!'
-  const goLabel = { es: 'Ir ahí →', ca: 'Anar-hi →', en: 'Go there →', ja: 'そこへ →' }[lang] ?? 'Ir ahí →'
-  const navHint = {
-    es: '👆 Navega a esta sección para continuar',
-    ca: '👆 Navega a aquesta secció per continuar',
-    en: '👆 Navigate to this section to continue',
-    ja: '👆 このセクションに移動してください',
-  }[lang] ?? '👆 Navega a esta sección'
+  const waitLabel = {
+    es: '⏳ Realiza la acción indicada para continuar...',
+    ca: '⏳ Realitza l\'acció indicada per continuar...',
+    en: '⏳ Perform the action above to continue...',
+    ja: '⏳ 上記の操作をして続けてください...',
+  }[lang] ?? '⏳ Realiza la acción...'
 
-  // Spotlight padding
   const PAD = 8
   const spotlightStyle: React.CSSProperties = spotRect ? {
     position: 'fixed',
@@ -318,7 +296,6 @@ export default function Tutorial() {
     pointerEvents: 'none',
   } : {}
 
-  // Tooltip positioning
   const TOOLTIP_W = isMobile ? Math.min(320, window.innerWidth - 32) : 340
   let tooltipStyle: React.CSSProperties
 
@@ -347,7 +324,7 @@ export default function Tutorial() {
       case 'bottom':
         tooltipStyle = {
           position: 'fixed',
-          top: Math.min(vh - 280, spotRect.top + spotRect.height + PAD + M),
+          top: Math.min(vh - 300, spotRect.top + spotRect.height + PAD + M),
           left: Math.max(M, Math.min(vw - TOOLTIP_W - M, spotRect.left + spotRect.width / 2 - TOOLTIP_W / 2)),
           width: TOOLTIP_W,
         }
@@ -363,7 +340,7 @@ export default function Tutorial() {
       case 'right':
         tooltipStyle = {
           position: 'fixed',
-          top: Math.max(M, Math.min(vh - 280, spotRect.top + spotRect.height / 2 - 120)),
+          top: Math.max(M, Math.min(vh - 300, spotRect.top + spotRect.height / 2 - 120)),
           left: Math.min(vw - TOOLTIP_W - M, spotRect.left + spotRect.width + PAD + M),
           width: TOOLTIP_W,
         }
@@ -371,7 +348,7 @@ export default function Tutorial() {
       case 'left':
         tooltipStyle = {
           position: 'fixed',
-          top: Math.max(M, Math.min(vh - 280, spotRect.top + spotRect.height / 2 - 120)),
+          top: Math.max(M, Math.min(vh - 300, spotRect.top + spotRect.height / 2 - 120)),
           right: Math.max(M, vw - (spotRect.left - PAD - M)),
           width: TOOLTIP_W,
         }
@@ -434,16 +411,9 @@ export default function Tutorial() {
           {/* Body */}
           <p className="text-slate-500 text-sm leading-relaxed mb-4">{txt(step.body)}</p>
 
-          {/* Navigation hint */}
-          {needsNavigation && (
-            <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-700">
-              {navHint}
-            </div>
-          )}
-
           {/* Buttons */}
           <div className="flex items-center gap-2">
-            {stepIdx > 0 && (
+            {stepIdx > 0 && !step.waitFor && (
               <button
                 onClick={prev}
                 className="px-3 py-2 text-sm text-slate-400 hover:text-slate-600 transition shrink-0"
@@ -452,13 +422,10 @@ export default function Tutorial() {
               </button>
             )}
 
-            {needsNavigation && step.navigateTo ? (
-              <button
-                onClick={() => router.push(step.navigateTo!)}
-                className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition"
-              >
-                {goLabel}
-              </button>
+            {step.waitFor ? (
+              <div className="flex-1 py-2 px-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-xs text-slate-400 text-center">
+                {waitLabel}
+              </div>
             ) : (
               <button
                 onClick={next}

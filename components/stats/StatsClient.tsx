@@ -1,9 +1,7 @@
 'use client'
-'use client'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
-import { MODE_CONFIG, ReviewMode, STAGE_NAMES, getSrsClass, getModeLevelAndDue } from '@/lib/srs'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
@@ -195,7 +193,7 @@ export default function StatsClient() {
           </div>
 
           {/* Gemini API Key */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <div data-tutorial-id="profile-api-section" className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
             <div>
               <h3 className="font-bold text-slate-900">{t(lang, 'api_title')}</h3>
               <p className="text-xs text-slate-500 mt-0.5">{t(lang, 'api_subtitle')}</p>
@@ -312,60 +310,6 @@ export default function StatsClient() {
         </div>
       </div>
 
-      {/* Vocab table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-2">
-          <h3 className="font-bold text-slate-800">{t(lang, 'stats_vocab_title')} ({state.db.length})</h3>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {(Object.entries(MODE_CONFIG) as [ReviewMode, any][]).map(([, cfg]) => (
-              <span key={cfg.key} className={`px-2 py-0.5 rounded font-semibold ${cfg.badge}`}>{cfg.label}</span>
-            ))}
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-slate-100 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="py-3 px-3">{t(lang, 'th_kanji')}</th>
-                <th className="py-3 px-3">{t(lang, 'th_word')}</th>
-                <th className="py-3 px-3">{t(lang, 'th_reading')}</th>
-                <th className="py-3 px-3 hidden md:table-cell">{t(lang, 'th_meaning')}</th>
-                {(Object.keys(MODE_CONFIG) as ReviewMode[]).map(m => (
-                  <th key={m} className="py-3 px-3 text-center">{MODE_CONFIG[m].label.split(' ')[0]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {state.db.map(item => {
-                const meaning = lang === 'ca' && (item as any).meaning_ca ? (item as any).meaning_ca
-                  : lang === 'en' && (item as any).meaning_en ? (item as any).meaning_en
-                  : item.meaning
-                return (
-                  <tr key={item.jp} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-3 font-bold text-slate-400 text-lg">{item.kanji}</td>
-                    <td className="py-3 px-3 font-bold text-slate-800">{item.jp}</td>
-                    <td className="py-3 px-3 text-indigo-600 font-semibold text-sm">{item.reading}</td>
-                    <td className="py-3 px-3 text-slate-500 text-sm hidden md:table-cell">{meaning}</td>
-                    {(Object.keys(MODE_CONFIG) as ReviewMode[]).map(mode => {
-                      if (item.status === 'locked') return <td key={mode} className="py-3 px-3 text-center"><span className="text-slate-300 text-xs">—</span></td>
-                      const { level, due } = getModeLevelAndDue(item, mode)
-                      const isPending = due <= Date.now()
-                      return (
-                        <td key={mode} className="py-3 px-3 text-center">
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${getSrsClass(level, item.status, due)}`} title={STAGE_NAMES[level]}>
-                            {level}<span className="opacity-40">/7</span>
-                          </span>
-                          {isPending && <span className="text-rose-400 text-xs ml-0.5">!</span>}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   )
 }

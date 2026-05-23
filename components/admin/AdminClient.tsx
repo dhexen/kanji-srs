@@ -15,6 +15,7 @@ import {
   saveAdminSrsIntervals,
   fetchImageStats,
   processImageBatch,
+  resetCheckedNoImage,
   type AdminUserRow,
   type AdminSnapshotRow,
   type ImageStats,
@@ -36,6 +37,7 @@ export default function AdminClient() {
   // Image processing
   const [imgStats, setImgStats] = useState<ImageStats | null>(null)
   const [imgProcessing, setImgProcessing] = useState(false)
+  const [imgResetting, setImgResetting] = useState(false)
   const [imgLastResult, setImgLastResult] = useState<ImageBatchResult | null>(null)
   const [imgGeminiKey, setImgGeminiKey] = useState('')
 
@@ -147,7 +149,10 @@ export default function AdminClient() {
     setImgProcessing(true)
     setImgLastResult(null)
     try {
-      const result = await processImageBatch({ limit: 40, geminiApiKey: imgGeminiKey || undefined })
+      const result = await processImageBatch({
+        limit: 40,
+        geminiApiKey: imgGeminiKey || undefined,
+      })
       setImgLastResult(result)
       const stats = await fetchImageStats()
       setImgStats(stats)
@@ -161,6 +166,20 @@ export default function AdminClient() {
       showToast(e instanceof Error ? e.message : 'Error procesando imágenes', 'error')
     } finally {
       setImgProcessing(false)
+    }
+  }
+
+  async function handleResetNoImage() {
+    setImgResetting(true)
+    try {
+      const { reset } = await resetCheckedNoImage()
+      const stats = await fetchImageStats()
+      setImgStats(stats)
+      showToast(`${reset} palabras vueltas a pendiente`, 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al resetear', 'error')
+    } finally {
+      setImgResetting(false)
     }
   }
 
@@ -516,20 +535,23 @@ export default function AdminClient() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="mb-3">
           <input
             type="password"
-            placeholder="Gemini API Key (opcional si hay clave en el servidor)"
+            placeholder="Gemini API Key (opcional si hay clave en servidor)"
             value={imgGeminiKey}
             onChange={e => setImgGeminiKey(e.target.value)}
-            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
             autoComplete="off"
           />
+        </div>
+
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            disabled={imgProcessing || (imgStats?.pending === 0)}
+            disabled={imgProcessing || imgStats?.pending === 0}
             onClick={handleProcessImages}
-            className="shrink-0 py-2.5 px-5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition"
+            className="py-2.5 px-5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition"
           >
             {imgProcessing
               ? 'Procesando…'
@@ -537,9 +559,19 @@ export default function AdminClient() {
                 ? 'Todo procesado'
                 : `Procesar siguiente lote (${Math.min(40, imgStats?.pending ?? 0)} palabras)`}
           </button>
+          <button
+            type="button"
+            disabled={imgResetting || imgProcessing}
+            onClick={handleResetNoImage}
+            title="Vuelve a marcar como pendientes las palabras revisadas sin imagen, para reintentarlas"
+            className="py-2.5 px-5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-sm transition"
+          >
+            {imgResetting ? 'Reseteando…' : '↺ Reintentar sin foto'}
+          </button>
         </div>
         <p className="text-xs text-slate-400 mt-3">
-          Cada lote procesa hasta 40 palabras. Si hay pendientes, pulsa el botón varias veces hasta terminar.
+          Cada lote procesa hasta 40 palabras. Fuente de imágenes: <strong>Wikipedia</strong> (búsqueda por keywords, sin API key).
+          «Reintentar sin foto» vuelve a poner en cola las palabras que Wikipedia no encontró.
         </p>
       </div>
 
