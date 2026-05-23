@@ -2,14 +2,28 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
-import { GRAMMAR_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
+import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { fetchKnownGrammar, setGrammarKnown } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
 import { t } from '@/lib/i18n'
 
-type JlptFilter = 'all' | 'N5' | 'N4'
+type BookKey = 'mnn1' | 'mnn2'
+type BookFilter = 'all' | BookKey
+type JlptFilter = 'all' | 'N5' | 'N4' | 'N3'
+type GrammarPointWithBook = GrammarPoint & { book: BookKey }
+
+const BOOKS: { key: BookKey; label: string; subtitle: string }[] = [
+  { key: 'mnn1', label: 'MNN 1', subtitle: 'Minna no Nihongo 1' },
+  { key: 'mnn2', label: 'MNN 2', subtitle: 'Minna no Nihongo 2' },
+]
+
+const ALL_GRAMMAR_POINTS: GrammarPointWithBook[] = [
+  ...MNN1_POINTS.map(p => ({ ...p, book: 'mnn1' as const })),
+  ...MNN2_POINTS.map(p => ({ ...p, book: 'mnn2' as const })),
+]
 
 function getLessonLabel(lesson: number) {
   return `Lección ${lesson}`
@@ -21,12 +35,14 @@ function GrammarCard({
   onToggleKnown,
   onSelect,
   lang,
+  showBook,
 }: {
-  grammar: GrammarPoint
+  grammar: GrammarPointWithBook
   known: boolean
   onToggleKnown: (id: string, val: boolean) => void
-  onSelect: (g: GrammarPoint) => void
+  onSelect: (g: GrammarPointWithBook) => void
   lang: string
+  showBook: boolean
 }) {
   const name =
     lang === 'ca' ? grammar.name_ca :
@@ -50,20 +66,27 @@ function GrammarCard({
       </div>
 
       <div className="flex-1 min-w-0">
-        {/* JLPT + lesson */}
-        <div className="flex items-center gap-1.5 mb-0.5">
+        {/* JLPT + lesson + book (when showing all) */}
+        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-            grammar.jlpt === 'N5' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+            grammar.jlpt === 'N5' ? 'bg-emerald-100 text-emerald-700' :
+            grammar.jlpt === 'N4' ? 'bg-blue-100 text-blue-700' :
+            'bg-violet-100 text-violet-700'
           }`}>
             {grammar.jlpt}
           </span>
+          {showBook && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
+              {grammar.book === 'mnn1' ? 'MNN1' : 'MNN2'}
+            </span>
+          )}
           <span className="text-[10px] text-slate-400">{getLessonLabel(grammar.lesson)}</span>
         </div>
         {/* Pattern */}
         <p className="font-bold text-slate-800 text-sm truncate">{grammar.pattern}</p>
         {/* Name */}
         <p className="text-xs text-slate-500 truncate">{name}</p>
-        {/* Structure preview (first 4 parts) */}
+        {/* Structure preview */}
         <div className="flex flex-wrap gap-1 mt-1.5">
           {grammar.structure.slice(0, 5).map((p, i) => {
             const c = ROLE_COLORS[p.role]
@@ -104,11 +127,12 @@ export default function GrammarClient() {
   const { state } = useStore()
   const lang = state.lang
 
+  const [bookFilter, setBookFilter] = useState<BookFilter>('mnn1')
   const [search, setSearch] = useState('')
   const [jlptFilter, setJlptFilter] = useState<JlptFilter>('all')
   const [knownIds, setKnownIds] = useState<Set<string>>(new Set())
   const [hideKnown, setHideKnown] = useState(false)
-  const [selected, setSelected] = useState<GrammarPoint | null>(null)
+  const [selected, setSelected] = useState<GrammarPointWithBook | null>(null)
   const [sessionToken, setSessionToken] = useState('')
   const [loadingKnown, setLoadingKnown] = useState(true)
 
@@ -129,8 +153,16 @@ export default function GrammarClient() {
     if (state.user) await setGrammarKnown(id, val)
   }
 
+  // Points for the selected book (for progress bar)
+  const bookPoints = useMemo(() => {
+    if (bookFilter === 'all') return ALL_GRAMMAR_POINTS
+    return ALL_GRAMMAR_POINTS.filter(p => p.book === bookFilter)
+  }, [bookFilter])
+
   const filtered = useMemo(() => {
-    let list = GRAMMAR_POINTS
+    let list = bookFilter === 'all'
+      ? ALL_GRAMMAR_POINTS
+      : ALL_GRAMMAR_POINTS.filter(p => p.book === bookFilter)
     if (jlptFilter !== 'all') list = list.filter(g => g.jlpt === jlptFilter)
     if (hideKnown) list = list.filter(g => !knownIds.has(g.id))
     if (search.trim()) {
@@ -143,22 +175,26 @@ export default function GrammarClient() {
       )
     }
     return list
-  }, [search, jlptFilter, hideKnown, knownIds])
+  }, [search, jlptFilter, bookFilter, hideKnown, knownIds])
 
-  // Group by lesson
+  // Group by lesson (stable key: book+lesson to avoid collisions if books overlap)
   const byLesson = useMemo(() => {
-    const map = new Map<number, GrammarPoint[]>()
+    const map = new Map<string, { lesson: number; book: BookKey; points: GrammarPointWithBook[] }>()
     for (const g of filtered) {
-      if (!map.has(g.lesson)) map.set(g.lesson, [])
-      map.get(g.lesson)!.push(g)
+      const key = `${g.book}-${g.lesson}`
+      if (!map.has(key)) map.set(key, { lesson: g.lesson, book: g.book, points: [] })
+      map.get(key)!.points.push(g)
     }
-    return Array.from(map.entries()).sort((a, b) => a[0] - b[0])
+    return Array.from(map.values()).sort((a, b) =>
+      a.book !== b.book ? (a.book < b.book ? -1 : 1) : a.lesson - b.lesson
+    )
   }, [filtered])
 
-  const totalKnown = knownIds.size
-  const total = GRAMMAR_POINTS.length
+  const totalInBook = bookPoints.length
+  const totalKnownInBook = bookPoints.filter(p => knownIds.has(p.id)).length
 
   const activeVocab = state.db.filter(i => i.status === 'active')
+  const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
 
   if (selected) {
     return (
@@ -175,7 +211,7 @@ export default function GrammarClient() {
 
   return (
     <div className="space-y-4">
-      {/* API Key banner (only for AI explanation feature) */}
+      {/* API Key banner */}
       {!state.geminiApiKey && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex-1 min-w-0">
@@ -194,20 +230,48 @@ export default function GrammarClient() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">📖 Gramática</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Minna no Nihongo 1 · {total} puntos gramaticales
+          {currentBookInfo ? `${currentBookInfo.subtitle} · ${totalInBook} puntos` : `Todos los libros · ${totalInBook} puntos`}
         </p>
+      </div>
+
+      {/* Book selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-semibold text-slate-500 mr-1">📚 Libro:</span>
+        <button
+          onClick={() => setBookFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+            bookFilter === 'all'
+              ? 'bg-slate-700 text-white border-slate-700'
+              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+          }`}
+        >
+          Todos
+        </button>
+        {BOOKS.map(b => (
+          <button
+            key={b.key}
+            onClick={() => setBookFilter(b.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+              bookFilter === b.key
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+            }`}
+          >
+            {b.label}
+          </button>
+        ))}
       </div>
 
       {/* Progress bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-slate-600">Progreso</span>
-          <span className="text-sm font-bold text-emerald-600">{totalKnown} / {total} dominadas</span>
+          <span className="text-sm font-bold text-emerald-600">{totalKnownInBook} / {totalInBook} dominadas</span>
         </div>
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-400 rounded-full transition-all duration-500"
-            style={{ width: total > 0 ? `${(totalKnown / total) * 100}%` : '0%' }}
+            style={{ width: totalInBook > 0 ? `${(totalKnownInBook / totalInBook) * 100}%` : '0%' }}
           />
         </div>
       </div>
@@ -233,7 +297,7 @@ export default function GrammarClient() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {(['all', 'N5', 'N4'] as JlptFilter[]).map(f => (
+          {(['all', 'N5', 'N4', 'N3'] as JlptFilter[]).map(f => (
             <button
               key={f}
               onClick={() => setJlptFilter(f)}
@@ -262,7 +326,7 @@ export default function GrammarClient() {
 
       {/* Count */}
       <p className="text-xs text-slate-400">
-        {filtered.length} puntos · {totalKnown} dominados
+        {filtered.length} puntos · {totalKnownInBook} dominados
         {loadingKnown && !state.user && ' · Inicia sesión para guardar progreso'}
       </p>
 
@@ -274,11 +338,11 @@ export default function GrammarClient() {
         </div>
       ) : (
         <div className="space-y-5">
-          {byLesson.map(([lesson, points]) => (
-            <div key={lesson}>
+          {byLesson.map(({ lesson, book, points }) => (
+            <div key={`${book}-${lesson}`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                  Lección {lesson}
+                  {bookFilter === 'all' ? `${book === 'mnn1' ? 'MNN1' : 'MNN2'} · ` : ''}Lección {lesson}
                 </span>
                 <div className="flex-1 h-px bg-slate-200" />
                 <span className="text-xs text-slate-400">
@@ -294,6 +358,7 @@ export default function GrammarClient() {
                     onToggleKnown={toggleKnown}
                     onSelect={setSelected}
                     lang={lang}
+                    showBook={bookFilter === 'all'}
                   />
                 ))}
               </div>
