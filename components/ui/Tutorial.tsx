@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useStore } from '@/lib/store'
@@ -182,6 +182,14 @@ const STEPS: StepDef[] = [
   },
 ]
 
+// Maps each route to the first step index that requires being on that route
+const ROUTE_TO_STEP: Record<string, number> = {}
+STEPS.forEach((step, i) => {
+  if (step.route && !(step.route in ROUTE_TO_STEP)) {
+    ROUTE_TO_STEP[step.route] = i
+  }
+})
+
 type SpotlightRect = { top: number; left: number; width: number; height: number }
 
 function getSpotlightRect(targetId: string): SpotlightRect | null {
@@ -202,6 +210,9 @@ export default function Tutorial() {
   const [spotRect, setSpotRect] = useState<SpotlightRect | null>(null)
   const [mounted, setMounted] = useState(false)
 
+  const stepIdxRef = useRef(0)
+  stepIdxRef.current = stepIdx
+
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
@@ -217,6 +228,15 @@ export default function Tutorial() {
     if (!active) return
     localStorage.setItem(TUTORIAL_STEP_KEY, String(stepIdx))
   }, [stepIdx, active])
+
+  // Auto-advance when the user navigates (manually or via button) to a section
+  useEffect(() => {
+    if (!active) return
+    const targetStep = ROUTE_TO_STEP[pathname]
+    if (targetStep !== undefined && targetStep > stepIdxRef.current) {
+      setStepIdx(targetStep)
+    }
+  }, [pathname, active])
 
   useEffect(() => {
     if (!active) return
@@ -434,7 +454,7 @@ export default function Tutorial() {
 
             {needsNavigation && step.navigateTo ? (
               <button
-                onClick={() => { router.push(step.navigateTo!); next() }}
+                onClick={() => router.push(step.navigateTo!)}
                 className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition"
               >
                 {goLabel}
