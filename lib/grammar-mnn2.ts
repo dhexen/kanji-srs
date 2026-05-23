@@ -992,6 +992,265 @@ const ch45: GrammarPoint[] = [
 // Export — batches 1-4: lessons 26-45
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── CHAPTER 46 ───────────────────────────────────────────────────────────────
+const ch46: GrammarPoint[] = [
+  {
+    id: 'mnn2-46-1', lesson: 46, number: 39, jlpt: 'N4',
+    pattern: 'V よう と して います',
+    name_es: 'Está intentando ~ / Está a punto de ~',
+    name_ca: 'Està intentant ~ / Està a punt de ~',
+    name_en: 'Is trying to ~ / Is about to ~',
+    explanation_es: '「ようとしています」 indica que alguien está haciendo un esfuerzo activo para realizar algo, o está en el momento justo antes de hacerlo. V volicional (意向形) + として + います.',
+    explanation_ca: '「ようとしています」 indica que algú està fent un esforç actiu per realitzar alguna cosa, o es troba en el moment just abans de fer-ho. V volitional (意向形) + として + います.',
+    explanation_en: '「ようとしています」 indicates someone is making an active effort to do something, or is at the moment just before doing it. Volitional form (意向形) + として + います.',
+    structure: [
+      { text: 'V 意向形', role: 'verb', isSlot: true, label_es: 'V (volicional: う/よう)', label_ca: 'V (volitional: う/よう)', label_en: 'V (volitional: う/よう)' },
+      { text: 'として います', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '彼は', furigana: 'かれは', role: 'topic', gloss_es: 'él', gloss_ca: 'ell', gloss_en: 'he' },
+      { text: '会社を', furigana: 'かいしゃを', role: 'object', gloss_es: 'la empresa', gloss_ca: "l'empresa", gloss_en: 'the company' },
+      { text: '辞めよう', furigana: 'やめよう', role: 'verb', gloss_es: 'dejar (volic.)', gloss_ca: 'deixar (volic.)', gloss_en: 'quit (volitive)' },
+      { text: 'としています', role: 'key', gloss_es: 'está intentando', gloss_ca: 'està intentant', gloss_en: 'is trying to' },
+    ],
+    tip_es: '"ようとしている" = actitud/esfuerzo activo. Contrasta con "ようにしている" (hábito deliberado) y "ようになった" (cambio gradual logrado). "立とうとしたが座ったまま" = intentó levantarse pero se quedó sentado.',
+    tip_ca: '"ようとしている" = actitud/esforç actiu. Contrasta amb "ようにしている" (hàbit deliberat) i "ようになった" (canvi gradual assolit). "立とうとしたが座ったまま" = va intentar aixecar-se però va quedar assegut.',
+    tip_en: '"ようとしている" = active attitude/effort. Contrasts with "ようにしている" (deliberate habit) and "ようになった" (gradual change achieved). "立とうとしたが座ったまま" = tried to stand up but remained seated.',
+  },
+  {
+    id: 'mnn2-46-2', lesson: 46, number: 40, jlpt: 'N4',
+    pattern: 'N を きっかけ に',
+    name_es: 'Usando ~ como impulso / A raíz de ~',
+    name_ca: 'Usant ~ com a impuls / Arran de ~',
+    name_en: 'Using ~ as a trigger / Following ~ as a turning point',
+    explanation_es: '「をきっかけに」 indica que N fue el evento o momento que sirvió de impulso para un cambio o decisión. Se usa con eventos significativos. Sinónimo: を機会に (をきかいに), más formal.',
+    explanation_ca: '「をきっかけに」 indica que N va ser l\'event o moment que va servir d\'impuls per a un canvi o decisió. S\'usa amb events significatius. Sinònim: を機会に (をきかいに), més formal.',
+    explanation_en: '「をきっかけに」 indicates that N was the event or moment that served as a trigger for a change or decision. Used with significant events. Synonym: を機会に (をきかいに), more formal.',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'evento impulso', label_ca: 'event impuls', label_en: 'trigger event' },
+      { text: 'を きっかけ に', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'cambio / decisión resultante', label_ca: 'canvi / decisió resultant', label_en: 'resulting change / decision' },
+    ],
+    example: [
+      { text: '留学を', furigana: 'りゅうがくを', role: 'object', gloss_es: 'el intercambio', gloss_ca: "l'intercanvi", gloss_en: 'studying abroad' },
+      { text: 'きっかけに', role: 'key', gloss_es: 'a raíz de', gloss_ca: 'arran de', gloss_en: 'following' },
+      { text: '日本語が', furigana: 'にほんごが', role: 'subject', gloss_es: 'el japonés', gloss_ca: 'el japonès', gloss_en: 'Japanese' },
+      { text: '好きになりました', furigana: 'すきになりました', role: 'verb', gloss_es: 'me empezó a gustar', gloss_ca: 'em va començar a agradar', gloss_en: 'I came to like' },
+    ],
+    tip_es: '"をきっかけに" implica que el evento impulsó un cambio positivo o decisión consciente. Para eventos negativos como causa se prefiere "〜から" o "〜ために".',
+    tip_ca: '"をきっかけに" implica que l\'event va impulsar un canvi positiu o decisió conscient. Per a events negatius com a causa es prefereix "〜から" o "〜ために".',
+    tip_en: '"をきっかけに" implies the event triggered a positive change or conscious decision. For negative events as cause, prefer "〜から" or "〜ために".',
+  },
+]
+
+// ─── CHAPTER 47 ───────────────────────────────────────────────────────────────
+const ch47: GrammarPoint[] = [
+  {
+    id: 'mnn2-47-1', lesson: 47, number: 41, jlpt: 'N4',
+    pattern: 'N を 中心に',
+    name_es: 'Centrado en ~ / Con ~ como eje',
+    name_ca: 'Centrat en ~ / Amb ~ com a eix',
+    name_en: 'Centered on ~ / Focusing on ~',
+    explanation_es: '「を中心に」 indica que N es el centro o foco de una actividad o distribución. をちゅうしんに. A menudo usado en contextos geográficos, temáticos o organizativos.',
+    explanation_ca: '「を中心に」 indica que N és el centre o focus d\'una activitat o distribució. をちゅうしんに. Sovint usat en contextos geogràfics, temàtics o organitzatius.',
+    explanation_en: '「を中心に」 indicates that N is the center or focus of an activity or distribution. をちゅうしんに. Often used in geographical, thematic or organizational contexts.',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'centro / foco', label_ca: 'centre / focus', label_en: 'center / focus' },
+      { text: 'を 中心に', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '東京を', furigana: 'とうきょうを', role: 'object', gloss_es: 'Tokio', gloss_ca: 'Tòquio', gloss_en: 'Tokyo' },
+      { text: '中心に', furigana: 'ちゅうしんに', role: 'key', gloss_es: 'centrado en', gloss_ca: 'centrat a', gloss_en: 'centered on' },
+      { text: '関東地方に', furigana: 'かんとうちほうに', role: 'location', gloss_es: 'en la región Kanto', gloss_ca: 'a la regió Kanto', gloss_en: 'in the Kanto region' },
+      { text: '広がっています', furigana: 'ひろがっています', role: 'verb', gloss_es: 'se extiende', gloss_ca: "s'estén", gloss_en: 'spreads' },
+    ],
+    tip_es: '"を中心に" puede referirse a espacio ("東京を中心に"), personas ("彼女を中心に"), o temas ("環境を中心に"). を中心とした + N: "日本を中心とした研究" (investigación centrada en Japón).',
+    tip_ca: '"を中心に" pot referir-se a espai ("東京を中心に"), persones ("彼女を中心に"), o temes ("環境を中心に"). を中心とした + N: "日本を中心とした研究" (investigació centrada al Japó).',
+    tip_en: '"を中心に" can refer to space ("東京を中心に"), people ("彼女を中心に"), or topics ("環境を中心に"). を中心とした + N: "日本を中心とした研究" (research centered on Japan).',
+  },
+  {
+    id: 'mnn2-47-2', lesson: 47, number: 42, jlpt: 'N4',
+    pattern: 'N に 関して / N に 関する N',
+    name_es: 'En cuanto a ~ / Relativo a ~ (formal)',
+    name_ca: 'Quant a ~ / Relatiu a ~ (formal)',
+    name_en: 'Regarding ~ / Relating to ~ (formal)',
+    explanation_es: '「に関して」 es la forma más formal y escrita de について. Se usa en documentos oficiales, noticias, académico. に関するN = sustantivo relacionado con N (= についてのN).',
+    explanation_ca: '「に関して」 és la forma més formal i escrita de について. S\'usa en documents oficials, notícies, àmbit acadèmic. に関するN = substantiu relacionat amb N (= についてのN).',
+    explanation_en: '「に関して」 is the more formal, written equivalent of について. Used in official documents, news, academic contexts. に関するN = noun related to N (= についてのN).',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'tema (formal)', label_ca: 'tema (formal)', label_en: 'topic (formal)' },
+      { text: 'に 関して', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: 'この件に', furigana: 'このけんに', role: 'direction', gloss_es: 'sobre este asunto', gloss_ca: 'sobre aquest assumpte', gloss_en: 'regarding this matter' },
+      { text: '関して', furigana: 'かんして', role: 'key', gloss_es: 'en cuanto a', gloss_ca: 'quant a', gloss_en: 'regarding' },
+      { text: '詳しく', furigana: 'くわしく', role: 'adjective', gloss_es: 'en detalle', gloss_ca: 'en detall', gloss_en: 'in detail' },
+      { text: '説明します', furigana: 'せつめいします', role: 'verb', gloss_es: 'explicaré', gloss_ca: 'explicaré', gloss_en: 'I will explain' },
+    ],
+    tip_es: 'Registros: に関して (formal/escrito) > について (normal) > のこと (coloquial). "環境問題に関する本" = un libro sobre problemas medioambientales (formal).',
+    tip_ca: 'Registres: に関して (formal/escrit) > について (normal) > のこと (col·loquial). "環境問題に関する本" = un llibre sobre problemes mediambientals (formal).',
+    tip_en: 'Registers: に関して (formal/written) > について (normal) > のこと (colloquial). "環境問題に関する本" = a book on environmental issues (formal).',
+  },
+]
+
+// ─── CHAPTER 48 ───────────────────────────────────────────────────────────────
+const ch48: GrammarPoint[] = [
+  {
+    id: 'mnn2-48-1', lesson: 48, number: 43, jlpt: 'N4',
+    pattern: 'V て ばかり います',
+    name_es: 'No hace más que ~ / Solo hace ~',
+    name_ca: 'No fa més que ~ / Només fa ~',
+    name_en: 'Do nothing but ~ / Keep (only) doing ~',
+    explanation_es: '「てばかりいます」 indica que alguien hace solo una cosa repetidamente, generalmente con connotación negativa o crítica. ばかり = "solo, nada más que". Diferente de ている (estado/progresivo neutral).',
+    explanation_ca: '「てばかりいます」 indica que algú fa només una cosa repetidament, generalment amb connotació negativa o crítica. ばかり = "sols, res més que". Diferent de ている (estat/progressiu neutre).',
+    explanation_en: '「てばかりいます」 indicates someone does only one thing repeatedly, usually with a negative or critical connotation. ばかり = "only, nothing but". Different from ている (neutral state/progressive).',
+    structure: [
+      { text: 'V て', role: 'verb', isSlot: true, label_es: 'verbo (forma て)', label_ca: 'verb (forma て)', label_en: 'verb (te-form)' },
+      { text: 'ばかり います', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '最近', furigana: 'さいきん', role: 'time', gloss_es: 'últimamente', gloss_ca: 'últimament', gloss_en: 'lately' },
+      { text: 'ゲームをして', role: 'verb', gloss_es: 'jugar', gloss_ca: 'jugar', gloss_en: 'play games' },
+      { text: 'ばかりいます', role: 'key', gloss_es: 'no hace más que', gloss_ca: 'no fa més que', gloss_en: 'does nothing but' },
+    ],
+    tip_es: '"ゲームばかりしている" = solo juega a videojuegos (crítica implícita). "泣いてばかりいないで" = deja de llorar sin parar. ばかり también se usa después de た: "食べたばかり" = acaba de comer.',
+    tip_ca: '"ゲームばかりしている" = només juga a videojocs (crítica implícita). "泣いてばかりいないで" = deixa de plorar sense parar. ばかり també s\'usa després de た: "食べたばかり" = acaba de menjar.',
+    tip_en: '"ゲームばかりしている" = only plays video games (implicit criticism). "泣いてばかりいないで" = stop just crying. ばかり also follows た: "食べたばかり" = just ate.',
+  },
+  {
+    id: 'mnn2-48-2', lesson: 48, number: 44, jlpt: 'N4',
+    pattern: 'V させられます (使役受身)',
+    name_es: 'Me obligan a ~ / Me hacen ~ (causativa-pasiva)',
+    name_ca: "M'obligo a ~ / Em fan ~ (causativa-passiva)",
+    name_en: 'Be made to ~ / Be forced to ~ (causative-passive)',
+    explanation_es: 'La forma causativa-pasiva expresa que el sujeto fue obligado a hacer algo. Combina causativa (させ) + pasiva (られ). Formación: Grupo 2: させられる. Grupo 1: 書く→書かされる, etc.',
+    explanation_ca: 'La forma causativa-passiva expressa que el subjecte va ser obligat a fer alguna cosa. Combina causativa (させ) + passiva (られ). Formació: Grup 2: させられる. Grup 1: 書く→書かされる, etc.',
+    explanation_en: 'The causative-passive expresses that the subject was forced to do something. Combines causative (させ) + passive (られ). Formation: Group 2: させられる. Group 1: 書く→書かされる, etc.',
+    structure: [
+      { text: 'N₁ は', role: 'topic', isSlot: true, label_es: 'quien es obligado', label_ca: 'qui és obligat', label_en: 'who is forced' },
+      { text: 'N₂ に', role: 'noun', isSlot: true, label_es: 'quien obliga (に)', label_ca: 'qui obliga (に)', label_en: 'who forces (に)' },
+      { text: 'V させられます', role: 'key', isSlot: true, label_es: 'verbo (causativa-pasiva)', label_ca: 'verb (causativa-passiva)', label_en: 'verb (causative-passive)' },
+    ],
+    example: [
+      { text: '私は', furigana: 'わたしは', role: 'topic', gloss_es: 'Yo', gloss_ca: 'Jo', gloss_en: 'I' },
+      { text: '先生に', furigana: 'せんせいに', role: 'noun', gloss_es: 'por el profesor', gloss_ca: 'pel professor', gloss_en: 'by the teacher' },
+      { text: '作文を', furigana: 'さくぶんを', role: 'object', gloss_es: 'una redacción', gloss_ca: 'una redacció', gloss_en: 'a composition' },
+      { text: '書か', role: 'verb', gloss_es: 'escribir', gloss_ca: 'escriure', gloss_en: 'write' },
+      { text: 'されました', role: 'key', gloss_es: 'me obligaron a', gloss_ca: 'em van obligar a', gloss_en: 'was made to' },
+    ],
+    tip_es: '"残業させられた" = me obligaron a hacer horas extra. Siempre implica que el sujeto no quería hacerlo (obligación/imposición). Abreviación coloquial: 書かされる → 書かされる.',
+    tip_ca: '"残業させられた" = em van obligar a fer hores extres. Sempre implica que el subjecte no volia fer-ho (obligació/imposició). Abreviació col·loquial: 書かされる → 書かされる.',
+    tip_en: '"残業させられた" = I was made to do overtime. Always implies the subject didn\'t want to (obligation/imposition). Colloquial abbreviation: 書かされる (Group 1).',
+  },
+]
+
+// ─── CHAPTER 49 ───────────────────────────────────────────────────────────────
+const ch49: GrammarPoint[] = [
+  {
+    id: 'mnn2-49-1', lesson: 49, number: 45, jlpt: 'N4',
+    pattern: 'N の おかげで / N の せいで',
+    name_es: 'Gracias a ~ / Por culpa de ~',
+    name_ca: 'Gràcies a ~ / Per culpa de ~',
+    name_en: 'Thanks to ~ / Because of ~ (blame)',
+    explanation_es: 'Dos formas de expresar causa con juicio: おかげで → causa positiva, expresa gratitud. せいで → causa negativa, expresa culpa o queja. Con verbos: V 普通形 + おかげで/せいで.',
+    explanation_ca: "Dues formes d'expressar causa amb judici: おかげで → causa positiva, expressa gratitud. せいで → causa negativa, expressa culpa o queixa. Amb verbs: V forma curta + おかげで/せいで.",
+    explanation_en: 'Two ways to express cause with judgment: おかげで → positive cause, expresses gratitude. せいで → negative cause, expresses blame or complaint. With verbs: V plain form + おかげで/せいで.',
+    structure: [
+      { text: 'N の / V 普通形', role: 'noun', isSlot: true, label_es: 'causa (N の / V形)', label_ca: 'causa (N の / V形)', label_en: 'cause (N の / V form)' },
+      { text: 'おかげで / せいで', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado (bueno/malo)', label_ca: 'resultat (bo/dolent)', label_en: 'result (good/bad)' },
+    ],
+    example: [
+      { text: '先生の', furigana: 'せんせいの', role: 'noun', gloss_es: 'del profesor', gloss_ca: 'del professor', gloss_en: "teacher's" },
+      { text: 'おかげで', role: 'key', gloss_es: 'gracias a', gloss_ca: 'gràcies a', gloss_en: 'thanks to' },
+      { text: '試験に', furigana: 'しけんに', role: 'direction', gloss_es: 'el examen', gloss_ca: "l'examen", gloss_en: 'the exam' },
+      { text: '合格しました', furigana: 'ごうかくしました', role: 'verb', gloss_es: 'aprobé', gloss_ca: 'vaig aprovar', gloss_en: 'I passed' },
+    ],
+    tip_es: '"雨のせいで遅刻した" = llegué tarde por culpa de la lluvia. "先生のおかげで合格した" = aprobé gracias al profesor. Nunca uses おかげで para resultados malos ni せいで para buenos.',
+    tip_ca: '"雨のせいで遅刻した" = vaig arribar tard per culpa de la pluja. "先生のおかげで合格した" = vaig aprovar gràcies al professor. Mai facis servir おかげで per a resultats dolents ni せいで per a bons.',
+    tip_en: '"雨のせいで遅刻した" = was late because of the rain. "先生のおかげで合格した" = passed thanks to the teacher. Never use おかげで for bad results or せいで for good ones.',
+  },
+  {
+    id: 'mnn2-49-2', lesson: 49, number: 46, jlpt: 'N4',
+    pattern: 'V た ほうが いいです / V ない ほうが いいです',
+    name_es: 'Deberías ~ / Es mejor que ~ / Te recomiendo ~',
+    name_ca: 'Hauries de ~ / És millor que ~ / Et recomano ~',
+    name_en: 'You should ~ / It\'s better to ~ / I recommend ~',
+    explanation_es: 'Da un consejo o recomendación. V た form + ほうがいいです = "es mejor hacer V". V ない form + ほうがいいです = "es mejor no hacer V". Más directo que かもしれません, menos que ください.',
+    explanation_ca: "Dóna un consell o recomanació. V た form + ほうがいいです = \"és millor fer V\". V ない form + ほうがいいです = \"és millor no fer V\". Més directe que かもしれません, menys que ください.",
+    explanation_en: 'Gives advice or a recommendation. V た form + ほうがいいです = "it\'s better to V". V ない form + ほうがいいです = "it\'s better not to V". More direct than かもしれません, less than ください.',
+    structure: [
+      { text: 'V た / V ない', role: 'verb', isSlot: true, label_es: 'V (た-form o ない-form)', label_ca: 'V (た-form o ない-form)', label_en: 'V (た-form or ない-form)' },
+      { text: 'ほうが', role: 'key', isSlot: false },
+      { text: 'いいです', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '風邪をひいたなら', furigana: 'かぜをひいたなら', role: 'conjunction', gloss_es: 'si tienes catarro', gloss_ca: 'si tens refredat', gloss_en: 'if you have a cold' },
+      { text: '病院に', furigana: 'びょういんに', role: 'direction', gloss_es: 'al médico', gloss_ca: 'al metge', gloss_en: 'to the doctor' },
+      { text: '行った', furigana: 'いった', role: 'verb', gloss_es: 'ir', gloss_ca: 'anar', gloss_en: 'go' },
+      { text: 'ほうがいいですよ', role: 'key', gloss_es: 'deberías', gloss_ca: 'hauries', gloss_en: 'you should' },
+    ],
+    tip_es: 'Afirmativa: "早く寝たほうがいい" (deberías dormir pronto). Negativa: "無理しないほうがいい" (deberías no forzarte). Con た es más enfático que con 辞書形.',
+    tip_ca: 'Afirmativa: "早く寝たほうがいい" (hauries de dormir aviat). Negativa: "無理しないほうがいい" (hauries de no forçar-te). Amb た és més emfàtic que amb 辞書形.',
+    tip_en: 'Positive: "早く寝たほうがいい" (you should sleep early). Negative: "無理しないほうがいい" (you should not push yourself). Using た is more emphatic than the dictionary form.',
+  },
+]
+
+// ─── CHAPTER 50 ───────────────────────────────────────────────────────────────
+const ch50: GrammarPoint[] = [
+  {
+    id: 'mnn2-50-1', lesson: 50, number: 47, jlpt: 'N4',
+    pattern: 'S かぎり / V かぎり',
+    name_es: 'Mientras ~ / Siempre que ~ / En la medida en que ~',
+    name_ca: 'Mentre ~ / Sempre que ~ / En la mesura que ~',
+    name_en: 'As long as ~ / While ~ / As far as ~',
+    explanation_es: '「かぎり」 expresa un límite o condición. V 辞書形 + かぎり = "siempre que / mientras". V ない + かぎり = "a menos que / mientras no". También: 私の知るかぎり = "que yo sepa".',
+    explanation_ca: '「かぎり」 expressa un límit o condició. V 辞書形 + かぎり = "sempre que / mentre". V ない + かぎり = "a menys que / mentre no". També: 私の知るかぎり = "que jo sàpiga".',
+    explanation_en: '「かぎり」 expresses a limit or condition. V dictionary + かぎり = "as long as / while". V ない + かぎり = "unless / as long as not". Also: 私の知るかぎり = "as far as I know".',
+    structure: [
+      { text: 'V 辞書形 / V ない', role: 'verb', isSlot: true, label_es: 'condición límite', label_ca: 'condició límit', label_en: 'limiting condition' },
+      { text: 'かぎり', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado / estado', label_ca: 'resultat / estat', label_en: 'result / state' },
+    ],
+    example: [
+      { text: '健康でいる', furigana: 'けんこうでいる', role: 'verb', gloss_es: 'estar sano', gloss_ca: 'estar sa', gloss_en: 'remain healthy' },
+      { text: 'かぎり', role: 'key', gloss_es: 'mientras', gloss_ca: 'mentre', gloss_en: 'as long as' },
+      { text: '仕事を', furigana: 'しごとを', role: 'object', gloss_es: 'el trabajo', gloss_ca: 'la feina', gloss_en: 'work' },
+      { text: '続けます', furigana: 'つづけます', role: 'verb', gloss_es: 'seguiré', gloss_ca: 'continuaré', gloss_en: "I'll continue" },
+    ],
+    tip_es: '"練習しないかぎり上手にならない" = a menos que practiques, no mejorarás. "私の知るかぎり" = que yo sepa. "できるかぎり" = en la medida de lo posible.',
+    tip_ca: '"練習しないかぎり上手にならない" = a menys que practiquis, no milloraràs. "私の知るかぎり" = que jo sàpiga. "できるかぎり" = en la mesura del possible.',
+    tip_en: '"練習しないかぎり上手にならない" = unless you practice, you won\'t improve. "私の知るかぎり" = as far as I know. "できるかぎり" = as much as possible.',
+  },
+  {
+    id: 'mnn2-50-2', lesson: 50, number: 48, jlpt: 'N4',
+    pattern: 'V て も V て も',
+    name_es: 'Por más que ~ / Aunque ~ y aunque ~',
+    name_ca: 'Per molt que ~ / Encara que ~ i encara que ~',
+    name_en: 'No matter how much ~ / However much ~ and ~',
+    explanation_es: 'Repite la misma forma ても o dos formas diferentes para enfatizar que el resultado no cambia bajo ninguna condición. "V てもV ても" = "por más que haga V, pase lo que pase".',
+    explanation_ca: "Repeteix la mateixa forma ても o dues formes diferents per emfatitzar que el resultat no canvia sota cap condició. \"V ても V ても\" = \"per molt que faci V, passi el que passi\".",
+    explanation_en: 'Repeats the same ても form or two different forms to emphasize the result does not change under any condition. "V ても V ても" = "no matter how much V, whatever happens".',
+    structure: [
+      { text: 'V₁ ても', role: 'key', isSlot: true, label_es: 'primera condición (ても)', label_ca: 'primera condició (ても)', label_en: 'first condition (ても)' },
+      { text: 'V₂ ても', role: 'key', isSlot: true, label_es: 'segunda condición (ても)', label_ca: 'segona condició (ても)', label_en: 'second condition (ても)' },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado invariable', label_ca: 'resultat invariable', label_en: 'invariable result' },
+    ],
+    example: [
+      { text: '探しても', furigana: 'さがしても', role: 'key', gloss_es: 'aunque busque', gloss_ca: 'encara que busqui', gloss_en: 'even if I search' },
+      { text: '探しても', furigana: 'さがしても', role: 'key', gloss_es: 'y busque', gloss_ca: 'i busqui', gloss_en: 'and search' },
+      { text: '見つかりません', furigana: 'みつかりません', role: 'verb', gloss_es: 'no lo encuentro', gloss_ca: 'no el trobo', gloss_en: "can't find it" },
+    ],
+    tip_es: 'Variante con adj: "寒くても暑くても" = aunque haga frío o calor. "泣いても笑っても" = llorando o riendo (pase lo que pase). Refuerza la idea de inevitabilidad del resultado.',
+    tip_ca: 'Variant amb adj: "寒くても暑くても" = encara que faci fred o calor. "泣いても笑っても" = plorant o rient (passi el que passi). Reforça la idea d\'inevitabilitat del resultat.',
+    tip_en: 'Variant with adj: "寒くても暑くても" = whether it\'s cold or hot. "泣いても笑っても" = crying or laughing (whatever happens). Reinforces the idea of inevitability.',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export — complete MNN2: lessons 26-50
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch26,
   ...ch27,
@@ -1013,4 +1272,9 @@ export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch43,
   ...ch44,
   ...ch45,
+  ...ch46,
+  ...ch47,
+  ...ch48,
+  ...ch49,
+  ...ch50,
 ]
