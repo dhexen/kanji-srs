@@ -108,6 +108,7 @@ export interface VocabItem {
   srsLevel: number
   due: number
   status: 'locked' | 'active'
+  image_url?: string
   // Per-mode SRS
   srs_multi_level?: number
   srs_multi_due?: number

@@ -105,7 +105,27 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
     }
     throw error
   }
-  return (data || []).map(rowToVocabItem)
+  const items = (data || []).map(rowToVocabItem)
+
+  // Merge image URLs from shared vocabulary table (graceful — no-op if column not yet added)
+  try {
+    const words = items.map(i => i.jp)
+    if (words.length > 0) {
+      const { data: imgData } = await supabase
+        .from('vocabulary')
+        .select('word, image_url')
+        .in('word', words)
+        .not('image_url', 'is', null)
+        .neq('image_url', '')
+      if (imgData && imgData.length > 0) {
+        const imgMap = new Map(imgData.map(d => [d.word as string, d.image_url as string]))
+        return items.map(i => imgMap.has(i.jp) ? { ...i, image_url: imgMap.get(i.jp) } : i)
+      }
+    }
+  } catch {
+    // image_url column not yet added — skip silently
+  }
+  return items
 }
 
 export async function upsertVocabItem(item: VocabItem, fullDb?: VocabItem[]): Promise<void> {

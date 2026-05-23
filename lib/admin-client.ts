@@ -98,3 +98,36 @@ export async function saveAdminSrsIntervals(intervals: number[]): Promise<void> 
   })
   await parseAdminResponse<{ ok: boolean }>(res)
 }
+
+// ---------------------------------------------------------------------------
+// Vocabulary image processing
+// ---------------------------------------------------------------------------
+
+export interface ImageStats {
+  total: number
+  with_image: number
+  checked: number
+  pending: number
+}
+
+export interface ImageBatchResult {
+  processed: number
+  new_images: number
+  not_imageable: number
+  no_wiki_image: number
+  message?: string
+}
+
+export async function fetchImageStats(): Promise<ImageStats> {
+  const res = await fetch('/api/admin/process-images', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<ImageStats>(res)
+}
+
+export async function processImageBatch(opts: { limit?: number; geminiApiKey?: string }): Promise<ImageBatchResult> {
+  const res = await fetch('/api/admin/process-images', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<ImageBatchResult>(res)
+}

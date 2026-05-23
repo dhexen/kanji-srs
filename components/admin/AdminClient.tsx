@@ -13,8 +13,12 @@ import {
   restoreUserSnapshot,
   fetchAdminConfig,
   saveAdminSrsIntervals,
+  fetchImageStats,
+  processImageBatch,
   type AdminUserRow,
   type AdminSnapshotRow,
+  type ImageStats,
+  type ImageBatchResult,
 } from '@/lib/admin-client'
 import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
@@ -28,6 +32,12 @@ export default function AdminClient() {
   const [snapshots, setSnapshots] = useState<AdminSnapshotRow[]>([])
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<number | null>(null)
+
+  // Image processing
+  const [imgStats, setImgStats] = useState<ImageStats | null>(null)
+  const [imgProcessing, setImgProcessing] = useState(false)
+  const [imgLastResult, setImgLastResult] = useState<ImageBatchResult | null>(null)
+  const [imgGeminiKey, setImgGeminiKey] = useState('')
 
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
@@ -47,6 +57,7 @@ export default function AdminClient() {
     if (isAdmin && aal === 'aal2') {
       loadUsers()
       loadSrsIntervals()
+      fetchImageStats().then(setImgStats).catch(() => {})
     }
   }, [isAdmin, aal])
 
@@ -130,6 +141,27 @@ export default function AdminClient() {
   function handleResetSrsIntervals() {
     setSrsIntervalsLocal([...DEFAULT_SRS_INTERVALS])
     setSrsIntervalsChanged(true)
+  }
+
+  async function handleProcessImages() {
+    setImgProcessing(true)
+    setImgLastResult(null)
+    try {
+      const result = await processImageBatch({ limit: 40, geminiApiKey: imgGeminiKey || undefined })
+      setImgLastResult(result)
+      const stats = await fetchImageStats()
+      setImgStats(stats)
+      showToast(
+        result.processed === 0
+          ? 'No quedan palabras pendientes'
+          : `Procesadas ${result.processed} palabras · ${result.new_images} nuevas imágenes`,
+        'success',
+      )
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error procesando imágenes', 'error')
+    } finally {
+      setImgProcessing(false)
+    }
   }
 
   async function loadUsers() {
@@ -447,6 +479,69 @@ export default function AdminClient() {
           </div>
         </div>
       )}
+
+      {/* Vocabulary images */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-slate-800">Imágenes de vocabulario</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Gemini clasifica qué palabras son "imaginables" y Wikipedia aporta la imagen.
+            </p>
+          </div>
+        </div>
+
+        {imgStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: 'Total palabras', value: imgStats.total, color: 'text-slate-700' },
+              { label: 'Con imagen', value: imgStats.with_image, color: 'text-emerald-600' },
+              { label: 'Revisadas', value: imgStats.checked, color: 'text-indigo-600' },
+              { label: 'Pendientes', value: imgStats.pending, color: imgStats.pending > 0 ? 'text-amber-600' : 'text-slate-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {imgLastResult && imgLastResult.processed > 0 && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
+            Último batch: <strong>{imgLastResult.processed}</strong> procesadas ·{' '}
+            <strong>{imgLastResult.new_images}</strong> imágenes nuevas ·{' '}
+            <strong>{imgLastResult.not_imageable}</strong> no imaginables ·{' '}
+            <strong>{imgLastResult.no_wiki_image}</strong> sin imagen en Wikipedia
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="password"
+            placeholder="Gemini API Key (opcional si hay clave en el servidor)"
+            value={imgGeminiKey}
+            onChange={e => setImgGeminiKey(e.target.value)}
+            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            disabled={imgProcessing || (imgStats?.pending === 0)}
+            onClick={handleProcessImages}
+            className="shrink-0 py-2.5 px-5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition"
+          >
+            {imgProcessing
+              ? 'Procesando…'
+              : imgStats?.pending === 0
+                ? 'Todo procesado'
+                : `Procesar siguiente lote (${Math.min(40, imgStats?.pending ?? 0)} palabras)`}
+          </button>
+        </div>
+        <p className="text-xs text-slate-400 mt-3">
+          Cada lote procesa hasta 40 palabras. Si hay pendientes, pulsa el botón varias veces hasta terminar.
+        </p>
+      </div>
 
       {/* SRS Intervals Editor */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">

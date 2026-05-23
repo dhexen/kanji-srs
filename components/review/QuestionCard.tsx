@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang } from '@/lib/srs'
@@ -32,8 +32,14 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [answerState, setAnswerState] = useState<AnswerState>('waiting')
   const [showAnswer, setShowAnswer] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [imgError, setImgError] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
+
+  const handleImgError = useCallback(() => setImgError(true), [])
+
+  // Reset image error state when the word changes
+  useEffect(() => { setImgError(false) }, [item.jp])
 
   const needsJapaneseInput = cfg.inputScript === 'hiragana'
 
@@ -115,6 +121,14 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         <span className={`absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-md ${badgeColors[mode]}`}>
           {cfg.label} <span className="opacity-60">Nv.{level}</span>
         </span>
+        {item.image_url && !imgError && (
+          <img
+            src={item.image_url}
+            alt={item.meaning}
+            onError={handleImgError}
+            className="absolute top-3 right-3 w-16 h-16 object-cover rounded-xl shadow-sm opacity-90"
+          />
+        )}
         <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 mb-4 tracking-wide">
           {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
         </div>
