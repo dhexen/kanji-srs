@@ -58,30 +58,16 @@ ${wordList}`
   }
 }
 
-// Searches Wikipedia by keyword and returns the thumbnail of the most relevant result.
-// Uses generator=search so it's a single HTTP request per word.
-async function fetchWikipediaSearchImage(searchTerm: string): Promise<string | null> {
+async function fetchPexelsImage(searchTerm: string, apiKey: string): Promise<string | null> {
   const url =
-    `https://en.wikipedia.org/w/api.php?action=query&generator=search` +
-    `&gsrsearch=${encodeURIComponent(searchTerm)}&gsrnamespace=0&gsrlimit=3` +
-    `&prop=pageimages&format=json&pithumbsize=300`
+    `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerm)}&per_page=1&orientation=square`
 
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'KanjiSRS/1.0 (educational SRS app)' },
-  })
+  const res = await fetch(url, { headers: { Authorization: apiKey } })
   if (!res.ok) return null
 
   const data = await res.json()
-  const pages = data?.query?.pages as Record<string, any> | undefined
-  if (!pages) return null
-
-  // Sort by search relevance index, pick first page that has a thumbnail
-  const sorted = Object.values(pages).sort((a, b) => (a.index ?? 99) - (b.index ?? 99))
-  for (const page of sorted) {
-    const src = page?.thumbnail?.source as string | undefined
-    if (src) return src
-  }
-  return null
+  // src.small is ~400px — good for our 64px thumbnail, loads fast
+  return (data.photos?.[0]?.src?.small as string) ?? null
 }
 
 // GET — stats about image coverage
@@ -125,8 +111,15 @@ export async function POST(request: NextRequest) {
       ? body.geminiApiKey.trim()
       : process.env.GEMINI_API_KEY
 
+    const pexelsApiKey = (typeof body.pexelsApiKey === 'string' && body.pexelsApiKey.trim())
+      ? body.pexelsApiKey.trim()
+      : process.env.PEXELS_API_KEY
+
     if (!geminiApiKey) {
       throw new AdminApiError('Falta la Gemini API Key (env GEMINI_API_KEY o parámetro geminiApiKey).', 400)
+    }
+    if (!pexelsApiKey) {
+      throw new AdminApiError('Falta la Pexels API Key (env PEXELS_API_KEY o parámetro pexelsApiKey). Regístrate en pexels.com/api.', 400)
     }
 
     // Fetch words not yet checked (image_url IS NULL)
@@ -157,17 +150,17 @@ export async function POST(request: NextRequest) {
 
     const classMap = new Map(classifications.map(c => [c.jp, c]))
 
-    // Fetch Wikipedia images in parallel for imageable words
+    // Fetch Pexels images in parallel for imageable words
     const imageableWords = classifications.filter(c => c.imageable && c.search_term)
-    const wikiResults = await Promise.allSettled(
+    const pexelsResults = await Promise.allSettled(
       imageableWords.map(async c => ({
         word: c.jp,
-        imageUrl: await fetchWikipediaSearchImage(c.search_term!),
+        imageUrl: await fetchPexelsImage(c.search_term!, pexelsApiKey),
       })),
     )
 
     const imageMap = new Map<string, string>()
-    for (const result of wikiResults) {
+    for (const result of pexelsResults) {
       if (result.status === 'fulfilled' && result.value.imageUrl) {
         imageMap.set(result.value.word, result.value.imageUrl)
       }
@@ -191,13 +184,13 @@ export async function POST(request: NextRequest) {
       const cls = classMap.get(w.word)
       return !cls || !cls.imageable
     }).length
-    const noWikiImage = imageableWords.length - newImages
+    const noPexelsImage = imageableWords.length - newImages
 
     return NextResponse.json({
       processed: words.length,
       new_images: newImages,
       not_imageable: notImageable,
-      no_wiki_image: noWikiImage,
+      no_source_image: noPexelsImage,
     })
   } catch (e) {
     return adminJsonError(e)

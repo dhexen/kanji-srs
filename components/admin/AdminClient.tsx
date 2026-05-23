@@ -40,6 +40,7 @@ export default function AdminClient() {
   const [imgResetting, setImgResetting] = useState(false)
   const [imgLastResult, setImgLastResult] = useState<ImageBatchResult | null>(null)
   const [imgGeminiKey, setImgGeminiKey] = useState('')
+  const [imgPexelsKey, setImgPexelsKey] = useState('')
 
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
@@ -152,6 +153,7 @@ export default function AdminClient() {
       const result = await processImageBatch({
         limit: 40,
         geminiApiKey: imgGeminiKey || undefined,
+        pexelsApiKey: imgPexelsKey || undefined,
       })
       setImgLastResult(result)
       const stats = await fetchImageStats()
@@ -531,17 +533,25 @@ export default function AdminClient() {
             Último batch: <strong>{imgLastResult.processed}</strong> procesadas ·{' '}
             <strong>{imgLastResult.new_images}</strong> imágenes nuevas ·{' '}
             <strong>{imgLastResult.not_imageable}</strong> no imaginables ·{' '}
-            <strong>{imgLastResult.no_wiki_image}</strong> sin imagen en Wikipedia
+            <strong>{imgLastResult.no_source_image}</strong> sin imagen en Pexels
           </div>
         )}
 
-        <div className="mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <input
             type="password"
             placeholder="Gemini API Key (opcional si hay clave en servidor)"
             value={imgGeminiKey}
             onChange={e => setImgGeminiKey(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
+            className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
+            autoComplete="off"
+          />
+          <input
+            type="password"
+            placeholder="Pexels API Key — pexels.com/api (obligatorio)"
+            value={imgPexelsKey}
+            onChange={e => setImgPexelsKey(e.target.value)}
+            className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm"
             autoComplete="off"
           />
         </div>
@@ -570,8 +580,9 @@ export default function AdminClient() {
           </button>
         </div>
         <p className="text-xs text-slate-400 mt-3">
-          Cada lote procesa hasta 40 palabras. Fuente de imágenes: <strong>Wikipedia</strong> (búsqueda por keywords, sin API key).
-          «Reintentar sin foto» vuelve a poner en cola las palabras que Wikipedia no encontró.
+          Cada lote procesa hasta 40 palabras. Fuente de imágenes: <strong>Pexels</strong> (regístrate en pexels.com/api, clave inmediata).
+          También puedes guardarla en <code className="bg-slate-100 px-1 rounded">PEXELS_API_KEY</code> en .env.local para no tener que escribirla cada vez.
+          «Reintentar sin foto» vuelve a poner en cola las palabras sin imagen encontrada.
         </p>
       </div>
 

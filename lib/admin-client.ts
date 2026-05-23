@@ -114,7 +114,7 @@ export interface ImageBatchResult {
   processed: number
   new_images: number
   not_imageable: number
-  no_wiki_image: number
+  no_source_image: number
   message?: string
 }
 
@@ -126,6 +126,7 @@ export async function fetchImageStats(): Promise<ImageStats> {
 export async function processImageBatch(opts: {
   limit?: number
   geminiApiKey?: string
+  pexelsApiKey?: string
 }): Promise<ImageBatchResult> {
   const res = await fetch('/api/admin/process-images', {
     method: 'POST',
