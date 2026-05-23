@@ -71,6 +71,23 @@ export default function StatsClient() {
     }
   }
 
+  function resetTutorials() {
+    const msg = { es: '¿Reiniciar todos los tutoriales? La próxima vez que visites cada sección, se mostrará el tutorial automáticamente.', ca: 'Reiniciar tots els tutorials? La propera vegada que visitis cada secció, es mostrarà el tutorial automàticament.', en: 'Reset all tutorials? The next time you visit each section, the tutorial will show automatically.', ja: 'すべてのチュートリアルをリセットしますか？各セクションに次回アクセスしたとき、チュートリアルが自動的に表示されます。' }[lang] ?? '¿Reiniciar tutoriales?'
+    if (!confirm(msg)) return
+    try {
+      localStorage.removeItem('kanji_tutorial_v1_done')
+      localStorage.removeItem('kanji_tutorial_v1_step')
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sectionhelp_v1_'))
+        .forEach(k => localStorage.removeItem(k))
+      const successMsg = { es: 'Tutoriales reiniciados ✓', ca: 'Tutorials reiniciats ✓', en: 'Tutorials reset ✓', ja: 'チュートリアルをリセットしました ✓' }[lang] ?? 'Tutoriales reiniciados ✓'
+      showToast(successMsg, 'success')
+      setTimeout(() => window.location.reload(), 800)
+    } catch {
+      showToast('Error', 'error')
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -301,6 +318,22 @@ export default function StatsClient() {
             </div>
             <button onClick={resetAll} className="w-full py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition">
               {t(lang, 'stats_reset')}
+            </button>
+          </div>
+
+          {/* Tutorial reset */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+            <h3 className="font-bold text-slate-900">
+              {{ es: 'Tutoriales', ca: 'Tutorials', en: 'Tutorials', ja: 'チュートリアル' }[lang] ?? 'Tutoriales'}
+            </h3>
+            <p className="text-slate-500 text-xs">
+              {{ es: 'Reinicia los tutoriales de cada sección para volver a verlos la próxima vez que entres.', ca: 'Reinicia els tutorials de cada secció per tornar-los a veure la propera vegada que entris.', en: 'Reset section tutorials so they appear again the next time you visit each tab.', ja: 'セクションチュートリアルをリセットして、次回アクセス時に再表示します。' }[lang] ?? 'Reinicia los tutoriales.'}
+            </p>
+            <button
+              onClick={resetTutorials}
+              className="w-full py-2.5 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-sm transition"
+            >
+              {{ es: '🔄 Reiniciar tutoriales', ca: '🔄 Reiniciar tutorials', en: '🔄 Reset tutorials', ja: '🔄 チュートリアルをリセット' }[lang] ?? '🔄 Reiniciar tutoriales'}
             </button>
           </div>
         </div>

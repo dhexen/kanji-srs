@@ -469,7 +469,7 @@ export default function VocabularyClient() {
             {/* Grade selector */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_course')}</label>
-              <div className="space-y-2">
+              <div data-tutorial-id="vocab-grade-selector" className="space-y-2">
                 {GRADES.map(g => {
                   const gStats = getGradeStats(g.value)
                   const isSelected = grade === g.value
@@ -514,7 +514,7 @@ export default function VocabularyClient() {
             {/* Pack size */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_amount')}</label>
-              <div className="space-y-2">
+              <div data-tutorial-id="vocab-pack-selector" className="space-y-2">
                 {PACKS.map(p => (
                   <button key={p.value} onClick={() => setPackSize(p.value)}
                     className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
@@ -549,7 +549,7 @@ export default function VocabularyClient() {
             </div>
           </div>
 
-          <button onClick={loadPreview} disabled={loading}
+          <button data-tutorial-id="vocab-load-btn" onClick={loadPreview} disabled={loading}
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-lg rounded-xl transition shadow-md flex items-center justify-center gap-2">
             {loading
               ? `⏳ ${t(lang, 'vocab_loading')}`
@@ -559,7 +559,7 @@ export default function VocabularyClient() {
       )}
 
       {!isSearching && step === 'preview' && (
-        <div className="space-y-6">
+        <div data-tutorial-id="vocab-preview-area" className="space-y-6">
           {/* Action bar */}
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center justify-between mb-3">

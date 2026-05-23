@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
 
 type ML = Record<string, string>
 
@@ -15,6 +16,19 @@ type SectionContent = {
   intro: ML
   points: HelpPoint[]
 }
+
+export const SECTION_SEEN_PREFIX = 'sectionhelp_v1_'
+
+function getSectionSeenKey(section: string) {
+  return `${SECTION_SEEN_PREFIX}${section}_seen`
+}
+
+const CARD_COLORS = [
+  { bg: 'bg-indigo-50', border: 'border-indigo-100', iconBg: 'bg-indigo-100', title: 'text-indigo-900', body: 'text-indigo-700' },
+  { bg: 'bg-emerald-50', border: 'border-emerald-100', iconBg: 'bg-emerald-100', title: 'text-emerald-900', body: 'text-emerald-700' },
+  { bg: 'bg-amber-50', border: 'border-amber-100', iconBg: 'bg-amber-100', title: 'text-amber-900', body: 'text-amber-700' },
+  { bg: 'bg-rose-50', border: 'border-rose-100', iconBg: 'bg-rose-100', title: 'text-rose-900', body: 'text-rose-700' },
+]
 
 const HELP: Record<string, SectionContent> = {
   review: {
@@ -33,7 +47,7 @@ const HELP: Record<string, SectionContent> = {
           es: 'Elige entre lectura en hiragana, significado, escritura del kanji o combínalos. Cada modo tiene su propio nivel independiente por palabra.',
           ca: 'Tria entre lectura en hiragana, significat, escriptura del kanji o combina\'ls. Cada mode té el seu propi nivell independent per paraula.',
           en: 'Choose hiragana reading, meaning, kanji writing, or combine them. Each mode has its own independent level per word.',
-          ja: 'ひらがな読み・意味・漢字書き取りを選択、または組み合わせ可能。各モードは単語ごとに独自のレベルを持ちます。',
+          ja: 'ひらがな読み・意味・漢字書き取りを選択または組み合わせ。各モードは単語ごとに独自のレベルを持ちます。',
         },
       },
       {
@@ -42,8 +56,8 @@ const HELP: Record<string, SectionContent> = {
         body: {
           es: 'Cada palabra sube de nivel al acertar y baja al fallar. Nivel alto = más días hasta el próximo repaso. El objetivo es llegar a Maestro (nivel 7).',
           ca: 'Cada paraula puja de nivell en encertar i baixa en fallar. Nivell alt = més dies fins al proper repàs. L\'objectiu és arribar a Mestre (nivell 7).',
-          en: 'Each word levels up when correct and down when wrong. Higher level = more days until next review. The goal is to reach Master (level 7).',
-          ja: '正解でレベルアップ、不正解でダウン。レベルが高いほど次の復習まで日数が増えます。目標はマスター（レベル7）に到達することです。',
+          en: 'Each word levels up when correct and down when wrong. Higher level = more days until next review. The goal is Master (level 7).',
+          ja: '正解でレベルアップ、不正解でダウン。レベルが高いほど次の復習まで日数が増えます。目標はマスター（レベル7）です。',
         },
       },
       {
@@ -63,7 +77,7 @@ const HELP: Record<string, SectionContent> = {
           es: 'Practica sin afectar los niveles SRS. Útil para repasar palabras ya conocidas sin alterar el sistema de programación.',
           ca: 'Practica sense afectar els nivells SRS. Útil per repassar paraules ja conegudes sense alterar el sistema de programació.',
           en: 'Practice without affecting SRS levels. Useful to review already-known words without altering the scheduling system.',
-          ja: 'SRSレベルに影響せずに練習できます。スケジュールシステムを変えずに既習単語を復習するのに便利です。',
+          ja: 'SRSレベルに影響せずに練習できます。スケジュールを変えずに既習単語を復習するのに便利です。',
         },
       },
     ],
@@ -75,7 +89,7 @@ const HELP: Record<string, SectionContent> = {
       es: 'Importa vocabulario oficial del currículo japonés. Selecciona el curso y la cantidad, carga las palabras y añádelas a tus repasos.',
       ca: 'Importa vocabulari oficial del currículum japonès. Selecciona el curs i la quantitat, carrega les paraules i afegeix-les als teus repasos.',
       en: 'Import official vocabulary from the Japanese curriculum. Select grade and amount, load the words and add them to your reviews.',
-      ja: '日本の公式カリキュラムから語彙をインポートします。学年と数量を選んで単語を読み込み、復習に追加しましょう。',
+      ja: '日本の公式カリキュラムから語彙をインポート。学年と数量を選んで単語を読み込み、復習に追加しましょう。',
     },
     points: [
       {
@@ -84,28 +98,28 @@ const HELP: Record<string, SectionContent> = {
         body: {
           es: 'Elige entre 1.º, 2.º y 3.º de primaria. Puedes ver cuántos kanjis y palabras tiene cada curso y cuántos te quedan por aprender.',
           ca: 'Tria entre 1r, 2n i 3r de primària. Pots veure quants kanjis i paraules té cada curs i quants et queden per aprendre.',
-          en: 'Choose from 1st, 2nd, or 3rd grade. You can see how many kanji and words each grade has and how many you have left to learn.',
+          en: 'Choose from 1st, 2nd, or 3rd grade. See how many kanji and words each grade has and how many you have left to learn.',
           ja: '1・2・3年生から選択。各学年の漢字と単語数、残りの学習数を確認できます。',
         },
       },
       {
         icon: '📦',
-        title: { es: 'Cantidad', ca: 'Quantitat', en: 'Amount', ja: '数量' },
+        title: { es: 'Cantidad de kanjis', ca: 'Quantitat de kanjis', en: 'Number of kanji', ja: '漢字の数' },
         body: {
           es: '3 kanjis (sesión rápida), 5 kanjis (sesión normal) o 15 kanjis (sesión completa). Empieza por poco si estás empezando.',
           ca: '3 kanjis (sessió ràpida), 5 kanjis (sessió normal) o 15 kanjis (sessió completa). Comença per poc si estàs començant.',
-          en: '3 kanji (quick session), 5 kanji (normal session), or 15 kanji (full session). Start small if you\'re just beginning.',
-          ja: '3漢字（クイックセッション）、5漢字（通常）、15漢字（フルセッション）。初めての方は少なめから始めましょう。',
+          en: '3 kanji (quick session), 5 kanji (normal), or 15 kanji (full session). Start small if you\'re just beginning.',
+          ja: '3漢字（クイック）・5漢字（通常）・15漢字（フルセッション）。初めての方は少なめから。',
         },
       },
       {
         icon: '✓',
         title: { es: 'Ya me la sé', ca: 'Ja me la sé', en: 'I already know it', ja: 'もう知っている' },
         body: {
-          es: 'Tras cargar, puedes excluir palabras que ya conoces. También puedes dominar un kanji completo de golpe.',
-          ca: 'Després de carregar, pots excloure paraules que ja coneixes. També pots dominar un kanji complet d\'una vegada.',
-          en: 'After loading, you can exclude words you already know. You can also master an entire kanji at once.',
-          ja: '読み込み後、すでに知っている単語を除外できます。漢字全体を一度に習得することも可能です。',
+          es: 'Tras cargar, excluye palabras que ya conoces pulsando "Ya me la sé". También puedes dominar un kanji completo de golpe.',
+          ca: 'Després de carregar, exclou paraules que ja coneixes prement "Ja me la sé". També pots dominar un kanji complet d\'una vegada.',
+          en: 'After loading, exclude words you know with "I already know it". You can also master an entire kanji at once.',
+          ja: '読み込み後、「もう知っている」で知っている単語を除外。漢字全体を一度に習得することも可能です。',
         },
       },
       {
@@ -124,10 +138,10 @@ const HELP: Record<string, SectionContent> = {
   grammar: {
     title: { es: 'Gramática', ca: 'Gramàtica', en: 'Grammar', ja: '文法' },
     intro: {
-      es: 'Explora los puntos gramaticales de Minna no Nihongo 1, organizados por lección y nivel JLPT. Marca los que ya dominas y consulta explicaciones con IA.',
-      ca: 'Explora els punts gramaticals de Minna no Nihongo 1, organitzats per lliçó i nivell JLPT. Marca els que ja domines i consulta explicacions amb IA.',
-      en: 'Explore grammar points from Minna no Nihongo 1, organized by lesson and JLPT level. Mark the ones you master and get AI explanations.',
-      ja: 'Minna no Nihongo 1の文法ポイントを課とJLPTレベル別に探索。習得済みをマークして、AI解説を参照できます。',
+      es: 'Explora los puntos gramaticales de Minna no Nihongo, organizados por lección y nivel JLPT. Marca los que ya dominas y consulta explicaciones con IA.',
+      ca: 'Explora els punts gramaticals de Minna no Nihongo, organitzats per lliçó i nivell JLPT. Marca els que ja domines i consulta explicacions amb IA.',
+      en: 'Explore grammar points from Minna no Nihongo, organized by lesson and JLPT level. Mark the ones you master and get AI explanations.',
+      ja: 'Minna no Nihongoの文法ポイントを課とJLPTレベル別に探索。習得済みをマークして、AI解説を参照できます。',
     },
     points: [
       {
@@ -137,11 +151,11 @@ const HELP: Record<string, SectionContent> = {
           es: 'Filtra por nivel JLPT (N5/N4), oculta los puntos ya dominados o busca por patrón o nombre en cualquier idioma.',
           ca: 'Filtra per nivell JLPT (N5/N4), amaga els punts ja dominats o cerca per patró o nom en qualsevol idioma.',
           en: 'Filter by JLPT level (N5/N4), hide already mastered points, or search by pattern or name in any language.',
-          ja: 'JLPTレベル（N5/N4）でフィルタリング、習得済みを非表示、または任意の言語でパターンや名前で検索できます。',
+          ja: 'JLPTレベル（N5/N4）でフィルタリング、習得済みを非表示、または任意の言語で検索できます。',
         },
       },
       {
-        icon: '✓',
+        icon: '✅',
         title: { es: 'Marcar como dominada', ca: 'Marcar com a dominada', en: 'Mark as mastered', ja: '習得済みとしてマーク' },
         body: {
           es: 'Pulsa el botón verde en cada tarjeta para marcar el punto como dominado. Tu progreso se guarda en la nube.',
@@ -167,7 +181,7 @@ const HELP: Record<string, SectionContent> = {
           es: 'La barra superior muestra cuántos puntos has dominado del total. Cada lección también muestra tu progreso individual.',
           ca: 'La barra superior mostra quants punts has dominat del total. Cada lliçó també mostra el teu progrés individual.',
           en: 'The top bar shows how many points you\'ve mastered out of the total. Each lesson also shows your individual progress.',
-          ja: '上部バーで全体の習得ポイント数を確認できます。各課でも個別の進捗が表示されます。',
+          ja: '上部バーで全体の習得ポイント数を確認。各課でも個別の進捗が表示されます。',
         },
       },
     ],
@@ -189,7 +203,7 @@ const HELP: Record<string, SectionContent> = {
           es: 'Elige un tema (vida cotidiana, viajes, comida...) y una dificultad (N5-N4, N4-N3, N3-N2). El sistema usará tu vocabulario activo para crear el texto.',
           ca: 'Tria un tema (vida quotidiana, viatges, menjar...) i una dificultat (N5-N4, N4-N3, N3-N2). El sistema usarà el teu vocabulari actiu per crear el text.',
           en: 'Choose a topic (daily life, travel, food...) and a difficulty (N5-N4, N4-N3, N3-N2). The system will use your active vocabulary to create the text.',
-          ja: 'テーマ（日常生活・旅行・食べ物など）と難易度（N5-N4・N4-N3・N3-N2）を選択。システムがあなたのアクティブ語彙を使ってテキストを作成します。',
+          ja: 'テーマと難易度（N5-N4・N4-N3・N3-N2）を選択。システムがあなたのアクティブ語彙を使ってテキストを作成します。',
         },
       },
       {
@@ -258,10 +272,10 @@ const HELP: Record<string, SectionContent> = {
         icon: '🏆',
         title: { es: 'Etapas de aprendizaje', ca: 'Etapes d\'aprenentatge', en: 'Learning stages', ja: '学習ステージ' },
         body: {
-          es: 'Novato (0) → Aprendiz → Iniciado → Experto → Avanzado → Veterano → Maestro (7). Cuando llegas a Maestro, el repaso se programa para dentro de 30 días.',
-          ca: 'Novell (0) → Aprenent → Iniciat → Expert → Avançat → Veterà → Mestre (7). Quan arribes a Mestre, el repàs es programa per d\'aquí a 30 dies.',
-          en: 'Novice (0) → Apprentice → Initiate → Expert → Advanced → Veteran → Master (7). When you reach Master, the review is scheduled 30 days out.',
-          ja: '初心者(0)→見習い→入門→専門家→上級→熟練→マスター(7)。マスターに到達すると、次の復習は30日後にスケジュールされます。',
+          es: 'Novato (0) → Aprendiz → Iniciado → Experto → Avanzado → Veterano → Maestro (7). Al llegar a Maestro, el repaso se programa para dentro de 30 días.',
+          ca: 'Novell (0) → Aprenent → Iniciat → Expert → Avançat → Veterà → Mestre (7). En arribar a Mestre, el repàs es programa per d\'aquí a 30 dies.',
+          en: 'Novice (0) → Apprentice → Initiate → Expert → Advanced → Veteran → Master (7). At Master, the next review is scheduled 30 days out.',
+          ja: '初心者(0)→見習い→入門→専門家→上級→熟練→マスター(7)。マスターに到達すると次の復習は30日後にスケジュールされます。',
         },
       },
     ],
@@ -329,12 +343,33 @@ export default function SectionHelp({ section, lang }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    try {
+      const tutorialDone = localStorage.getItem(TUTORIAL_DONE_KEY)
+      const sectionSeen = localStorage.getItem(getSectionSeenKey(section))
+      if (tutorialDone && !sectionSeen) {
+        const timer = setTimeout(() => setOpen(true), 500)
+        return () => clearTimeout(timer)
+      }
+    } catch {}
+  }, [mounted, section])
 
   const content = HELP[section]
   if (!content) return null
 
   const txt = (ml: ML) => ml[lang] ?? ml['es'] ?? ''
+
+  function handleClose() {
+    try {
+      localStorage.setItem(getSectionSeenKey(section), '1')
+    } catch {}
+    setOpen(false)
+  }
 
   const helpLabel = { es: 'Ayuda', ca: 'Ajuda', en: 'Help', ja: 'ヘルプ' }[lang] ?? 'Ayuda'
   const closeLabel = { es: 'Cerrar', ca: 'Tancar', en: 'Close', ja: '閉じる' }[lang] ?? 'Cerrar'
@@ -353,7 +388,7 @@ export default function SectionHelp({ section, lang }: Props) {
       {mounted && open && createPortal(
         <div
           className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
+          onClick={handleClose}
         >
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
@@ -363,7 +398,7 @@ export default function SectionHelp({ section, lang }: Props) {
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
               <h2 className="font-bold text-slate-800 text-base">{txt(content.title)}</h2>
               <button
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="text-slate-400 hover:text-slate-600 transition text-lg leading-none"
                 aria-label={closeLabel}
               >
@@ -371,22 +406,37 @@ export default function SectionHelp({ section, lang }: Props) {
               </button>
             </div>
 
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-4">
               {/* Intro */}
               <p className="text-slate-500 text-sm leading-relaxed">{txt(content.intro)}</p>
 
-              {/* Points */}
-              <div className="space-y-4">
-                {content.points.map((point, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <span className="text-xl shrink-0 mt-0.5">{point.icon}</span>
-                    <div>
-                      <p className="font-semibold text-slate-700 text-sm">{txt(point.title)}</p>
-                      <p className="text-slate-500 text-xs leading-relaxed mt-0.5">{txt(point.body)}</p>
+              {/* Feature cards */}
+              <div className="space-y-3">
+                {content.points.map((point, i) => {
+                  const c = CARD_COLORS[i % CARD_COLORS.length]
+                  return (
+                    <div key={i} className={`p-4 rounded-xl border ${c.bg} ${c.border}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${c.iconBg}`}>
+                          {point.icon}
+                        </div>
+                        <div>
+                          <p className={`font-semibold text-sm mb-1 ${c.title}`}>{txt(point.title)}</p>
+                          <p className={`text-xs leading-relaxed ${c.body}`}>{txt(point.body)}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
+
+              {/* Close button */}
+              <button
+                onClick={handleClose}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-sm transition mt-2"
+              >
+                {closeLabel}
+              </button>
             </div>
           </div>
         </div>,
