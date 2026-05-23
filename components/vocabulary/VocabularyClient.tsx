@@ -1,10 +1,12 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '@/lib/store'
 import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
 import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab, searchVocabulary } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+
+type KanjiInfo = { meanings: string[]; on_readings: string[]; kun_readings: string[] }
 
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
@@ -43,6 +45,8 @@ export default function VocabularyClient() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [addingWord, setAddingWord] = useState<string | null>(null)
+  const [kanjiInfo, setKanjiInfo] = useState<Record<string, KanjiInfo | null>>({})
+  const fetchedKanjisRef = useRef(new Set<string>())
   const lang = state.lang
 
   const existingWords = useMemo(() => new Set(state.db.map(i => i.jp)), [state.db])
@@ -100,6 +104,28 @@ export default function VocabularyClient() {
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery])
+
+  useEffect(() => {
+    if (preview.length === 0) return
+    const kanjis = [...new Set(preview.map((v: any) => v.kanji as string))]
+    const toFetch = kanjis.filter(k => !fetchedKanjisRef.current.has(k))
+    if (toFetch.length === 0) return
+    toFetch.forEach(k => fetchedKanjisRef.current.add(k))
+    Promise.all(
+      toFetch.map(k =>
+        fetch(`https://kanjiapi.dev/v1/kanji/${encodeURIComponent(k)}`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+          .then(data => [k, data] as const)
+      )
+    ).then(results => {
+      const updates: Record<string, KanjiInfo | null> = {}
+      for (const [k, data] of results) {
+        updates[k] = data ? { meanings: data.meanings ?? [], on_readings: data.on_readings ?? [], kun_readings: data.kun_readings ?? [] } : null
+      }
+      setKanjiInfo(prev => ({ ...prev, ...updates }))
+    })
+  }, [preview])
 
   async function addWordToSrs(w: any) {
     setAddingWord(w.word)
@@ -313,6 +339,14 @@ export default function VocabularyClient() {
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                     </div>
+                    {w.image_url && (
+                      <img
+                        src={w.image_url}
+                        alt=""
+                        className="w-full h-20 object-cover rounded-xl mb-2 mt-1"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                    )}
                     <p className="text-xs text-slate-400 mb-1">{t(lang, 'study_kanji_label')} {w.kanji}</p>
                     <p className="text-slate-500 text-sm mb-3">{meaning(w)}</p>
                     {alreadyHas ? (
@@ -470,17 +504,36 @@ export default function VocabularyClient() {
           </div>
 
           {/* Words grouped by kanji — card layout */}
-          {Object.entries(grouped).map(([kanji, words]) => (
+          {Object.entries(grouped).map(([kanji, words]) => {
+            const info = kanjiInfo[kanji]
+            return (
             <div key={kanji}>
               {/* Kanji group header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
-                    <span className="kanji-font text-2xl font-bold text-indigo-500">{kanji}</span>
+              <div className="flex items-start justify-between mb-3 gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
+                    <span className="kanji-font text-3xl font-bold text-indigo-500">{kanji}</span>
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-800">{t(lang, 'study_kanji_label')} {kanji}</h3>
-                    <p className="text-slate-400 text-sm">{t(lang, 'study_keywords_sub')}</p>
+                    {info && info.meanings.length > 0 && (
+                      <p className="text-slate-600 text-sm leading-snug">{info.meanings.slice(0, 4).join(', ')}</p>
+                    )}
+                    {info && (info.on_readings.length > 0 || info.kun_readings.length > 0) && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {info.on_readings.slice(0, 4).map(r => (
+                          <span key={r} className="text-xs bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full font-medium">
+                            {t(lang, 'vocab_on_yomi')} {r}
+                          </span>
+                        ))}
+                        {info.kun_readings.slice(0, 4).map(r => (
+                          <span key={r} className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded-full font-medium">
+                            {t(lang, 'vocab_kun_yomi')} {r}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {!info && <p className="text-slate-400 text-xs">{t(lang, 'study_keywords_sub')}</p>}
                   </div>
                 </div>
                 <button
@@ -516,6 +569,14 @@ export default function VocabularyClient() {
                         </div>
                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                       </div>
+                      {w.image_url && (
+                        <img
+                          src={w.image_url}
+                          alt=""
+                          className="w-full h-24 object-cover rounded-xl mb-2"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                      )}
                       <p className="text-slate-500 text-sm mb-3">{meaning(w)}</p>
                       {alreadyHas ? (
                         <span className="text-xs text-slate-300">{t(lang, 'vocab_already')}</span>
@@ -537,7 +598,8 @@ export default function VocabularyClient() {
                 })}
               </div>
             </div>
-          ))}
+          )
+          })}
         </div>
       )}
 
