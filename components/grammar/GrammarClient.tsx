@@ -9,6 +9,7 @@ import { fetchKnownGrammar, setGrammarKnown } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
 import { t } from '@/lib/i18n'
+import SectionHelp from '@/components/ui/SectionHelp'
 
 type BookKey = 'mnn1' | 'mnn2'
 type BookFilter = 'all' | BookKey
@@ -228,7 +229,10 @@ export default function GrammarClient() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">📖 Gramática</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-800">📖 Gramática</h1>
+          <SectionHelp section="grammar" lang={lang} />
+        </div>
         <p className="text-sm text-slate-500 mt-0.5">
           {currentBookInfo ? `${currentBookInfo.subtitle} · ${totalInBook} puntos` : `Todos los libros · ${totalInBook} puntos`}
         </p>

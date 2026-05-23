@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
-import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
+import SectionHelp from '@/components/ui/SectionHelp'
 
 export default function StatsClient() {
   const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey } = useStore()
@@ -73,6 +73,12 @@ export default function StatsClient() {
 
   return (
     <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-800">{t(lang, 'nav_stats')}</h1>
+        <SectionHelp section="profile" lang={lang} />
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -182,16 +188,6 @@ export default function StatsClient() {
         </div>
 
         <div className="space-y-4">
-          {/* Tutorial restart */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-            <button
-              onClick={() => { localStorage.removeItem(TUTORIAL_DONE_KEY); window.location.reload() }}
-              className="w-full py-2.5 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-sm transition"
-            >
-              {t(lang, 'tutorial_restart')}
-            </button>
-          </div>
-
           {/* Gemini API Key */}
           <div data-tutorial-id="profile-api-section" className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
             <div>

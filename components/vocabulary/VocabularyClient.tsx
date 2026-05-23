@@ -5,6 +5,7 @@ import { VocabItem, MODE_CONFIG, migrateItem, VocabCategory, VocabWordType } fro
 import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab, searchVocabulary } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+import SectionHelp from '@/components/ui/SectionHelp'
 
 const ALL_CATEGORIES: VocabCategory[] = [
   'animals','nature','colors','weather','time','food','transport','family',
@@ -458,7 +459,10 @@ export default function VocabularyClient() {
 
       {!isSearching && step === 'select' && (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-2xl font-bold text-slate-800 mb-1">{t(lang, 'vocab_title')}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-2xl font-bold text-slate-800">{t(lang, 'vocab_title')}</h2>
+            <SectionHelp section="vocabulary" lang={lang} />
+          </div>
           <p className="text-slate-500 text-sm mb-6">{t(lang, 'vocab_sub')}</p>
 
           <div data-tutorial-id="vocab-load-controls" className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

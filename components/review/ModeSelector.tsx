@@ -2,6 +2,7 @@
 import { useStore } from '@/lib/store'
 import { MODE_CONFIG, ReviewMode } from '@/lib/srs'
 import { t } from '@/lib/i18n'
+import SectionHelp from '@/components/ui/SectionHelp'
 
 interface Props {
   selectedModes: ReviewMode[]
@@ -18,7 +19,10 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
   return (
     <div className="space-y-4">
       <div data-tutorial-id="review-mode-selector" className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-        <h3 className="font-bold text-slate-800 mb-1">{t(lang, 'review_title')}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-bold text-slate-800">{t(lang, 'review_title')}</h3>
+          <SectionHelp section="review" lang={lang} />
+        </div>
         <p className="text-slate-400 text-xs mb-4">{t(lang, 'review_subtitle')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-5">
           {(Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]).map(([id, cfg]) => {

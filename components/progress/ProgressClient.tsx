@@ -11,6 +11,7 @@ import {
   getSrsClass,
 } from '@/lib/srs'
 import { t, getMeaning, type Lang } from '@/lib/i18n'
+import SectionHelp from '@/components/ui/SectionHelp'
 
 type SortKey = 'word' | 'level' | 'due'
 type SortDir = 'asc' | 'desc'
@@ -153,7 +154,10 @@ export default function ProgressClient() {
     <div className="space-y-4">
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-        <h3 className="font-bold text-slate-800 mb-1">{t(lang, 'prog_title')}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-bold text-slate-800">{t(lang, 'prog_title')}</h3>
+          <SectionHelp section="progress" lang={lang} />
+        </div>
         <p className="text-slate-400 text-xs mb-4">{t(lang, 'prog_sub')}</p>
 
         {/* Mode selector */}

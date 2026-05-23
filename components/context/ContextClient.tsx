@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+import SectionHelp from '@/components/ui/SectionHelp'
 import { supabase } from '@/lib/supabase'
 
 const TOPICS = [
@@ -112,7 +113,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
     <div className="space-y-6">
       {/* Config panel */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-2xl font-bold text-slate-800 mb-1">💬 Textos en Contexto con IA</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-2xl font-bold text-slate-800">💬 Textos en Contexto con IA</h2>
+          <SectionHelp section="context" lang={lang} />
+        </div>
         <p className="text-slate-500 text-sm mb-5">Genera textos en japonés usando tu vocabulario aprendido. Se guardan las últimas 10 frases.</p>
 
         {/* API Key banner */}
