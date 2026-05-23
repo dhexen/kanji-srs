@@ -478,6 +478,269 @@ const ch35: GrammarPoint[] = [
 // Export — batches 1-2: lessons 26-35
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── CHAPTER 36 ───────────────────────────────────────────────────────────────
+const ch36: GrammarPoint[] = [
+  {
+    id: 'mnn2-36-1', lesson: 36, number: 19, jlpt: 'N4',
+    pattern: 'N について',
+    name_es: 'Sobre ~ / Acerca de ~ / Respecto a ~',
+    name_ca: 'Sobre ~ / Pel que fa a ~ / Respecte a ~',
+    name_en: 'About ~ / Regarding ~ / Concerning ~',
+    explanation_es: '「について」 indica el tema de una acción como hablar, escribir, pensar, preguntar, etc. Se adjunta directamente al sustantivo. についての + N = sustantivo modificado por el tema.',
+    explanation_ca: '「について」 indica el tema d\'una acció com parlar, escriure, pensar, preguntar, etc. S\'adjunta directament al substantiu. についての + N = substantiu modificat pel tema.',
+    explanation_en: '「について」 indicates the topic of an action like speaking, writing, thinking, asking, etc. Attaches directly to a noun. についての + N = noun modified by the topic.',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'tema', label_ca: 'tema', label_en: 'topic' },
+      { text: 'について', role: 'key', isSlot: false },
+      { text: 'V', role: 'verb', isSlot: true, label_es: 'hablar / escribir / pensar...', label_ca: 'parlar / escriure / pensar...', label_en: 'speak / write / think...' },
+    ],
+    example: [
+      { text: '日本の文化', furigana: 'にほんのぶんか', role: 'noun', gloss_es: 'cultura japonesa', gloss_ca: 'cultura japonesa', gloss_en: 'Japanese culture' },
+      { text: 'について', role: 'key', gloss_es: 'sobre', gloss_ca: 'sobre', gloss_en: 'about' },
+      { text: '調べました', furigana: 'しらべました', role: 'verb', gloss_es: 'investigué', gloss_ca: 'vaig investigar', gloss_en: 'I researched' },
+    ],
+    tip_es: 'についての + N: "日本の文化についての本" (un libro sobre la cultura japonesa). に関して (にかんして) es sinónimo más formal. について modifica acciones, no atributos.',
+    tip_ca: 'についての + N: "日本の文化についての本" (un llibre sobre la cultura japonesa). に関して (にかんして) és sinònim més formal. について modifica accions, no atributs.',
+    tip_en: 'についての + N: "日本の文化についての本" (a book about Japanese culture). に関して (にかんして) is a more formal synonym. について modifies actions, not attributes.',
+  },
+  {
+    id: 'mnn2-36-2', lesson: 36, number: 20, jlpt: 'N4',
+    pattern: 'N によって',
+    name_es: 'Dependiendo de ~ / Por medio de ~ / Según ~',
+    name_ca: 'Depenent de ~ / Per mitjà de ~ / Segons ~',
+    name_en: 'Depending on ~ / By means of ~ / According to ~',
+    explanation_es: '「によって」 tiene varios usos: (1) agente en pasiva formal (〜によって作られた), (2) medio o método (〜によって解決する), (3) variación según condición (人によって違う).',
+    explanation_ca: '「によって」 té diversos usos: (1) agent en passiva formal (〜によって作られた), (2) mitjà o mètode (〜によって解決する), (3) variació segons condició (人によって違う).',
+    explanation_en: '「によって」 has several uses: (1) agent in formal passive (〜によって作られた), (2) means or method (〜によって解決する), (3) variation depending on condition (人によって違う).',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'agente / medio / factor', label_ca: 'agent / mitjà / factor', label_en: 'agent / means / factor' },
+      { text: 'によって', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '人', furigana: 'ひと', role: 'noun', gloss_es: 'persona', gloss_ca: 'persona', gloss_en: 'person' },
+      { text: 'によって', role: 'key', gloss_es: 'según', gloss_ca: 'segons', gloss_en: 'depending on' },
+      { text: '考え方が', furigana: 'かんがえかたが', role: 'subject', gloss_es: 'la forma de pensar', gloss_ca: 'la manera de pensar', gloss_en: 'way of thinking' },
+      { text: '違います', furigana: 'ちがいます', role: 'verb', gloss_es: 'varía', gloss_ca: 'varia', gloss_en: 'differs' },
+    ],
+    tip_es: 'Tres usos: (1) Pasiva: "ピカソによって描かれた" (pintado por Picasso). (2) Método: "練習によって上手になる" (mejorar mediante la práctica). (3) Variación: "季節によって変わる" (cambia según la estación).',
+    tip_ca: 'Tres usos: (1) Passiva: "ピカソによって描かれた" (pintat per Picasso). (2) Mètode: "練習によって上手になる" (millorar mitjançant la pràctica). (3) Variació: "季節によって変わる" (canvia segons l\'estació).',
+    tip_en: 'Three uses: (1) Passive: "ピカソによって描かれた" (painted by Picasso). (2) Method: "練習によって上手になる" (improve through practice). (3) Variation: "季節によって変わる" (changes depending on the season).',
+  },
+]
+
+// ─── CHAPTER 37 ───────────────────────────────────────────────────────────────
+const ch37: GrammarPoint[] = [
+  {
+    id: 'mnn2-37-1', lesson: 37, number: 21, jlpt: 'N4',
+    pattern: 'V stem + やすい / にくい',
+    name_es: 'Fácil de ~ / Difícil de ~',
+    name_ca: 'Fàcil de ~ / Difícil de ~',
+    name_en: 'Easy to ~ / Difficult to ~',
+    explanation_es: 'やすい / にくい se añaden al stem del verbo (forma ます sin ます). Expresan facilidad o dificultad para realizar una acción. Se conjugan como adjetivos-い.',
+    explanation_ca: 'やすい / にくい s\'afegeixen al stem del verb (forma ます sense ます). Expressen facilitat o dificultat per realitzar una acció. Es conjuguen com a adjectius-い.',
+    explanation_en: 'やすい / にくい attach to the verb stem (ます-form without ます). Express ease or difficulty of an action. They conjugate as い-adjectives.',
+    structure: [
+      { text: 'V stem', role: 'verb', isSlot: true, label_es: 'stem del verbo', label_ca: 'stem del verb', label_en: 'verb stem' },
+      { text: 'やすい', role: 'key', isSlot: false },
+      { text: '/ にくい', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: 'この本は', furigana: 'このほんは', role: 'topic', gloss_es: 'este libro', gloss_ca: 'aquest llibre', gloss_en: 'this book' },
+      { text: '読み', furigana: 'よみ', role: 'verb', gloss_es: 'leer', gloss_ca: 'llegir', gloss_en: 'read' },
+      { text: 'やすい', role: 'key', gloss_es: 'fácil de', gloss_ca: 'fàcil de', gloss_en: 'easy to' },
+      { text: 'です', role: 'copula', gloss_es: 'es', gloss_ca: 'és', gloss_en: 'is' },
+    ],
+    tip_es: '"読みやすい本" (un libro fácil de leer). Pasado: やすかった / にくかった. "このペンは書きにくい" (este bolígrafo es difícil de escribir con).',
+    tip_ca: '"読みやすい本" (un llibre fàcil de llegir). Passat: やすかった / にくかった. "このペンは書きにくい" (aquest bolígraf és difícil d\'escriure).',
+    tip_en: '"読みやすい本" (a book that is easy to read). Past: やすかった / にくかった. "このペンは書きにくい" (this pen is difficult to write with).',
+  },
+  {
+    id: 'mnn2-37-2', lesson: 37, number: 22, jlpt: 'N4',
+    pattern: 'S₁ 間 / 間に、S₂',
+    name_es: 'Mientras ~ / Durante ~',
+    name_ca: 'Mentre ~ / Durant ~',
+    name_en: 'While ~ / During ~',
+    explanation_es: '「間」(あいだ): S₁ y S₂ ocurren durante el mismo período. 「間に」(あいだに): S₂ ocurre en algún momento DENTRO del período de S₁ (cambio de foco). V ている間 = mientras está V-ando.',
+    explanation_ca: '「間」(あいだ): S₁ i S₂ ocorren durant el mateix període. 「間に」(あいだに): S₂ ocorre en algun moment DINS del període de S₁ (canvi de focus). V ている間 = mentre està V-ant.',
+    explanation_en: '「間」(あいだ): S₁ and S₂ occur throughout the same period. 「間に」(あいだに): S₂ occurs at some point WITHIN the period of S₁ (focus shift). V ている間 = while V-ing.',
+    structure: [
+      { text: 'V ている / N の', role: 'verb', isSlot: true, label_es: 'período (V ている / N の)', label_ca: 'període (V ている / N の)', label_en: 'period (V ている / N の)' },
+      { text: '間（に）', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'acción durante el período', label_ca: 'acció durant el període', label_en: 'action during the period' },
+    ],
+    example: [
+      { text: '先生が', furigana: 'せんせいが', role: 'subject', gloss_es: 'el profesor', gloss_ca: 'el professor', gloss_en: 'the teacher' },
+      { text: '説明している', furigana: 'せつめいしている', role: 'verb', gloss_es: 'estaba explicando', gloss_ca: 'estava explicant', gloss_en: 'was explaining' },
+      { text: '間に', role: 'key', gloss_es: 'durante / mientras', gloss_ca: 'durant / mentre', gloss_en: 'while / during' },
+      { text: '寝て', furigana: 'ねて', role: 'verb', gloss_es: 'me dormí', gloss_ca: 'em vaig adormir', gloss_en: 'I fell asleep' },
+      { text: 'しまいました', role: 'auxiliary', gloss_es: '(sin querer)', gloss_ca: '(sense voler)', gloss_en: '(accidentally)' },
+    ],
+    tip_es: '間 = todo el rato durante S₁. 間に = en algún punto dentro de S₁. "寝ている間" (todo el tiempo que duerme) vs "寝ている間に" (en algún momento mientras dormía).',
+    tip_ca: '間 = tot el temps durant S₁. 間に = en algun punt dins de S₁. "寝ている間" (tot el temps que dorm) vs "寝ている間に" (en algun moment mentre dormia).',
+    tip_en: '間 = throughout all of S₁. 間に = at some point within S₁. "寝ている間" (the whole time sleeping) vs "寝ている間に" (at some point while sleeping).',
+  },
+]
+
+// ─── CHAPTER 38 ───────────────────────────────────────────────────────────────
+const ch38: GrammarPoint[] = [
+  {
+    id: 'mnn2-38-1', lesson: 38, number: 23, jlpt: 'N4',
+    pattern: 'N の よう に / N みたいに',
+    name_es: 'Como ~ / A la manera de ~ / Parecido a ~',
+    name_ca: 'Com ~ / A la manera de ~ / Semblant a ~',
+    name_en: 'Like ~ / In the manner of ~ / Similar to ~',
+    explanation_es: '「Nのように」 compara la manera de hacer algo con N. ように = "de la misma manera que". みたいに es la forma coloquial. ようなN/みたいなN cuando modifica un sustantivo.',
+    explanation_ca: '「Nのように」 compara la manera de fer alguna cosa amb N. ように = "de la mateixa manera que". みたいに és la forma col·loquial. ようなN/みたいなN quan modifica un substantiu.',
+    explanation_en: '「Nのように」 compares the manner of doing something with N. ように = "in the same way as". みたいに is the colloquial form. ようなN/みたいなN when modifying a noun.',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'referencia de comparación', label_ca: 'referència de comparació', label_en: 'comparison reference' },
+      { text: 'の よう に', role: 'key', isSlot: false },
+      { text: 'V', role: 'verb', isSlot: true, label_es: 'acción similar', label_ca: 'acció similar', label_en: 'similar action' },
+    ],
+    example: [
+      { text: '鳥の', furigana: 'とりの', role: 'noun', gloss_es: 'de pájaro', gloss_ca: "d'ocell", gloss_en: "bird's" },
+      { text: 'ように', role: 'key', gloss_es: 'como', gloss_ca: 'com', gloss_en: 'like' },
+      { text: '空を', furigana: 'そらを', role: 'object', gloss_es: 'el cielo', gloss_ca: 'el cel', gloss_en: 'the sky' },
+      { text: '飛びたい', furigana: 'とびたい', role: 'verb', gloss_es: 'quiero volar', gloss_ca: 'vull volar', gloss_en: 'I want to fly' },
+    ],
+    tip_es: 'ようなN: "鳥のような自由" (libertad como la de un pájaro). ように + verbo: describe cómo se hace algo. みたいに es más informal y oral.',
+    tip_ca: 'ようなN: "鳥のような自由" (llibertat com la d\'un ocell). ように + verb: descriu com es fa alguna cosa. みたいに és més informal i oral.',
+    tip_en: 'ようなN: "鳥のような自由" (freedom like a bird\'s). ように + verb: describes how something is done. みたいに is more informal and spoken.',
+  },
+  {
+    id: 'mnn2-38-2', lesson: 38, number: 24, jlpt: 'N4',
+    pattern: 'V た まま / N の まま',
+    name_es: 'Tal como está ~ / Sin cambiar ~',
+    name_ca: 'Tal com està ~ / Sense canviar ~',
+    name_en: 'As is / Without changing ~',
+    explanation_es: '「まま」 indica que un estado persiste sin cambiar mientras ocurre otra acción. V た form + まま = "habiendo hecho V, y sin cambiar ese estado". N の まま = "quedándose como N".',
+    explanation_ca: '「まま」 indica que un estat persisteix sense canviar mentre passa una altra acció. V た form + まま = "havent fet V, i sense canviar aquell estat". N の まま = "quedant-se com N".',
+    explanation_en: '「まま」 indicates a state persists unchanged while another action occurs. V た form + まま = "having done V, and without that state changing". N の まま = "staying as N".',
+    structure: [
+      { text: 'V た / N の', role: 'verb', isSlot: true, label_es: 'V (た-form) / N の', label_ca: 'V (た-form) / N の', label_en: 'V (た-form) / N の' },
+      { text: 'まま', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'otra acción que ocurre', label_ca: 'altra acció que ocorre', label_en: 'another action that occurs' },
+    ],
+    example: [
+      { text: '靴を', furigana: 'くつを', role: 'object', gloss_es: 'los zapatos', gloss_ca: 'les sabates', gloss_en: 'shoes' },
+      { text: '履いた', furigana: 'はいた', role: 'verb', gloss_es: 'con puestos', gloss_ca: 'posats', gloss_en: 'with on' },
+      { text: 'まま', role: 'key', gloss_es: 'tal como están', gloss_ca: 'tal com estan', gloss_en: 'as they are' },
+      { text: '寝ました', furigana: 'ねました', role: 'verb', gloss_es: 'me dormí', gloss_ca: 'em vaig adormir', gloss_en: 'fell asleep' },
+    ],
+    tip_es: '"眼鏡をかけたまま寝た" (dormí con las gafas puestas). まま connota que el estado debería haber cambiado pero no lo hizo. "そのままにしてください" = déjalo tal como está.',
+    tip_ca: '"眼鏡をかけたまま寝た" (vaig dormir amb les ulleres posades). まま connota que l\'estat hauria d\'haver canviat però no va canviar. "そのままにしてください" = deixa\'l tal com està.',
+    tip_en: '"眼鏡をかけたまま寝た" (fell asleep with glasses on). まま often connotes the state should have changed but didn\'t. "そのままにしてください" = leave it as it is.',
+  },
+]
+
+// ─── CHAPTER 39 ───────────────────────────────────────────────────────────────
+const ch39: GrammarPoint[] = [
+  {
+    id: 'mnn2-39-1', lesson: 39, number: 25, jlpt: 'N4',
+    pattern: 'V て はじめて',
+    name_es: 'No hasta que ~ / Solo después de ~ (primer logro)',
+    name_ca: 'No fins que ~ / Només després de ~ (primera fita)',
+    name_en: 'Not until ~ / Only after ~ (first realization)',
+    explanation_es: '「てはじめて」 expresa que algo se comprende o logra por primera vez, y solo después de que ocurra la condición. Implica que antes de ese momento era imposible o desconocido.',
+    explanation_ca: '「てはじめて」 expressa que alguna cosa s\'entén o s\'aconsegueix per primera vegada, i només després que ocorri la condició. Implica que abans d\'aquell moment era impossible o desconegut.',
+    explanation_en: '「てはじめて」 expresses that something is understood or achieved for the first time, and only after the condition occurs. Implies it was impossible or unknown before that moment.',
+    structure: [
+      { text: 'V て', role: 'verb', isSlot: true, label_es: 'condición previa (forma て)', label_ca: 'condició prèvia (forma て)', label_en: 'prior condition (te-form)' },
+      { text: 'はじめて', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'primera vez / primera comprensión', label_ca: 'primera vegada / primera comprensió', label_en: 'first time / first realization' },
+    ],
+    example: [
+      { text: '日本に', furigana: 'にほんに', role: 'direction', gloss_es: 'a Japón', gloss_ca: 'al Japó', gloss_en: 'to Japan' },
+      { text: '来て', furigana: 'きて', role: 'verb', gloss_es: 'venir', gloss_ca: 'venir', gloss_en: 'coming' },
+      { text: 'はじめて', role: 'key', gloss_es: 'solo entonces', gloss_ca: 'només aleshores', gloss_en: 'only then' },
+      { text: '文化の違いが', furigana: 'ぶんかのちがいが', role: 'subject', gloss_es: 'diferencias culturales', gloss_ca: 'diferències culturals', gloss_en: 'cultural differences' },
+      { text: 'わかりました', role: 'verb', gloss_es: 'entendí', gloss_ca: 'vaig entendre', gloss_en: 'I understood' },
+    ],
+    tip_es: '"親になってはじめて親の気持ちがわかる" = Solo cuando uno mismo se convierte en padre/madre entiende los sentimientos de los padres. Expresa un antes y un después claro.',
+    tip_ca: '"親になってはじめて親の気持ちがわかる" = Només quan un mateix es converteix en pare/mare entén els sentiments dels pares. Expressa un abans i un després clar.',
+    tip_en: '"親になってはじめて親の気持ちがわかる" = Only when you become a parent yourself do you understand your parents\' feelings. Expresses a clear before and after.',
+  },
+  {
+    id: 'mnn2-39-2', lesson: 39, number: 26, jlpt: 'N4',
+    pattern: 'V 辞書形 こと に して います',
+    name_es: 'Tengo por norma ~ / Me he propuesto ~',
+    name_ca: 'Tinc per norma ~ / M\'he proposat ~',
+    name_en: 'I have made it a rule to ~ / I always make sure to ~',
+    explanation_es: '「ことにしています」 indica que uno tiene establecida una regla o hábito personal deliberado. Más fuerte que ようにしています: es una norma que uno se impone conscientemente.',
+    explanation_ca: '「ことにしています」 indica que hom té establerta una regla o hàbit personal deliberat. Més fort que ようにしています: és una norma que hom s\'imposa conscientment.',
+    explanation_en: '「ことにしています」 indicates a self-imposed personal rule or deliberate habit. Stronger than ようにしています: it is a rule one consciously sets for oneself.',
+    structure: [
+      { text: 'V 辞書形 / V ない', role: 'verb', isSlot: true, label_es: 'V (dicc.) / V ない', label_ca: 'V (dicc.) / V ない', label_en: 'V (dict.) / V ない' },
+      { text: 'ことに', role: 'key', isSlot: false },
+      { text: 'して います', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '毎朝', furigana: 'まいあさ', role: 'time', gloss_es: 'cada mañana', gloss_ca: 'cada matí', gloss_en: 'every morning' },
+      { text: '30分', furigana: 'さんじっぷん', role: 'time', gloss_es: '30 minutos', gloss_ca: '30 minuts', gloss_en: '30 minutes' },
+      { text: '走る', furigana: 'はしる', role: 'verb', gloss_es: 'correr', gloss_ca: 'córrer', gloss_en: 'run' },
+      { text: 'ことにして います', role: 'key', gloss_es: 'tengo por norma', gloss_ca: 'tinc per norma', gloss_en: 'I make it a rule to' },
+    ],
+    tip_es: 'ことにしています (norma consciente, firme) vs ようにしています (esfuerzo para el hábito). "お酒を飲まないことにしています" = tengo por norma no beber (decisión firme).',
+    tip_ca: 'ことにしています (norma conscient, ferma) vs ようにしています (esforç per a l\'hàbit). "お酒を飲まないことにしています" = tinc per norma no beure (decisió ferma).',
+    tip_en: 'ことにしています (firm, conscious rule) vs ようにしています (effort toward a habit). "お酒を飲まないことにしています" = I make it a rule not to drink (firm decision).',
+  },
+]
+
+// ─── CHAPTER 40 ───────────────────────────────────────────────────────────────
+const ch40: GrammarPoint[] = [
+  {
+    id: 'mnn2-40-1', lesson: 40, number: 27, jlpt: 'N4',
+    pattern: 'お / ご + V stem + に なります (尊敬語)',
+    name_es: 'Forma honorífica (keigo) — respetuosa',
+    name_ca: 'Forma honorífica (keigo) — respectuosa',
+    name_en: 'Honorific form (keigo) — respectful',
+    explanation_es: 'La forma 尊敬語 (sonkeigo) se usa para hablar con respeto de las acciones de otra persona (superior/cliente). Formación: お + V stem + になります. Excepciones: いらっしゃいます (いる/いく/くる), おっしゃいます (言う), なさいます (する).',
+    explanation_ca: 'La forma 尊敬語 (sonkeigo) s\'usa per parlar amb respecte de les accions d\'una altra persona (superior/client). Formació: お + V stem + になります. Excepcions: いらっしゃいます (いる/いく/くる), おっしゃいます (言う), なさいます (する).',
+    explanation_en: 'The 尊敬語 (sonkeigo) form is used to respectfully describe another person\'s actions (superior/customer). Formation: お + V stem + になります. Exceptions: いらっしゃいます (いる/いく/くる), おっしゃいます (言う), なさいます (する).',
+    structure: [
+      { text: 'お', role: 'key', isSlot: false },
+      { text: 'V stem', role: 'verb', isSlot: true, label_es: 'stem del verbo', label_ca: 'stem del verb', label_en: 'verb stem' },
+      { text: 'に なります', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '先生は', furigana: 'せんせいは', role: 'topic', gloss_es: 'el profesor', gloss_ca: 'el professor', gloss_en: 'the teacher' },
+      { text: 'もうお', role: 'key', gloss_es: 'ya (hon.)', gloss_ca: 'ja (hon.)', gloss_en: 'already (hon.)' },
+      { text: '帰り', furigana: 'かえり', role: 'verb', gloss_es: 'regresar', gloss_ca: 'tornar', gloss_en: 'leave' },
+      { text: 'に なりました', role: 'key', gloss_es: 'se fue (honorífico)', gloss_ca: 'se\'n va anar (honorífic)', gloss_en: 'has left (honorific)' },
+    ],
+    tip_es: 'Verbos especiales: いる/いく/くる → いらっしゃいます. 言う → おっしゃいます. する → なさいます. 食べる/飲む → 召し上がります (めしあがります). くれる → くださいます.',
+    tip_ca: 'Verbs especials: いる/いく/くる → いらっしゃいます. 言う → おっしゃいます. する → なさいます. 食べる/飲む → 召し上がります (めしあがります). くれる → くださいます.',
+    tip_en: 'Special verbs: いる/いく/くる → いらっしゃいます. 言う → おっしゃいます. する → なさいます. 食べる/飲む → 召し上がります (めしあがります). くれる → くださいます.',
+  },
+  {
+    id: 'mnn2-40-2', lesson: 40, number: 28, jlpt: 'N4',
+    pattern: 'お / ご + V stem + します (謙譲語)',
+    name_es: 'Forma humilde (keigo) — para hablar de uno mismo',
+    name_ca: 'Forma humil (keigo) — per parlar d\'un mateix',
+    name_en: 'Humble form (keigo) — for speaking of oneself',
+    explanation_es: 'La forma 謙譲語 (kenjōgo) se usa para hablar humildemente de las propias acciones ante un superior. Formación: お + V stem + します / いたします. Excepciones: おります (いる), まいります (いく/くる), もうします (言う), いたします (する).',
+    explanation_ca: 'La forma 謙譲語 (kenjōgo) s\'usa per parlar humilment de les pròpies accions davant d\'un superior. Formació: お + V stem + します / いたします. Excepcions: おります (いる), まいります (いく/くる), もうします (言う), いたします (する).',
+    explanation_en: 'The 謙譲語 (kenjōgo) form is used to humbly describe one\'s own actions to a superior. Formation: お + V stem + します / いたします. Exceptions: おります (いる), まいります (いく/くる), もうします (言う), いたします (する).',
+    structure: [
+      { text: 'お / ご', role: 'key', isSlot: false },
+      { text: 'V stem', role: 'verb', isSlot: true, label_es: 'stem del verbo', label_ca: 'stem del verb', label_en: 'verb stem' },
+      { text: 'します / いたします', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '私が', furigana: 'わたしが', role: 'subject', gloss_es: 'yo', gloss_ca: 'jo', gloss_en: 'I' },
+      { text: 'ご説明', furigana: 'ごせつめい', role: 'verb', gloss_es: 'la explicación', gloss_ca: "l'explicació", gloss_en: 'the explanation' },
+      { text: 'いたします', role: 'key', gloss_es: 'daré (humilde)', gloss_ca: 'donaré (humil)', gloss_en: 'will give (humble)' },
+    ],
+    tip_es: 'Resumen keigo: 尊敬語 habla de OTROS (los eleva). 謙譲語 habla de UNO MISMO (se rebaja). 丁寧語 es el lenguaje educado básico (です/ます). Los tres niveles coexisten en conversaciones formales.',
+    tip_ca: 'Resum keigo: 尊敬語 parla dels ALTRES (els eleva). 謙譲語 parla d\'UN MATEIX (es rebaixa). 丁寧語 és el llenguatge educat bàsic (です/ます). Els tres nivells coexisteixen en converses formals.',
+    tip_en: 'Keigo summary: 尊敬語 speaks of OTHERS (elevates them). 謙譲語 speaks of ONESELF (lowers oneself). 丁寧語 is basic polite language (です/ます). All three coexist in formal conversations.',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export — batches 1-3: lessons 26-40
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch26,
   ...ch27,
@@ -489,4 +752,9 @@ export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch33,
   ...ch34,
   ...ch35,
+  ...ch36,
+  ...ch37,
+  ...ch38,
+  ...ch39,
+  ...ch40,
 ]
