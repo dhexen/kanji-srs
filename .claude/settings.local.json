@@ -4,7 +4,11 @@
       "Bash(npx tsc *)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\" -Recurse -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(Format-Table Name, FullName)"
+      "Bash(Format-Table Name, FullName)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\" | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "Bash(powershell -Command \"\\(Get-Content 'components/grammar/GrammarDetail.tsx'\\) -replace 'font-japanese ', '' | Set-Content 'components/grammar/GrammarDetail.tsx'\")",
+      "Bash(powershell -Command \"\\(Get-Content 'components/grammar/GrammarExamples.tsx'\\) -replace 'font-japanese ', '' | Set-Content 'components/grammar/GrammarExamples.tsx'\")",
+      "Bash(powershell -Command \"\\(Get-Content 'components/grammar/GrammarClient.tsx'\\) -replace 'font-japanese ', '' | Set-Content 'components/grammar/GrammarClient.tsx'\")"
     ]
   }
 }

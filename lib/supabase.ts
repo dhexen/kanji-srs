@@ -714,3 +714,30 @@ export async function getCurrentAal(): Promise<'aal1' | 'aal2'> {
   const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
   return (data?.currentLevel as 'aal1' | 'aal2') ?? 'aal1'
 }
+
+// ---------------------------------------------------------------------------
+// Grammar progress
+// ---------------------------------------------------------------------------
+
+export async function fetchKnownGrammar(): Promise<Set<string>> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_grammar_progress')
+      .select('grammar_id')
+      .eq('user_id', user.id)
+      .eq('known', true)
+    if (error) { console.warn('grammar progress:', error); return new Set() }
+    return new Set((data ?? []).map((r: { grammar_id: string }) => r.grammar_id))
+  } catch {
+    return new Set()
+  }
+}
+
+export async function setGrammarKnown(grammarId: string, known: boolean): Promise<void> {
+  const user = await requireUser()
+  const { error } = await supabase
+    .from('user_grammar_progress')
+    .upsert({ user_id: user.id, grammar_id: grammarId, known, updated_at: new Date().toISOString() })
+  if (error) console.error('setGrammarKnown:', error)
+}

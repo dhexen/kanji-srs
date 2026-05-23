@@ -33,6 +33,7 @@ export default function Nav() {
   const tabs = [
     { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500' },
     { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '' },
+    { href: '/grammar',    icon: '📖', label: t(lang, 'nav_grammar'),    badge: 0,             badgeColor: '' },
     { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '' },
     { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '' },
     { href: '/stats',      icon: '📊', label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '' },
