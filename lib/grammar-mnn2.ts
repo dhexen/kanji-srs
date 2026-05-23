@@ -741,6 +741,257 @@ const ch40: GrammarPoint[] = [
 // Export — batches 1-3: lessons 26-40
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── CHAPTER 41 ───────────────────────────────────────────────────────────────
+const ch41: GrammarPoint[] = [
+  {
+    id: 'mnn2-41-1', lesson: 41, number: 29, jlpt: 'N4',
+    pattern: 'V ば〜ほど',
+    name_es: 'Cuanto más ~ más ~',
+    name_ca: 'Com més ~ més ~',
+    name_en: 'The more ~ the more ~',
+    explanation_es: '「ば〜ほど」 expresa que a medida que aumenta una acción/estado, aumenta el resultado. Se usa la misma palabra dos veces: V ば + V ほど o adj ければ + adj ほど.',
+    explanation_ca: '「ば〜ほど」 expressa que a mesura que augmenta una acció/estat, augmenta el resultat. S\'usa la mateixa paraula dues vegades: V ば + V ほど o adj ければ + adj ほど.',
+    explanation_en: '「ば〜ほど」 expresses that as an action/state increases, the result increases too. The same word is used twice: V ば + V ほど or adj ければ + adj ほど.',
+    structure: [
+      { text: 'V ば', role: 'key', isSlot: true, label_es: 'V (forma ば)', label_ca: 'V (forma ば)', label_en: 'V (ば form)' },
+      { text: 'V ほど', role: 'key', isSlot: true, label_es: 'V (mismo) + ほど', label_ca: 'V (mateix) + ほど', label_en: 'V (same) + ほど' },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado proporcional', label_ca: 'resultat proporcional', label_en: 'proportional result' },
+    ],
+    example: [
+      { text: '練習すれば', furigana: 'れんしゅうすれば', role: 'key', gloss_es: 'cuanto más practicas', gloss_ca: 'com més practiques', gloss_en: 'the more you practice' },
+      { text: 'するほど', role: 'key', gloss_es: '(proporción)', gloss_ca: '(proporció)', gloss_en: '(proportion)' },
+      { text: '上手に', furigana: 'じょうずに', role: 'adjective', gloss_es: 'mejor', gloss_ca: 'millor', gloss_en: 'better' },
+      { text: 'なります', role: 'verb', gloss_es: 'te vuelves', gloss_ca: 'et tornes', gloss_en: 'you become' },
+    ],
+    tip_es: '"勉強すればするほど面白くなる" = cuanto más estudias, más interesante se vuelve. Simplificación coloquial: "〜ほど〜" sin la parte ば. "多ければ多いほど" = cuantos más, mejor.',
+    tip_ca: '"勉強すればするほど面白くなる" = com més estudies, més interessant es torna. Simplificació col·loquial: "〜ほど〜" sense la part ば. "多ければ多いほど" = com més, millor.',
+    tip_en: '"勉強すればするほど面白くなる" = the more you study, the more interesting it becomes. Colloquial simplification: "〜ほど〜" without the ば part. "多ければ多いほど" = the more the better.',
+  },
+  {
+    id: 'mnn2-41-2', lesson: 41, number: 30, jlpt: 'N4',
+    pattern: 'N / V 普通形 + らしい',
+    name_es: 'Parece ~ / Tiene aspecto de ~ / Es propio de ~',
+    name_ca: 'Sembla ~ / Té aspecte de ~ / És propi de ~',
+    name_en: 'Seems ~ / Looks like ~ / Typical of ~',
+    explanation_es: '「らしい」 tiene dos usos distintos: (1) inferencia basada en evidencia indirecta/información: Plain form + らしい ("parece que", "he oído que"). (2) típico de: N + らしい ("propio de N", "como corresponde a N").',
+    explanation_ca: '「らしい」 té dos usos distints: (1) inferència basada en evidència indirecta/informació: Forma curta + らしい ("sembla que", "he sentit que"). (2) típic de: N + らしい ("propi de N", "com correspon a N").',
+    explanation_en: '「らしい」 has two distinct uses: (1) inference based on indirect evidence/information: Plain form + らしい ("it seems that", "I\'ve heard that"). (2) typical of: N + らしい ("typical of N", "as befits N").',
+    structure: [
+      { text: 'N / S 普通形', role: 'noun', isSlot: true, label_es: 'fuente o referencia', label_ca: 'font o referència', label_en: 'source or reference' },
+      { text: 'らしい', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '彼は', furigana: 'かれは', role: 'topic', gloss_es: 'él', gloss_ca: 'ell', gloss_en: 'he' },
+      { text: '来ない', furigana: 'こない', role: 'verb', gloss_es: 'no vendrá', gloss_ca: 'no vindrà', gloss_en: "won't come" },
+      { text: 'らしい', role: 'key', gloss_es: 'parece que', gloss_ca: 'sembla que', gloss_en: 'it seems' },
+    ],
+    tip_es: 'Tipo 1 (inferencia): "雨が降るらしい" = parece que va a llover. Tipo 2 (típico): "男らしい" = varonil, como corresponde a un hombre. "子供らしい" = infantil/como un niño.',
+    tip_ca: 'Tipus 1 (inferència): "雨が降るらしい" = sembla que plourà. Tipus 2 (típic): "男らしい" = varonil, com correspon a un home. "子供らしい" = infantil/com un nen.',
+    tip_en: 'Type 1 (inference): "雨が降るらしい" = it seems it will rain. Type 2 (typical): "男らしい" = manly, as befits a man. "子供らしい" = childlike/typical of a child.',
+  },
+]
+
+// ─── CHAPTER 42 ───────────────────────────────────────────────────────────────
+const ch42: GrammarPoint[] = [
+  {
+    id: 'mnn2-42-1', lesson: 42, number: 31, jlpt: 'N4',
+    pattern: 'S 普通形 + そうです (伝聞)',
+    name_es: 'He oído que ~ / Dicen que ~ (información de segunda mano)',
+    name_ca: "He sentit que ~ / Diuen que ~ (informació de segona mà)",
+    name_en: 'I heard that ~ / They say ~ (hearsay)',
+    explanation_es: 'La forma そうです con plain form expresa información de segunda mano (伝聞, でんぶん). El hablante cita lo que oyó o leyó. Para な-adj y N: sin だ. Para い-adj: adj + そうです (sin cambio).',
+    explanation_ca: 'La forma そうです amb forma curta expressa informació de segona mà (伝聞, でんぶん). El parlant cita el que va sentir o llegir. Per a な-adj i N: sense だ. Per a い-adj: adj + そうです (sense canvi).',
+    explanation_en: 'そうです with plain form expresses hearsay (伝聞, でんぶん). The speaker quotes what they heard or read. For な-adj and N: no だ. For い-adj: adj + そうです (no change).',
+    structure: [
+      { text: 'S (普通形)', role: 'noun', isSlot: true, label_es: 'información oída (forma corta)', label_ca: 'informació sentida (forma curta)', label_en: 'heard information (plain form)' },
+      { text: 'そうです', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '明日は', furigana: 'あしたは', role: 'time', gloss_es: 'mañana', gloss_ca: 'demà', gloss_en: 'tomorrow' },
+      { text: '台風が', furigana: 'たいふうが', role: 'subject', gloss_es: 'tifón', gloss_ca: 'tifó', gloss_en: 'typhoon' },
+      { text: '来る', furigana: 'くる', role: 'verb', gloss_es: 'vendrá', gloss_ca: 'vindrà', gloss_en: 'is coming' },
+      { text: 'そうです', role: 'key', gloss_es: 'he oído que', gloss_ca: 'he sentit que', gloss_en: 'I heard' },
+    ],
+    tip_es: 'そうです (伝聞) vs そうです (様態): "雨が降るそうです" (he oído que llueve) vs "雨が降りそうです" (parece que va a llover, por V stem). El stem-そうです describe apariencia; el plain form-そうです cita información.',
+    tip_ca: 'そうです (伝聞) vs そうです (様態): "雨が降るそうです" (he sentit que plou) vs "雨が降りそうです" (sembla que plourà, per V stem). El stem-そうです descriu aparença; el plain form-そうです cita informació.',
+    tip_en: 'そうです (hearsay) vs そうです (appearance): "雨が降るそうです" (I heard it will rain) vs "雨が降りそうです" (it looks like rain, V stem). Stem-そうです describes appearance; plain form-そうです quotes information.',
+  },
+  {
+    id: 'mnn2-42-2', lesson: 42, number: 32, jlpt: 'N4',
+    pattern: 'V stem / adj stem + そうです (様態)',
+    name_es: 'Parece que ~ / Tiene pinta de ~ (apariencia)',
+    name_ca: 'Sembla que ~ / Té pinta de ~ (aparença)',
+    name_en: 'Looks like ~ / Seems about to ~ (appearance)',
+    explanation_es: 'La forma そうです con V stem / adj stem describe apariencia visual o impresión directa (様態, ようたい). Indica que algo parece estar a punto de suceder o tener cierta cualidad. Adjetivos: い→そう, な→そう.',
+    explanation_ca: "La forma そうです amb V stem / adj stem descriu aparença visual o impressió directa (様態, ようたい). Indica que alguna cosa sembla estar a punt de passar o tenir certa qualitat. Adjectius: い→そう, な→そう.",
+    explanation_en: 'そうです with V stem / adj stem describes visual appearance or direct impression (様態, ようたい). Indicates something looks about to happen or has a certain quality. Adjectives: い→そう, な→そう.',
+    structure: [
+      { text: 'V stem / adj stem', role: 'verb', isSlot: true, label_es: 'stem (verbo/adj)', label_ca: 'stem (verb/adj)', label_en: 'verb/adj stem' },
+      { text: 'そうです', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: 'この料理は', furigana: 'このりょうりは', role: 'topic', gloss_es: 'este plato', gloss_ca: 'aquest plat', gloss_en: 'this dish' },
+      { text: 'おいし', role: 'adjective', gloss_es: '(adj stem)', gloss_ca: '(stem adj)', gloss_en: '(adj stem)' },
+      { text: 'そうです', role: 'key', gloss_es: 'tiene buena pinta', gloss_ca: 'té bona pinta', gloss_en: 'looks delicious' },
+    ],
+    tip_es: 'Excepciones: いい → よさそう (no いそう). ない → なさそう (no ないそう). "落ちそう" = parece que va a caer. "元気そう" = parece estar bien. Modifica N: そうな + N.',
+    tip_ca: 'Excepcions: いい → よさそう (no いそう). ない → なさそう (no ないそう). "落ちそう" = sembla que caurà. "元気そう" = sembla estar bé. Modifica N: そうな + N.',
+    tip_en: 'Exceptions: いい → よさそう (not いそう). ない → なさそう (not ないそう). "落ちそう" = looks like it will fall. "元気そう" = looks fine/healthy. Modifies N: そうな + N.',
+  },
+]
+
+// ─── CHAPTER 43 ───────────────────────────────────────────────────────────────
+const ch43: GrammarPoint[] = [
+  {
+    id: 'mnn2-43-1', lesson: 43, number: 33, jlpt: 'N4',
+    pattern: 'N に よると / N に よれば',
+    name_es: 'Según ~ / De acuerdo con ~',
+    name_ca: 'Segons ~ / D\'acord amb ~',
+    name_en: 'According to ~ / Based on ~',
+    explanation_es: '「によると / によれば」 indica la fuente de información. Se usa normalmente con そうです o らしいです en la conclusión: "Nによると、〜そうです" (según N, parece que...).',
+    explanation_ca: '「によると / によれば」 indica la font d\'informació. S\'usa normalment amb そうです o らしいです a la conclusió: "Nによると、〜そうです" (segons N, sembla que...).',
+    explanation_en: '「によると / によれば」 indicates the source of information. Usually used with そうです or らしいです in the conclusion: "Nによると、〜そうです" (according to N, it seems...).',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'fuente de información', label_ca: "font d'informació", label_en: 'information source' },
+      { text: 'によると', role: 'key', isSlot: false },
+      { text: 'S + そうです / らしいです', role: 'verb', isSlot: true, label_es: 'información citada', label_ca: 'informació citada', label_en: 'quoted information' },
+    ],
+    example: [
+      { text: '天気予報によると', furigana: 'てんきよほうによると', role: 'key', gloss_es: 'según el tiempo', gloss_ca: 'segons la previsió', gloss_en: 'according to the forecast' },
+      { text: '明日は', furigana: 'あしたは', role: 'time', gloss_es: 'mañana', gloss_ca: 'demà', gloss_en: 'tomorrow' },
+      { text: '雪が降る', furigana: 'ゆきがふる', role: 'verb', gloss_es: 'nevará', gloss_ca: 'nevarà', gloss_en: 'it will snow' },
+      { text: 'そうです', role: 'key', gloss_es: 'dicen que', gloss_ca: 'diuen que', gloss_en: 'apparently' },
+    ],
+  },
+  {
+    id: 'mnn2-43-2', lesson: 43, number: 34, jlpt: 'N4',
+    pattern: 'V 辞書形 / V ている / V た + ところです',
+    name_es: 'Estar a punto de ~ / Estar haciendo ~ / Acaba de ~',
+    name_ca: 'Estar a punt de ~ / Estar fent ~ / Acaba de ~',
+    name_en: 'About to ~ / In the middle of ~ / Just finished ~',
+    explanation_es: '「ところです」 expresa el momento exacto de una acción. V 辞書形 + ところ = a punto de. V ている + ところ = en este preciso momento haciendo. V た + ところ = justo acaba de terminar.',
+    explanation_ca: '「ところです」 expressa el moment exacte d\'una acció. V 辞書形 + ところ = a punt de. V ている + ところ = en aquest precís moment fent. V た + ところ = just acaba de terminar.',
+    explanation_en: '「ところです」 expresses the exact moment of an action. V dictionary + ところ = about to. V ている + ところ = doing right now. V た + ところ = just finished.',
+    structure: [
+      { text: 'V 辞書形 / ている / た', role: 'verb', isSlot: true, label_es: 'V (dicc. / ている / た)', label_ca: 'V (dicc. / ている / た)', label_en: 'V (dict. / ている / た)' },
+      { text: 'ところです', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: 'ちょうど', role: 'noun', gloss_es: 'justo', gloss_ca: 'just', gloss_en: 'just' },
+      { text: '出かける', furigana: 'でかける', role: 'verb', gloss_es: 'salir', gloss_ca: 'sortir', gloss_en: 'go out' },
+      { text: 'ところです', role: 'key', gloss_es: 'estoy a punto de', gloss_ca: 'estic a punt de', gloss_en: "I'm about to" },
+    ],
+    tip_es: '"今食べているところです" = estoy comiendo ahora mismo. "食べたところです" = acabo de comer (muy reciente). "食べるところです" = estoy a punto de comer. La diferencia de tiempo verbal cambia el significado.',
+    tip_ca: '"今食べているところです" = estic menjant ara mateix. "食べたところです" = acabo de menjar (molt recent). "食べるところです" = estic a punt de menjar. La diferència de temps verbal canvia el significat.',
+    tip_en: '"今食べているところです" = I\'m eating right now. "食べたところです" = I just ate (very recent). "食べるところです" = I\'m about to eat. The tense difference changes the meaning.',
+  },
+]
+
+// ─── CHAPTER 44 ───────────────────────────────────────────────────────────────
+const ch44: GrammarPoint[] = [
+  {
+    id: 'mnn2-44-1', lesson: 44, number: 35, jlpt: 'N4',
+    pattern: 'N さえ〜ば / N さえあれば',
+    name_es: 'Con solo ~ / Si tan solo hubiera ~',
+    name_ca: 'Amb només ~ / Si tan sols hi hagués ~',
+    name_en: 'If only ~ / As long as ~ / Even just ~',
+    explanation_es: '「さえ〜ば」 indica que una sola condición es suficiente para lograr algo. さえ enfatiza la mínima condición necesaria. Con verbos: V stem + さえすれば. Con N: Nさえあれば.',
+    explanation_ca: '「さえ〜ば」 indica que una sola condició és suficient per aconseguir alguna cosa. さえ emfatitza la condició mínima necessària. Amb verbs: V stem + さえすれば. Amb N: Nさえあれば.',
+    explanation_en: '「さえ〜ば」 indicates that a single condition is enough to achieve something. さえ emphasizes the minimum necessary condition. With verbs: V stem + さえすれば. With N: Nさえあれば.',
+    structure: [
+      { text: 'N / V stem', role: 'noun', isSlot: true, label_es: 'condición mínima', label_ca: 'condició mínima', label_en: 'minimum condition' },
+      { text: 'さえ〜ば', role: 'key', isSlot: false },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado suficiente', label_ca: 'resultat suficient', label_en: 'sufficient result' },
+    ],
+    example: [
+      { text: 'お金さえ', furigana: 'おかねさえ', role: 'noun', gloss_es: 'con solo dinero', gloss_ca: 'amb sols diners', gloss_en: 'if only money' },
+      { text: 'あれば', role: 'key', gloss_es: 'si hubiera', gloss_ca: 'si hi hagués', gloss_en: 'if there were' },
+      { text: '旅行できます', furigana: 'りょこうできます', role: 'verb', gloss_es: 'puedo viajar', gloss_ca: 'puc viatjar', gloss_en: 'I can travel' },
+    ],
+    tip_es: '"勉強さえすれば合格できる" = con solo estudiar, puedes aprobar. さえ también intensifica negaciones: "水さえない" = ni siquiera hay agua. Implica sorpresa de que algo tan básico falte.',
+    tip_ca: '"勉強さえすれば合格できる" = amb sols estudiar, pots aprovar. さえ també intensifica negacions: "水さえない" = ni tan sols hi ha aigua. Implica sorpresa que quelcom tan bàsic falti.',
+    tip_en: '"勉強さえすれば合格できる" = if you only study, you can pass. さえ also intensifies negations: "水さえない" = there isn\'t even water. Implies surprise that something so basic is absent.',
+  },
+  {
+    id: 'mnn2-44-2', lesson: 44, number: 36, jlpt: 'N4',
+    pattern: 'V ずに / V ないで',
+    name_es: 'Sin hacer ~ / Sin V',
+    name_ca: 'Sense fer ~ / Sense V',
+    name_en: 'Without doing ~ / Without V-ing',
+    explanation_es: 'Dos formas de decir "sin hacer V". ずに es la forma más formal/literaria; ないで es más coloquial. Formación de ずに: V ない stem + ずに. Excepciones: する → せずに, くる → こずに.',
+    explanation_ca: "Dues formes de dir \"sense fer V\". ずに és la forma més formal/literària; ないで és més col·loquial. Formació de ずに: V ない stem + ずに. Excepcions: する → せずに, くる → こずに.",
+    explanation_en: 'Two ways to say "without doing V". ずに is more formal/literary; ないで is more colloquial. Formation of ずに: V negative stem + ずに. Exceptions: する → せずに, くる → こずに.',
+    structure: [
+      { text: 'V ない stem', role: 'verb', isSlot: true, label_es: 'verbo (stem neg.)', label_ca: 'verb (stem neg.)', label_en: 'verb (neg. stem)' },
+      { text: 'ずに', role: 'key', isSlot: false },
+      { text: 'V₂', role: 'verb', isSlot: true, label_es: 'acción principal', label_ca: 'acció principal', label_en: 'main action' },
+    ],
+    example: [
+      { text: '朝ごはんを', furigana: 'あさごはんを', role: 'object', gloss_es: 'el desayuno', gloss_ca: "l'esmorzar", gloss_en: 'breakfast' },
+      { text: '食べ', furigana: 'たべ', role: 'verb', gloss_es: 'desayunar', gloss_ca: 'esmorzar', gloss_en: 'eat' },
+      { text: 'ずに', role: 'key', gloss_es: 'sin', gloss_ca: 'sense', gloss_en: 'without' },
+      { text: '学校に行きました', furigana: 'がっこうにいきました', role: 'verb', gloss_es: 'fui al cole', gloss_ca: 'vaig anar a escola', gloss_en: 'went to school' },
+    ],
+    tip_es: '"食べずに行く" (formal) = "食べないで行く" (coloquial). ずに a menudo aparece en texto escrito, discursos formales y proverbs. En la vida cotidiana usa ないで.',
+    tip_ca: '"食べずに行く" (formal) = "食べないで行く" (col·loquial). ずに sovint apareix en text escrit, discursos formals i proverbis. En la vida quotidiana usa ないで.',
+    tip_en: '"食べずに行く" (formal) = "食べないで行く" (colloquial). ずに often appears in written text, formal speeches and proverbs. In everyday speech use ないで.',
+  },
+]
+
+// ─── CHAPTER 45 ───────────────────────────────────────────────────────────────
+const ch45: GrammarPoint[] = [
+  {
+    id: 'mnn2-45-1', lesson: 45, number: 37, jlpt: 'N4',
+    pattern: 'たとえ〜ても / たとえ〜でも',
+    name_es: 'Aunque ~ / Incluso si ~ (hipótesis extrema)',
+    name_ca: 'Encara que ~ / Fins i tot si ~ (hipòtesi extrema)',
+    name_en: 'Even if ~ / No matter how ~ (extreme hypothesis)',
+    explanation_es: '「たとえ〜ても」 es una forma reforzada de ても. たとえ (por ejemplo, supongamos que) introduce una hipótesis extrema, indicando que el resultado no cambia bajo ninguna circunstancia.',
+    explanation_ca: '「たとえ〜ても」 és una forma reforçada de ても. たとえ (per exemple, suposem que) introdueix una hipòtesi extrema, indicant que el resultat no canvia sota cap circumstància.',
+    explanation_en: '「たとえ〜ても」 is a reinforced form of ても. たとえ (for example, suppose that) introduces an extreme hypothesis, indicating the result does not change under any circumstances.',
+    structure: [
+      { text: 'たとえ', role: 'conjunction', isSlot: false },
+      { text: 'S ても / でも', role: 'key', isSlot: true, label_es: 'hipótesis extrema (ても)', label_ca: 'hipòtesi extrema (ても)', label_en: 'extreme hypothesis (ても)' },
+      { text: 'S₂', role: 'verb', isSlot: true, label_es: 'resultado invariable', label_ca: 'resultat invariable', label_en: 'invariable result' },
+    ],
+    example: [
+      { text: 'たとえ', role: 'conjunction', gloss_es: 'aunque', gloss_ca: 'encara que', gloss_en: 'even if' },
+      { text: '失敗して', furigana: 'しっぱいして', role: 'verb', gloss_es: 'fallara', gloss_ca: 'fallés', gloss_en: 'I fail' },
+      { text: 'も', role: 'key', gloss_es: 'aunque', gloss_ca: 'encara que', gloss_en: 'even if' },
+      { text: 'あきらめません', role: 'verb', gloss_es: 'no me rendiré', gloss_ca: 'no em rendiré', gloss_en: "I won't give up" },
+    ],
+    tip_es: '"たとえ雨が降っても行きます" vs "雨が降っても行きます": たとえ añade énfasis dramático. Se usa para mostrar determinación o dar un ejemplo hipotético extremo.',
+    tip_ca: '"たとえ雨が降っても行きます" vs "雨が降っても行きます": たとえ afegeix èmfasi dramàtic. S\'usa per mostrar determinació o donar un exemple hipotètic extrem.',
+    tip_en: '"たとえ雨が降っても行きます" vs "雨が降っても行きます": たとえ adds dramatic emphasis. Used to show determination or give an extreme hypothetical.',
+  },
+  {
+    id: 'mnn2-45-2', lesson: 45, number: 38, jlpt: 'N4',
+    pattern: 'N として',
+    name_es: 'Como ~ / En calidad de ~ / En el papel de ~',
+    name_ca: 'Com a ~ / En qualitat de ~ / En el paper de ~',
+    name_en: 'As ~ / In the capacity of ~ / In the role of ~',
+    explanation_es: '「として」 indica el papel, función o categoría en que algo/alguien actúa. Se adjunta al sustantivo. Diferente de ように (forma similar a): として implica función real o rol asignado.',
+    explanation_ca: '「として」 indica el paper, funció o categoria en que alguna cosa/algú actua. S\'adjunta al substantiu. Diferent de ように (forma similar a): として implica funció real o rol assignat.',
+    explanation_en: '「として」 indicates the role, function or category in which something/someone acts. Attaches to a noun. Different from ように (similar form to): として implies actual function or assigned role.',
+    structure: [
+      { text: 'N', role: 'noun', isSlot: true, label_es: 'rol / función / categoría', label_ca: 'rol / funció / categoria', label_en: 'role / function / category' },
+      { text: 'として', role: 'key', isSlot: false },
+    ],
+    example: [
+      { text: '彼は', furigana: 'かれは', role: 'topic', gloss_es: 'él', gloss_ca: 'ell', gloss_en: 'he' },
+      { text: '医者として', furigana: 'いしゃとして', role: 'key', gloss_es: 'como médico', gloss_ca: 'com a metge', gloss_en: 'as a doctor' },
+      { text: '働いて います', furigana: 'はたらいています', role: 'verb', gloss_es: 'trabaja', gloss_ca: 'treballa', gloss_en: 'works' },
+    ],
+    tip_es: '"ボランティアとして参加した" (participé como voluntario). "日本語の教科書として使える" (puede usarse como libro de texto de japonés). としては = "como/en cuanto a la categoría de".',
+    tip_ca: '"ボランティアとして参加した" (vaig participar com a voluntari). "日本語の教科書として使える" (es pot usar com a llibre de text de japonès). としては = "com a / pel que fa a la categoria de".',
+    tip_en: '"ボランティアとして参加した" (participated as a volunteer). "日本語の教科書として使える" (can be used as a Japanese textbook). としては = "as for / in terms of the category of".',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export — batches 1-4: lessons 26-45
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch26,
   ...ch27,
@@ -757,4 +1008,9 @@ export const MNN2_GRAMMAR_POINTS: GrammarPoint[] = [
   ...ch38,
   ...ch39,
   ...ch40,
+  ...ch41,
+  ...ch42,
+  ...ch43,
+  ...ch44,
+  ...ch45,
 ]
