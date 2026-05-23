@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang } from '@/lib/srs'
 import { t } from '@/lib/i18n'
@@ -32,6 +33,9 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [showAnswer, setShowAnswer] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const isComposing = useRef(false)
+
+  const needsJapaneseInput = cfg.inputScript === 'hiragana'
 
   const pct = (index / total) * 100
   const isMultiChoice = mode === 'multi' || mode === 'meaning'
@@ -59,6 +63,15 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     setAnswerState(isCorrect ? 'correct' : 'incorrect')
     if (!isPractice) {
       applyReviewResult(item.jp, mode, isCorrect)
+    }
+  }
+
+  const handleTypingInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    if (needsJapaneseInput && !isComposing.current) {
+      setInputValue(toHiragana(raw, { IMEMode: true }))
+    } else {
+      setInputValue(raw)
     }
   }
 
@@ -124,12 +137,22 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {/* Typing mode */}
       {isTypingMode && answerState === 'waiting' && (
         <div className="space-y-3">
-          <input ref={inputRef} type="text" value={inputValue} onChange={e => setInputValue(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && checkTypingAnswer()}
-            placeholder={t(lang, 'write_placeholder')}
-            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-            data-lpignore="true" data-1p-ignore="true"
-            className="w-full px-4 py-3 border-2 border-slate-200 focus:border-emerald-400 rounded-xl text-lg text-center font-medium tracking-wider focus:outline-none transition" />
+          <div className="relative">
+            <input ref={inputRef} type="text" value={inputValue}
+              onChange={handleTypingInput}
+              onCompositionStart={() => { isComposing.current = true }}
+              onCompositionEnd={() => { isComposing.current = false }}
+              onKeyDown={e => e.key === 'Enter' && checkTypingAnswer()}
+              placeholder={t(lang, 'write_placeholder')}
+              autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+              data-lpignore="true" data-1p-ignore="true"
+              className="w-full px-4 py-3 border-2 border-slate-200 focus:border-emerald-400 rounded-xl text-lg text-center font-medium tracking-wider focus:outline-none transition" />
+            {needsJapaneseInput && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md pointer-events-none select-none">
+                ローマ字
+              </span>
+            )}
+          </div>
           <button onClick={checkTypingAnswer} disabled={!inputValue.trim()}
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold rounded-xl transition">
             {t(lang, 'review_check')}

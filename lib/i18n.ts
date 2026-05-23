@@ -186,7 +186,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     words: 'palabras',
     incorrect: '✗ Incorrecto',
     correct: '✓ Correcto',
-    write_placeholder: 'Escribe en hiragana...',
+    write_placeholder: 'Escribe en romaji o hiragana...',
   },
 
   ca: {
@@ -355,7 +355,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     words: 'paraules',
     incorrect: '✗ Incorrecte',
     correct: '✓ Correcte',
-    write_placeholder: 'Escriu en hiragana...',
+    write_placeholder: 'Escriu en romaji o hiragana...',
   },
 
   en: {
@@ -524,7 +524,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     words: 'words',
     incorrect: '✗ Incorrect',
     correct: '✓ Correct',
-    write_placeholder: 'Write in hiragana...',
+    write_placeholder: 'Type romaji or hiragana...',
   },
 
   ja: {
@@ -693,7 +693,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     words: '単語',
     incorrect: '✗ 不正解',
     correct: '✓ 正解',
-    write_placeholder: 'ひらがなで書いてください...',
+    write_placeholder: 'ローマ字かひらがなで入力してください...',
   },
 }
 

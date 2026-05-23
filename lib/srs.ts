@@ -42,6 +42,8 @@ export const STAGE_NAMES = [
 
 export type ReviewMode = 'multi' | 'meaning' | 'kanji' | 'reading' | 'reverse'
 
+export type InputScript = 'hiragana' | 'latin' | 'none'
+
 export const MODE_CONFIG: Record<ReviewMode, {
   key: string
   label: string
@@ -49,6 +51,7 @@ export const MODE_CONFIG: Record<ReviewMode, {
   colorOn: string
   colorOff: string
   badge: string
+  inputScript: InputScript
 }> = {
   multi: {
     key: 'srs_multi',
@@ -57,6 +60,7 @@ export const MODE_CONFIG: Record<ReviewMode, {
     colorOn: 'bg-indigo-600 text-white border-indigo-600',
     colorOff: 'bg-white text-indigo-600 border-indigo-300',
     badge: 'bg-indigo-100 text-indigo-700',
+    inputScript: 'none',
   },
   meaning: {
     key: 'srs_meaning',
@@ -65,6 +69,7 @@ export const MODE_CONFIG: Record<ReviewMode, {
     colorOn: 'bg-purple-600 text-white border-purple-600',
     colorOff: 'bg-white text-purple-600 border-purple-300',
     badge: 'bg-purple-100 text-purple-700',
+    inputScript: 'none',
   },
   kanji: {
     key: 'srs_kanji',
@@ -73,14 +78,16 @@ export const MODE_CONFIG: Record<ReviewMode, {
     colorOn: 'bg-amber-500 text-white border-amber-500',
     colorOff: 'bg-white text-amber-600 border-amber-300',
     badge: 'bg-amber-100 text-amber-700',
+    inputScript: 'none',
   },
   reading: {
     key: 'srs_reading',
     label: '🔊 Lectura hiragana',
-    desc: 'Kanji + significado → escribe la lectura en papel',
+    desc: 'Kanji + significado → escribe la lectura en hiragana',
     colorOn: 'bg-emerald-600 text-white border-emerald-600',
     colorOff: 'bg-white text-emerald-600 border-emerald-300',
     badge: 'bg-emerald-100 text-emerald-700',
+    inputScript: 'hiragana',
   },
   reverse: {
     key: 'srs_reverse',
@@ -89,6 +96,7 @@ export const MODE_CONFIG: Record<ReviewMode, {
     colorOn: 'bg-rose-600 text-white border-rose-600',
     colorOff: 'bg-white text-rose-600 border-rose-300',
     badge: 'bg-rose-100 text-rose-700',
+    inputScript: 'none',
   },
 }
 
