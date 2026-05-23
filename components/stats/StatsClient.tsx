@@ -72,16 +72,14 @@ export default function StatsClient() {
   }
 
   function resetTutorials() {
-    const msg = { es: '¿Reiniciar todos los tutoriales? La próxima vez que visites cada sección, se mostrará el tutorial automáticamente.', ca: 'Reiniciar tots els tutorials? La propera vegada que visitis cada secció, es mostrarà el tutorial automàticament.', en: 'Reset all tutorials? The next time you visit each section, the tutorial will show automatically.', ja: 'すべてのチュートリアルをリセットしますか？各セクションに次回アクセスしたとき、チュートリアルが自動的に表示されます。' }[lang] ?? '¿Reiniciar tutoriales?'
-    if (!confirm(msg)) return
+    if (!confirm(t(lang, 'stats_tutorials_sub'))) return
     try {
       localStorage.removeItem('kanji_tutorial_v1_done')
       localStorage.removeItem('kanji_tutorial_v1_step')
       Object.keys(localStorage)
         .filter(k => k.startsWith('sectionhelp_v1_'))
         .forEach(k => localStorage.removeItem(k))
-      const successMsg = { es: 'Tutoriales reiniciados ✓', ca: 'Tutorials reiniciats ✓', en: 'Tutorials reset ✓', ja: 'チュートリアルをリセットしました ✓' }[lang] ?? 'Tutoriales reiniciados ✓'
-      showToast(successMsg, 'success')
+      showToast(t(lang, 'stats_tutorials_reset_btn') + ' ✓', 'success')
       setTimeout(() => window.location.reload(), 800)
     } catch {
       showToast('Error', 'error')
@@ -135,13 +133,13 @@ export default function StatsClient() {
             <div className="space-y-4">
               <div className="p-5 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
                 <div className="text-3xl mb-2">📧</div>
-                <p className="font-bold text-indigo-800 text-sm">Revisa tu correo</p>
+                <p className="font-bold text-indigo-800 text-sm">{t(lang, 'stats_check_email')}</p>
                 <p className="text-xs text-indigo-600 mt-1">
-                  Hemos enviado un enlace de verificación a <strong>{email}</strong>. Haz clic en él para activar tu cuenta.
+                  {t(lang, 'stats_email_sent').replace('{email}', email)}
                 </p>
               </div>
               <button onClick={() => setEmailSent(false)} className="w-full py-2 text-xs text-slate-400 hover:text-slate-600 transition">
-                ← Volver al login
+                {t(lang, 'stats_back_login')}
               </button>
             </div>
           ) : (
@@ -151,7 +149,7 @@ export default function StatsClient() {
               {/* Google */}
               <button
                 disabled={authLoading}
-                onClick={() => handleAuth(signInWithGoogle, 'Redirigiendo a Google…')}
+                onClick={() => handleAuth(signInWithGoogle, t(lang, 'stats_google_redirecting'))}
                 className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-sm disabled:opacity-50 transition flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -160,12 +158,12 @@ export default function StatsClient() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                Continuar con Google
+                {t(lang, 'stats_google_login')}
               </button>
 
               <div className="flex items-center gap-2">
                 <hr className="flex-1 border-slate-200" />
-                <span className="text-xs text-slate-400">o</span>
+                <span className="text-xs text-slate-400">{t(lang, 'stats_or')}</span>
                 <hr className="flex-1 border-slate-200" />
               </div>
 
@@ -214,8 +212,12 @@ export default function StatsClient() {
 
             {/* Sections that use it */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 font-medium">💬 Contexto IA</span>
-              <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 font-medium">📖 Gramática IA</span>
+              <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 font-medium">
+                {t(lang, 'stats_ai_context')}
+              </span>
+              <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 font-medium">
+                {t(lang, 'stats_ai_grammar')}
+              </span>
             </div>
 
             {/* Step-by-step guide */}
@@ -323,17 +325,13 @@ export default function StatsClient() {
 
           {/* Tutorial reset */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <h3 className="font-bold text-slate-900">
-              {{ es: 'Tutoriales', ca: 'Tutorials', en: 'Tutorials', ja: 'チュートリアル' }[lang] ?? 'Tutoriales'}
-            </h3>
-            <p className="text-slate-500 text-xs">
-              {{ es: 'Reinicia los tutoriales de cada sección para volver a verlos la próxima vez que entres.', ca: 'Reinicia els tutorials de cada secció per tornar-los a veure la propera vegada que entris.', en: 'Reset section tutorials so they appear again the next time you visit each tab.', ja: 'セクションチュートリアルをリセットして、次回アクセス時に再表示します。' }[lang] ?? 'Reinicia los tutoriales.'}
-            </p>
+            <h3 className="font-bold text-slate-900">{t(lang, 'stats_tutorials_title')}</h3>
+            <p className="text-slate-500 text-xs">{t(lang, 'stats_tutorials_sub')}</p>
             <button
               onClick={resetTutorials}
               className="w-full py-2.5 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-sm transition"
             >
-              {{ es: '🔄 Reiniciar tutoriales', ca: '🔄 Reiniciar tutorials', en: '🔄 Reset tutorials', ja: '🔄 チュートリアルをリセット' }[lang] ?? '🔄 Reiniciar tutoriales'}
+              {t(lang, 'stats_tutorials_reset_btn')}
             </button>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType } from '@/lib/srs'
-import { t } from '@/lib/i18n'
+import { t, getStageName } from '@/lib/i18n'
 import type { SessionItem } from './ReviewClient'
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
 type AnswerState = 'waiting' | 'correct' | 'incorrect'
 
 function normalizeJP(str: string) {
-  return str.trim().replace(/\s/g, '').replace(/[\u30A1-\u30F6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+  return str.trim().replace(/\s/g, '').replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
 }
 
 export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onNext, onQuit }: Props) {
@@ -50,6 +50,9 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
 
   // Get meaning in current language
   const meaning = getMeaningForLang(item, lang)
+
+  // Whether the word image is visible (to add extra top padding)
+  const hasImage = !!(item.image_url && !imgError)
 
   useEffect(() => {
     if (isTypingMode) setTimeout(() => inputRef.current?.focus(), 100)
@@ -113,7 +116,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   }
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+    <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
       <div className="flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
           {isPractice ? t(lang, 'review_practice') : t(lang, 'review_srs')}
@@ -129,36 +132,53 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
 
-      <div className="text-center py-6 bg-slate-50 rounded-2xl relative border border-slate-100">
+      {/* Question area */}
+      <div className="text-center bg-slate-50 rounded-2xl relative border border-slate-100 overflow-hidden">
+        {/* Badge — always top-left */}
         <span className={`absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-md ${badgeColors[mode]}`}>
-          {cfg.label} <span className="opacity-60">Nv.{level}</span>
+          {t(lang, cfg.label_key)} <span className="opacity-60">{getStageName(level, lang)}</span>
         </span>
-        {item.image_url && !imgError && (
+
+        {/* Image — top-right, overlaid — shown only on sm+ to avoid mobile overlap */}
+        {hasImage && (
           <img
             src={item.image_url}
-            alt={item.meaning}
+            alt={meaning}
             onError={handleImgError}
-            className="absolute top-3 right-3 w-16 h-16 object-cover rounded-xl shadow-sm opacity-90"
+            className="hidden sm:block absolute top-3 right-3 w-16 h-16 object-cover rounded-xl shadow-sm opacity-90"
           />
         )}
-        <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 mb-4 tracking-wide">
-          {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
-        </div>
-        <p className="text-slate-500 text-sm">{questionPrompt[mode]}</p>
-        {(item.word_type || item.category) && (
-          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-            {item.word_type && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
-                {t(lang, `wt_${item.word_type}`)}
-              </span>
-            )}
-            {item.category && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
-                {t(lang, `cat_${item.category}`)}
-              </span>
-            )}
-          </div>
+
+        {/* Mobile image — in flow, below the badge area */}
+        {hasImage && (
+          <img
+            src={item.image_url}
+            alt={meaning}
+            onError={handleImgError}
+            className="sm:hidden w-full h-32 object-cover"
+          />
         )}
+
+        <div className={`py-6 px-4 ${hasImage ? 'pt-14 sm:pt-6' : 'pt-6'}`}>
+          <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 mb-4 tracking-wide">
+            {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
+          </div>
+          <p className="text-slate-500 text-sm">{questionPrompt[mode]}</p>
+          {(item.word_type || item.category) && (
+            <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+              {item.word_type && (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
+                  {t(lang, `wt_${item.word_type}`)}
+                </span>
+              )}
+              {item.category && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
+                  {t(lang, `cat_${item.category}`)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Multi choice */}

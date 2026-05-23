@@ -206,7 +206,7 @@ export default function VocabularyClient() {
       const newKanjis = allKanjis.filter(k => !activeKanjis.has(k) && !shownKanjis.has(k)).slice(0, packSize)
       setShownKanjis(prev => new Set([...prev, ...newKanjis]))
       if (newKanjis.length === 0) {
-        showToast(lang === 'ja' ? '新しい漢字がありません' : lang === 'ca' ? "Ja tens tots els kanjis d'aquest curs" : lang === 'en' ? 'You already have all kanji from this grade' : 'Ya tienes todos los kanjis de este curso', 'info')
+        showToast(t(lang, 'vocab_complete'), 'info')
         setLoading(false)
         return
       }
@@ -357,7 +357,7 @@ export default function VocabularyClient() {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Buscar kanji, palabra, lectura o significado..."
+            placeholder={t(lang, 'vocab_search_ph')}
             className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 text-slate-800"
           />
           {isSearching && (
@@ -395,9 +395,11 @@ export default function VocabularyClient() {
       {isSearching && (
         <div>
           {searchLoading ? (
-            <p className="text-center text-slate-400 py-8 text-sm">Buscando...</p>
+            <p className="text-center text-slate-400 py-8 text-sm">{t(lang, 'vocab_searching')}</p>
           ) : filteredSearchResults.length === 0 ? (
-            <p className="text-center text-slate-400 py-8 text-sm">Sin resultados para «{searchQuery}»</p>
+            <p className="text-center text-slate-400 py-8 text-sm">
+              {t(lang, 'vocab_no_results').replace('{q}', searchQuery)}
+            </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredSearchResults.map((w: any) => {
@@ -409,7 +411,7 @@ export default function VocabularyClient() {
                     <div className="flex items-start justify-between gap-2 mb-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
-                        {isUnofficial && <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">no oficial</span>}
+                        {isUnofficial && <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">{t(lang, 'vocab_unofficial')}</span>}
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                     </div>
@@ -490,19 +492,23 @@ export default function VocabularyClient() {
                           </span>
                           {!statsLoading && gStats.unofficial > 0 && (
                             <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
-                              {gStats.unofficial} no oficiales
+                              {t(lang, 'vocab_unofficials_n').replace('{n}', String(gStats.unofficial))}
                             </span>
                           )}
                         </div>
                       </div>
                       {!statsLoading && gStats.userWordCount > 0 && (
                         <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
-                          ({gStats.userKanjiCount} kanjis · {gStats.userWordCount} {t(lang, 'study_words')} aprendiendo)
+                          ({t(lang, 'vocab_learning')
+                            .replace('{k}', String(gStats.userKanjiCount))
+                            .replace('{w}', String(gStats.userWordCount))})
                         </div>
                       )}
                       {!statsLoading && (
                         <div className={`text-xs font-normal mt-1 ${isSelected ? 'text-indigo-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                          {gStats.remaining === 0 ? '✓ Vocabulario completo' : `Te faltan: ${gStats.remaining} palabras`}
+                          {gStats.remaining === 0
+                            ? t(lang, 'vocab_complete')
+                            : t(lang, 'vocab_remaining_n').replace('{n}', String(gStats.remaining))}
                         </div>
                       )}
                     </button>
@@ -591,16 +597,20 @@ export default function VocabularyClient() {
             const info = kanjiInfo[kanji]
             return (
             <div key={kanji}>
-              {/* Kanji group header */}
-              <div className="flex items-start justify-between mb-3 gap-3">
+              {/* Kanji group header — stacks vertically on mobile */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
                 <div className="flex items-start gap-3">
                   <div className="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
                     <span className="kanji-font text-3xl font-bold text-indigo-500">{kanji}</span>
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-800">{t(lang, 'study_kanji_label')} {kanji}</h3>
                     {info && info.meanings.length > 0 && (
-                      <p className="text-slate-600 text-sm leading-snug">{info.meanings.slice(0, 4).join(', ')}</p>
+                      <p className="text-slate-600 text-sm leading-snug">
+                        {info.meanings.slice(0, 4).join(', ')}
+                        {/* Meanings from kanjiapi.dev are always in English */}
+                        <span className="ml-1 text-[10px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded">EN</span>
+                      </p>
                     )}
                     {info && (info.on_readings.length > 0 || info.kun_readings.length > 0) && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -619,11 +629,12 @@ export default function VocabularyClient() {
                     {!info && <p className="text-slate-400 text-xs">{t(lang, 'study_keywords_sub')}</p>}
                   </div>
                 </div>
+                {/* "Master kanji" button — full width on mobile, auto on sm+ */}
                 <button
                   type="button"
                   onClick={() => dominateKanji(kanji)}
                   disabled={dominatingKanji === kanji}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold text-sm border border-indigo-100 transition shrink-0"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold text-sm border border-indigo-100 transition sm:shrink-0 w-full sm:w-auto"
                 >
                   🎓 {t(lang, 'study_master_kanji')}
                 </button>
@@ -647,7 +658,9 @@ export default function VocabularyClient() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="kanji-font text-2xl font-bold text-slate-800 leading-tight">{w.word}</span>
                           {isUnofficial && (
-                            <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">no oficial</span>
+                            <span className="text-xs text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded">
+                              {t(lang, 'vocab_unofficial')}
+                            </span>
                           )}
                         </div>
                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
@@ -704,7 +717,10 @@ export default function VocabularyClient() {
         </button>
         {showManual && (
           <div className="px-5 pb-5 pt-0 border-t border-slate-100 space-y-3">
-            <p className="text-xs text-slate-400 pt-3">La palabra se añadirá a tu SRS y a la lista compartida marcada como <span className="text-red-500 font-medium">no oficial</span>.</p>
+            <p className="text-xs text-slate-400 pt-3">
+              {t(lang, 'vocab_manual_note')}{' '}
+              <span className="text-red-500 font-medium">{t(lang, 'vocab_unofficial')}</span>.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               {(['kanji', 'jp', 'reading', 'meaning'] as const).map(field => (
                 <input

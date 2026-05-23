@@ -46,8 +46,10 @@ export type InputScript = 'hiragana' | 'latin' | 'none'
 
 export const MODE_CONFIG: Record<ReviewMode, {
   key: string
+  label_key: string
+  desc_key: string
+  /** @deprecated Use t(lang, label_key) for display — kept for legacy badge splits */
   label: string
-  desc: string
   colorOn: string
   colorOff: string
   badge: string
@@ -55,8 +57,9 @@ export const MODE_CONFIG: Record<ReviewMode, {
 }> = {
   multi: {
     key: 'srs_multi',
-    label: '🔤 Opción múltiple',
-    desc: 'Kanji → elige la lectura correcta entre 3 opciones',
+    label_key: 'mode_multi',
+    desc_key: 'mode_multi_desc',
+    label: '🔤',
     colorOn: 'bg-indigo-600 text-white border-indigo-600',
     colorOff: 'bg-white text-indigo-600 border-indigo-300',
     badge: 'bg-indigo-100 text-indigo-700',
@@ -64,8 +67,9 @@ export const MODE_CONFIG: Record<ReviewMode, {
   },
   meaning: {
     key: 'srs_meaning',
-    label: '🧠 Significado',
-    desc: 'Kanji → elige el significado correcto entre 4 opciones',
+    label_key: 'mode_meaning',
+    desc_key: 'mode_meaning_desc',
+    label: '🧠',
     colorOn: 'bg-purple-600 text-white border-purple-600',
     colorOff: 'bg-white text-purple-600 border-purple-300',
     badge: 'bg-purple-100 text-purple-700',
@@ -73,8 +77,9 @@ export const MODE_CONFIG: Record<ReviewMode, {
   },
   kanji: {
     key: 'srs_kanji',
-    label: '✍️ Escritura kanji',
-    desc: 'Lectura + significado → escribe el kanji en papel',
+    label_key: 'mode_kanji',
+    desc_key: 'mode_kanji_desc',
+    label: '✍️',
     colorOn: 'bg-amber-500 text-white border-amber-500',
     colorOff: 'bg-white text-amber-600 border-amber-300',
     badge: 'bg-amber-100 text-amber-700',
@@ -82,8 +87,9 @@ export const MODE_CONFIG: Record<ReviewMode, {
   },
   reading: {
     key: 'srs_reading',
-    label: '🔊 Lectura hiragana',
-    desc: 'Kanji + significado → escribe la lectura en hiragana',
+    label_key: 'mode_reading',
+    desc_key: 'mode_reading_desc',
+    label: '🔊',
     colorOn: 'bg-emerald-600 text-white border-emerald-600',
     colorOff: 'bg-white text-emerald-600 border-emerald-300',
     badge: 'bg-emerald-100 text-emerald-700',
@@ -91,8 +97,9 @@ export const MODE_CONFIG: Record<ReviewMode, {
   },
   reverse: {
     key: 'srs_reverse',
-    label: '🔁 Reverso',
-    desc: 'Significado en español → escribe el kanji en papel',
+    label_key: 'mode_reverse',
+    desc_key: 'mode_reverse_desc',
+    label: '🔁',
     colorOn: 'bg-rose-600 text-white border-rose-600',
     colorOff: 'bg-white text-rose-600 border-rose-300',
     badge: 'bg-rose-100 text-rose-700',
@@ -113,7 +120,9 @@ export interface VocabItem {
   kanji: string
   jp: string
   reading: string
-  meaning: string
+  meaning: string       // primary meaning (Spanish / fallback)
+  meaning_ca?: string   // Catalan meaning
+  meaning_en?: string   // English meaning
   srsLevel: number
   due: number
   status: 'locked' | 'active'
@@ -280,7 +289,7 @@ export function getHourlyForecast(items: VocabItem[]): HourForecast[] {
 
 // Returns meaning in the correct language for display
 export function getMeaningForLang(item: VocabItem, lang: string): string {
-  if (lang === 'ca' && (item as any).meaning_ca) return (item as any).meaning_ca
-  if (lang === 'en' && (item as any).meaning_en) return (item as any).meaning_en
+  if (lang === 'ca' && item.meaning_ca) return item.meaning_ca
+  if (lang === 'en' && item.meaning_en) return item.meaning_en
   return item.meaning
 }

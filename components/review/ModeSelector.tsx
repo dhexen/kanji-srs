@@ -30,8 +30,8 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
             return (
               <button key={id} onClick={() => onToggle(id)}
                 className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${active ? cfg.colorOn : cfg.colorOff}`}>
-                <span>{cfg.label}</span>
-                <span className="text-xs font-normal opacity-70">{cfg.desc}</span>
+                <span>{t(lang, cfg.label_key)}</span>
+                <span className="text-xs font-normal opacity-70">{t(lang, cfg.desc_key)}</span>
               </button>
             )
           })}

@@ -10,7 +10,7 @@ import {
   getModeLevelAndDue,
   getSrsClass,
 } from '@/lib/srs'
-import { t, getMeaning, type Lang } from '@/lib/i18n'
+import { t, getMeaning, getStageName, type Lang } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
 
 type SortKey = 'word' | 'level' | 'due'
@@ -204,7 +204,7 @@ export default function ProgressClient() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t(lang, 'prog_stage')}</p>
         <div className="flex flex-wrap gap-2">
-          {STAGE_NAMES.map((name, i) => {
+          {STAGE_NAMES.map((_name, i) => {
             if (i === 0) return null
             const interval = SRS_INTERVALS[i]
             const hours = Math.round(interval / 3600000)
@@ -215,7 +215,7 @@ export default function ProgressClient() {
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getSrsClass(i, 'active', Date.now() + 999999999)}`}
               >
                 <span>{i}/7</span>
-                <span className="opacity-60">{name}</span>
+                <span className="opacity-60">{getStageName(i, lang)}</span>
                 <span className="opacity-40">({label})</span>
               </div>
             )
@@ -264,7 +264,7 @@ export default function ProgressClient() {
             </thead>
             <tbody className="text-sm">
               {rows.map(({ item, modeDetails }) => {
-                const meaning = getMeaning(item as any, lang)
+                const meaning = getMeaning(item, lang)
                 return (
                   <tr
                     key={item.jp}
@@ -282,7 +282,7 @@ export default function ProgressClient() {
                             <div className="flex flex-col items-center gap-0.5">
                               <span
                                 className={`px-1.5 py-0.5 rounded text-xs font-bold ${getSrsClass(level, 'active', due)}`}
-                                title={STAGE_NAMES[level]}
+                                title={getStageName(level, lang)}
                               >
                                 {level}<span className="opacity-40">/7</span>
                               </span>
@@ -306,9 +306,9 @@ export default function ProgressClient() {
                             <td key={`${mode}-level`} className="py-3 px-3 text-center" colSpan={1}>
                               <span
                                 className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${getSrsClass(level, 'active', due)}`}
-                                title={STAGE_NAMES[level]}
+                                title={getStageName(level, lang)}
                               >
-                                {level}/7 — {STAGE_NAMES[level]}
+                                {level}/7 — {getStageName(level, lang)}
                               </span>
                             </td>
                           )
@@ -340,7 +340,7 @@ export default function ProgressClient() {
                     colSpan={20}
                     className="py-8 text-center text-slate-400 text-sm"
                   >
-                    {search ? `No results for "${search}"` : t(lang, 'prog_no_words')}
+                    {search ? t(lang, 'prog_no_search_results').replace('{q}', search) : t(lang, 'prog_no_words')}
                   </td>
                 </tr>
               )}

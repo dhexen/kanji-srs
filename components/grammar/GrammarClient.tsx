@@ -26,10 +26,6 @@ const ALL_GRAMMAR_POINTS: GrammarPointWithBook[] = [
   ...MNN2_POINTS.map(p => ({ ...p, book: 'mnn2' as const })),
 ]
 
-function getLessonLabel(lesson: number) {
-  return `Lección ${lesson}`
-}
-
 function GrammarCard({
   grammar,
   known,
@@ -81,7 +77,9 @@ function GrammarCard({
               {grammar.book === 'mnn1' ? 'MNN1' : 'MNN2'}
             </span>
           )}
-          <span className="text-[10px] text-slate-400">{getLessonLabel(grammar.lesson)}</span>
+          <span className="text-[10px] text-slate-400">
+            {t(lang as any, 'grammar_lesson').replace('{n}', String(grammar.lesson))}
+          </span>
         </div>
         {/* Pattern */}
         <p className="font-bold text-slate-800 text-sm truncate">{grammar.pattern}</p>
@@ -103,7 +101,7 @@ function GrammarCard({
       {/* Known toggle */}
       <button
         onClick={e => { e.stopPropagation(); onToggleKnown(grammar.id, !known) }}
-        title={known ? 'Marcar como no conocida' : 'Marcar como ya me la sé'}
+        title={known ? t(lang as any, 'grammar_unknown_title') : t(lang as any, 'grammar_known_title')}
         className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
           known
             ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
@@ -210,6 +208,10 @@ export default function GrammarClient() {
     )
   }
 
+  const subtitleText = currentBookInfo
+    ? `${currentBookInfo.subtitle} · ${t(lang, 'grammar_n_points').replace('{n}', String(totalInBook))}`
+    : `${t(lang, 'grammar_all_books')} · ${t(lang, 'grammar_n_points').replace('{n}', String(totalInBook))}`
+
   return (
     <div className="space-y-4">
       {/* API Key banner */}
@@ -230,17 +232,15 @@ export default function GrammarClient() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-800">📖 Gramática</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t(lang, 'grammar_title')}</h1>
           <SectionHelp section="grammar" lang={lang} />
         </div>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {currentBookInfo ? `${currentBookInfo.subtitle} · ${totalInBook} puntos` : `Todos los libros · ${totalInBook} puntos`}
-        </p>
+        <p className="text-sm text-slate-500 mt-0.5">{subtitleText}</p>
       </div>
 
       {/* Book selector */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-semibold text-slate-500 mr-1">📚 Libro:</span>
+        <span className="text-xs font-semibold text-slate-500 mr-1">📚 {t(lang, 'grammar_book')}:</span>
         <button
           onClick={() => setBookFilter('all')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
@@ -249,7 +249,7 @@ export default function GrammarClient() {
               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
           }`}
         >
-          Todos
+          {t(lang, 'grammar_all')}
         </button>
         {BOOKS.map(b => (
           <button
@@ -269,8 +269,12 @@ export default function GrammarClient() {
       {/* Progress bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-slate-600">Progreso</span>
-          <span className="text-sm font-bold text-emerald-600">{totalKnownInBook} / {totalInBook} dominadas</span>
+          <span className="text-sm font-medium text-slate-600">{t(lang, 'grammar_progress')}</span>
+          <span className="text-sm font-bold text-emerald-600">
+            {t(lang, 'grammar_mastered_count')
+              .replace('{done}', String(totalKnownInBook))
+              .replace('{total}', String(totalInBook))}
+          </span>
         </div>
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <div
@@ -290,7 +294,7 @@ export default function GrammarClient() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar gramática..."
+            placeholder={t(lang, 'grammar_search_ph')}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
           />
           {search && (
@@ -311,7 +315,7 @@ export default function GrammarClient() {
                   : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
               }`}
             >
-              {f === 'all' ? 'Todo' : f}
+              {f === 'all' ? t(lang, 'grammar_filter_all') : f}
             </button>
           ))}
 
@@ -323,22 +327,24 @@ export default function GrammarClient() {
                 : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
             }`}
           >
-            {hideKnown ? '✓ Ocultando dominadas' : 'Ocultar dominadas'}
+            {hideKnown ? t(lang, 'grammar_hiding_known') : t(lang, 'grammar_hide_known')}
           </button>
         </div>
       </div>
 
       {/* Count */}
       <p className="text-xs text-slate-400">
-        {filtered.length} puntos · {totalKnownInBook} dominados
-        {loadingKnown && !state.user && ' · Inicia sesión para guardar progreso'}
+        {t(lang, 'grammar_points_count')
+          .replace('{n}', String(filtered.length))
+          .replace('{done}', String(totalKnownInBook))}
+        {loadingKnown && !state.user && t(lang, 'grammar_login_save')}
       </p>
 
       {/* Grammar list grouped by lesson */}
       {byLesson.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <p className="text-4xl mb-2">🔍</p>
-          <p>No se encontró ninguna gramática con ese filtro.</p>
+          <p>{t(lang, 'grammar_no_results')}</p>
         </div>
       ) : (
         <div className="space-y-5">
@@ -346,7 +352,8 @@ export default function GrammarClient() {
             <div key={`${book}-${lesson}`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                  {bookFilter === 'all' ? `${book === 'mnn1' ? 'MNN1' : 'MNN2'} · ` : ''}Lección {lesson}
+                  {bookFilter === 'all' ? `${book === 'mnn1' ? 'MNN1' : 'MNN2'} · ` : ''}
+                  {t(lang, 'grammar_lesson').replace('{n}', String(lesson))}
                 </span>
                 <div className="flex-1 h-px bg-slate-200" />
                 <span className="text-xs text-slate-400">
