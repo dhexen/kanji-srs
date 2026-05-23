@@ -100,6 +100,15 @@ export const MODE_CONFIG: Record<ReviewMode, {
   },
 }
 
+export type VocabCategory =
+  | 'animals' | 'nature' | 'colors' | 'weather' | 'time' | 'food'
+  | 'transport' | 'family' | 'body' | 'school' | 'home' | 'work'
+  | 'places' | 'numbers' | 'emotions' | 'actions' | 'sports' | 'culture' | 'other'
+
+export type VocabWordType =
+  | 'noun' | 'verb_transitive' | 'verb_intransitive' | 'verb'
+  | 'adj_i' | 'adj_na' | 'adverb' | 'particle' | 'expression'
+
 export interface VocabItem {
   kanji: string
   jp: string
@@ -109,6 +118,8 @@ export interface VocabItem {
   due: number
   status: 'locked' | 'active'
   image_url?: string
+  category?: VocabCategory
+  word_type?: VocabWordType
   // Per-mode SRS
   srs_multi_level?: number
   srs_multi_due?: number

@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
-import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang } from '@/lib/srs'
+import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType } from '@/lib/srs'
 import { t } from '@/lib/i18n'
 import type { SessionItem } from './ReviewClient'
 
@@ -87,6 +87,18 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     handleResult(isCorrect)
   }
 
+  const wordTypeColors: Record<VocabWordType, string> = {
+    noun: 'bg-slate-100 text-slate-500',
+    verb_transitive: 'bg-violet-100 text-violet-600',
+    verb_intransitive: 'bg-purple-100 text-purple-600',
+    verb: 'bg-indigo-100 text-indigo-600',
+    adj_i: 'bg-amber-100 text-amber-600',
+    adj_na: 'bg-orange-100 text-orange-600',
+    adverb: 'bg-teal-100 text-teal-600',
+    particle: 'bg-rose-100 text-rose-600',
+    expression: 'bg-emerald-100 text-emerald-600',
+  }
+
   const badgeColors: Record<ReviewMode, string> = {
     multi: 'bg-indigo-100 text-indigo-700', meaning: 'bg-purple-100 text-purple-700',
     kanji: 'bg-amber-100 text-amber-700', reading: 'bg-emerald-100 text-emerald-700',
@@ -133,6 +145,20 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
         </div>
         <p className="text-slate-500 text-sm">{questionPrompt[mode]}</p>
+        {(item.word_type || item.category) && (
+          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+            {item.word_type && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
+                {t(lang, `wt_${item.word_type}`)}
+              </span>
+            )}
+            {item.category && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
+                {t(lang, `cat_${item.category}`)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Multi choice */}

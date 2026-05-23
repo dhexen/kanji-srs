@@ -143,3 +143,37 @@ export async function resetCheckedNoImage(): Promise<{ reset: number }> {
   })
   return parseAdminResponse<{ reset: number }>(res)
 }
+
+// ---------------------------------------------------------------------------
+// Vocabulary category/word_type classification
+// ---------------------------------------------------------------------------
+
+export interface ClassifyStats {
+  total: number
+  with_type: number
+  with_category: number
+  pending: number
+}
+
+export interface ClassifyBatchResult {
+  processed: number
+  updated: number
+  message?: string
+}
+
+export async function fetchClassifyStats(): Promise<ClassifyStats> {
+  const res = await fetch('/api/admin/classify-vocab', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<ClassifyStats>(res)
+}
+
+export async function classifyVocabBatch(opts: {
+  limit?: number
+  geminiApiKey?: string
+}): Promise<ClassifyBatchResult> {
+  const res = await fetch('/api/admin/classify-vocab', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<ClassifyBatchResult>(res)
+}

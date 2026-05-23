@@ -1,10 +1,48 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '@/lib/store'
-import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
+import { VocabItem, MODE_CONFIG, migrateItem, VocabCategory, VocabWordType } from '@/lib/srs'
 import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab, searchVocabulary } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+
+const ALL_CATEGORIES: VocabCategory[] = [
+  'animals','nature','colors','weather','time','food','transport','family',
+  'body','school','home','work','places','numbers','emotions','actions','sports','culture','other',
+]
+
+const ALL_WORD_TYPES: VocabWordType[] = [
+  'noun','verb_transitive','verb_intransitive','verb','adj_i','adj_na','adverb','particle','expression',
+]
+
+function CategoryBadge({ category, lang }: { category: VocabCategory; lang: string }) {
+  const label = t(lang as any, `cat_${category}`)
+  return (
+    <span className="inline-block text-xs font-medium px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100 leading-none">
+      {label}
+    </span>
+  )
+}
+
+function WordTypeBadge({ wordType, lang }: { wordType: VocabWordType; lang: string }) {
+  const label = t(lang as any, `wt_${wordType}`)
+  const colors: Record<VocabWordType, string> = {
+    noun: 'bg-slate-100 text-slate-600 border-slate-200',
+    verb_transitive: 'bg-violet-50 text-violet-600 border-violet-100',
+    verb_intransitive: 'bg-purple-50 text-purple-600 border-purple-100',
+    verb: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    adj_i: 'bg-amber-50 text-amber-600 border-amber-100',
+    adj_na: 'bg-orange-50 text-orange-600 border-orange-100',
+    adverb: 'bg-teal-50 text-teal-600 border-teal-100',
+    particle: 'bg-rose-50 text-rose-600 border-rose-100',
+    expression: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  }
+  return (
+    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded border leading-none ${colors[wordType]}`}>
+      {label}
+    </span>
+  )
+}
 
 type KanjiInfo = { meanings: string[]; on_readings: string[]; kun_readings: string[] }
 
@@ -44,6 +82,8 @@ export default function VocabularyClient() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [filterCategory, setFilterCategory] = useState<VocabCategory | ''>('')
+  const [filterWordType, setFilterWordType] = useState<VocabWordType | ''>('')
   const [addingWord, setAddingWord] = useState<string | null>(null)
   const [kanjiInfo, setKanjiInfo] = useState<Record<string, KanjiInfo | null>>({})
   const fetchedKanjisRef = useRef(new Set<string>())
@@ -281,6 +321,12 @@ export default function VocabularyClient() {
     } catch { /* toast en store */ }
   }
 
+  const filteredSearchResults = searchResults.filter(w => {
+    if (filterCategory && w.category !== filterCategory) return false
+    if (filterWordType && w.word_type !== filterWordType) return false
+    return true
+  })
+
   const selectedCount = preview.filter(v => !existingWords.has(v.word) && !discarded.has(v.word)).length
   const grouped: Record<string, any[]> = {}
   preview.forEach(v => { if (!grouped[v.kanji]) grouped[v.kanji] = []; grouped[v.kanji].push(v) })
@@ -303,17 +349,44 @@ export default function VocabularyClient() {
     <div className="space-y-6">
 
       {/* Search bar — always visible */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
-        <span className="text-slate-400 text-lg shrink-0">🔍</span>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Buscar kanji, palabra, lectura o significado..."
-          className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 text-slate-800"
-        />
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 text-lg shrink-0">🔍</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar kanji, palabra, lectura o significado..."
+            className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 text-slate-800"
+          />
+          {isSearching && (
+            <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0">×</button>
+          )}
+        </div>
+        {/* Category + word type filters — visible when searching */}
         {isSearching && (
-          <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0">×</button>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value as VocabCategory | '')}
+              className="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              <option value="">{t(lang, 'vocab_all_categories')}</option>
+              {ALL_CATEGORIES.map(c => (
+                <option key={c} value={c}>{t(lang, `cat_${c}`)}</option>
+              ))}
+            </select>
+            <select
+              value={filterWordType}
+              onChange={e => setFilterWordType(e.target.value as VocabWordType | '')}
+              className="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              <option value="">{t(lang, 'vocab_all_types')}</option>
+              {ALL_WORD_TYPES.map(wt => (
+                <option key={wt} value={wt}>{t(lang, `wt_${wt}`)}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
@@ -322,11 +395,11 @@ export default function VocabularyClient() {
         <div>
           {searchLoading ? (
             <p className="text-center text-slate-400 py-8 text-sm">Buscando...</p>
-          ) : searchResults.length === 0 ? (
+          ) : filteredSearchResults.length === 0 ? (
             <p className="text-center text-slate-400 py-8 text-sm">Sin resultados para «{searchQuery}»</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {searchResults.map((w: any) => {
+              {filteredSearchResults.map((w: any) => {
                 const alreadyHas = existingWords.has(w.word)
                 const isBusy = addingWord === w.word
                 const isUnofficial = w.is_official === false
@@ -339,6 +412,12 @@ export default function VocabularyClient() {
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                     </div>
+                    {(w.category || w.word_type) && (
+                      <div className="flex flex-wrap gap-1 mb-1 mt-0.5">
+                        {w.word_type && <WordTypeBadge wordType={w.word_type} lang={lang} />}
+                        {w.category && <CategoryBadge category={w.category} lang={lang} />}
+                      </div>
+                    )}
                     {w.image_url && (
                       <img
                         src={w.image_url}
@@ -569,6 +648,12 @@ export default function VocabularyClient() {
                         </div>
                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg font-medium shrink-0 mt-1">{w.reading}</span>
                       </div>
+                      {(w.word_type || w.category) && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {w.word_type && <WordTypeBadge wordType={w.word_type} lang={lang} />}
+                          {w.category && <CategoryBadge category={w.category} lang={lang} />}
+                        </div>
+                      )}
                       {w.image_url && (
                         <img
                           src={w.image_url}

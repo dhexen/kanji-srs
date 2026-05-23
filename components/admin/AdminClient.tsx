@@ -16,10 +16,14 @@ import {
   fetchImageStats,
   processImageBatch,
   resetCheckedNoImage,
+  fetchClassifyStats,
+  classifyVocabBatch,
   type AdminUserRow,
   type AdminSnapshotRow,
   type ImageStats,
   type ImageBatchResult,
+  type ClassifyStats,
+  type ClassifyBatchResult,
 } from '@/lib/admin-client'
 import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
@@ -42,6 +46,12 @@ export default function AdminClient() {
   const [imgGeminiKey, setImgGeminiKey] = useState('')
   const [imgPexelsKey, setImgPexelsKey] = useState('')
 
+  // Vocabulary classification
+  const [clsStats, setClsStats] = useState<ClassifyStats | null>(null)
+  const [clsProcessing, setClsProcessing] = useState(false)
+  const [clsLastResult, setClsLastResult] = useState<ClassifyBatchResult | null>(null)
+  const [clsGeminiKey, setClsGeminiKey] = useState('')
+
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
   const [srsIntervalsLoading, setSrsIntervalsLoading] = useState(true)
@@ -61,6 +71,7 @@ export default function AdminClient() {
       loadUsers()
       loadSrsIntervals()
       fetchImageStats().then(setImgStats).catch(() => {})
+      fetchClassifyStats().then(setClsStats).catch(() => {})
     }
   }, [isAdmin, aal])
 
@@ -168,6 +179,30 @@ export default function AdminClient() {
       showToast(e instanceof Error ? e.message : 'Error procesando imágenes', 'error')
     } finally {
       setImgProcessing(false)
+    }
+  }
+
+  async function handleClassifyBatch() {
+    setClsProcessing(true)
+    setClsLastResult(null)
+    try {
+      const result = await classifyVocabBatch({
+        limit: 50,
+        geminiApiKey: clsGeminiKey || imgGeminiKey || undefined,
+      })
+      setClsLastResult(result)
+      const stats = await fetchClassifyStats()
+      setClsStats(stats)
+      showToast(
+        result.processed === 0
+          ? 'No quedan palabras sin clasificar'
+          : `Clasificadas ${result.updated} de ${result.processed} palabras`,
+        'success',
+      )
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error clasificando', 'error')
+    } finally {
+      setClsProcessing(false)
     }
   }
 
@@ -583,6 +618,71 @@ export default function AdminClient() {
           Cada lote procesa hasta 40 palabras. Fuente de imágenes: <strong>Pexels</strong> (regístrate en pexels.com/api, clave inmediata).
           También puedes guardarla en <code className="bg-slate-100 px-1 rounded">PEXELS_API_KEY</code> en .env.local para no tener que escribirla cada vez.
           «Reintentar sin foto» vuelve a poner en cola las palabras sin imagen encontrada.
+        </p>
+      </div>
+
+      {/* Vocabulary classification */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-slate-800">Clasificación de vocabulario</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Gemini asigna tipo gramatical (名詞, 他動詞, adj-i…) y categoría semántica (animales, colores…) a cada palabra.
+            </p>
+          </div>
+        </div>
+
+        {clsStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: 'Total palabras', value: clsStats.total, color: 'text-slate-700' },
+              { label: 'Con tipo', value: clsStats.with_type, color: 'text-emerald-600' },
+              { label: 'Con categoría', value: clsStats.with_category, color: 'text-indigo-600' },
+              { label: 'Sin clasificar', value: clsStats.pending, color: clsStats.pending > 0 ? 'text-amber-600' : 'text-slate-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {clsLastResult && (
+          <div className="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-800">
+            Último lote: {clsLastResult.processed} procesadas · {clsLastResult.updated} actualizadas
+            {clsLastResult.message && <span className="ml-1 text-indigo-500">{clsLastResult.message}</span>}
+          </div>
+        )}
+
+        <div className="space-y-2 mb-4">
+          <label className="block text-xs font-semibold text-slate-400 uppercase">Gemini API Key</label>
+          <input
+            type="password"
+            value={clsGeminiKey}
+            onChange={e => setClsGeminiKey(e.target.value)}
+            placeholder={imgGeminiKey ? 'Usa la misma que imágenes (izquierda vacío)' : 'AIza…'}
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+          <p className="text-xs text-slate-400">
+            Deja vacío para reusar la clave de imágenes o la variable de entorno <code className="bg-slate-100 px-1 rounded">GEMINI_API_KEY</code>.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          disabled={clsProcessing || clsStats?.pending === 0}
+          onClick={handleClassifyBatch}
+          className="py-2.5 px-5 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition"
+        >
+          {clsProcessing
+            ? 'Clasificando…'
+            : clsStats?.pending === 0
+              ? 'Todo clasificado ✓'
+              : `Clasificar siguiente lote (${Math.min(50, clsStats?.pending ?? 0)} palabras)`}
+        </button>
+        <p className="text-xs text-slate-400 mt-3">
+          Cada lote procesa hasta 50 palabras. Puedes ejecutarlo varias veces hasta clasificar todo el vocabulario.
         </p>
       </div>
 

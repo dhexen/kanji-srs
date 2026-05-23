@@ -107,23 +107,29 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
   }
   const items = (data || []).map(rowToVocabItem)
 
-  // Merge image URLs from shared vocabulary table (graceful — no-op if column not yet added)
+  // Merge image_url, category, word_type from shared vocabulary table
   try {
     const words = items.map(i => i.jp)
     if (words.length > 0) {
-      const { data: imgData } = await supabase
+      const { data: sharedData } = await supabase
         .from('vocabulary')
-        .select('word, image_url')
+        .select('word, image_url, category, word_type')
         .in('word', words)
-        .not('image_url', 'is', null)
-        .neq('image_url', '')
-      if (imgData && imgData.length > 0) {
-        const imgMap = new Map(imgData.map(d => [d.word as string, d.image_url as string]))
-        return items.map(i => imgMap.has(i.jp) ? { ...i, image_url: imgMap.get(i.jp) } : i)
+      if (sharedData && sharedData.length > 0) {
+        const sharedMap = new Map(sharedData.map(d => [d.word as string, d]))
+        return items.map(i => {
+          const shared = sharedMap.get(i.jp)
+          if (!shared) return i
+          const updates: Partial<typeof i> = {}
+          if (shared.image_url) updates.image_url = shared.image_url as string
+          if (shared.category) updates.category = shared.category as typeof i.category
+          if (shared.word_type) updates.word_type = shared.word_type as typeof i.word_type
+          return Object.keys(updates).length > 0 ? { ...i, ...updates } : i
+        })
       }
     }
   } catch {
-    // image_url column not yet added — skip silently
+    // columns not yet added — skip silently
   }
   return items
 }
