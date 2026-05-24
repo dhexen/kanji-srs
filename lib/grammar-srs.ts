@@ -111,6 +111,40 @@ export function formatNextReview(ms: number, lang = 'es'): string {
   return `en ${minutes} min`
 }
 
+/**
+ * Checks whether the user's full-sentence input matches the correct sentence.
+ *
+ * "Correct" is evaluated against the kana reading form
+ * (sentence_before_reading + answer + sentence_after_reading), which is what
+ * romaji → hiragana input will produce. Falls back to the kanji form so that
+ * users typing with a Japanese IME can also be accepted.
+ *
+ * Both sides are normalised before comparison (punctuation stripped, etc.).
+ */
+export function checkFullSentence(
+  userInput: string,
+  sentenceBeforeReading: string,
+  sentenceBefore: string,
+  answer: string,
+  sentenceAfterReading: string,
+  sentenceAfter: string,
+): boolean {
+  const norm = normalizeAnswer(userInput)
+  if (!norm) return false
+
+  // Primary: kana form — what romaji / hiragana input produces
+  const beforeKana = sentenceBeforeReading || sentenceBefore
+  const afterKana  = sentenceAfterReading  || sentenceAfter
+  const kanaFull   = normalizeAnswer(beforeKana + answer + afterKana)
+  if (norm === kanaFull) return true
+
+  // Fallback: kanji form — for users with a Japanese IME
+  const kanjiFull = normalizeAnswer(sentenceBefore + answer + sentenceAfter)
+  if (norm === kanjiFull) return true
+
+  return false
+}
+
 export function getSrsLevelLabel(level: number, lang = 'es'): string {
   const labels: Record<string, string[]> = {
     es: ['Nuevo', 'Aprendiz I', 'Aprendiz II', 'Intermedio I', 'Intermedio II', 'Competente', 'Gurú', 'Maestro'],

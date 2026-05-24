@@ -166,14 +166,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update each word — empty string marks it as "checked, no image found"
+    // Update each word — also persist the search term for future retries
     let newImages = 0
     const updatePromises = words.map(async w => {
       const imageUrl = imageMap.get(w.word) ?? ''
+      const cls = classMap.get(w.word)
+      const searchTerm = cls?.search_term ?? null
       if (imageUrl) newImages++
       const { error: updErr } = await service
         .from('vocabulary')
-        .update({ image_url: imageUrl })
+        .update({ image_url: imageUrl, image_search_term: searchTerm })
         .eq('word', w.word)
         .is('image_url', null)
       if (updErr) console.error(`image update error for ${w.word}:`, updErr.message)

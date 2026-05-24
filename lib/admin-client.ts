@@ -145,6 +145,39 @@ export async function resetCheckedNoImage(): Promise<{ reset: number }> {
 }
 
 // ---------------------------------------------------------------------------
+// Image vote reports
+// ---------------------------------------------------------------------------
+
+export interface ImageReport {
+  word: string
+  image_url: string
+  meaning_es: string
+  image_search_term: string | null
+  upvotes: number
+  downvotes: number
+}
+
+export async function fetchImageReports(): Promise<ImageReport[]> {
+  const res = await fetch('/api/admin/image-reports', { headers: await adminAuthHeaders() })
+  const data = await parseAdminResponse<{ reports: ImageReport[] }>(res)
+  return data.reports
+}
+
+export async function updateImageReport(opts: {
+  word: string
+  action: 'remove' | 'retry' | 'set_url'
+  url?: string
+  pexelsApiKey?: string
+}): Promise<{ image_url: string }> {
+  const res = await fetch('/api/admin/image-reports', {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<{ ok: boolean; image_url: string }>(res)
+}
+
+// ---------------------------------------------------------------------------
 // Vocabulary category/word_type classification
 // ---------------------------------------------------------------------------
 

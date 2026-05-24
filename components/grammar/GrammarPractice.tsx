@@ -8,7 +8,7 @@ import {
   type GrammarSentence,
   type GrammarSrsStat,
   applyGrammarResult,
-  checkAnswer,
+  checkFullSentence,
   formatNextReview,
   getSrsLevelLabel,
   GRAMMAR_SRS_INTERVALS,
@@ -381,7 +381,14 @@ Otras reglas:
     if (!userInput.trim() || phase !== 'asking') return
     const sentence = sentences[sessionQueue[currentPos]]
     if (!sentence) return
-    const correct = checkAnswer(userInput, sentence.answer, sentence.answer_alts)
+    const correct = checkFullSentence(
+      userInput,
+      sentence.sentence_before_reading,
+      sentence.sentence_before,
+      sentence.answer,
+      sentence.sentence_after_reading,
+      sentence.sentence_after,
+    )
     setIsCorrect(correct)
     setSessionResults(prev => [...prev, correct])
     setPhase('answered')
@@ -679,141 +686,145 @@ Otras reglas:
         />
       </div>
 
-      {/* Sentence card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Card top bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-100">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            {t(lang, 'gp_fill_blank')}
-          </span>
-          {hasFurigana && (
-            <button
-              onClick={() => setShowFurigana(v => !v)}
-              className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
-                showFurigana
-                  ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
-                  : 'border-slate-300 text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
-            </button>
-          )}
-        </div>
-
-        {/* Sentence body */}
-        <div className="px-5 pt-5 pb-4 text-center">
-
-          {/* Main sentence — kanji with optional inline ruby furigana */}
-          <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-loose select-none">
-            {currentSentence.sentence_before && (
-              <span>
-                {showFurigana && hasFurigana
-                  ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
-                  : currentSentence.sentence_before}
-              </span>
-            )}
-
-            {phase === 'answered' ? (
-              <span className={`mx-1 px-2.5 py-1 rounded-xl ${
-                isCorrect
-                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                  : 'bg-rose-100 text-rose-700 border border-rose-300'
-              }`}>
-                {currentSentence.answer}
-              </span>
-            ) : (
-              <span className="mx-1 inline-flex items-center px-3 py-1 rounded-xl bg-indigo-50 border-2 border-dashed border-indigo-300 text-indigo-200 select-none">
-                ＿＿＿
-              </span>
-            )}
-
-            {currentSentence.sentence_after && (
-              <span>
-                {showFurigana && hasFurigana
-                  ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
-                  : currentSentence.sentence_after}
-              </span>
-            )}
-          </div>
-
-          {/* Translation — always visible so the user knows what they're completing */}
-          {translation && (
-            <p className={`mt-3 text-sm italic ${
-              phase === 'answered' ? 'text-slate-500' : 'text-slate-400'
-            }`}>
-              {translation}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Input area (asking phase) */}
+      {/* ── ASKING phase: show translation as prompt ───────────────────────── */}
       {phase === 'asking' && (
-        <div className="space-y-3">
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={userInput}
-              onChange={handleInput}
-              onCompositionStart={() => { isComposing.current = true }}
-              onCompositionEnd={e => {
-                isComposing.current = false
-                setUserInput(toHiragana((e.target as HTMLInputElement).value, { IMEMode: true }))
-              }}
-              onKeyDown={e => e.key === 'Enter' && submitAnswer()}
-              placeholder={t(lang, 'gp_input_ph')}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              className="w-full px-4 py-3.5 text-center text-xl font-bold border-2 border-slate-200 focus:border-indigo-400 rounded-xl focus:outline-none transition tracking-widest"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 select-none pointer-events-none">
-              ローマ字OK
-            </span>
+        <>
+          {/* Prompt card */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                {t(lang, 'gp_translate_prompt')}
+              </span>
+            </div>
+            <div className="px-5 py-5 text-center space-y-3">
+              {/* Translation — the "question" */}
+              {translation && (
+                <p className="text-lg sm:text-xl font-semibold text-slate-800 leading-relaxed">
+                  {translation}
+                </p>
+              )}
+              {/* Grammar pattern hint */}
+              <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1">
+                <span className="text-xs text-slate-400">{t(lang, 'gp_pattern_ref')}:</span>
+                <span className="text-sm font-bold text-indigo-700">{grammar.pattern}</span>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={submitAnswer}
-            disabled={!userInput.trim()}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm"
-          >
-            {t(lang, 'gp_check')}
-          </button>
-        </div>
+
+          {/* Input */}
+          <div className="space-y-3">
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={userInput}
+                onChange={handleInput}
+                onCompositionStart={() => { isComposing.current = true }}
+                onCompositionEnd={e => {
+                  isComposing.current = false
+                  setUserInput(toHiragana((e.target as HTMLInputElement).value, { IMEMode: true }))
+                }}
+                onKeyDown={e => e.key === 'Enter' && submitAnswer()}
+                placeholder={t(lang, 'gp_input_ph')}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                className="w-full px-4 py-3.5 text-center text-lg font-bold border-2 border-slate-200 focus:border-indigo-400 rounded-xl focus:outline-none transition"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 select-none pointer-events-none">
+                ローマ字OK
+              </span>
+            </div>
+            <button
+              onClick={submitAnswer}
+              disabled={!userInput.trim()}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm"
+            >
+              {t(lang, 'gp_check')}
+            </button>
+          </div>
+        </>
       )}
 
-      {/* Feedback banner (answered phase) */}
+      {/* ── ANSWERED phase: show correct sentence + user's attempt ────────── */}
       {phase === 'answered' && (
         <>
-          <div className={`rounded-xl p-4 flex items-start gap-3 ${
-            isCorrect
-              ? 'bg-emerald-50 border border-emerald-200'
-              : 'bg-rose-50 border border-rose-200'
+          {/* Result card */}
+          <div className={`rounded-2xl border overflow-hidden ${
+            isCorrect ? 'border-emerald-200' : 'border-rose-200'
           }`}>
-            <span className="text-xl shrink-0">{isCorrect ? '✅' : '❌'}</span>
-            <div className="min-w-0">
-              <p className={`font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
-                {isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong')}
-              </p>
-              {!isCorrect && (
-                <p className="text-sm text-rose-600 mt-0.5">
-                  {t(lang, 'gp_answer_was')}:{' '}
-                  <span className="font-bold">{currentSentence.answer}</span>
-                  {currentSentence.answer_alts.length > 0 && (
-                    <span className="text-rose-400 font-normal">
-                      {' '}({t(lang, 'gp_also_valid')}: {currentSentence.answer_alts.join(', ')})
+            {/* Card header with furigana toggle */}
+            <div className={`flex items-center justify-between px-4 py-2 border-b ${
+              isCorrect
+                ? 'bg-emerald-50 border-emerald-100'
+                : 'bg-rose-50 border-rose-100'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="text-base">{isCorrect ? '✅' : '❌'}</span>
+                <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong')}
+                </span>
+              </div>
+              {hasFurigana && (
+                <button
+                  onClick={() => setShowFurigana(v => !v)}
+                  className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
+                    showFurigana
+                      ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                      : 'border-slate-300 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
+                </button>
+              )}
+            </div>
+
+            <div className="bg-white px-5 py-4 space-y-4">
+              {/* Correct full sentence */}
+              <div className="text-center">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                  {t(lang, 'gp_correct_sentence')}
+                </p>
+                <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-loose">
+                  {currentSentence.sentence_before && (
+                    <span>
+                      {showFurigana && hasFurigana
+                        ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
+                        : currentSentence.sentence_before}
                     </span>
                   )}
+                  <span className={`mx-0.5 px-1.5 py-0.5 rounded-lg ${
+                    isCorrect
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}>
+                    {currentSentence.answer}
+                  </span>
+                  {currentSentence.sentence_after && (
+                    <span>
+                      {showFurigana && hasFurigana
+                        ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
+                        : currentSentence.sentence_after}
+                    </span>
+                  )}
+                </div>
+                {translation && (
+                  <p className="mt-2 text-sm italic text-slate-400">{translation}</p>
+                )}
+              </div>
+
+              {/* User's answer */}
+              <div className={`pt-3 border-t text-center ${isCorrect ? 'border-emerald-100' : 'border-rose-100'}`}>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                  {t(lang, 'gp_your_answer')}
                 </p>
-              )}
-              {isCorrect && userInput.trim() !== currentSentence.answer && (
-                <p className="text-xs text-emerald-500 mt-0.5">
-                  ({t(lang, 'gp_canonical')}: {currentSentence.answer})
+                <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  {userInput}
                 </p>
-              )}
+              </div>
             </div>
           </div>
 

@@ -39,6 +39,12 @@ CREATE POLICY "grammar_sentences_insert"
   ON grammar_sentences FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');
 
+-- Any authenticated user can delete sentences (shared pool — used to purge outdated pools)
+DROP POLICY IF EXISTS "grammar_sentences_delete" ON grammar_sentences;
+CREATE POLICY "grammar_sentences_delete"
+  ON grammar_sentences FOR DELETE
+  USING (auth.role() = 'authenticated');
+
 -- ---------------------------------------------------------------------------
 -- 2. grammar_srs_progress
 --    Per-user SRS progress for each grammar point.

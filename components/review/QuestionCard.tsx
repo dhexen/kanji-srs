@@ -4,6 +4,7 @@ import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
+import { submitImageVote } from '@/lib/supabase'
 import type { SessionItem } from './ReviewClient'
 
 interface Props {
@@ -33,13 +34,19 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [showAnswer, setShowAnswer] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [imgError, setImgError] = useState(false)
+  const [imgVote, setImgVote] = useState<1 | -1 | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
 
   const handleImgError = useCallback(() => setImgError(true), [])
 
-  // Reset image error state when the word changes
-  useEffect(() => { setImgError(false) }, [item.jp])
+  // Reset image state when the word changes
+  useEffect(() => { setImgError(false); setImgVote(null) }, [item.jp])
+
+  const handleImgVote = useCallback(async (vote: 1 | -1) => {
+    setImgVote(vote)
+    try { await submitImageVote(item.jp, vote) } catch { /* silencioso */ }
+  }, [item.jp])
 
   const needsJapaneseInput = cfg.inputScript === 'hiragana'
 
@@ -139,24 +146,48 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           {t(lang, cfg.label_key)} <span className="opacity-60">{getStageName(level, lang)}</span>
         </span>
 
-        {/* Image — top-right, overlaid — shown only on sm+ to avoid mobile overlap */}
+        {/* Image + vote buttons — desktop (top-right overlay) */}
         {hasImage && (
-          <img
-            src={item.image_url}
-            alt={meaning}
-            onError={handleImgError}
-            className="hidden sm:block absolute top-3 right-3 w-16 h-16 object-cover rounded-xl shadow-sm opacity-90"
-          />
+          <div className="hidden sm:flex flex-col items-center gap-1 absolute top-3 right-3">
+            <img
+              src={item.image_url!}
+              alt={meaning}
+              onError={handleImgError}
+              className="w-16 h-16 object-cover rounded-xl shadow-sm"
+            />
+            <div className="flex gap-1">
+              <button type="button" onClick={() => handleImgVote(1)} title="Buena imagen"
+                className={`text-[11px] px-1.5 py-0.5 rounded-md transition leading-none ${
+                  imgVote === 1 ? 'bg-emerald-500 text-white' : 'bg-white/80 hover:bg-emerald-100 text-slate-500'
+                }`}>👍</button>
+              <button type="button" onClick={() => handleImgVote(-1)} title="Imagen incorrecta"
+                className={`text-[11px] px-1.5 py-0.5 rounded-md transition leading-none ${
+                  imgVote === -1 ? 'bg-rose-500 text-white' : 'bg-white/80 hover:bg-rose-100 text-slate-500'
+                }`}>👎</button>
+            </div>
+          </div>
         )}
 
-        {/* Mobile image — in flow, below the badge area */}
+        {/* Image + vote buttons — mobile (in-flow, top of card) */}
         {hasImage && (
-          <img
-            src={item.image_url}
-            alt={meaning}
-            onError={handleImgError}
-            className="sm:hidden w-full h-32 object-cover"
-          />
+          <div className="sm:hidden relative">
+            <img
+              src={item.image_url!}
+              alt={meaning}
+              onError={handleImgError}
+              className="w-full h-32 object-cover"
+            />
+            <div className="absolute bottom-2 right-2 flex gap-1">
+              <button type="button" onClick={() => handleImgVote(1)} title="Buena imagen"
+                className={`text-[11px] px-2 py-1 rounded-md shadow transition ${
+                  imgVote === 1 ? 'bg-emerald-500 text-white' : 'bg-white/90 hover:bg-emerald-100 text-slate-600'
+                }`}>👍</button>
+              <button type="button" onClick={() => handleImgVote(-1)} title="Imagen incorrecta"
+                className={`text-[11px] px-2 py-1 rounded-md shadow transition ${
+                  imgVote === -1 ? 'bg-rose-500 text-white' : 'bg-white/90 hover:bg-rose-100 text-slate-600'
+                }`}>👎</button>
+            </div>
+          </div>
         )}
 
         <div className={`py-6 px-4 ${hasImage ? 'pt-14 sm:pt-6' : 'pt-6'}`}>

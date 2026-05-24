@@ -1,10 +1,14 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { getPendingCount, ALL_REVIEW_MODES } from '@/lib/srs'
 import { t } from '@/lib/i18n'
+import { fetchKnownGrammar } from '@/lib/supabase'
+
+// Total grammar points (MNN1: 73 + MNN2: 48)
+const TOTAL_GRAMMAR_POINTS = 121
 
 export default function Nav() {
   const pathname = usePathname()
@@ -12,6 +16,7 @@ export default function Nav() {
   const isAdmin = state.role === 'admin'
   const lang = state.lang
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [knownGrammarCount, setKnownGrammarCount] = useState(-1) // -1 = not loaded yet
 
   // Close sidebar on route change
   useEffect(() => {
@@ -28,24 +33,63 @@ export default function Nav() {
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
+  // Fetch grammar progress when user is logged in
+  useEffect(() => {
+    if (!state.user) { setKnownGrammarCount(0); return }
+    fetchKnownGrammar()
+      .then(set => setKnownGrammarCount(set.size))
+      .catch(() => setKnownGrammarCount(0))
+  }, [state.user])
+
+  // Refresh grammar count when navigating back from grammar page
+  useEffect(() => {
+    if (!state.user || !pathname.startsWith('/grammar')) return
+    fetchKnownGrammar()
+      .then(set => setKnownGrammarCount(set.size))
+      .catch(() => {})
+  }, [pathname, state.user])
+
+  // ── Vocabulary progress (from global store) ──────────────────────────────
+  const { vocabPct, kanjiPct } = useMemo(() => {
+    const active = state.db.filter(i => i.status === 'active')
+    if (active.length === 0) return { vocabPct: 0, kanjiPct: 0 }
+
+    const masteredWords = active.filter(i => i.srsLevel >= 5).length
+    const vPct = Math.round((masteredWords / active.length) * 100)
+
+    const allKanjis = new Set(active.map(i => i.kanji))
+    const masteredKanjis = Array.from(allKanjis).filter(kanji => {
+      const kanjiWords = active.filter(w => w.kanji === kanji)
+      return kanjiWords.every(w => w.srsLevel >= 5)
+    }).length
+    const kPct = allKanjis.size > 0 ? Math.round((masteredKanjis / allKanjis.size) * 100) : 0
+
+    return { vocabPct: vPct, kanjiPct: kPct }
+  }, [state.db])
+
+  // ── Grammar progress ──────────────────────────────────────────────────────
+  const grammarPct = knownGrammarCount < 0
+    ? null  // still loading
+    : Math.round((knownGrammarCount / TOTAL_GRAMMAR_POINTS) * 100)
+
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
 
   const tabs = [
-    { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500', tutorialId: 'nav-review' },
-    { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '',           tutorialId: 'nav-vocabulary' },
-    { href: '/grammar',    icon: '📖', label: t(lang, 'nav_grammar'),    badge: 0,             badgeColor: '',           tutorialId: undefined },
-    { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '',           tutorialId: undefined },
-    { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '',           tutorialId: undefined },
-    { href: '/stats',      icon: '📊', label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '',           tutorialId: undefined },
+    { href: '/review',     icon: '📝', label: t(lang, 'nav_review'),     badge: pendingReview, badgeColor: 'bg-red-500', tutorialId: 'nav-review',      progress: null },
+    { href: '/vocabulary', icon: '📚', label: t(lang, 'nav_vocabulary'), badge: 0,             badgeColor: '',           tutorialId: 'nav-vocabulary',  progress: state.db.some(i => i.status === 'active') ? vocabPct : null },
+    { href: '/grammar',    icon: '📖', label: t(lang, 'nav_grammar'),    badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: grammarPct },
+    { href: '/context',    icon: '💬', label: t(lang, 'nav_context'),    badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: null },
+    { href: '/progress',   icon: '🔍', label: t(lang, 'nav_progress'),   badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: null },
+    { href: '/stats',      icon: '📊', label: t(lang, 'nav_stats'),      badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: null },
     ...(isAdmin ? [
-      { href: '/import',   icon: '⚡', label: t(lang, 'nav_import'),     badge: 0,             badgeColor: '',           tutorialId: undefined },
-      { href: '/admin',    icon: '🔧', label: t(lang, 'nav_admin'),      badge: 0,             badgeColor: '',           tutorialId: undefined },
+      { href: '/import',   icon: '⚡', label: t(lang, 'nav_import'),     badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: null },
+      { href: '/admin',    icon: '🔧', label: t(lang, 'nav_admin'),      badge: 0,             badgeColor: '',           tutorialId: undefined,          progress: null },
     ] : []),
   ]
 
   // Strip emoji prefix from label for the sidebar (emoji is shown separately as icon)
   function stripEmoji(label: string) {
-    return label.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[\u2600-\u27BF\uFE0F]\s*/u, '')
+    return label.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[☀-➿️]\s*/u, '')
   }
 
   const sidebarContent = (
@@ -93,26 +137,48 @@ export default function Nav() {
           const active = pathname === tab.href
           const isAdminTab = tab.href === '/admin'
           return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              {...(tab.tutorialId ? { 'data-tutorial-id': tab.tutorialId } : {})}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                active
-                  ? 'bg-white/15 text-white shadow-sm shadow-black/10'
-                  : isAdminTab
-                  ? 'text-amber-300 hover:bg-amber-500/15 hover:text-amber-200'
-                  : 'text-indigo-200 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <span className="text-lg w-6 text-center shrink-0">{tab.icon}</span>
-              <span className="truncate">{stripEmoji(tab.label)}</span>
-              {tab.badge > 0 && (
-                <span className={`ml-auto text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab.badgeColor}`}>
-                  {tab.badge}
-                </span>
+            <div key={tab.href}>
+              <Link
+                href={tab.href}
+                {...(tab.tutorialId ? { 'data-tutorial-id': tab.tutorialId } : {})}
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? 'bg-white/15 text-white shadow-sm shadow-black/10'
+                    : isAdminTab
+                    ? 'text-amber-300 hover:bg-amber-500/15 hover:text-amber-200'
+                    : 'text-indigo-200 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <span className="text-lg w-6 text-center shrink-0">{tab.icon}</span>
+                <span className="truncate">{stripEmoji(tab.label)}</span>
+                {tab.badge > 0 && (
+                  <span className={`ml-auto text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab.badgeColor}`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </Link>
+
+              {/* Mini progress bar (vocab + grammar only) */}
+              {tab.progress !== null && (
+                <div className="px-3 pb-1.5 -mt-0.5">
+                  <div className="flex items-center gap-1.5 pl-9">
+                    <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          (tab.progress ?? 0) >= 80 ? 'bg-emerald-400' :
+                          (tab.progress ?? 0) >= 40 ? 'bg-indigo-400' :
+                          'bg-indigo-300/50'
+                        }`}
+                        style={{ width: `${tab.progress ?? 0}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-indigo-400 tabular-nums w-7 text-right">
+                      {tab.progress !== null ? `${tab.progress}%` : '…'}
+                    </span>
+                  </div>
+                </div>
               )}
-            </Link>
+            </div>
           )
         })}
       </nav>

@@ -4,8 +4,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useStore } from '@/lib/store'
 
-export const TUTORIAL_DONE_KEY = 'kanji_tutorial_v1_done'
-const TUTORIAL_STEP_KEY = 'kanji_tutorial_v1_step'
+export const TUTORIAL_DONE_KEY = 'kanji_tutorial_v2_done'
+const TUTORIAL_STEP_KEY = 'kanji_tutorial_v2_step'
+// Legacy key — users who finished v1 jump straight to the new step instead of restarting
+const TUTORIAL_V1_DONE_KEY = 'kanji_tutorial_v1_done'
 
 type ML = Record<string, string>
 
@@ -151,16 +153,33 @@ const STEPS: StepDef[] = [
     },
   },
   {
+    id: 'image-voting',
+    targetId: null,
+    pos: 'center',
+    title: {
+      es: '7 · Vota las imágenes 🖼️',
+      ca: '7 · Vota les imatges 🖼️',
+      en: '7 · Vote on images 🖼️',
+      ja: '7 · 画像に投票 🖼️',
+    },
+    body: {
+      es: 'Algunas palabras muestran una foto para ayudarte a memorizar el concepto. Si la imagen es útil, pulsa 👍. Si crees que no es correcta o confunde, pulsa 👎. Con suficientes votos negativos, el administrador puede reemplazarla por una mejor.',
+      ca: 'Algunes paraules mostren una foto per ajudar-te a memoritzar el concepte. Si la imatge és útil, prem 👍. Si creus que no és correcta o confon, prem 👎. Amb prou vots negatius, l\'administrador pot reemplaçar-la per una de millor.',
+      en: 'Some words show a photo to help you memorize the concept. If the image is useful, press 👍. If you think it\'s wrong or confusing, press 👎. With enough negative votes, the admin can replace it with a better one.',
+      ja: '一部の単語には概念の記憶を助ける写真が表示されます。画像が役立つなら👍を押してください。間違っていたり紛らわしかったりする場合は👎を押してください。👎が多ければ、管理者がより良い画像に差し替えます。',
+    },
+  },
+  {
     id: 'calendar',
     targetId: 'header-forecast',
     route: '/review',
     navigateOnNext: '/stats',
     pos: 'bottom',
     title: {
-      es: '7 · Tu calendario de repasos 📅',
-      ca: '7 · El teu calendari de repasos 📅',
-      en: '7 · Your review calendar 📅',
-      ja: '7 · 復習カレンダー 📅',
+      es: '8 · Tu calendario de repasos 📅',
+      ca: '8 · El teu calendari de repasos 📅',
+      en: '8 · Your review calendar 📅',
+      ja: '8 · 復習カレンダー 📅',
     },
     body: {
       es: 'Cada vez que estudias, el sistema programa cuándo volver a repasar cada palabra para que no se te olvide a largo plazo. Aquí ves los repasos de hoy y los próximos días.',
@@ -175,10 +194,10 @@ const STEPS: StepDef[] = [
     route: '/stats',
     pos: 'top',
     title: {
-      es: '8 · Mi Perfil ⚙️',
-      ca: '8 · El Meu Perfil ⚙️',
-      en: '8 · My Profile ⚙️',
-      ja: '8 · マイプロフィール ⚙️',
+      es: '9 · Mi Perfil ⚙️',
+      ca: '9 · El Meu Perfil ⚙️',
+      en: '9 · My Profile ⚙️',
+      ja: '9 · マイプロフィール ⚙️',
     },
     body: {
       es: 'Aquí están los ajustes de tu cuenta: la API de Google Gemini para las funciones de IA, el idioma de la interfaz y las copias de seguridad. ¡Ya estás listo para empezar!',
@@ -226,8 +245,21 @@ export default function Tutorial() {
     if (!state.loaded) return
     if (!state.user) return
     if (localStorage.getItem(TUTORIAL_DONE_KEY)) return
-    const saved = parseInt(localStorage.getItem(TUTORIAL_STEP_KEY) ?? '0', 10)
-    setStepIdx(isNaN(saved) ? 0 : Math.min(saved, STEPS.length - 1))
+
+    const hadV1 = !!localStorage.getItem(TUTORIAL_V1_DONE_KEY)
+    let startStep: number
+
+    if (hadV1) {
+      // Returning user who completed v1: jump directly to the new image-voting step
+      const imageStepIdx = STEPS.findIndex(s => s.id === 'image-voting')
+      startStep = imageStepIdx >= 0 ? imageStepIdx : 0
+    } else {
+      // New user or v2 in-progress: restore saved step
+      const saved = parseInt(localStorage.getItem(TUTORIAL_STEP_KEY) ?? '0', 10)
+      startStep = isNaN(saved) ? 0 : Math.min(saved, STEPS.length - 1)
+    }
+
+    setStepIdx(startStep)
     setActive(true)
   }, [state.loaded, state.user])
 

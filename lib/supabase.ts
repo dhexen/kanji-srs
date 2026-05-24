@@ -760,6 +760,14 @@ export async function fetchKnownGrammar(): Promise<Set<string>> {
   }
 }
 
+export async function submitImageVote(word: string, vote: 1 | -1): Promise<void> {
+  const user = await requireUser()
+  const { error } = await supabase
+    .from('vocab_image_votes')
+    .upsert({ word, user_id: user.id, vote }, { onConflict: 'word,user_id' })
+  if (error) throw error
+}
+
 export async function setGrammarKnown(grammarId: string, known: boolean): Promise<void> {
   const user = await requireUser()
   const { error } = await supabase
@@ -786,19 +794,24 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
       .eq('grammar_id', grammarId)
       .order('created_at', { ascending: true })
     if (error) { console.warn('fetchGrammarSentences:', error.message); return [] }
-    return (data ?? []).map(r => ({
-      id: r.id,
-      grammar_id: r.grammar_id,
-      sentence_before: r.sentence_before ?? '',
-      sentence_before_reading: r.sentence_before_reading ?? '',
-      sentence_after: r.sentence_after ?? '',
-      sentence_after_reading: r.sentence_after_reading ?? '',
-      answer: r.answer ?? '',
-      answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
-      translation_es: r.translation_es ?? '',
-      translation_ca: r.translation_ca ?? '',
-      translation_en: r.translation_en ?? '',
-    }))
+    // Filter out legacy sentences where the answer contains kanji —
+    // these were generated before the prompt fix and have content words in the answer.
+    const KANJI_RE = /[一-鿿㐀-䶿]/
+    return (data ?? [])
+      .map(r => ({
+        id: r.id,
+        grammar_id: r.grammar_id,
+        sentence_before: r.sentence_before ?? '',
+        sentence_before_reading: r.sentence_before_reading ?? '',
+        sentence_after: r.sentence_after ?? '',
+        sentence_after_reading: r.sentence_after_reading ?? '',
+        answer: r.answer ?? '',
+        answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
+        translation_es: r.translation_es ?? '',
+        translation_ca: r.translation_ca ?? '',
+        translation_en: r.translation_en ?? '',
+      }))
+      .filter(s => !KANJI_RE.test(s.answer))
   } catch {
     return []
   }
