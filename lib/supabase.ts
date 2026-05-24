@@ -767,3 +767,137 @@ export async function setGrammarKnown(grammarId: string, known: boolean): Promis
     .upsert({ user_id: user.id, grammar_id: grammarId, known, updated_at: new Date().toISOString() })
   if (error) console.error('setGrammarKnown:', error)
 }
+
+// ---------------------------------------------------------------------------
+// Grammar SRS — sentences pool
+// ---------------------------------------------------------------------------
+
+import type { GrammarSentence, GrammarSrsStat } from './grammar-srs'
+
+/**
+ * Fetch all cached sentences for a grammar point.
+ * Returns [] if the table doesn't exist yet.
+ */
+export async function fetchGrammarSentences(grammarId: string): Promise<GrammarSentence[]> {
+  try {
+    const { data, error } = await supabase
+      .from('grammar_sentences')
+      .select('*')
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+    if (error) { console.warn('fetchGrammarSentences:', error.message); return [] }
+    return (data ?? []).map(r => ({
+      id: r.id,
+      grammar_id: r.grammar_id,
+      sentence_before: r.sentence_before ?? '',
+      sentence_before_reading: r.sentence_before_reading ?? '',
+      sentence_after: r.sentence_after ?? '',
+      sentence_after_reading: r.sentence_after_reading ?? '',
+      answer: r.answer ?? '',
+      answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
+      translation_es: r.translation_es ?? '',
+      translation_ca: r.translation_ca ?? '',
+      translation_en: r.translation_en ?? '',
+    }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Batch-insert new sentences into the shared pool.
+ * Silently ignores errors if the table doesn't exist yet.
+ */
+export async function saveGrammarSentences(
+  grammarId: string,
+  sentences: Omit<GrammarSentence, 'id'>[],
+): Promise<void> {
+  if (sentences.length === 0) return
+  try {
+    const rows = sentences.map(s => ({
+      grammar_id: grammarId,
+      sentence_before: s.sentence_before,
+      sentence_before_reading: s.sentence_before_reading,
+      sentence_after: s.sentence_after,
+      sentence_after_reading: s.sentence_after_reading,
+      answer: s.answer,
+      answer_alts: s.answer_alts,
+      translation_es: s.translation_es,
+      translation_ca: s.translation_ca,
+      translation_en: s.translation_en,
+    }))
+    const { error } = await supabase.from('grammar_sentences').insert(rows)
+    if (error) console.warn('saveGrammarSentences:', error.message)
+  } catch (e) {
+    console.warn('saveGrammarSentences exception:', e)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Grammar SRS — per-user progress
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch SRS stat for a single grammar point.
+ * Returns null (level 0, never reviewed) if not found.
+ */
+export async function fetchGrammarSrsStat(grammarId: string): Promise<GrammarSrsStat | null> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('grammar_srs_progress')
+      .select('grammar_id, level, next_review')
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+      .maybeSingle()
+    if (error) { console.warn('fetchGrammarSrsStat:', error.message); return null }
+    if (!data) return null
+    return { grammar_id: data.grammar_id, level: data.level, next_review: data.next_review }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fetch SRS stats for ALL grammar points of the current user.
+ * Used to show the "N due today" badge in GrammarClient.
+ */
+export async function fetchAllGrammarSrsStats(): Promise<GrammarSrsStat[]> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('grammar_srs_progress')
+      .select('grammar_id, level, next_review')
+      .eq('user_id', user.id)
+    if (error) { console.warn('fetchAllGrammarSrsStats:', error.message); return [] }
+    return (data ?? []).map(r => ({
+      grammar_id: r.grammar_id,
+      level: r.level,
+      next_review: r.next_review,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Upsert the SRS result for a grammar point after a practice session.
+ */
+export async function saveGrammarSrsResult(
+  grammarId: string,
+  newLevel: number,
+  nextReview: number,
+): Promise<void> {
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('grammar_srs_progress')
+      .upsert(
+        { user_id: user.id, grammar_id: grammarId, level: newLevel, next_review: nextReview },
+        { onConflict: 'user_id,grammar_id' },
+      )
+    if (error) console.error('saveGrammarSrsResult:', error.message)
+  } catch (e) {
+    console.error('saveGrammarSrsResult exception:', e)
+  }
+}
