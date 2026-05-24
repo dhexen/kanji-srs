@@ -25,8 +25,12 @@ import {
 const SESSION_SIZE = 5
 // Minimum sentences needed to start; generate more if below this
 const MIN_POOL = 5
-// Target pool size when generating
+// Target pool size to save after filtering
 const TARGET_POOL = 25
+// How many to ask Gemini for (extra buffer so filtering still leaves us with TARGET_POOL)
+const GENERATE_SIZE = 38
+// Minimum quality score (1–5) to keep a sentence — Gemini self-rates each sentence
+const QUALITY_THRESHOLD = 4
 
 type Phase =
   | 'loading'      // fetching from DB
@@ -197,6 +201,8 @@ export default function GrammarPractice({
   const [sessionResults, setSessionResults] = useState<boolean[]>([])
   const [genError, setGenError]             = useState('')
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
+  // Stats from last generation: how many Gemini produced vs how many passed quality check
+  const [lastGenStats, setLastGenStats]     = useState<{ generated: number; kept: number } | null>(null)
 
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
@@ -239,7 +245,7 @@ export default function GrammarPractice({
       .map(w => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
       .join(', ')
 
-    const prompt = `Eres un profesor de japonés experto. Genera exactamente ${TARGET_POOL} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
+    const prompt = `Eres un profesor de japonés experto. Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
 El alumno ve la frase con UN HUECO (___) y debe escribir la gramática que falta.
 
@@ -257,7 +263,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
       "after_reading": "lectura completa del after en kana puro, sin kanji",
       "translation_es": "traducción completa en español",
       "translation_ca": "traducció completa en català",
-      "translation_en": "complete English translation"
+      "translation_en": "complete English translation",
+      "quality": 5
     }
   ]
 }
@@ -269,12 +276,21 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 - Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"
 - Ejemplo INCORRECTO → before:"今月", answer:"は七月です"  ← MAL: incluye vocabulario con kanji
 
+Campo "quality" — puntuación de coherencia del 1 al 5 (sé estricto):
+- 5: Frase perfecta — japonés natural, contexto realista y cotidiano, uso ejemplar del patrón
+- 4: Buena — uso correcto, pequeños detalles mejorables
+- 3: Aceptable — uso algo forzado o contexto poco natural
+- 2: Deficiente — contexto irreal, uso incorrecto del patrón o traducción inexacta
+- 1: Incorrecta — errores gramaticales graves o frase sin sentido lógico
+Ejemplos de calidad BAJA que deben puntuar 1-2: "El elefante come el teléfono", "Ayer es mañana", frases con información factualmente errónea, mezcla de registros incompatibles.
+Sé HONESTO y ESTRICTO: no todas las frases pueden ser 4-5. Las que generes de menor calidad deben puntuarse adecuadamente.
+
 Otras reglas:
 - Frases naturales y correctas, nivel ${grammar.jlpt}
 - Varía sujetos, contextos y vocabulario; usa el vocabulario disponible
 - before_reading y after_reading: solo kana (para mostrar furigana al alumno)
 - answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
-- Genera exactamente ${TARGET_POOL} frases distintas`
+- Genera exactamente ${GENERATE_SIZE} frases distintas`
 
     try {
       const res = await fetch('/api/gemini', {
@@ -295,7 +311,12 @@ Otras reglas:
 
       if (!parsed.sentences?.length) throw new Error(t(lang, 'gp_no_sentences'))
 
-      const newSentences: GrammarSentence[] = (parsed.sentences as any[]).slice(0, TARGET_POOL).map(s => ({
+      // ── Quality filter ────────────────────────────────────────────────────
+      const allRaw   = parsed.sentences as any[]
+      const passing  = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
+      const discarded = allRaw.length - passing.length
+
+      const newSentences: GrammarSentence[] = passing.slice(0, TARGET_POOL).map(s => ({
         grammar_id:               grammar.id,
         sentence_before:          String(s.before_jp          ?? ''),
         sentence_before_reading:  String(s.before_reading     ?? ''),
@@ -307,6 +328,11 @@ Otras reglas:
         translation_ca:           String(s.translation_ca     ?? ''),
         translation_en:           String(s.translation_en     ?? ''),
       }))
+
+      setLastGenStats({ generated: allRaw.length, kept: newSentences.length })
+      if (discarded > 0) {
+        console.info(`[GrammarPractice] Quality filter: ${newSentences.length} kept, ${discarded} discarded (score < ${QUALITY_THRESHOLD})`)
+      }
 
       await saveGrammarSentences(grammar.id, newSentences)
       setSentences(prev => [...prev, ...newSentences])
@@ -320,6 +346,7 @@ Otras reglas:
   // Delete current pool then generate fresh sentences
   const regenerate = useCallback(async () => {
     setSentences([])
+    setLastGenStats(null)
     await deleteGrammarSentences(grammar.id)
     await generate()
   }, [grammar.id, generate]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -556,25 +583,42 @@ Otras reglas:
         </div>
 
         {/* Pool info */}
-        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-          <span className="text-xs text-slate-500">
-            📦 {t(lang, 'gp_pool_count').replace('{n}', String(sentences.length))}
-          </span>
-          {sessionToken && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={generate}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-              >
-                + {t(lang, 'gp_gen_more')}
-              </button>
-              <button
-                onClick={regenerate}
-                className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition"
-                title={t(lang, 'gp_regen')}
-              >
-                🗑️ {t(lang, 'gp_regen')}
-              </button>
+        <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">
+              📦 {t(lang, 'gp_pool_count').replace('{n}', String(sentences.length))}
+            </span>
+            {sessionToken && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={generate}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  + {t(lang, 'gp_gen_more')}
+                </button>
+                <button
+                  onClick={regenerate}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition"
+                  title={t(lang, 'gp_regen')}
+                >
+                  🗑️ {t(lang, 'gp_regen')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Quality filter badge — shown when the last generation discarded some sentences */}
+          {lastGenStats && lastGenStats.kept < lastGenStats.generated && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
+              <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t(lang, 'gp_quality_checked')}
+              </span>
+              <span className="text-slate-400">
+                {lastGenStats.kept}/{lastGenStats.generated} {t(lang, 'gp_quality_kept')}
+              </span>
             </div>
           )}
         </div>

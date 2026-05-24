@@ -15,12 +15,15 @@ type SectionContent = {
   title: ML
   intro: ML
   points: HelpPoint[]
+  /** Increment to force all users to re-see this section's tutorial. */
+  version?: number
 }
 
 export const SECTION_SEEN_PREFIX = 'sectionhelp_v1_'
 
-function getSectionSeenKey(section: string) {
-  return `${SECTION_SEEN_PREFIX}${section}_seen`
+function getSectionSeenKey(section: string, version?: number) {
+  const v = version && version > 1 ? `_v${version}` : ''
+  return `${SECTION_SEEN_PREFIX}${section}${v}_seen`
 }
 
 const CARD_COLORS = [
@@ -136,52 +139,53 @@ const HELP: Record<string, SectionContent> = {
   },
 
   grammar: {
+    version: 2,
     title: { es: 'Gramática', ca: 'Gramàtica', en: 'Grammar', ja: '文法' },
     intro: {
-      es: 'Explora los puntos gramaticales de Minna no Nihongo, organizados por lección y nivel JLPT. Marca los que ya dominas y consulta explicaciones con IA.',
-      ca: 'Explora els punts gramaticals de Minna no Nihongo, organitzats per lliçó i nivell JLPT. Marca els que ja domines i consulta explicacions amb IA.',
-      en: 'Explore grammar points from Minna no Nihongo, organized by lesson and JLPT level. Mark the ones you master and get AI explanations.',
-      ja: 'Minna no Nihongoの文法ポイントを課とJLPTレベル別に探索。習得済みをマークして、AI解説を参照できます。',
+      es: 'Explora los puntos gramaticales de Minna no Nihongo organizados por lección. Ahora incluye práctica tipo BunPro con IA y SRS propio para gramática.',
+      ca: 'Explora els punts gramaticals de Minna no Nihongo organitzats per lliçó. Ara inclou pràctica estil BunPro amb IA i SRS propi per a gramàtica.',
+      en: 'Explore grammar points from Minna no Nihongo by lesson. Now includes BunPro-style AI practice and a dedicated SRS for grammar.',
+      ja: 'Minna no Nihongoの文法ポイントを課別に探索。BunProスタイルのAI練習と文法専用SRSを新搭載。',
     },
     points: [
       {
-        icon: '🏷️',
-        title: { es: 'Filtros y búsqueda', ca: 'Filtres i cerca', en: 'Filters and search', ja: 'フィルターと検索' },
+        icon: '🏋️',
+        title: { es: 'Práctica fill-in-the-blank', ca: 'Pràctica d\'ompliment de buits', en: 'Fill-in-the-blank practice', ja: '穴埋め練習' },
         body: {
-          es: 'Filtra por nivel JLPT (N5/N4), oculta los puntos ya dominados o busca por patrón o nombre en cualquier idioma.',
-          ca: 'Filtra per nivell JLPT (N5/N4), amaga els punts ja dominats o cerca per patró o nom en qualsevol idioma.',
-          en: 'Filter by JLPT level (N5/N4), hide already mastered points, or search by pattern or name in any language.',
-          ja: 'JLPTレベル（N5/N4）でフィルタリング、習得済みを非表示、または任意の言語で検索できます。',
-        },
-      },
-      {
-        icon: '✅',
-        title: { es: 'Marcar como dominada', ca: 'Marcar com a dominada', en: 'Mark as mastered', ja: '習得済みとしてマーク' },
-        body: {
-          es: 'Pulsa el botón verde en cada tarjeta para marcar el punto como dominado. Tu progreso se guarda en la nube.',
-          ca: 'Prem el botó verd a cada targeta per marcar el punt com a dominat. El teu progrés es guarda al núvol.',
-          en: 'Press the green button on each card to mark the point as mastered. Your progress is saved to the cloud.',
-          ja: '各カードの緑のボタンを押してポイントを習得済みにマーク。進捗はクラウドに保存されます。',
+          es: 'Haz clic en un punto gramatical y pulsa 🏋️ para practicarlo. La IA genera frases con un hueco que debes completar con la gramática correcta. Puedes escribir en romaji y se convierte automáticamente a hiragana.',
+          ca: 'Fes clic en un punt gramatical i prem 🏋️ per practicar-lo. La IA genera frases amb un buit que has d\'omplir amb la gramàtica correcta. Pots escriure en romaji i es converteix automàticament a hiragana.',
+          en: 'Click a grammar point and tap 🏋️ to practice it. AI generates sentences with a blank you must fill with the correct grammar. You can type in romaji — it auto-converts to hiragana.',
+          ja: '文法ポイントをクリックして🏋️を押して練習。AIが空欄のある文を生成し、正しい文法で埋めます。ローマ字入力でひらがなに自動変換されます。',
         },
       },
       {
         icon: '🤖',
-        title: { es: 'Explicación con IA', ca: 'Explicació amb IA', en: 'AI explanation', ja: 'AI解説' },
+        title: { es: 'Frases verificadas por IA', ca: 'Frases verificades per IA', en: 'AI-verified sentences', ja: 'AI検証済み文' },
         body: {
-          es: 'Haz clic en cualquier punto gramatical para ver una explicación detallada con ejemplos generada por IA. Necesitas la API key de Gemini (configúrala en Mi Perfil).',
-          ca: 'Fes clic en qualsevol punt gramatical per veure una explicació detallada amb exemples generada per IA. Necessites la API key de Gemini (configura-la a El meu Perfil).',
-          en: 'Click any grammar point to see a detailed AI-generated explanation with examples. You need the Gemini API key (set it up in My Profile).',
-          ja: '任意の文法ポイントをクリックしてAI生成の詳細解説と例文を表示。Gemini APIキーが必要です（マイプロフィールで設定）。',
+          es: 'Cada vez que generas frases, la IA produce 38 y filtra automáticamente las que no tienen coherencia o naturalidad (puntuación < 4/5). Solo las mejores se guardan en tu pool de práctica.',
+          ca: 'Cada vegada que generates frases, la IA en produeix 38 i filtra automàticament les que no tenen coherència o naturalitat (puntuació < 4/5). Només les millors es guarden al teu pool de pràctica.',
+          en: 'Each time you generate sentences, AI produces 38 and automatically filters out incoherent or unnatural ones (score < 4/5). Only the best ones are saved to your practice pool.',
+          ja: '文を生成するたびに、AIは38文を作成し、一貫性や自然さのないもの（スコア＜4/5）を自動的にフィルタリング。最高品質のものだけが練習プールに保存されます。',
         },
       },
       {
-        icon: '📊',
-        title: { es: 'Progreso', ca: 'Progrés', en: 'Progress', ja: '進捗' },
+        icon: '⏰',
+        title: { es: 'SRS para gramática', ca: 'SRS per a gramàtica', en: 'Grammar SRS', ja: '文法SRS' },
         body: {
-          es: 'La barra superior muestra cuántos puntos has dominado del total. Cada lección también muestra tu progreso individual.',
-          ca: 'La barra superior mostra quants punts has dominat del total. Cada lliçó també mostra el teu progrés individual.',
-          en: 'The top bar shows how many points you\'ve mastered out of the total. Each lesson also shows your individual progress.',
-          ja: '上部バーで全体の習得ポイント数を確認。各課でも個別の進捗が表示されます。',
+          es: 'Cada punto gramatical tiene su propio SRS (8 niveles). Acertar ≥60% en una sesión sube el nivel; fallar más baja el nivel. Un banner en la lista te avisa cuando tienes gramática pendiente de repaso.',
+          ca: 'Cada punt gramatical té el seu propi SRS (8 nivells). Encertar ≥60% en una sessió puja el nivell; fallar més el baixa. Un bàner a la llista t\'avisa quan tens gramàtica pendent de repàs.',
+          en: 'Each grammar point has its own SRS (8 levels). Getting ≥60% in a session levels up; failing more levels down. A banner in the list alerts you when grammar reviews are due.',
+          ja: '各文法ポイントは独自のSRS（8レベル）を持ちます。セッションで60%以上正解するとレベルアップ、より多く失敗するとレベルダウン。リストのバナーが復習期限を知らせます。',
+        },
+      },
+      {
+        icon: '🏷️',
+        title: { es: 'Filtros, búsqueda y progreso', ca: 'Filtres, cerca i progrés', en: 'Filters, search & progress', ja: 'フィルター・検索・進捗' },
+        body: {
+          es: 'Filtra por nivel JLPT (N5/N4), oculta los puntos dominados o busca por patrón. La barra superior muestra tu progreso global. Pulsa ✅ en cualquier tarjeta para marcar un punto como dominado.',
+          ca: 'Filtra per nivell JLPT (N5/N4), amaga els punts dominats o cerca per patró. La barra superior mostra el teu progrés global. Prem ✅ a qualsevol targeta per marcar un punt com a dominat.',
+          en: 'Filter by JLPT level (N5/N4), hide mastered points or search by pattern. The top bar shows your global progress. Tap ✅ on any card to mark a point as mastered.',
+          ja: 'JLPTレベルでフィルタリング、習得済みを非表示、またはパターン検索。上部バーで全体の進捗を確認。✅を押してポイントを習得済みにマーク。',
         },
       },
     ],
@@ -351,7 +355,7 @@ export default function SectionHelp({ section, lang }: Props) {
     if (!mounted) return
     try {
       const tutorialDone = localStorage.getItem(TUTORIAL_DONE_KEY)
-      const sectionSeen = localStorage.getItem(getSectionSeenKey(section))
+      const sectionSeen = localStorage.getItem(getSectionSeenKey(section, content?.version))
       if (tutorialDone && !sectionSeen) {
         const timer = setTimeout(() => setOpen(true), 500)
         return () => clearTimeout(timer)
@@ -366,7 +370,7 @@ export default function SectionHelp({ section, lang }: Props) {
 
   function handleClose() {
     try {
-      localStorage.setItem(getSectionSeenKey(section), '1')
+      localStorage.setItem(getSectionSeenKey(section, content?.version), '1')
     } catch {}
     setOpen(false)
   }
