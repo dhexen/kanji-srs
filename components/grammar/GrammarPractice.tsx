@@ -545,7 +545,7 @@ Reglas:
         </div>
 
         {/* Sentence body */}
-        <div className="px-5 py-6 text-center">
+        <div className="px-5 pt-5 pb-4 text-center">
           <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-relaxed select-none">
             {displayBefore && <span>{displayBefore}</span>}
 
@@ -566,9 +566,13 @@ Reglas:
             {displayAfter && <span>{displayAfter}</span>}
           </div>
 
-          {/* Translation — only after answering */}
-          {phase === 'answered' && translation && (
-            <p className="mt-3 text-sm text-slate-500 italic">{translation}</p>
+          {/* Translation — always visible so the user knows what to complete */}
+          {translation && (
+            <p className={`mt-3 text-sm italic ${
+              phase === 'answered' ? 'text-slate-500' : 'text-slate-400'
+            }`}>
+              {translation}
+            </p>
           )}
         </div>
       </div>
