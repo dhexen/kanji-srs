@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
+import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
 import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
@@ -13,7 +14,7 @@ import { t } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
 import type { GrammarSrsStat } from '@/lib/grammar-srs'
 
-type BookKey = 'mnn1' | 'mnn2'
+type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
 type BookFilter = 'all' | BookKey
 type JlptFilter = 'all' | 'N5' | 'N4' | 'N3'
 type GrammarPointWithBook = GrammarPoint & { book: BookKey }
@@ -28,11 +29,13 @@ type View =
 const BOOKS: { key: BookKey; label: string; subtitle: string }[] = [
   { key: 'mnn1', label: 'MNN 1', subtitle: 'Minna no Nihongo 1' },
   { key: 'mnn2', label: 'MNN 2', subtitle: 'Minna no Nihongo 2' },
+  { key: 'mnnc1', label: 'MNN Ch.I', subtitle: 'Minna no Nihongo Chūkyū I' },
 ]
 
 const ALL_GRAMMAR_POINTS: GrammarPointWithBook[] = [
   ...MNN1_POINTS.map(p => ({ ...p, book: 'mnn1' as const })),
   ...MNN2_POINTS.map(p => ({ ...p, book: 'mnn2' as const })),
+  ...MNNC1_POINTS.map(p => ({ ...p, book: 'mnnc1' as const })),
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
