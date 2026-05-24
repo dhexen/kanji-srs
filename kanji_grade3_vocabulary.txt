@@ -1,0 +1,992 @@
+【丁】
+  一丁目（いっちょうめ）: block 1 (address)
+  包丁（ほうちょう）: kitchen knife
+  落丁（らくちょう）: missing page
+
+【世】
+  世界（せかい）: world
+  二十世紀（にじっせいき）: 20th century
+  世の中（よのなか）: society, the world
+
+【両】
+  両親（りょうしん）: parents
+  両手（りょうて）: both hands
+  車両（しゃりょう）: vehicle, rolling stock
+
+【主】
+  主人（しゅじん）: master, husband
+  地主（じぬし）: landowner
+  主に（おもに）: mainly, primarily
+
+【乗】
+  乗車（じょうしゃ）: boarding a vehicle
+  乗馬（じょうば）: horse riding
+  乗り物（のりもの）: vehicle, means of transport
+
+【予】
+  予感（よかん）: premonition, hunch
+  予言（よげん）: prophecy, prediction
+  予想（よそう）: prediction, expectation
+
+【事】
+  行事（ぎょうじ）: event, function
+  火事（かじ）: fire, conflagration
+  仕事（しごと）: work, job
+
+【仕】
+  仕事（しごと）: work, job
+  仕組み（しくみ）: mechanism, structure
+  仕える（つかえる）: to serve
+
+【他】
+  他人（たにん）: other people, stranger
+  他国（たこく）: another country
+  他の服（ほかのふく）: other clothes
+
+【代】
+  代金（だいきん）: price, cost
+  代わり（かわり）: substitute, replacement
+  千代紙（ちよがみ）: decorative paper
+
+【住】
+  住所（じゅうしょ）: address
+  住人（じゅうにん）: resident, inhabitant
+  住む（すむ）: to live, to reside
+
+【使】
+  使用（しよう）: use, usage
+  大使（たいし）: ambassador
+  使う（つかう）: to use
+
+【係】
+  関係（かんけい）: relationship, connection
+  給食係（きゅうしょくがかり）: school lunch duty
+  係員（かかりいん）: person in charge
+
+【倍】
+  百倍（ひゃくばい）: a hundredfold
+  三倍（さんばい）: triple, three times
+
+【全】
+  全力（ぜんりょく）: full effort
+  全く（まったく）: entirely, completely
+  全て（すべて）: all, everything
+
+【具】
+  道具（どうぐ）: tool, instrument
+  家具（かぐ）: furniture
+  文具（ぶんぐ）: stationery
+
+【写】
+  写真（しゃしん）: photograph
+  書写（しょしゃ）: calligraphy, copying
+  書き写す（かきうつす）: to copy, to transcribe
+
+【列】
+  列車（れっしゃ）: train
+  行列（ぎょうれつ）: queue, procession
+  列（れつ）: row, line, column
+
+【助】
+  助手（じょしゅ）: assistant
+  助言（じょげん）: advice
+  助ける（たすける）: to help, to save
+
+【勉】
+  勉学（べんがく）: studying, scholarship
+  勉強（べんきょう）: studying
+  勉強家（べんきょうか）: hard worker, diligent student
+
+【動】
+  動物（どうぶつ）: animal
+  運動（うんどう）: exercise, movement
+  動く（うごく）: to move
+
+【勝】
+  勝負（しょうぶ）: match, contest
+  勝手（かって）: selfishness, one's own way
+  勝つ（かつ）: to win
+
+【化】
+  化石（かせき）: fossil
+  化しょう（けしょう）: makeup, cosmetics
+  お化け（おばけ）: ghost, monster
+
+【区】
+  地区（ちく）: district, area
+  北区（きたく）: Kita Ward
+  区役所（くやくしょ）: ward office
+
+【医】
+  医学（いがく）: medical science
+  医者（いしゃ）: doctor, physician
+  医薬品（いやくひん）: medicine, pharmaceutical
+
+【去】
+  去年（きょねん）: last year
+  過去（かこ）: past
+  立ち去る（たちさる）: to leave, to go away
+
+【反】
+  反対（はんたい）: opposition, contrary
+  反転（はんてん）: reversal, inversion
+  反る（そる）: to warp, to bend
+
+【取】
+  取材（しゅざい）: news gathering, reporting
+  取得（しゅとく）: acquisition
+  取る（とる）: to take
+
+【受】
+  受験（じゅけん）: taking an exam
+  受付（うけつけ）: reception, reception desk
+  受け取る（うけとる）: to receive, to accept
+
+【号】
+  番号（ばんごう）: number
+  暗号（あんごう）: code, cipher
+  一月号（いちがつごう）: January issue
+
+【向】
+  方向（ほうこう）: direction
+  右を向く（みぎをむく）: to face right
+  北へ向かう（きたへむかう）: heading north
+
+【君】
+  君主（くんしゅ）: monarch, ruler
+  君たち（きみたち）: you (plural)
+  弟君（おとうとぎみ）: younger brother (honorific)
+
+【味】
+  風味（ふうみ）: flavor, taste
+  味方（みかた）: ally, friend
+  味見（あじみ）: tasting
+
+【命】
+  人命（じんめい）: human life
+  命中（めいちゅう）: hitting the target
+  命（いのち）: life
+
+【和】
+  和音（わおん）: chord (music)
+  和食（わしょく）: Japanese food
+  調和（ちょうわ）: harmony
+
+【品】
+  作品（さくひん）: work, piece (of art)
+  品目（ひんもく）: item, article
+  品物（しなもの）: goods, article
+
+【員】
+  全員（ぜんいん）: all members, everyone
+  社員（しゃいん）: company employee
+  店員（てんいん）: store clerk
+
+【商】
+  商店（しょうてん）: shop, store
+  商品（しょうひん）: product, merchandise
+  商い（あきない）: trade, business
+
+【問】
+  学問（がくもん）: learning, scholarship
+  問題（もんだい）: problem, question
+  問い（とい）: question, inquiry
+
+【坂】
+  坂道（さかみち）: slope, hill road
+  下り坂（くだりざか）: downhill slope
+  坂（さか）: slope, hill
+
+【央】
+  中央（ちゅうおう）: center, middle
+  中央区（ちゅうおうく）: Chuo Ward
+
+【始】
+  開始（かいし）: start, beginning
+  始業式（しぎょうしき）: opening ceremony
+  始まる（はじまる）: to begin, to start
+
+【委】
+  委員会（いいんかい）: committee
+  委員長（いいんちょう）: committee chairperson
+  委任（いにん）: delegation, commission
+
+【守】
+  守備（しゅび）: defense
+  留守（るす）: absence from home
+  守る（まもる）: to protect, to guard
+
+【安】
+  安全（あんぜん）: safety, security
+  目安（めやす）: standard, guideline
+  安らか（やすらか）: peaceful, calm
+
+【定】
+  決定（けってい）: decision, determination
+  案の定（あんのじょう）: as expected
+  定める（さだめる）: to decide, to establish
+
+【実】
+  実力（じつりょく）: real ability, true strength
+  事実（じじつ）: fact, truth
+  木の実（きのみ）: fruit, nut
+
+【客】
+  お客様（おきゃくさま）: guest, customer (honorific)
+  来客（らいきゃく）: visitor, guest
+  客室（きゃくしつ）: guest room
+
+【宮】
+  王宮（おうきゅう）: royal palace
+  神宮（じんぐう）: Shinto shrine
+  お宮（おみや）: shrine
+
+【宿】
+  宿題（しゅくだい）: homework
+  宿屋（やどや）: inn, lodging
+  雨宿り（あまやどり）: taking shelter from rain
+
+【寒】
+  防寒（ぼうかん）: protection against cold
+  寒い（さむい）: cold
+  寒空（さむぞら）: cold winter sky
+
+【対】
+  対話（たいわ）: dialogue, conversation
+  対立（たいりつ）: confrontation, opposition
+  一対（いっつい）: a pair
+
+【局】
+  薬局（やっきょく）: pharmacy
+  放送局（ほうそうきょく）: broadcasting station
+  郵便局（ゆうびんきょく）: post office
+
+【屋】
+  魚屋（さかなや）: fish shop
+  屋根（やね）: roof
+  屋上（おくじょう）: rooftop
+
+【岸】
+  海岸（かいがん）: coast, seashore
+  対岸（たいがん）: opposite shore
+  川岸（かわぎし）: riverbank
+
+【島】
+  半島（はんとう）: peninsula
+  列島（れっとう）: island chain, archipelago
+  島国（しまぐに）: island nation
+
+【州】
+  本州（ほんしゅう）: Honshu (main island of Japan)
+  九州（きゅうしゅう）: Kyushu
+  三角州（さんかくす）: river delta
+
+【帳】
+  帳面（ちょうめん）: notebook
+  通帳（つうちょう）: bankbook, passbook
+  日記帳（にっきちょう）: diary
+
+【平】
+  平和（へいわ）: peace
+  平泳ぎ（ひらおよぎ）: breaststroke
+  平ら（たいら）: flat, level
+
+【幸】
+  幸福（こうふく）: happiness, good fortune
+  幸せ（しあわせ）: happiness, good luck
+  海の幸（うみのさち）: seafood, bounty of the sea
+
+【度】
+  温度（おんど）: temperature
+  角度（かくど）: angle
+  速度（そくど）: speed, velocity
+
+【庫】
+  宝庫（ほうこ）: treasure house
+  金庫（きんこ）: safe, vault
+  車庫（しゃこ）: garage
+
+【庭】
+  庭園（ていえん）: garden
+  家庭（かてい）: home, family
+  中庭（なかにわ）: courtyard, inner garden
+
+【式】
+  数式（すうしき）: mathematical formula
+  公式（こうしき）: formula, official
+  入学式（にゅうがくしき）: school entrance ceremony
+
+【役】
+  主役（しゅやく）: leading role, main character
+  市役所（しやくしょ）: city hall
+  役目（やくめ）: role, duty
+
+【待】
+  期待（きたい）: expectation, hope
+  待つ（まつ）: to wait
+  待合室（まちあいしつ）: waiting room
+
+【急】
+  急用（きゅうよう）: urgent business
+  急速（きゅうそく）: rapid, quick
+  急ぎ足（いそぎあし）: hurried pace
+
+【息】
+  休息（きゅうそく）: rest, break
+  消息（しょうそく）: news, tidings
+  ため息（ためいき）: sigh
+
+【悪】
+  悪口（わるぐち）: bad-mouthing, insult
+  悪事（あくじ）: evil deed, wrongdoing
+  悪い（わるい）: bad, wrong
+
+【悲】
+  悲しい（かなしい）: sad
+  悲しむ（かなしむ）: to grieve, to be sad
+  悲運（ひうん）: misfortune, bad luck
+
+【想】
+  空想（くうそう）: fantasy, daydream
+  感想（かんそう）: impressions, thoughts
+  予想（よそう）: prediction, expectation
+
+【意】
+  意見（いけん）: opinion
+  意味（いみ）: meaning
+  好意（こうい）: goodwill, kindness
+
+【感】
+  感想（かんそう）: impressions, thoughts
+  感動（かんどう）: being moved, impressed
+  感じる（かんじる）: to feel, to sense
+
+【所】
+  近所（きんじょ）: neighborhood
+  住所（じゅうしょ）: address
+  台所（だいどころ）: kitchen
+
+【打】
+  打球（だきゅう）: batted ball
+  打者（だしゃ）: batter (baseball)
+  打つ（うつ）: to hit, to strike
+
+【投】
+  投手（とうしゅ）: pitcher (baseball)
+  投球（とうきゅう）: pitching, throwing a ball
+  投げる（なげる）: to throw
+
+【拾】
+  拾得物（しゅうとくぶつ）: found property
+  拾う（ひろう）: to pick up
+  命拾い（いのちびろい）: narrow escape from death
+
+【持】
+  所持品（しょじひん）: belongings, possessions
+  気持ち（きもち）: feeling, mood
+  持ち物（もちもの）: belongings
+
+【指】
+  指名（しめい）: nomination, designation
+  親指（おやゆび）: thumb
+  指図（さしず）: instructions, directions
+
+【放】
+  放送（ほうそう）: broadcasting
+  放つ（はなつ）: to release, to let go
+  放す（はなす）: to let go, to set free
+
+【整】
+  整理（せいり）: organizing, tidying up
+  調整（ちょうせい）: adjustment
+  整える（ととのえる）: to arrange, to prepare
+
+【旅】
+  旅行（りょこう）: travel, trip
+  旅先（たびさき）: destination, place visited
+  旅（たび）: travel, journey
+
+【族】
+  家族（かぞく）: family
+  民族（みんぞく）: ethnic group, people
+  水族館（すいぞくかん）: aquarium
+
+【昔】
+  昔話（むかしばなし）: old tale, folktale
+  大昔（おおむかし）: ancient times, long ago
+  今昔物語（こんじゃくものがたり）: Tales of Times Now Past
+
+【昭】
+  昭和時代（しょうわじだい）: Showa era
+
+【暑】
+  残暑（ざんしょ）: lingering summer heat
+  暑中みまい（しょちゅうみまい）: summer greeting
+  暑い（あつい）: hot (weather)
+
+【暗】
+  暗記（あんき）: memorization
+  暗黒（あんこく）: darkness
+  暗がり（くらがり）: dark place
+
+【曲】
+  名曲（めいきょく）: famous piece of music
+  作曲（さっきょく）: composition, composing
+  曲がる（まがる）: to bend, to turn
+
+【有】
+  有名（ゆうめい）: famous
+  有る（ある）: to exist, to have
+  有様（ありさま）: state, condition
+
+【服】
+  洋服（ようふく）: Western clothes
+  一服（いっぷく）: a dose, a puff
+
+【期】
+  期間（きかん）: period, term
+  新学期（しんがっき）: new school term
+  冬期（とうき）: winter season
+
+【板】
+  黒板（こくばん）: blackboard
+  鉄板（てっぱん）: iron plate
+  板（いた）: board, plank
+
+【柱】
+  円柱（えんちゅう）: cylinder, pillar
+  電柱（でんちゅう）: utility pole
+  貝柱（かいばしら）: scallop muscle
+
+【根】
+  大根（だいこん）: daikon radish
+  根本（こんぽん）: root, basis, foundation
+  屋根（やね）: roof
+
+【植】
+  植物（しょくぶつ）: plant
+  田植え（たうえ）: rice planting
+  植木（うえき）: garden tree, potted plant
+
+【業】
+  学業（がくぎょう）: schoolwork, studies
+  卒業（そつぎょう）: graduation
+  早業（はやわざ）: quick work, sleight of hand
+
+【様】
+  王様（おうさま）: king
+  様子（ようす）: state, appearance
+  同様（どうよう）: same, similar
+
+【横】
+  横転（おうてん）: rolling over, overturning
+  横書き（よこがき）: horizontal writing
+  横顔（よこがお）: profile, side face
+
+【橋】
+  歩道橋（ほどうきょう）: pedestrian bridge
+  つり橋（つりばし）: suspension bridge
+  橋げた（はしげた）: bridge girder
+
+【次】
+  次回（じかい）: next time
+  取り次ぐ（とりつぐ）: to relay, to pass on
+  次の日（つぎのひ）: the next day
+
+【歯】
+  歯科（しか）: dentistry
+  歯医者（はいしゃ）: dentist
+  虫歯（むしば）: cavity, tooth decay
+
+【死】
+  死者（ししゃ）: dead person, casualty
+  死語（しご）: dead language, obsolete word
+  死ぬ（しぬ）: to die
+
+【氷】
+  氷山（ひょうざん）: iceberg
+  かき氷（かきごおり）: shaved ice
+  氷（こおり）: ice
+
+【決】
+  決意（けつい）: determination, resolution
+  決勝（けっしょう）: final, championship match
+  決める（きめる）: to decide
+
+【油】
+  石油（せきゆ）: petroleum, oil
+  油田（ゆでん）: oil field
+  油（あぶら）: oil, fat
+
+【波】
+  電波（でんぱ）: radio wave
+  波長（はちょう）: wavelength
+  波（なみ）: wave
+
+【注】
+  注意（ちゅうい）: caution, attention
+  注目（ちゅうもく）: attention, notice
+  注ぐ（そそぐ）: to pour
+
+【泳】
+  水泳（すいえい）: swimming
+  泳ぐ（およぐ）: to swim
+  平泳ぎ（ひらおよぎ）: breaststroke
+
+【洋】
+  洋式（ようしき）: Western style
+  洋風（ようふう）: Western style
+  太平洋（たいへいよう）: Pacific Ocean
+
+【流】
+  流行（りゅうこう）: trend, fashion
+  流れ星（ながれぼし）: shooting star
+  流す（ながす）: to let flow, to wash away
+
+【消】
+  消火（しょうか）: fire extinguishing
+  消去（しょうきょ）: deletion, erasure
+  消しゴム（けしゴム）: eraser
+
+【深】
+  深夜（しんや）: late night, midnight
+  水深（すいしん）: water depth
+  深い（ふかい）: deep
+
+【温】
+  気温（きおん）: air temperature
+  体温（たいおん）: body temperature
+  温かい（あたたかい）: warm
+
+【港】
+  漁港（ぎょこう）: fishing port
+  出港（しゅっこう）: departure from port
+  港町（みなとまち）: port town
+
+【湖】
+  十和田湖（とわだこ）: Lake Towada
+  湖水（こすい）: lake water
+  美しい湖（うつくしいみずうみ）: beautiful lake
+
+【湯】
+  熱湯（ねっとう）: boiling water
+  お湯（おゆ）: hot water
+  湯気（ゆげ）: steam, vapor
+
+【漢】
+  漢字（かんじ）: kanji, Chinese characters
+  漢文（かんぶん）: classical Chinese text
+  漢語（かんご）: Sino-Japanese word
+
+【炭】
+  石炭（せきたん）: coal
+  木炭（もくたん）: charcoal
+  炭火（すみび）: charcoal fire
+
+【物】
+  物音（ものおと）: sound, noise
+  名物（めいぶつ）: famous product, specialty
+  書物（しょもつ）: books, writings
+
+【球】
+  地球（ちきゅう）: Earth, globe
+  野球（やきゅう）: baseball
+  おそい球（おそいたま）: slow ball
+
+【由】
+  理由（りゆう）: reason, cause
+  自由（じゆう）: freedom, liberty
+  由来（ゆらい）: origin, history
+
+【申】
+  内申書（ないしんしょ）: school report, transcript
+  申しこむ（もうしこむ）: to apply, to register
+  申し上げる（もうしあげる）: to say (humble)
+
+【界】
+  世界（せかい）: world
+  学界（がっかい）: academic world
+  自然界（しぜんかい）: natural world
+
+【畑】
+  畑仕事（はたけしごと）: farm work
+  田畑（たはた）: fields and paddies
+  畑（はたけ）: field, farm
+
+【病】
+  急病（きゅうびょう）: sudden illness
+  病気（びょうき）: illness, sickness
+  病（やまい）: illness, disease
+
+【発】
+  出発（しゅっぱつ）: departure
+  発車（はっしゃ）: departure of a vehicle
+  発見（はっけん）: discovery
+
+【登】
+  登山（とざん）: mountain climbing
+  登校（とうこう）: going to school
+  山登り（やまのぼり）: mountain climbing
+
+【皮】
+  皮肉（ひにく）: irony, sarcasm
+  毛皮（けがわ）: fur, pelt
+  皮（かわ）: skin, hide, peel
+
+【皿】
+  お皿（おさら）: plate, dish
+  小皿（こざら）: small plate
+  取り皿（とりざら）: serving plate
+
+【相】
+  相談（そうだん）: consultation, discussion
+  手相（てそう）: palmistry
+  相性（あいしょう）: compatibility
+
+【県】
+  広島県（ひろしまけん）: Hiroshima Prefecture
+  長野県（ながのけん）: Nagano Prefecture
+  青森県（あおもりけん）: Aomori Prefecture
+
+【真】
+  真実（しんじつ）: truth, reality
+  写真（しゃしん）: photograph
+  真心（まごころ）: sincerity, true heart
+
+【着】
+  着地（ちゃくち）: landing
+  着る（きる）: to wear, to put on
+  着く（つく）: to arrive
+
+【短】
+  短歌（たんか）: tanka poem
+  短期（たんき）: short term
+  短い（みじかい）: short
+
+【研】
+  研究（けんきゅう）: research, study
+  研修（けんしゅう）: training, study program
+
+【礼】
+  お礼（おれい）: thanks, gratitude
+  朝礼（ちょうれい）: morning assembly
+  返礼（へんれい）: return gift, reciprocation
+
+【神】
+  神社（じんじゃ）: Shinto shrine
+  神話（しんわ）: myth, mythology
+  神様（かみさま）: god, deity
+
+【祭】
+  祭日（さいじつ）: holiday, festival day
+  学校祭（がっこうさい）: school festival
+  お祭り（おまつり）: festival
+
+【福】
+  幸福（こうふく）: happiness, good fortune
+  福引（ふくびき）: lottery, lucky draw
+  福の神（ふくのかみ）: god of good fortune
+
+【秒】
+  何秒（なんびょう）: how many seconds
+  秒読み（びょうよみ）: countdown
+  秒（びょう）: second (time unit)
+
+【究】
+  研究（けんきゅう）: research, study
+  究極（きゅうきょく）: ultimate, extreme
+
+【章】
+  校章（こうしょう）: school emblem
+  文章（ぶんしょう）: writing, text, sentence
+  第一章（だいいっしょう）: chapter one
+
+【童】
+  童話（どうわ）: fairy tale, children's story
+  童心（どうしん）: childlike heart
+  学童（がくどう）: schoolchild
+
+【笛】
+  汽笛（きてき）: steam whistle
+  口笛（くちぶえ）: whistle (with mouth)
+  草笛（くさぶえ）: grass whistle
+
+【第】
+  第一位（だいいちい）: first place
+  第二次（だいにじ）: second (in order)
+  落第（らくだい）: failing a grade, flunking
+
+【筆】
+  筆者（ひっしゃ）: writer, author
+  直筆（じきひつ）: one's own handwriting
+  筆（ふで）: writing brush
+
+【等】
+  平等（びょうどう）: equality
+  等分（とうぶん）: equal division
+  等しい（ひとしい）: equal, identical
+
+【箱】
+  筆箱（ふでばこ）: pencil case
+  箱庭（はこにわ）: miniature garden
+  箱（はこ）: box
+
+【級】
+  高級（こうきゅう）: high-class, luxury
+  進級（しんきゅう）: promotion, advancing a grade
+  学級（がっきゅう）: school class
+
+【終】
+  最終日（さいしゅうび）: last day, final day
+  終業式（しゅうぎょうしき）: closing ceremony
+  食べ終える（たべおえる）: to finish eating
+
+【緑】
+  緑色（みどりいろ）: green color
+  緑茶（りょくちゃ）: green tea
+  新緑（しんりょく）: fresh green leaves
+
+【練】
+  練習（れんしゅう）: practice, training
+  練る（ねる）: to knead, to practice
+  練炭（れんたん）: briquette
+
+【羊】
+  羊（ひつじ）: sheep
+  羊雲（ひつじぐも）: altocumulus clouds
+  羊毛（ようもう）: wool
+
+【美】
+  美人（びじん）: beautiful person
+  美化（びか）: beautification
+  美しい（うつくしい）: beautiful
+
+【習】
+  習字（しゅうじ）: calligraphy practice
+  学習（がくしゅう）: learning, study
+  習う（ならう）: to learn
+
+【者】
+  学者（がくしゃ）: scholar
+  作者（さくしゃ）: author, creator
+  人気者（にんきもの）: popular person
+
+【育】
+  子育て（こそだて）: child-rearing
+  発育（はついく）: growth, development
+  教育（きょういく）: education
+
+【苦】
+  四苦八苦（しくはっく）: great suffering
+  苦手（にがて）: weak point, not good at
+  苦しい（くるしい）: painful, hard
+
+【荷】
+  荷物（にもつ）: luggage, baggage
+  出荷（しゅっか）: shipping, dispatch
+  重荷（おもに）: heavy burden
+
+【落】
+  落石（らくせき）: falling rocks
+  落書き（らくがき）: graffiti, doodle
+  落ちる（おちる）: to fall, to drop
+
+【葉】
+  葉（は）: leaf
+  葉書（はがき）: postcard
+  葉脈（ようみゃく）: leaf vein
+
+【薬】
+  薬品（やくひん）: medicine, chemical
+  目薬（めぐすり）: eye drops
+  薬（くすり）: medicine, drug
+
+【血】
+  出血（しゅっけつ）: bleeding, hemorrhage
+  血管（けっかん）: blood vessel
+  赤い血（あかいち）: red blood
+
+【表】
+  表面（ひょうめん）: surface
+  表す（あらわす）: to express, to show
+  表（おもて）: front, surface
+
+【詩】
+  詩人（しじん）: poet
+  詩集（ししゅう）: poetry collection
+  作詩（さくし）: composing poetry
+
+【調】
+  調理（ちょうり）: cooking, food preparation
+  調整（ちょうせい）: adjustment, regulation
+  調べる（しらべる）: to investigate, to check
+
+【談】
+  談話（だんわ）: conversation, talk
+  相談（そうだん）: consultation
+  面談（めんだん）: interview, face-to-face talk
+
+【豆】
+  納豆（なっとう）: natto (fermented soybeans)
+  大豆（だいず）: soybean
+  枝豆（えだまめ）: edamame, green soybeans
+
+【負】
+  勝負（しょうぶ）: match, contest
+  負ける（まける）: to lose
+  負う（おう）: to bear, to carry
+
+【起】
+  起立（きりつ）: standing up
+  早起き（はやおき）: early rising
+  わき起こる（わきおこる）: to well up, to arise
+
+【路】
+  家路（いえじ）: way home
+  路地（ろじ）: alley, lane
+  線路（せんろ）: railway track
+
+【身】
+  身長（しんちょう）: height, stature
+  全身（ぜんしん）: whole body
+  身分（みぶん）: social status, identity
+
+【転】
+  転校（てんこう）: changing schools
+  回転（かいてん）: rotation, revolution
+  転がる（ころがる）: to roll, to tumble
+
+【軽】
+  軽量（けいりょう）: lightweight
+  軽い（かるい）: light (in weight)
+  手軽（てがる）: easy, simple
+
+【農】
+  農業（のうぎょう）: agriculture, farming
+  農家（のうか）: farming household
+  農作物（のうさくぶつ）: agricultural products
+
+【返】
+  返答（へんとう）: reply, response
+  返事（へんじ）: reply, answer
+  返す（かえす）: to return, to give back
+
+【追】
+  追加（ついか）: addition, supplement
+  追放（ついほう）: banishment, expulsion
+  追い風（おいかぜ）: tailwind
+
+【送】
+  発送（はっそう）: sending, shipping
+  放送（ほうそう）: broadcasting
+  見送る（みおくる）: to see off
+
+【速】
+  高速（こうそく）: high speed
+  速度（そくど）: speed, velocity
+  速い（はやい）: fast, quick
+
+【進】
+  行進（こうしん）: march, procession
+  進学（しんがく）: going on to higher education
+  進む（すすむ）: to advance, to progress
+
+【遊】
+  遊具（ゆうぐ）: play equipment
+  遊園地（ゆうえんち）: amusement park
+  遊ぶ（あそぶ）: to play
+
+【運】
+  運転（うんてん）: driving
+  幸運（こううん）: good luck, fortune
+  運ぶ（はこぶ）: to carry, to transport
+
+【部】
+  全部（ぜんぶ）: all, everything
+  部品（ぶひん）: parts, components
+  部屋（へや）: room
+
+【都】
+  東京都（とうきょうと）: Tokyo Metropolis
+  都会（とかい）: city, urban area
+  花の都（はなのみやこ）: city of flowers
+
+【配】
+  分配（ぶんぱい）: distribution, allocation
+  配送（はいそう）: delivery
+  配る（くばる）: to distribute, to hand out
+
+【酒】
+  日本酒（にほんしゅ）: sake, Japanese rice wine
+  洋酒（ようしゅ）: Western liquor
+  お酒（おさけ）: alcohol, sake
+
+【重】
+  体重（たいじゅう）: body weight
+  重い（おもい）: heavy
+  重ねる（かさねる）: to pile up, to stack
+
+【鉄】
+  鉄道（てつどう）: railway, railroad
+  鉄工所（てっこうじょ）: ironworks, steel mill
+  地下鉄（ちかてつ）: subway, underground railway
+
+【銀】
+  銀行（ぎんこう）: bank
+  銀色（ぎんいろ）: silver color
+  水銀（すいぎん）: mercury
+
+【開】
+  開始（かいし）: start, beginning
+  開く（ひらく）: to open
+  開ける（あける）: to open
+
+【院】
+  病院（びょういん）: hospital
+  入院（にゅういん）: hospitalization
+  美容院（びよういん）: beauty salon
+
+【陽】
+  陽気（ようき）: cheerful, merry
+  陽光（ようこう）: sunlight
+  太陽（たいよう）: sun
+
+【階】
+  二階（にかい）: second floor
+  階段（かいだん）: stairs
+  階級（かいきゅう）: rank, class, grade
+
+【集】
+  集会（しゅうかい）: assembly, meeting
+  集中（しゅうちゅう）: concentration, focus
+  集める（あつめる）: to collect, to gather
+
+【面】
+  地面（じめん）: ground, surface
+  面会（めんかい）: meeting, interview
+  面（めん）: face, surface, mask
+
+【題】
+  題名（だいめい）: title, heading
+  問題（もんだい）: problem, question
+  宿題（しゅくだい）: homework
+
+【飲】
+  飲食店（いんしょくてん）: restaurant, eatery
+  飲酒（いんしゅ）: drinking alcohol
+  飲み水（のみみず）: drinking water
+
+【館】
+  旅館（りょかん）: Japanese inn
+  図書館（としょかん）: library
+  中世の館（ちゅうせいのやかた）: medieval mansion
+
+【駅】
+  駅（えき）: station
+  駅長（えきちょう）: stationmaster
+  駅前（えきまえ）: in front of the station
+
+【鼻】
+  鼻水（はなみず）: runny nose, snot
+  鼻（はな）: nose
+  目鼻（めはな）: eyes and nose, features
