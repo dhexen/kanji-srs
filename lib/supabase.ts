@@ -833,6 +833,22 @@ export async function saveGrammarSentences(
   }
 }
 
+/**
+ * Delete all cached sentences for a grammar point.
+ * Used to purge an outdated pool before regenerating with the new prompt.
+ */
+export async function deleteGrammarSentences(grammarId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('grammar_sentences')
+      .delete()
+      .eq('grammar_id', grammarId)
+    if (error) console.warn('deleteGrammarSentences:', error.message)
+  } catch (e) {
+    console.warn('deleteGrammarSentences exception:', e)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Grammar SRS — per-user progress
 // ---------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import {
 import {
   fetchGrammarSentences,
   saveGrammarSentences,
+  deleteGrammarSentences,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
 } from '@/lib/supabase'
@@ -42,6 +43,94 @@ interface Props {
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Furigana helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+type RubyToken = { base: string; ruby?: string }
+
+/** Returns true for kanji (CJK unified ideographs). */
+function isKanjiChar(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0
+  return (cp >= 0x4e00 && cp <= 0x9fff)   // CJK unified
+      || (cp >= 0x3400 && cp <= 0x4dbf)   // CJK extension A
+}
+
+/**
+ * Splits `text` (kanji/kana mixed) into tokens, each carrying a ruby reading
+ * extracted from the flat `reading` string.
+ *
+ * Algorithm: walk through `text`; when encountering a kana character it must
+ * match the same position in `reading` (advance both). Kanji sequences are
+ * assigned the reading characters up to the position of the next kana anchor.
+ */
+function buildRubyTokens(text: string, reading: string): RubyToken[] {
+  if (!text) return []
+  if (!reading) return [{ base: text }]
+
+  const tokens: RubyToken[] = []
+  let ti = 0  // index into text
+  let ri = 0  // index into reading
+
+  while (ti < text.length) {
+    const ch = text[ti]
+
+    if (!isKanjiChar(ch)) {
+      // Kana / punctuation / ASCII — output as plain span, advance reading by 1
+      tokens.push({ base: ch })
+      ri++
+      ti++
+    } else {
+      // Kanji sequence: collect consecutive kanji
+      let kanjiEnd = ti + 1
+      while (kanjiEnd < text.length && isKanjiChar(text[kanjiEnd])) kanjiEnd++
+
+      // Find the reading for this kanji block:
+      // the reading ends where the next text character (after the kanji block)
+      // appears in the reading string.
+      let readingEnd: number
+      if (kanjiEnd >= text.length) {
+        // Last group — consume the rest of reading
+        readingEnd = reading.length
+      } else {
+        const nextCh = text[kanjiEnd]
+        // Search forward in reading from current position for that character
+        let searchPos = ri
+        while (searchPos < reading.length && reading[searchPos] !== nextCh) searchPos++
+        readingEnd = searchPos
+      }
+
+      tokens.push({
+        base: text.slice(ti, kanjiEnd),
+        ruby: reading.slice(ri, readingEnd) || undefined,
+      })
+      ti = kanjiEnd
+      ri = readingEnd
+    }
+  }
+
+  return tokens
+}
+
+/** Renders a Japanese string with ruby furigana above kanji. */
+function RubyText({ text, reading }: { text: string; reading: string }) {
+  const tokens = buildRubyTokens(text, reading)
+  return (
+    <>
+      {tokens.map((tok, i) =>
+        tok.ruby ? (
+          <ruby key={i}>
+            {tok.base}
+            <rt className="text-xs font-normal text-slate-400 tracking-tight">{tok.ruby}</rt>
+          </ruby>
+        ) : (
+          <span key={i}>{tok.base}</span>
+        )
+      )}
+    </>
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,6 +316,13 @@ Otras reglas:
       setPhase('ready')
     }
   }, [grammar, lang, geminiKey, sessionToken, activeVocab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Delete current pool then generate fresh sentences
+  const regenerate = useCallback(async () => {
+    setSentences([])
+    await deleteGrammarSentences(grammar.id)
+    await generate()
+  }, [grammar.id, generate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Session start ─────────────────────────────────────────────────────────
   function startSession() {
@@ -465,12 +561,21 @@ Otras reglas:
             📦 {t(lang, 'gp_pool_count').replace('{n}', String(sentences.length))}
           </span>
           {sessionToken && (
-            <button
-              onClick={generate}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-            >
-              + {t(lang, 'gp_gen_more')}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={generate}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+              >
+                + {t(lang, 'gp_gen_more')}
+              </button>
+              <button
+                onClick={regenerate}
+                className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition"
+                title={t(lang, 'gp_regen')}
+              >
+                🗑️ {t(lang, 'gp_regen')}
+              </button>
+            </div>
           )}
         </div>
 
@@ -554,18 +659,15 @@ Otras reglas:
         {/* Sentence body */}
         <div className="px-5 pt-5 pb-4 text-center">
 
-          {/* Furigana line — shown above the kanji when toggled ON */}
-          {showFurigana && hasFurigana && (
-            <p className="text-sm text-slate-400 leading-relaxed mb-0.5 select-none">
-              {currentSentence.sentence_before_reading}
-              <span className="mx-1 text-indigo-300">＿＿＿</span>
-              {currentSentence.sentence_after_reading}
-            </p>
-          )}
-
-          {/* Main sentence — always in kanji form */}
-          <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-relaxed select-none">
-            {currentSentence.sentence_before && <span>{currentSentence.sentence_before}</span>}
+          {/* Main sentence — kanji with optional inline ruby furigana */}
+          <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-loose select-none">
+            {currentSentence.sentence_before && (
+              <span>
+                {showFurigana && hasFurigana
+                  ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
+                  : currentSentence.sentence_before}
+              </span>
+            )}
 
             {phase === 'answered' ? (
               <span className={`mx-1 px-2.5 py-1 rounded-xl ${
@@ -581,7 +683,13 @@ Otras reglas:
               </span>
             )}
 
-            {currentSentence.sentence_after && <span>{currentSentence.sentence_after}</span>}
+            {currentSentence.sentence_after && (
+              <span>
+                {showFurigana && hasFurigana
+                  ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
+                  : currentSentence.sentence_after}
+              </span>
+            )}
           </div>
 
           {/* Translation — always visible so the user knows what they're completing */}
