@@ -104,7 +104,7 @@ export default function GrammarPractice({
   const [currentPos, setCurrentPos]         = useState(0)
   const [userInput, setUserInput]           = useState('')
   const [isCorrect, setIsCorrect]           = useState(false)
-  const [showReading, setShowReading]       = useState(false)
+  const [showFurigana, setShowFurigana]     = useState(false)
   const [sessionResults, setSessionResults] = useState<boolean[]>([])
   const [genError, setGenError]             = useState('')
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
@@ -152,7 +152,7 @@ export default function GrammarPractice({
 
     const prompt = `Eres un profesor de japonés experto. Genera exactamente ${TARGET_POOL} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
-Formato: el alumno ve la frase con UN HUECO y debe completarlo con la gramática estudiada.
+El alumno ve la frase con UN HUECO (___) y debe escribir la gramática que falta.
 
 Vocabulario disponible (intenta usarlo): ${vocabSample || 'vocabulario básico N5'}
 
@@ -161,24 +161,30 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
   "sentences": [
     {
       "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
-      "before_reading": "lectura del before solo en kana/ASCII",
-      "answer": "la gramática exacta que va en el hueco",
-      "answer_alts": ["variante1"],
+      "before_reading": "lectura completa del before en kana puro, sin kanji",
+      "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
+      "answer_alts": ["variante hiragana aceptable"],
       "after_jp": "texto después del hueco",
-      "after_reading": "lectura del after en kana/ASCII",
-      "translation_es": "traducción en español",
-      "translation_ca": "traducció en català",
-      "translation_en": "English translation"
+      "after_reading": "lectura completa del after en kana puro, sin kanji",
+      "translation_es": "traducción completa en español",
+      "translation_ca": "traducció completa en català",
+      "translation_en": "complete English translation"
     }
   ]
 }
 
-Reglas:
-- El "answer" debe ser EXACTAMENTE el patrón "${grammar.pattern}" o la parte clave del mismo
-- Frases naturales y correctas en japonés, nivel ${grammar.jlpt}
-- Varía los sujetos, contextos y vocabulario; usa el vocabulario disponible cuando sea posible
-- before_reading y after_reading son solo kana (sin kanji) para mostrar furigana
-- answer_alts: incluye variantes válidas (tiempo pasado, forma informal, etc.) o deja el array vacío
+⚠️ REGLA CRÍTICA sobre el campo "answer":
+- Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
+- NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
+- NUNCA uses kanji en el answer — solo hiragana o katakana
+- Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"
+- Ejemplo INCORRECTO → before:"今月", answer:"は七月です"  ← MAL: incluye vocabulario con kanji
+
+Otras reglas:
+- Frases naturales y correctas, nivel ${grammar.jlpt}
+- Varía sujetos, contextos y vocabulario; usa el vocabulario disponible
+- before_reading y after_reading: solo kana (para mostrar furigana al alumno)
+- answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
 - Genera exactamente ${TARGET_POOL} frases distintas`
 
     try {
@@ -492,9 +498,8 @@ Reglas:
   // ── Render: Asking / Answered ─────────────────────────────────────────────
   if (!currentSentence) return null
 
-  const displayBefore = showReading ? currentSentence.sentence_before_reading : currentSentence.sentence_before
-  const displayAfter  = showReading ? currentSentence.sentence_after_reading  : currentSentence.sentence_after
   const translation   = getTranslation(currentSentence)
+  const hasFurigana   = !!(currentSentence.sentence_before_reading || currentSentence.sentence_after_reading)
   const progress      = ((currentPos + (phase === 'answered' ? 1 : 0)) / sessionQueue.length) * 100
 
   return (
@@ -532,22 +537,35 @@ Reglas:
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             {t(lang, 'gp_fill_blank')}
           </span>
-          <button
-            onClick={() => setShowReading(v => !v)}
-            className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
-              showReading
-                ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
-                : 'border-slate-300 text-slate-500 hover:bg-slate-100'
-            }`}
-          >
-            {showReading ? '🈶 かな' : '漢字'}
-          </button>
+          {hasFurigana && (
+            <button
+              onClick={() => setShowFurigana(v => !v)}
+              className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
+                showFurigana
+                  ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                  : 'border-slate-300 text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
+            </button>
+          )}
         </div>
 
         {/* Sentence body */}
         <div className="px-5 pt-5 pb-4 text-center">
+
+          {/* Furigana line — shown above the kanji when toggled ON */}
+          {showFurigana && hasFurigana && (
+            <p className="text-sm text-slate-400 leading-relaxed mb-0.5 select-none">
+              {currentSentence.sentence_before_reading}
+              <span className="mx-1 text-indigo-300">＿＿＿</span>
+              {currentSentence.sentence_after_reading}
+            </p>
+          )}
+
+          {/* Main sentence — always in kanji form */}
           <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-relaxed select-none">
-            {displayBefore && <span>{displayBefore}</span>}
+            {currentSentence.sentence_before && <span>{currentSentence.sentence_before}</span>}
 
             {phase === 'answered' ? (
               <span className={`mx-1 px-2.5 py-1 rounded-xl ${
@@ -563,10 +581,10 @@ Reglas:
               </span>
             )}
 
-            {displayAfter && <span>{displayAfter}</span>}
+            {currentSentence.sentence_after && <span>{currentSentence.sentence_after}</span>}
           </div>
 
-          {/* Translation — always visible so the user knows what to complete */}
+          {/* Translation — always visible so the user knows what they're completing */}
           {translation && (
             <p className={`mt-3 text-sm italic ${
               phase === 'answered' ? 'text-slate-500' : 'text-slate-400'
