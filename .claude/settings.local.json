@@ -18,7 +18,8 @@
       "Bash(npx tsx *)",
       "Bash(node -e ' *)",
       "Bash(node -e \"fetch\\('https://tlfrtnbmwmtenttbiqvy.supabase.co/rest/v1/'\\).then\\(r => console.log\\('OK', r.status\\)\\).catch\\(e => console.log\\('FAIL', e.message\\)\\)\")",
-      "Bash(mkdir -p \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\\\\app\\\\api\\\\admin\\\\vocab\\\\[word]\")"
+      "Bash(mkdir -p \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\\\\app\\\\api\\\\admin\\\\vocab\\\\[word]\")",
+      "PowerShell(cd \"C:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\"; $job = Start-Job -ScriptBlock { cd \"C:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\"; npm run dev 2>&1 }; Start-Sleep -Seconds 15; Receive-Job $job; Stop-Job $job; Remove-Job $job)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
