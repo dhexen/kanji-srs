@@ -74,7 +74,7 @@ export default function Header() {
             </div>
 
             {hourlyForecast.length > 0 && (
-              <div className="overflow-x-auto -mx-1 px-1">
+              <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
                 <div className="flex gap-1.5 min-w-max pb-0.5">
                   {hourlyForecast.map(h => (
                     <div
@@ -103,7 +103,7 @@ export default function Header() {
           {/* Resto de la semana */}
           <div>
             <p className="text-indigo-100 text-xs font-medium mb-2">{t(lang, 'header_forecast')}</p>
-            <div className="overflow-x-auto -mx-1 px-1">
+            <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
               <div className="flex gap-3 min-w-max">
                 {futureDays.map(day => (
                   <div

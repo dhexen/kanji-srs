@@ -177,7 +177,7 @@ export default function AdminClient() {
       const result = await processImageBatch({
         limit: 40,
         geminiApiKey: imgGeminiKey || undefined,
-        pexelsApiKey: imgPexelsKey || undefined,
+        pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
       })
       setImgLastResult(result)
       const stats = await fetchImageStats()
@@ -251,7 +251,7 @@ export default function AdminClient() {
         word,
         action,
         url: action === 'set_url' ? imgReportUrls[word] : undefined,
-        pexelsApiKey: imgPexelsKey || undefined,
+        pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
       })
       if (action === 'retry' && result.image_url) {
         showToast('Nueva imagen encontrada', 'success')

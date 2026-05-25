@@ -237,13 +237,14 @@ export async function countUserVocab(userId?: string): Promise<number> {
 
 export async function fetchUserSettings(): Promise<{
   gemini_api_key: string
+  pexels_api_key: string
   context_texts: ContextText[]
   language: string
 } | null> {
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('gemini_api_key, context_texts, language')
+    .select('gemini_api_key, pexels_api_key, context_texts, language')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -253,6 +254,7 @@ export async function fetchUserSettings(): Promise<{
       if (!legacy) return null
       return {
         gemini_api_key: legacy.gemini_api_key ?? '',
+        pexels_api_key: '',
         context_texts: (legacy.context_texts as ContextText[]) ?? [],
         language: legacy.language ?? 'es',
       }
@@ -263,6 +265,7 @@ export async function fetchUserSettings(): Promise<{
   if (!data) return null
   return {
     gemini_api_key: data.gemini_api_key ?? '',
+    pexels_api_key: data.pexels_api_key ?? '',
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
   }
@@ -309,6 +312,22 @@ export async function saveGeminiKey(key: string) {
   } catch (e) {
     if (isSchemaUnavailable(e as { code?: string; message?: string })) {
       await upsertLegacySettings({ gemini_api_key: key })
+      return
+    }
+    throw e
+  }
+}
+
+export async function savePexelsKey(key: string) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, pexels_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
+      // Legacy table doesn't have pexels_api_key — ignore silently
       return
     }
     throw e
@@ -469,6 +488,7 @@ export async function migrateLegacyProgressIfNeeded(): Promise<boolean> {
 export async function downloadAccountData(): Promise<{
   vocab: VocabItem[]
   gemini_api_key: string
+  pexels_api_key: string
   context_texts: ContextText[]
   language: string
 } | null> {
@@ -500,6 +520,7 @@ export async function downloadAccountData(): Promise<{
   return {
     vocab,
     gemini_api_key: legacy?.gemini_api_key ?? '',
+    pexels_api_key: '',
     context_texts: (legacy?.context_texts as ContextText[]) ?? [],
     language: legacy?.language ?? 'es',
   }

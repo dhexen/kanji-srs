@@ -56,7 +56,7 @@ function ProgressRing({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
   const [activeTab, setActiveTab] = useState<TabKey>(
@@ -73,6 +73,7 @@ export default function StatsClient() {
   const [emailSent, setEmailSent] = useState(false)
   const [geminiKey, setGeminiKey] = useState(state.geminiApiKey ?? '')
   const [geminiStepsOpen, setGeminiStepsOpen] = useState(false)
+  const [pexelsKey, setPexelsKey] = useState(state.pexelsApiKey ?? '')
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1) // -1 = loading
   const lang = state.lang
 
@@ -143,6 +144,12 @@ export default function StatsClient() {
   async function handleSaveGeminiKey() {
     const key = geminiKey.trim()
     await updateGeminiKey(key)
+    showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+  }
+
+  async function handleSavePexelsKey() {
+    const key = pexelsKey.trim()
+    await updatePexelsKey(key)
     showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
   }
 
@@ -333,6 +340,91 @@ export default function StatsClient() {
               {state.geminiApiKey && (
                 <button
                   onClick={() => { setGeminiKey(''); updateGeminiKey('') }}
+                  className="text-xs text-slate-400 hover:text-rose-500 transition underline"
+                >
+                  {t(lang, 'api_remove')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Pexels API Key */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-900">Pexels API Key</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {lang === 'ca' ? 'Per a la cerca automàtica d\'imatges de vocabulari' :
+                 lang === 'en' ? 'For automatic vocabulary image search' :
+                 lang === 'ja' ? '語彙画像の自動検索用' :
+                 'Para la búsqueda automática de imágenes de vocabulario'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-100 font-medium">
+                {lang === 'ca' ? '🖼️ Imatges de vocabulari' :
+                 lang === 'en' ? '🖼️ Vocabulary images' :
+                 lang === 'ja' ? '🖼️ 語彙画像' :
+                 '🖼️ Imágenes de vocabulario'}
+              </span>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-4 text-xs text-slate-600 space-y-2">
+              {[
+                { n: 1,
+                  es: <>Ve a <a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">pexels.com/api</a> e inicia sesión o crea una cuenta gratuita</>,
+                  ca: <>Ves a <a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">pexels.com/api</a> i inicia sessió o crea un compte gratuït</>,
+                  en: <>Go to <a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">pexels.com/api</a> and sign in or create a free account</>,
+                  ja: <><a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">pexels.com/api</a> にアクセスし、無料アカウントでログイン</>,
+                },
+                { n: 2,
+                  es: <>Haz clic en <strong>«Your API Key»</strong> — se genera automáticamente y es gratuita</>,
+                  ca: <>Fes clic a <strong>«Your API Key»</strong> — es genera automàticament i és gratuïta</>,
+                  en: <>Click <strong>"Your API Key"</strong> — it's generated automatically and is free</>,
+                  ja: <><strong>「Your API Key」</strong> をクリック — 自動生成で無料</>,
+                },
+                { n: 3,
+                  es: <>Copia la clave y pégala en el campo de abajo</>,
+                  ca: <>Copia la clau i enganxa-la al camp de sota</>,
+                  en: <>Copy the key and paste it in the field below</>,
+                  ja: <>キーをコピーして下のフィールドに貼り付ける</>,
+                },
+              ].map(step => (
+                <div key={step.n} className="flex gap-2.5 items-start">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-rose-100 text-rose-600 font-bold text-[10px] flex items-center justify-center mt-0.5">
+                    {step.n}
+                  </span>
+                  <span>{(step as any)[lang] ?? step.es}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-600">API Key</label>
+                {state.pexelsApiKey
+                  ? <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
+                  : <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
+                }
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={pexelsKey}
+                  onChange={e => setPexelsKey(e.target.value)}
+                  placeholder="pexels.com/api — clave gratuita inmediata"
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-400"
+                />
+                <button
+                  onClick={handleSavePexelsKey}
+                  className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-sm transition"
+                >
+                  {t(lang, 'ctx_key_save')}
+                </button>
+              </div>
+              {state.pexelsApiKey && (
+                <button
+                  onClick={() => { setPexelsKey(''); updatePexelsKey('') }}
                   className="text-xs text-slate-400 hover:text-rose-500 transition underline"
                 >
                   {t(lang, 'api_remove')}

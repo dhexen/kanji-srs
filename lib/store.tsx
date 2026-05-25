@@ -11,6 +11,7 @@ import {
   createManualSnapshot,
   getUserRole,
   saveGeminiKey,
+  savePexelsKey,
   saveContextTexts,
   saveLanguage,
   fetchSrsIntervalsConfig,
@@ -27,6 +28,7 @@ interface State {
   syncing: boolean
   loaded: boolean
   geminiApiKey: string
+  pexelsApiKey: string
   contextTexts: ContextText[]
   lang: Lang
 }
@@ -40,6 +42,7 @@ type Action =
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
   | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; isCorrect: boolean } }
   | { type: 'SET_GEMINI_KEY'; payload: string }
+  | { type: 'SET_PEXELS_KEY'; payload: string }
   | { type: 'SET_CONTEXT_TEXTS'; payload: ContextText[] }
   | { type: 'ADD_CONTEXT_TEXT'; payload: ContextText }
   | { type: 'REMOVE_CONTEXT_TEXT'; payload: number }
@@ -54,6 +57,7 @@ function appReducer(state: State, action: Action): State {
     case 'SET_SYNCING': return { ...state, syncing: action.payload }
     case 'SET_LOADED': return { ...state, loaded: true }
     case 'SET_GEMINI_KEY': return { ...state, geminiApiKey: action.payload }
+    case 'SET_PEXELS_KEY': return { ...state, pexelsApiKey: action.payload }
     case 'SET_LANG': return { ...state, lang: action.payload }
     case 'SET_CONTEXT_TEXTS': return { ...state, contextTexts: action.payload }
     case 'ADD_CONTEXT_TEXT': return { ...state, contextTexts: [action.payload, ...state.contextTexts].slice(0, 10) }
@@ -66,7 +70,7 @@ function appReducer(state: State, action: Action): State {
     case 'APPLY_RESULT': {
       return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.isCorrect)) }
     }
-    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '' }
+    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', pexelsApiKey: '' }
     default: return state
   }
 }
@@ -124,6 +128,7 @@ interface StoreContextType {
   syncDown: () => Promise<void>
   resetRemoteProgress: () => Promise<void>
   updateGeminiKey: (key: string) => Promise<void>
+  updatePexelsKey: (key: string) => Promise<void>
   addContextText: (text: ContextText) => Promise<void>
   removeContextText: (id: number) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
@@ -138,7 +143,7 @@ const StoreContext = createContext<StoreContextType | null>(null)
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user', syncing: false, loaded: false,
-    geminiApiKey: '', contextTexts: [], lang: 'es',
+    geminiApiKey: '', pexelsApiKey: '', contextTexts: [], lang: 'es',
   })
 
   const dbRef = useRef<VocabItem[]>([])
@@ -231,6 +236,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_DB', payload: migrated })
         dbRef.current = migrated
         if (data.gemini_api_key) dispatch({ type: 'SET_GEMINI_KEY', payload: data.gemini_api_key })
+        if (data.pexels_api_key) dispatch({ type: 'SET_PEXELS_KEY', payload: data.pexels_api_key })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
       }
@@ -267,6 +273,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateGeminiKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_GEMINI_KEY', payload: key })
     try { await saveGeminiKey(key) } catch (e) { console.error('Error guardando API key:', e) }
+  }, [])
+
+  const updatePexelsKey = useCallback(async (key: string) => {
+    dispatch({ type: 'SET_PEXELS_KEY', payload: key })
+    try { await savePexelsKey(key) } catch (e) { console.error('Error guardando Pexels API key:', e) }
   }, [])
 
   const addContextText = useCallback(async (text: ContextText) => {
@@ -362,6 +373,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_DB', payload: [] })
     dispatch({ type: 'SET_CONTEXT_TEXTS', payload: [] })
     dispatch({ type: 'SET_GEMINI_KEY', payload: '' })
+    dispatch({ type: 'SET_PEXELS_KEY', payload: '' })
     dispatch({ type: 'SET_LANG', payload: 'es' })
     dispatch({ type: 'SET_LOADED' })
     userRef.current = null
@@ -379,6 +391,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       syncDown,
       resetRemoteProgress,
       updateGeminiKey,
+      updatePexelsKey,
       addContextText,
       removeContextText,
       setLang,
