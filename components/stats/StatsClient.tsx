@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
@@ -56,7 +57,16 @@ function ProgressRing({
 
 export default function StatsClient() {
   const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey } = useStore()
-  const [activeTab, setActiveTab] = useState<TabKey>('stats')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as TabKey | null
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    tabParam === 'settings' ? 'settings' : tabParam === 'account' ? 'account' : 'stats'
+  )
+
+  // Sync tab with URL param changes (when nav link is clicked)
+  useEffect(() => {
+    setActiveTab(tabParam === 'settings' ? 'settings' : tabParam === 'account' ? 'account' : 'stats')
+  }, [tabParam])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
@@ -177,8 +187,8 @@ export default function StatsClient() {
         <SectionHelp section="profile" lang={lang} />
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl">
+      {/* Tab bar — visible on mobile only (desktop uses the sidebar submenu) */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl lg:hidden">
         {tabs.map(tab => (
           <button
             key={tab.key}

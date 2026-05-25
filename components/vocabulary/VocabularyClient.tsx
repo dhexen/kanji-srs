@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { VocabItem, MODE_CONFIG, migrateItem, VocabCategory, VocabWordType } from '@/lib/srs'
 import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGrade, insertUnofficialVocab, searchVocabulary } from '@/lib/supabase'
@@ -68,7 +69,16 @@ type GradeWordEntry = { word: string; kanji: string; is_official: boolean }
 
 export default function VocabularyClient() {
   const { state, addVocabItems } = useStore()
-  const [activeTab, setActiveTab] = useState<'import' | 'glossary'>('import')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as 'import' | 'glossary' | null
+  const [activeTab, setActiveTab] = useState<'import' | 'glossary'>(
+    tabParam === 'glossary' ? 'glossary' : 'import'
+  )
+
+  // Sync tab with URL param changes (when nav link is clicked)
+  useEffect(() => {
+    setActiveTab(tabParam === 'glossary' ? 'glossary' : 'import')
+  }, [tabParam])
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -351,8 +361,8 @@ export default function VocabularyClient() {
   return (
     <div className="space-y-6">
 
-      {/* Tab switcher */}
-      <div className="flex gap-2">
+      {/* Tab switcher — visible on mobile only (desktop uses the sidebar submenu) */}
+      <div className="flex gap-2 lg:hidden">
         <button
           onClick={() => setActiveTab('import')}
           className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
