@@ -78,8 +78,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, errors }, { status: 422 })
     }
 
+    // Deduplicate within the submitted batch (keep first occurrence of each word)
+    const dedupedMap = new Map<string, Record<string, unknown>>()
+    for (const row of valid) dedupedMap.set(row.word as string, row)
+    const deduped = Array.from(dedupedMap.values())
+
     // Check which words already exist (in chunks of 150 to avoid URL limits)
-    const allWords = valid.map(r => r.word as string)
+    const allWords = deduped.map(r => r.word as string)
     const existingSet = new Set<string>()
     const CHECK_CHUNK = 150
     for (let i = 0; i < allWords.length; i += CHECK_CHUNK) {
@@ -92,8 +97,8 @@ export async function POST(request: NextRequest) {
       for (const row of existing ?? []) existingSet.add(row.word as string)
     }
 
-    const newRows = valid.filter(r => !existingSet.has(r.word as string))
-    const skipped = valid.length - newRows.length
+    const newRows = deduped.filter(r => !existingSet.has(r.word as string))
+    const skipped = deduped.length - newRows.length
     let inserted = 0
 
     // Insert new rows in chunks of 100
