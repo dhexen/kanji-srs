@@ -10,7 +10,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const { service } = await requireAdmin(request)
     const grade = Number(request.nextUrl.searchParams.get('grade'))
-    if (!grade || grade < 1 || grade > 6) throw new AdminApiError('Grado inválido (1-6)', 400)
+    if (!grade || grade < 1 || grade > 9) throw new AdminApiError('Grado inválido (1-9)', 400)
 
     // 1. Delete from shared vocabulary — capture the words that were deleted
     const { data: deleted, error: vocabErr } = await service

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       if (!row.reading?.trim())   { errors.push(`Fila ${n}: 'reading' es obligatorio`);   return }
       if (!row.meaning_es?.trim()){ errors.push(`Fila ${n}: 'meaning_es' es obligatorio`); return }
       const grade = Number(row.grade)
-      if (!grade || grade < 1 || grade > 6) { errors.push(`Fila ${n}: 'grade' debe ser 1-6`); return }
+      if (!grade || grade < 1 || grade > 9) { errors.push(`Fila ${n}: 'grade' debe ser 1-9`); return }
 
       const cat = row.category?.trim() || null
       const wt  = row.word_type?.trim() || null
@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
     }
 
     const newRows = deduped.filter(r => !existingSet.has(r.word as string))
-    const skipped = deduped.length - newRows.length
+    const skipped_in_file = valid.length - deduped.length   // same word appeared multiple times in the CSV
+    const skipped_in_db   = deduped.length - newRows.length // word already existed in DB
     let inserted = 0
 
     // Insert new rows in chunks of 100
@@ -112,7 +113,14 @@ export async function POST(request: NextRequest) {
       inserted += chunk.length
     }
 
-    return NextResponse.json({ ok: true, inserted, skipped, total: valid.length })
+    return NextResponse.json({
+      ok: true,
+      inserted,
+      skipped: skipped_in_file + skipped_in_db,
+      skipped_in_file,
+      skipped_in_db,
+      total: valid.length,
+    })
   } catch (e) {
     return adminJsonError(e)
   }

@@ -221,6 +221,8 @@ export interface VocabImportResult {
   ok: boolean
   inserted: number
   skipped: number
+  skipped_in_file?: number   // duplicates within the CSV itself
+  skipped_in_db?: number     // words that already existed in the DB
   total: number
   errors?: string[]
 }

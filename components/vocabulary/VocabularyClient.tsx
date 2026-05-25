@@ -60,10 +60,18 @@ function activateItem(item: VocabItem, level: number, due: number): VocabItem {
 }
 
 const GRADES = [
-  { label: '1º Primaria', labelCa: '1r Primària', labelEn: '1st Grade', labelJa: '小学1年生', value: 1 },
-  { label: '2º Primaria', labelCa: '2n Primària', labelEn: '2nd Grade', labelJa: '小学2年生', value: 2 },
-  { label: '3º Primaria', labelCa: '3r Primària', labelEn: '3rd Grade', labelJa: '小学3年生', value: 3 },
+  { label: '1º Primaria',   labelCa: '1r Primària',   labelEn: '1st Grade', labelJa: '小学1年生', value: 1, group: 'primary'   },
+  { label: '2º Primaria',   labelCa: '2n Primària',   labelEn: '2nd Grade', labelJa: '小学2年生', value: 2, group: 'primary'   },
+  { label: '3º Primaria',   labelCa: '3r Primària',   labelEn: '3rd Grade', labelJa: '小学3年生', value: 3, group: 'primary'   },
+  { label: '4º Primaria',   labelCa: '4t Primària',   labelEn: '4th Grade', labelJa: '小学4年生', value: 4, group: 'primary'   },
+  { label: '5º Primaria',   labelCa: '5è Primària',   labelEn: '5th Grade', labelJa: '小学5年生', value: 5, group: 'primary'   },
+  { label: '6º Primaria',   labelCa: '6è Primària',   labelEn: '6th Grade', labelJa: '小学6年生', value: 6, group: 'primary'   },
+  { label: '1º Secundaria', labelCa: '1r Secundària', labelEn: '7th Grade', labelJa: '中学1年生', value: 7, group: 'secondary' },
+  { label: '2º Secundaria', labelCa: '2n Secundària', labelEn: '8th Grade', labelJa: '中学2年生', value: 8, group: 'secondary' },
+  { label: '3º Secundaria', labelCa: '3r Secundària', labelEn: '9th Grade', labelJa: '中学3年生', value: 9, group: 'secondary' },
 ]
+const PRIMARY_GRADES   = GRADES.filter(g => g.group === 'primary')
+const SECONDARY_GRADES = GRADES.filter(g => g.group === 'secondary')
 
 type GradeWordEntry = { word: string; kanji: string; is_official: boolean }
 
@@ -513,49 +521,91 @@ export default function VocabularyClient() {
             {/* Grade selector */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">{t(lang, 'vocab_course')}</label>
-              <div data-tutorial-id="vocab-grade-selector" className="space-y-2">
-                {GRADES.map(g => {
-                  const gStats = getGradeStats(g.value)
-                  const isSelected = grade === g.value
-                  return (
-                    <button key={g.value} onClick={() => { setGrade(g.value); setShownKanjis(new Set()) }}
-                      className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                      }`}>
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span>🏫 {gradeLabel(g)}</span>
-                        <div className="flex items-center gap-1 flex-wrap justify-end">
-                          <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {statsLoading
-                              ? '...'
-                              : `${gStats.totalKanjis} kanjis · ${gStats.totalWords} ${t(lang, 'study_words')}`}
-                          </span>
-                          {!statsLoading && gStats.unofficial > 0 && (
-                            <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
-                              {t(lang, 'vocab_unofficials_n').replace('{n}', String(gStats.unofficial))}
+              <div data-tutorial-id="vocab-grade-selector" className="space-y-3">
+                {/* Primaria */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-1">
+                    {lang === 'en' ? 'Elementary' : lang === 'ja' ? '小学校' : lang === 'ca' ? 'Primària' : 'Primaria'}
+                  </p>
+                  {PRIMARY_GRADES.map(g => {
+                    const gStats = getGradeStats(g.value)
+                    const isSelected = grade === g.value
+                    return (
+                      <button key={g.value} onClick={() => { setGrade(g.value); setShownKanjis(new Set()) }}
+                        className={`w-full px-3 py-2 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                        }`}>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span>🏫 {gradeLabel(g)}</span>
+                          <div className="flex items-center gap-1 flex-wrap justify-end">
+                            <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              {statsLoading ? '...' : `${gStats.totalKanjis} kanjis · ${gStats.totalWords} ${t(lang, 'study_words')}`}
                             </span>
-                          )}
+                            {!statsLoading && gStats.unofficial > 0 && (
+                              <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
+                                {t(lang, 'vocab_unofficials_n').replace('{n}', String(gStats.unofficial))}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {!statsLoading && gStats.userWordCount > 0 && (
-                        <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
-                          ({t(lang, 'vocab_learning')
-                            .replace('{k}', String(gStats.userKanjiCount))
-                            .replace('{w}', String(gStats.userWordCount))})
+                        {!statsLoading && gStats.userWordCount > 0 && (
+                          <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                            ({t(lang, 'vocab_learning').replace('{k}', String(gStats.userKanjiCount)).replace('{w}', String(gStats.userWordCount))})
+                          </div>
+                        )}
+                        {!statsLoading && (
+                          <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-indigo-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                            {gStats.remaining === 0 ? t(lang, 'vocab_complete') : t(lang, 'vocab_remaining_n').replace('{n}', String(gStats.remaining))}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {/* Secundaria */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-1">
+                    {lang === 'en' ? 'Middle School' : lang === 'ja' ? '中学校' : lang === 'ca' ? 'Secundària' : 'Secundaria'}
+                  </p>
+                  {SECONDARY_GRADES.map(g => {
+                    const gStats = getGradeStats(g.value)
+                    const isSelected = grade === g.value
+                    return (
+                      <button key={g.value} onClick={() => { setGrade(g.value); setShownKanjis(new Set()) }}
+                        className={`w-full px-3 py-2 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                          isSelected
+                            ? 'bg-violet-600 text-white border-violet-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
+                        }`}>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span>🎓 {gradeLabel(g)}</span>
+                          <div className="flex items-center gap-1 flex-wrap justify-end">
+                            <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              {statsLoading ? '...' : `${gStats.totalKanjis} kanjis · ${gStats.totalWords} ${t(lang, 'study_words')}`}
+                            </span>
+                            {!statsLoading && gStats.unofficial > 0 && (
+                              <span className={`text-xs font-normal px-2 py-0.5 rounded ${isSelected ? 'bg-red-400 text-white' : 'bg-red-50 text-red-500'}`}>
+                                {t(lang, 'vocab_unofficials_n').replace('{n}', String(gStats.unofficial))}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {!statsLoading && (
-                        <div className={`text-xs font-normal mt-1 ${isSelected ? 'text-indigo-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                          {gStats.remaining === 0
-                            ? t(lang, 'vocab_complete')
-                            : t(lang, 'vocab_remaining_n').replace('{n}', String(gStats.remaining))}
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
+                        {!statsLoading && gStats.userWordCount > 0 && (
+                          <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-violet-200' : 'text-slate-400'}`}>
+                            ({t(lang, 'vocab_learning').replace('{k}', String(gStats.userKanjiCount)).replace('{w}', String(gStats.userWordCount))})
+                          </div>
+                        )}
+                        {!statsLoading && (
+                          <div className={`text-xs font-normal mt-0.5 ${isSelected ? 'text-violet-200' : gStats.remaining === 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                            {gStats.remaining === 0 ? t(lang, 'vocab_complete') : t(lang, 'vocab_remaining_n').replace('{n}', String(gStats.remaining))}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 

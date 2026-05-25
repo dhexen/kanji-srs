@@ -49,7 +49,7 @@ function parseCSV(text: string): { rows: VocabImportRow[]; errors: string[] } {
 }
 
 // ─── Grade selector shared ────────────────────────────────────────────────────
-const GRADES = [1, 2, 3, 4, 5, 6]
+const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminVocabTab() {
@@ -103,11 +103,12 @@ export default function AdminVocabTab() {
 
   // ── Delete by grade handler ───────────────────────────────────────────────────
   async function handleDeleteGrade() {
-    if (!confirm(`¿Eliminar TODAS las palabras de ${deleteGrade}º de primaria del vocabulario global?\n\nEsta acción no se puede deshacer.`)) return
+    const gradeLabel = deleteGrade <= 6 ? `${deleteGrade}º Primaria` : `${deleteGrade - 6}º Secundaria`
+    if (!confirm(`¿Eliminar TODAS las palabras de ${gradeLabel} del vocabulario global?\n\nEsta acción no se puede deshacer.`)) return
     setDeletingGrade(true)
     try {
       const { deleted } = await deleteVocabByGrade(deleteGrade)
-      showToast(`${deleted} palabras de ${deleteGrade}º eliminadas`, 'success')
+      showToast(`${deleted} palabras de ${gradeLabel} eliminadas`, 'success')
       // Clear search results that belonged to this grade
       setResults(prev => prev.filter(r => r.grade !== deleteGrade))
     } catch (e) {
@@ -239,7 +240,9 @@ export default function AdminVocabTab() {
             className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-rose-400 cursor-pointer"
           >
             {GRADES.map(g => (
-              <option key={g} value={g}>{g}º de primaria</option>
+              <option key={g} value={g}>
+                {g <= 6 ? `${g}º Primaria` : `${g - 6}º Secundaria`}
+              </option>
             ))}
           </select>
           <button
@@ -281,7 +284,7 @@ export default function AdminVocabTab() {
                   ['kanji',      'Carácter kanji principal'],
                   ['reading',    'Lectura en hiragana'],
                   ['meaning_es', 'Significado en español'],
-                  ['grade',      'Grado escolar (1-6)'],
+                  ['grade',      'Grado escolar (1-9)'],
                 ].map(([col, desc]) => (
                   <li key={col}><code className="bg-slate-200 px-1 rounded">{col}</code> — {desc}</li>
                 ))}
@@ -406,7 +409,18 @@ export default function AdminVocabTab() {
             {importResult.ok ? (
               <div className="text-sm text-emerald-800 space-y-1">
                 <p className="font-bold">✓ Importación completada</p>
-                <p>Insertadas: <strong>{importResult.inserted}</strong> · Omitidas (ya existían): <strong>{importResult.skipped}</strong></p>
+                <p>Insertadas: <strong>{importResult.inserted}</strong> de <strong>{importResult.total}</strong></p>
+                {(importResult.skipped_in_file ?? 0) > 0 && (
+                  <p className="text-xs text-emerald-700">
+                    Duplicadas en el archivo: <strong>{importResult.skipped_in_file}</strong>{' '}
+                    <span className="text-emerald-500">(misma palabra bajo distintos kanjis)</span>
+                  </p>
+                )}
+                {(importResult.skipped_in_db ?? 0) > 0 && (
+                  <p className="text-xs text-emerald-700">
+                    Ya existían en BD: <strong>{importResult.skipped_in_db}</strong>
+                  </p>
+                )}
               </div>
             ) : (
               <div className="text-sm text-rose-800">

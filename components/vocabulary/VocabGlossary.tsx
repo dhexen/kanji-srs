@@ -7,10 +7,18 @@ import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
 const GRADES = [
-  { value: 1, label: { es: '1º Primaria', ca: '1r Primària', en: '1st Grade', ja: '小1' } },
-  { value: 2, label: { es: '2º Primaria', ca: '2n Primària', en: '2nd Grade', ja: '小2' } },
-  { value: 3, label: { es: '3º Primaria', ca: '3r Primària', en: '3rd Grade', ja: '小3' } },
+  { value: 1, group: 'primary',   label: { es: '1º Prim.', ca: '1r Prim.', en: '1st', ja: '小1' } },
+  { value: 2, group: 'primary',   label: { es: '2º Prim.', ca: '2n Prim.', en: '2nd', ja: '小2' } },
+  { value: 3, group: 'primary',   label: { es: '3º Prim.', ca: '3r Prim.', en: '3rd', ja: '小3' } },
+  { value: 4, group: 'primary',   label: { es: '4º Prim.', ca: '4t Prim.', en: '4th', ja: '小4' } },
+  { value: 5, group: 'primary',   label: { es: '5º Prim.', ca: '5è Prim.', en: '5th', ja: '小5' } },
+  { value: 6, group: 'primary',   label: { es: '6º Prim.', ca: '6è Prim.', en: '6th', ja: '小6' } },
+  { value: 7, group: 'secondary', label: { es: '1º Sec.',  ca: '1r Sec.',  en: '7th', ja: '中1' } },
+  { value: 8, group: 'secondary', label: { es: '2º Sec.',  ca: '2n Sec.',  en: '8th', ja: '中2' } },
+  { value: 9, group: 'secondary', label: { es: '3º Sec.',  ca: '3r Sec.',  en: '9th', ja: '中3' } },
 ]
+const PRIMARY_GRADES   = GRADES.filter(g => g.group === 'primary')
+const SECONDARY_GRADES = GRADES.filter(g => g.group === 'secondary')
 
 export default function VocabGlossary() {
   const { state } = useStore()
@@ -84,21 +92,44 @@ export default function VocabGlossary() {
   return (
     <div className="space-y-4">
 
-      {/* Grade tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {GRADES.map(g => (
-          <button
-            key={g.value}
-            onClick={() => setGrade(g.value)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              grade === g.value
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
-            }`}
-          >
-            🏫 {gradeLabel(g)}
-          </button>
-        ))}
+      {/* Grade tabs — grouped */}
+      <div className="space-y-2">
+        <div className="flex gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide self-center pr-1 shrink-0">
+            {lang === 'en' ? 'Elem.' : lang === 'ja' ? '小学' : lang === 'ca' ? 'Prim.' : 'Prim.'}
+          </span>
+          {PRIMARY_GRADES.map(g => (
+            <button
+              key={g.value}
+              onClick={() => setGrade(g.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                grade === g.value
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+              }`}
+            >
+              {gradeLabel(g)}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide self-center pr-1 shrink-0">
+            {lang === 'en' ? 'Mid.' : lang === 'ja' ? '中学' : lang === 'ca' ? 'Sec.' : 'Sec.'}
+          </span>
+          {SECONDARY_GRADES.map(g => (
+            <button
+              key={g.value}
+              onClick={() => setGrade(g.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                grade === g.value
+                  ? 'bg-violet-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-violet-300 hover:text-violet-600'
+              }`}
+            >
+              {gradeLabel(g)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search bar */}
