@@ -78,20 +78,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, errors }, { status: 422 })
     }
 
-    // Upsert in chunks of 100
-    let inserted = 0
-    let skipped = 0
-    const CHUNK = 100
-    for (let i = 0; i < valid.length; i += CHUNK) {
-      const chunk = valid.slice(i, i + CHUNK)
-      const { data, error } = await service
+    // Check which words already exist (in chunks of 150 to avoid URL limits)
+    const allWords = valid.map(r => r.word as string)
+    const existingSet = new Set<string>()
+    const CHECK_CHUNK = 150
+    for (let i = 0; i < allWords.length; i += CHECK_CHUNK) {
+      const slice = allWords.slice(i, i + CHECK_CHUNK)
+      const { data: existing, error: checkErr } = await service
         .from('vocabulary')
-        .upsert(chunk, { onConflict: 'word', ignoreDuplicates: true })
         .select('word')
+        .in('word', slice)
+      if (checkErr) throw new AdminApiError(checkErr.message, 500)
+      for (const row of existing ?? []) existingSet.add(row.word as string)
+    }
 
-      if (error) throw new AdminApiError(error.message, 500)
-      inserted += data?.length ?? 0
-      skipped  += chunk.length - (data?.length ?? 0)
+    const newRows = valid.filter(r => !existingSet.has(r.word as string))
+    const skipped = valid.length - newRows.length
+    let inserted = 0
+
+    // Insert new rows in chunks of 100
+    const INSERT_CHUNK = 100
+    for (let i = 0; i < newRows.length; i += INSERT_CHUNK) {
+      const chunk = newRows.slice(i, i + INSERT_CHUNK)
+      const { error: insertErr } = await service
+        .from('vocabulary')
+        .insert(chunk)
+      if (insertErr) throw new AdminApiError(insertErr.message, 500)
+      inserted += chunk.length
     }
 
     return NextResponse.json({ ok: true, inserted, skipped, total: valid.length })
