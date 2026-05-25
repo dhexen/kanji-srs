@@ -6,6 +6,7 @@ import { getRandomKanjis, getVocabularyByKanjis, getVocabGradeWords, getKanjiGra
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
+import VocabGlossary from './VocabGlossary'
 
 const ALL_CATEGORIES: VocabCategory[] = [
   'animals','nature','colors','weather','time','food','transport','family',
@@ -67,6 +68,7 @@ type GradeWordEntry = { word: string; kanji: string; is_official: boolean }
 
 export default function VocabularyClient() {
   const { state, addVocabItems } = useStore()
+  const [activeTab, setActiveTab] = useState<'import' | 'glossary'>('import')
   const [packSize, setPackSize] = useState(3)
   const [grade, setGrade] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -348,6 +350,36 @@ export default function VocabularyClient() {
 
   return (
     <div className="space-y-6">
+
+      {/* Tab switcher */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab('import')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'import'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+          }`}
+        >
+          📥 {t(lang, 'vocab_tab_import')}
+        </button>
+        <button
+          onClick={() => setActiveTab('glossary')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            activeTab === 'glossary'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+          }`}
+        >
+          📋 {t(lang, 'vocab_tab_glossary')}
+        </button>
+      </div>
+
+      {/* Glossary tab */}
+      {activeTab === 'glossary' && <VocabGlossary />}
+
+      {/* Import tab content */}
+      {activeTab === 'import' && <>
 
       {/* Search bar — always visible */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 space-y-2">
@@ -749,6 +781,8 @@ export default function VocabularyClient() {
           </div>
         )}
       </div>}
+
+      </> /* end import tab */}
 
     </div>
   )

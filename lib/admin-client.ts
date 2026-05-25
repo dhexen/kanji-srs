@@ -178,6 +178,22 @@ export async function updateImageReport(opts: {
 }
 
 // ---------------------------------------------------------------------------
+// Vocabulary global management
+// ---------------------------------------------------------------------------
+
+/**
+ * Delete a word from the shared vocabulary table for everyone.
+ * Admin only — server validates AAL2 + admin role.
+ */
+export async function deleteVocabWord(word: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
+    method: 'DELETE',
+    headers: await adminAuthHeaders(),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
+// ---------------------------------------------------------------------------
 // Vocabulary category/word_type classification
 // ---------------------------------------------------------------------------
 

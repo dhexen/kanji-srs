@@ -366,6 +366,16 @@ export const translations: Record<Lang, Record<string, string>> = {
     stats_prog_of: 'de',
     // Progress
     prog_no_search_results: 'Sin resultados para "{q}"',
+    // Vocabulary tabs & glossary
+    vocab_tab_import: 'Importar',
+    vocab_tab_glossary: 'Glosario',
+    glossary_loading: 'Cargando glosario...',
+    glossary_confirm_delete: '¿Eliminar «{word}» del vocabulario global? Esta acción no se puede deshacer.',
+    glossary_deleted: 'Palabra eliminada',
+    glossary_words_n: '{n} palabras',
+    glossary_error: 'Error al eliminar la palabra',
+    glossary_cancel: 'Cancelar',
+    glossary_delete_btn: 'Eliminar',
   },
 
   ca: {
@@ -709,6 +719,16 @@ export const translations: Record<Lang, Record<string, string>> = {
     stats_prog_of: 'de',
     // Progress
     prog_no_search_results: 'Sense resultats per "{q}"',
+    // Vocabulary tabs & glossary
+    vocab_tab_import: 'Importar',
+    vocab_tab_glossary: 'Glossari',
+    glossary_loading: 'Carregant glossari...',
+    glossary_confirm_delete: 'Eliminar «{word}» del vocabulari global? Aquesta acció no es pot desfer.',
+    glossary_deleted: 'Paraula eliminada',
+    glossary_words_n: '{n} paraules',
+    glossary_error: 'Error en eliminar la paraula',
+    glossary_cancel: 'Cancel·lar',
+    glossary_delete_btn: 'Eliminar',
   },
 
   en: {
@@ -1052,6 +1072,16 @@ export const translations: Record<Lang, Record<string, string>> = {
     stats_prog_of: 'of',
     // Progress
     prog_no_search_results: 'No results for "{q}"',
+    // Vocabulary tabs & glossary
+    vocab_tab_import: 'Import',
+    vocab_tab_glossary: 'Glossary',
+    glossary_loading: 'Loading glossary...',
+    glossary_confirm_delete: 'Delete «{word}» from the global vocabulary? This cannot be undone.',
+    glossary_deleted: 'Word deleted',
+    glossary_words_n: '{n} words',
+    glossary_error: 'Error deleting word',
+    glossary_cancel: 'Cancel',
+    glossary_delete_btn: 'Delete',
   },
 
   ja: {
@@ -1395,6 +1425,16 @@ export const translations: Record<Lang, Record<string, string>> = {
     stats_prog_of: '/',
     // Progress
     prog_no_search_results: '「{q}」の結果なし',
+    // Vocabulary tabs & glossary
+    vocab_tab_import: 'インポート',
+    vocab_tab_glossary: '単語一覧',
+    glossary_loading: '読み込み中...',
+    glossary_confirm_delete: '「{word}」をグローバル語彙から削除しますか？この操作は元に戻せません。',
+    glossary_deleted: '単語を削除しました',
+    glossary_words_n: '{n}語',
+    glossary_error: '削除エラー',
+    glossary_cancel: 'キャンセル',
+    glossary_delete_btn: '削除',
   },
 }
 
