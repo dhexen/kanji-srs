@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import AdminMfaGate from '@/components/ui/AdminMfaGate'
+import AdminVocabTab from './AdminVocabTab'
 import { getCurrentAal } from '@/lib/supabase'
 import {
   fetchAdminUsers,
@@ -56,7 +58,11 @@ export default function AdminClient() {
   const [clsGeminiKey, setClsGeminiKey] = useState('')
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'users' | 'images' | 'system'>('users')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<'users' | 'images' | 'vocab' | 'system'>(
+    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : 'users',
+  )
 
   // Image vote reports
   const [imgReports, setImgReports] = useState<ImageReport[] | null>(null)
@@ -78,6 +84,12 @@ export default function AdminClient() {
     if (!isAdmin) { setAal('aal1'); return }
     getCurrentAal().then(setAal)
   }, [isAdmin])
+
+  useEffect(() => {
+    setActiveTab(
+      tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : 'users',
+    )
+  }, [tabParam])
 
   useEffect(() => {
     if (isAdmin && aal === 'aal2') {
@@ -392,6 +404,7 @@ export default function AdminClient() {
   const tabs = [
     { key: 'users' as const,  label: '👥 Usuarios' },
     { key: 'images' as const, label: '🖼️ Imágenes' },
+    { key: 'vocab' as const,  label: '📚 Vocabulario' },
     { key: 'system' as const, label: '⚙️ Sistema' },
   ]
 
@@ -708,6 +721,9 @@ export default function AdminClient() {
           </div>
         </>
       )}
+
+      {/* ── TAB: VOCABULARIO ─────────────────────────────────────────── */}
+      {activeTab === 'vocab' && <AdminVocabTab />}
 
       {/* ── TAB: SISTEMA ─────────────────────────────────────────────── */}
       {activeTab === 'system' && (

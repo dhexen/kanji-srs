@@ -7,6 +7,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
 import { fetchKnownGrammar } from '@/lib/supabase'
+import ProgressClient from '@/components/progress/ProgressClient'
 
 // Total grammar points (MNN1: 73 + MNN2: 48)
 const TOTAL_GRAMMAR_POINTS = 121
@@ -257,6 +258,9 @@ export default function StatsClient() {
               </div>
             ))}
           </div>
+
+          {/* Vocabulary progress list */}
+          <ProgressClient />
         </div>
       )}
 
@@ -348,8 +352,8 @@ export default function StatsClient() {
             </div>
           </div>
 
-          {/* Pexels API Key */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          {/* Pexels API Key — solo admins */}
+          {state.role === 'admin' && <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
             <div>
               <h3 className="font-bold text-slate-900">Pexels API Key</h3>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -431,7 +435,7 @@ export default function StatsClient() {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Language selector */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">

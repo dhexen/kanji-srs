@@ -9,12 +9,29 @@ import {
   SRS_INTERVALS,
   getModeLevelAndDue,
   getSrsClass,
+  VocabCategory,
+  VocabWordType,
 } from '@/lib/srs'
 import { t, getMeaning, getStageName, type Lang } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
 
-type SortKey = 'word' | 'level' | 'due'
+type SortKey = 'kanji' | 'word' | 'level' | 'due'
 type SortDir = 'asc' | 'desc'
+
+const ALL_CATEGORIES: VocabCategory[] = [
+  'animals','nature','colors','weather','time','food','transport','family',
+  'body','school','home','work','places','numbers','emotions','actions','sports','culture','other',
+]
+
+const ALL_WORD_TYPES: VocabWordType[] = [
+  'noun','verb_transitive','verb_intransitive','verb','adj_i','adj_na','adverb','particle','expression',
+]
+
+const WORD_TYPE_LABELS: Record<VocabWordType, string> = {
+  noun: 'Sustantivo', verb_transitive: 'Verbo trans.', verb_intransitive: 'Verbo intrans.',
+  verb: 'Verbo', adj_i: 'Adjetivo -i', adj_na: 'Adjetivo -na',
+  adverb: 'Adverbio', particle: 'Partícula', expression: 'Expresión',
+}
 
 function formatDue(due: number, lang: Lang): { text: string; color: string } {
   const now = Date.now()
@@ -35,11 +52,7 @@ function formatDue(due: number, lang: Lang): { text: string; color: string } {
 function formatDueDate(due: number, lang: Lang): string {
   const localeTag = lang === 'ja' ? 'ja-JP' : lang === 'ca' ? 'ca-ES' : lang === 'en' ? 'en-GB' : 'es-ES'
   return new Date(due).toLocaleDateString(localeTag, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 }
 
@@ -48,13 +61,12 @@ export default function ProgressClient() {
   const lang = state.lang
   const [selectedMode, setSelectedMode] = useState<ReviewMode | 'all'>('all')
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('due')
+  const [filterCategory, setFilterCategory] = useState<VocabCategory | 'all'>('all')
+  const [filterWordType, setFilterWordType] = useState<VocabWordType | 'all'>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('kanji')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
-  const activeWords = useMemo(
-    () => state.db.filter(i => i.status === 'active'),
-    [state.db],
-  )
+  const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
 
   const now = Date.now()
   const pendingCount = useMemo(() => {
@@ -82,13 +94,14 @@ export default function ProgressClient() {
     return count
   }, [activeWords, selectedMode])
 
-  // Build rows with the relevant mode info
   const rows = useMemo(() => {
     const modes = selectedMode === 'all' ? ALL_REVIEW_MODES : [selectedMode]
     const q = search.toLowerCase()
 
     return activeWords
       .filter(item => {
+        if (filterCategory !== 'all' && item.category !== filterCategory) return false
+        if (filterWordType !== 'all' && item.word_type !== filterWordType) return false
         if (!q) return true
         return (
           item.jp.includes(q) ||
@@ -98,7 +111,6 @@ export default function ProgressClient() {
         )
       })
       .map(item => {
-        // For sorting, use the earliest due and lowest level across selected modes
         let earliestDue = Infinity
         let lowestLevel = Infinity
         const modeDetails = modes.map(mode => {
@@ -112,19 +124,18 @@ export default function ProgressClient() {
       .sort((a, b) => {
         let cmp = 0
         switch (sortKey) {
-          case 'word':
-            cmp = a.item.jp.localeCompare(b.item.jp, 'ja')
+          case 'kanji': {
+            const kanjiCmp = a.item.kanji.localeCompare(b.item.kanji, 'ja')
+            cmp = kanjiCmp !== 0 ? kanjiCmp : a.item.jp.localeCompare(b.item.jp, 'ja')
             break
-          case 'level':
-            cmp = a.lowestLevel - b.lowestLevel
-            break
-          case 'due':
-            cmp = a.earliestDue - b.earliestDue
-            break
+          }
+          case 'word':  cmp = a.item.jp.localeCompare(b.item.jp, 'ja'); break
+          case 'level': cmp = a.lowestLevel - b.lowestLevel; break
+          case 'due':   cmp = a.earliestDue - b.earliestDue; break
         }
         return sortDir === 'asc' ? cmp : -cmp
       })
-  }, [activeWords, selectedMode, search, sortKey, sortDir])
+  }, [activeWords, selectedMode, filterCategory, filterWordType, search, sortKey, sortDir])
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
@@ -137,7 +148,7 @@ export default function ProgressClient() {
   }
 
   const summaryText = t(lang, 'prog_summary')
-    .replace('{active}', String(activeWords.length))
+    .replace('{active}', String(rows.length))
     .replace('{pending}', String(pendingCount))
     .replace('{mastered}', String(masteredCount))
 
@@ -152,7 +163,7 @@ export default function ProgressClient() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with controls */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="font-bold text-slate-800">{t(lang, 'prog_title')}</h3>
@@ -172,32 +183,61 @@ export default function ProgressClient() {
           >
             {t(lang, 'prog_all_modes')}
           </button>
-          {(Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]).map(
-            ([id, cfg]) => (
-              <button
-                key={id}
-                onClick={() => setSelectedMode(id)}
-                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
-                  selectedMode === id ? cfg.colorOn : cfg.colorOff
-                }`}
-              >
-                {cfg.label}
-              </button>
-            ),
-          )}
+          {(Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]).map(([id, cfg]) => (
+            <button
+              key={id}
+              onClick={() => setSelectedMode(id)}
+              className={`px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
+                selectedMode === id ? cfg.colorOn : cfg.colorOff
+              }`}
+            >
+              {cfg.label}
+            </button>
+          ))}
         </div>
 
-        {/* Summary + search */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          <p className="text-xs text-slate-500">{summaryText}</p>
+        {/* Filters row: category + word type + search */}
+        <div className="flex flex-wrap gap-2">
+          {/* Category filter */}
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value as VocabCategory | 'all')}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+          >
+            <option value="all">
+              {lang === 'ca' ? '📂 Totes les categories' : lang === 'en' ? '📂 All categories' : lang === 'ja' ? '📂 すべて' : '📂 Todas las categorías'}
+            </option>
+            {ALL_CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{t(lang, `cat_${cat}` as any)}</option>
+            ))}
+          </select>
+
+          {/* Word type filter */}
+          <select
+            value={filterWordType}
+            onChange={e => setFilterWordType(e.target.value as VocabWordType | 'all')}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+          >
+            <option value="all">
+              {lang === 'ca' ? '🔤 Tots els tipus' : lang === 'en' ? '🔤 All types' : lang === 'ja' ? '🔤 すべての品詞' : '🔤 Todos los tipos'}
+            </option>
+            {ALL_WORD_TYPES.map(wt => (
+              <option key={wt} value={wt}>{t(lang, `wt_${wt}` as any) || WORD_TYPE_LABELS[wt]}</option>
+            ))}
+          </select>
+
+          {/* Search */}
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t(lang, 'prog_filter')}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="flex-1 min-w-[160px] px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
+
+        {/* Summary */}
+        <p className="text-xs text-slate-400 mt-3">{summaryText}</p>
       </div>
 
       {/* SRS legend */}
@@ -210,10 +250,7 @@ export default function ProgressClient() {
             const hours = Math.round(interval / 3600000)
             const label = hours < 24 ? `${hours}h` : `${Math.round(hours / 24)}d`
             return (
-              <div
-                key={i}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getSrsClass(i, 'active', Date.now() + 999999999)}`}
-              >
+              <div key={i} className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getSrsClass(i, 'active', Date.now() + 999999999)}`}>
                 <span>{i}/7</span>
                 <span className="opacity-60">{getStageName(i, lang)}</span>
                 <span className="opacity-40">({label})</span>
@@ -225,11 +262,16 @@ export default function ProgressClient() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="py-3 px-3">{t(lang, 'th_kanji')}</th>
+                <th
+                  className="py-3 px-3 cursor-pointer hover:text-slate-700 select-none"
+                  onClick={() => toggleSort('kanji')}
+                >
+                  {t(lang, 'th_kanji')}{sortIcon('kanji')}
+                </th>
                 <th
                   className="py-3 px-3 cursor-pointer hover:text-slate-700 select-none"
                   onClick={() => toggleSort('word')}
@@ -238,6 +280,9 @@ export default function ProgressClient() {
                 </th>
                 <th className="py-3 px-3">{t(lang, 'th_reading')}</th>
                 <th className="py-3 px-3 hidden md:table-cell">{t(lang, 'th_meaning')}</th>
+                <th className="py-3 px-3 hidden lg:table-cell">
+                  {lang === 'ca' ? 'Cat.' : lang === 'en' ? 'Cat.' : lang === 'ja' ? '分類' : 'Cat.'}
+                </th>
                 {selectedMode === 'all' ? (
                   (Object.keys(MODE_CONFIG) as ReviewMode[]).map(m => (
                     <th key={m} className="py-3 px-3 text-center whitespace-nowrap">
@@ -266,14 +311,25 @@ export default function ProgressClient() {
               {rows.map(({ item, modeDetails }) => {
                 const meaning = getMeaning(item, lang)
                 return (
-                  <tr
-                    key={item.jp}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                  >
+                  <tr key={item.jp} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-3 font-bold text-slate-400 text-lg">{item.kanji}</td>
                     <td className="py-3 px-3 font-bold text-slate-800">{item.jp}</td>
                     <td className="py-3 px-3 text-indigo-600 font-semibold text-sm">{item.reading}</td>
                     <td className="py-3 px-3 text-slate-500 text-sm hidden md:table-cell">{meaning}</td>
+                    <td className="py-3 px-3 hidden lg:table-cell">
+                      <div className="flex flex-col gap-0.5">
+                        {item.category && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-100 leading-none font-medium whitespace-nowrap">
+                            {t(lang, `cat_${item.category}` as any)}
+                          </span>
+                        )}
+                        {item.word_type && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 leading-none font-medium whitespace-nowrap">
+                            {t(lang, `wt_${item.word_type}` as any) || WORD_TYPE_LABELS[item.word_type as VocabWordType] || item.word_type}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     {selectedMode === 'all' ? (
                       modeDetails.map(({ mode, level, due }) => {
                         const isPending = due <= Date.now()
@@ -299,20 +355,13 @@ export default function ProgressClient() {
                       })
                     ) : (
                       <>
-                        {modeDetails.map(({ mode, level, due }) => {
-                          const dueInfo = formatDue(due, lang)
-                          const isPending = due <= Date.now()
-                          return (
-                            <td key={`${mode}-level`} className="py-3 px-3 text-center" colSpan={1}>
-                              <span
-                                className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${getSrsClass(level, 'active', due)}`}
-                                title={getStageName(level, lang)}
-                              >
-                                {level}/7 — {getStageName(level, lang)}
-                              </span>
-                            </td>
-                          )
-                        })}
+                        {modeDetails.map(({ mode, level, due }) => (
+                          <td key={`${mode}-level`} className="py-3 px-3 text-center">
+                            <span className={`inline-block px-2 py-1 rounded-lg text-xs font-bold ${getSrsClass(level, 'active', due)}`} title={getStageName(level, lang)}>
+                              {level}/7 — {getStageName(level, lang)}
+                            </span>
+                          </td>
+                        ))}
                         {modeDetails.map(({ mode, due }) => {
                           const isPending = due <= Date.now()
                           const dueInfo = formatDue(due, lang)
@@ -320,11 +369,9 @@ export default function ProgressClient() {
                             <td key={`${mode}-due`} className="py-3 px-3 text-center">
                               <div className="flex flex-col items-center">
                                 <span className={`text-xs font-semibold ${dueInfo.color}`}>
-                                  {isPending ? '!' : ''} {dueInfo.text}
+                                  {isPending ? '! ' : ''}{dueInfo.text}
                                 </span>
-                                <span className="text-[10px] text-slate-300 mt-0.5">
-                                  {formatDueDate(due, lang)}
-                                </span>
+                                <span className="text-[10px] text-slate-300 mt-0.5">{formatDueDate(due, lang)}</span>
                               </div>
                             </td>
                           )
@@ -336,11 +383,10 @@ export default function ProgressClient() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={20}
-                    className="py-8 text-center text-slate-400 text-sm"
-                  >
-                    {search ? t(lang, 'prog_no_search_results').replace('{q}', search) : t(lang, 'prog_no_words')}
+                  <td colSpan={20} className="py-8 text-center text-slate-400 text-sm">
+                    {search || filterCategory !== 'all' || filterWordType !== 'all'
+                      ? t(lang, 'prog_no_search_results').replace('{q}', search || '…')
+                      : t(lang, 'prog_no_words')}
                   </td>
                 </tr>
               )}

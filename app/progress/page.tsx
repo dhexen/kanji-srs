@@ -1,5 +1,5 @@
-import ProgressClient from '@/components/progress/ProgressClient'
+import { redirect } from 'next/navigation'
 
 export default function ProgressPage() {
-  return <ProgressClient />
+  redirect('/stats?tab=stats')
 }

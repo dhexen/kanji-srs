@@ -301,13 +301,6 @@ function NavInner() {
           progress={null} pathname={pathname}
         />
 
-        {/* 🔍 Progreso */}
-        <NavItem
-          href="/progress" icon="🔍" label={stripEmoji(t(lang, 'nav_progress'))}
-          badge={0} badgeColor="" tutorialId={undefined}
-          progress={null} pathname={pathname}
-        />
-
         {/* 👤 Mi Perfil ▾ */}
         <NavSection
           icon="👤" label={stripEmoji(t(lang, 'nav_stats'))}
@@ -315,20 +308,19 @@ function NavInner() {
           pathname={pathname} currentTab={currentTab}
         />
 
-        {/* ⚡ 🔧 Admin (admin only) */}
+        {/* 🔧 Admin (admin only) */}
         {isAdmin && (
-          <>
-            <NavItem
-              href="/import" icon="⚡" label={stripEmoji(t(lang, 'nav_import'))}
-              badge={0} badgeColor="" tutorialId={undefined}
-              progress={null} isAdmin pathname={pathname}
-            />
-            <NavItem
-              href="/admin" icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
-              badge={0} badgeColor="" tutorialId={undefined}
-              progress={null} isAdmin pathname={pathname}
-            />
-          </>
+          <NavSection
+            icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
+            basePath="/admin"
+            subItems={[
+              { href: '/admin?tab=users',  icon: '👥', label: 'Usuarios',     tabKey: 'users',  isDefault: true,  badge: false },
+              { href: '/admin?tab=images', icon: '🖼️', label: 'Imágenes',     tabKey: 'images', isDefault: false, badge: false },
+              { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario',  tabKey: 'vocab',  isDefault: false, badge: false },
+              { href: '/admin?tab=system', icon: '⚙️', label: 'Sistema',      tabKey: 'system', isDefault: false, badge: false },
+            ]}
+            pathname={pathname} currentTab={currentTab}
+          />
         )}
       </nav>
 

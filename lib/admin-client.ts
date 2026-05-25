@@ -193,6 +193,53 @@ export async function deleteVocabWord(word: string): Promise<{ ok: boolean }> {
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
+/**
+ * Delete ALL words of a given grade (1-6) from vocabulary.
+ */
+export async function deleteVocabByGrade(grade: number): Promise<{ ok: boolean; deleted: number }> {
+  const res = await fetch(`/api/admin/vocab?grade=${grade}`, {
+    method: 'DELETE',
+    headers: await adminAuthHeaders(),
+  })
+  return parseAdminResponse<{ ok: boolean; deleted: number }>(res)
+}
+
+export interface VocabImportRow {
+  word: string
+  kanji: string
+  reading: string
+  meaning_es: string
+  grade: number
+  meaning_ca?: string
+  meaning_en?: string
+  sort_order?: number
+  category?: string
+  word_type?: string
+}
+
+export interface VocabImportResult {
+  ok: boolean
+  inserted: number
+  skipped: number
+  total: number
+  errors?: string[]
+}
+
+/**
+ * Bulk import vocabulary rows. Returns counts of inserted/skipped.
+ */
+export async function importVocabBatch(
+  rows: VocabImportRow[],
+  is_official = true,
+): Promise<VocabImportResult> {
+  const res = await fetch('/api/admin/vocab/import', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ rows, is_official }),
+  })
+  return parseAdminResponse<VocabImportResult>(res)
+}
+
 // ---------------------------------------------------------------------------
 // Vocabulary category/word_type classification
 // ---------------------------------------------------------------------------
