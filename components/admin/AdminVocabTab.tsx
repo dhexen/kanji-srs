@@ -15,18 +15,42 @@ const REQUIRED = ['word', 'kanji', 'reading', 'meaning_es', 'grade'] as const
 const OPTIONAL  = ['meaning_ca', 'meaning_en', 'sort_order', 'category', 'word_type'] as const
 const ALL_COLS  = [...REQUIRED, ...OPTIONAL]
 
+/**
+ * RFC-4180 compliant CSV line parser.
+ * Handles quoted fields that contain commas or embedded double-quotes ("").
+ */
+function splitCSVLine(line: string): string[] {
+  const cells: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }  // escaped quote
+      else { inQuotes = !inQuotes }
+    } else if (ch === ',' && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  cells.push(current.trim())
+  return cells
+}
+
 function parseCSV(text: string): { rows: VocabImportRow[]; errors: string[] } {
   const lines = text.split(/\r?\n/).filter(l => l.trim())
   const errors: string[] = []
   if (lines.length < 2) { errors.push('El archivo debe tener cabecera + al menos una fila de datos'); return { rows: [], errors } }
 
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase())
+  const header = splitCSVLine(lines[0]).map(h => h.toLowerCase())
   const missing = REQUIRED.filter(col => !header.includes(col))
   if (missing.length) { errors.push(`Columnas obligatorias que faltan: ${missing.join(', ')}`); return { rows: [], errors } }
 
   const rows: VocabImportRow[] = []
   for (let i = 1; i < lines.length; i++) {
-    const cells = lines[i].split(',').map(c => c.trim())
+    const cells = splitCSVLine(lines[i])
     if (cells.every(c => !c)) continue   // skip blank lines
     const obj: Record<string, string> = {}
     header.forEach((col, j) => { if (ALL_COLS.includes(col as any)) obj[col] = cells[j] ?? '' })
