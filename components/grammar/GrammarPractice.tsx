@@ -17,12 +17,23 @@ import {
   fetchGrammarSentences,
   saveGrammarSentences,
   deleteGrammarSentences,
+  trimGrammarSentencesPool,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
+  fetchSchoolVocabSample,
 } from '@/lib/supabase'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
+
+/** Vocabulary item from the Japanese school curriculum (primaria + secundaria). */
+type SchoolVocabItem = {
+  jp: string
+  reading: string
+  meaning_es: string
+  meaning_ca: string | null
+  meaning_en: string | null
+}
 // Minimum sentences needed to start; generate more if below this
 const MIN_POOL = 5
 // Target pool size to save after filtering
@@ -31,6 +42,9 @@ const TARGET_POOL = 25
 const GENERATE_SIZE = 38
 // Minimum quality score (1–5) to keep a sentence — Gemini self-rates each sentence
 const QUALITY_THRESHOLD = 4
+// Maximum number of sentences in the shared pool per grammar point.
+// When this is exceeded, the oldest sentences are automatically removed.
+const MAX_POOL = 100
 
 type Phase =
   | 'loading'      // fetching from DB
@@ -203,6 +217,8 @@ export default function GrammarPractice({
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
   // Stats from last generation: how many Gemini produced vs how many passed quality check
   const [lastGenStats, setLastGenStats]     = useState<{ generated: number; kept: number } | null>(null)
+  // School vocabulary (primaria + secundaria) used as the vocabulary source for AI prompts
+  const [schoolVocab, setSchoolVocab]       = useState<SchoolVocabItem[]>([])
 
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
@@ -211,6 +227,11 @@ export default function GrammarPractice({
   useEffect(() => {
     load()
   }, [grammar.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch school vocabulary once (primaria + secundaria) ──────────────────
+  useEffect(() => {
+    fetchSchoolVocabSample(40).then(setSchoolVocab).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     setPhase('loading')
@@ -239,17 +260,35 @@ export default function GrammarPractice({
       lang === 'en' ? 'inglés'  :
       'español'
 
-    const vocabSample = activeVocab
+    // Use school vocabulary (primaria + secundaria) as primary source.
+    // Fall back to user's active vocab if school vocab failed to load.
+    const vocabBase: { jp: string; reading: string; meaning: string }[] =
+      schoolVocab.length > 0
+        ? schoolVocab.map(w => ({
+            jp: w.jp,
+            reading: w.reading,
+            meaning:
+              lang === 'ca' ? (w.meaning_ca ?? w.meaning_es) :
+              lang === 'en' ? (w.meaning_en ?? w.meaning_es) :
+              w.meaning_es,
+          }))
+        : activeVocab.map(w => ({
+            jp: w.jp,
+            reading: w.reading,
+            meaning: getMeaning(w, lang),
+          }))
+
+    const vocabSample = [...vocabBase]
       .sort(() => Math.random() - 0.5)
       .slice(0, 20)
-      .map(w => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
+      .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
       .join(', ')
 
     const prompt = `Eres un profesor de japonés experto. Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
 El alumno ve la frase con UN HUECO (___) y debe escribir la gramática que falta.
 
-Vocabulario disponible (intenta usarlo): ${vocabSample || 'vocabulario básico N5'}
+Vocabulario disponible del currículo escolar japonés (primaria y secundaria — intenta usarlo): ${vocabSample || 'vocabulario básico N5'}
 
 Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 {
@@ -335,7 +374,13 @@ Otras reglas:
       }
 
       await saveGrammarSentences(grammar.id, newSentences)
-      setSentences(prev => [...prev, ...newSentences])
+
+      // Trim pool to MAX_POOL, removing the oldest sentences if necessary,
+      // then reload from DB so local state matches the actual shared pool.
+      await trimGrammarSentencesPool(grammar.id, MAX_POOL)
+      const updatedPool = await fetchGrammarSentences(grammar.id)
+      setSentences(updatedPool)
+
       setPhase('ready')
     } catch (e: unknown) {
       setGenError(e instanceof Error ? e.message : t(lang, 'gp_gen_error'))
@@ -529,6 +574,9 @@ Otras reglas:
           <p className="text-4xl">📝</p>
           <p className="text-base font-semibold text-slate-700">{t(lang, 'gp_no_sentences')}</p>
           <p className="text-sm text-slate-500">{t(lang, 'gp_generate_hint')}</p>
+          <p className="text-xs text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+            🌐 {t(lang, 'gp_pool_shared_info')}
+          </p>
           {!sessionToken && (
             <p className="text-xs text-amber-600 font-medium">
               💡 {t(lang, 'gp_need_login')}
@@ -592,25 +640,22 @@ Otras reglas:
         {/* Pool info */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              📦 {t(lang, 'gp_pool_count').replace('{n}', String(sentences.length))}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">
+                📦 {t(lang, 'gp_pool_count').replace('{n}', `${sentences.length} / ${MAX_POOL}`)}
+              </span>
+              <span className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-full px-2 py-0.5">
+                🌐 {t(lang, 'gp_pool_shared')}
+              </span>
+            </div>
             {sessionToken && (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={generate}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                >
-                  + {t(lang, 'gp_gen_more')}
-                </button>
-                <button
-                  onClick={regenerate}
-                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition"
-                  title={t(lang, 'gp_regen')}
-                >
-                  🗑️ {t(lang, 'gp_regen')}
-                </button>
-              </div>
+              <button
+                onClick={generate}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                title={sentences.length >= MAX_POOL ? t(lang, 'gp_gen_more_replace') : undefined}
+              >
+                {sentences.length >= MAX_POOL ? '🔄' : '+'} {t(lang, 'gp_gen_more')}
+              </button>
             )}
           </div>
 

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { StoreProvider } from '@/lib/store'
-import Header from '@/components/ui/Header'
+import { SidebarProvider } from '@/lib/sidebar-context'
 import Nav from '@/components/ui/Nav'
+import LayoutShell from '@/components/ui/LayoutShell'
 import Toast from '@/components/ui/Toast'
 import AuthGuard from '@/components/ui/AuthGuard'
 import Tutorial from '@/components/ui/Tutorial'
@@ -15,22 +16,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="bg-slate-50 text-slate-800 min-h-screen">
+      <body className="text-slate-800 min-h-screen">
         <StoreProvider>
-          <Toast />
-          <Tutorial />
-          {/* Sidebar navigation */}
-          <Nav />
-
-          {/* Main content area — offset on desktop for the sidebar */}
-          <div className="lg:pl-56 min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-12">
+          <SidebarProvider>
+            <Toast />
+            <Tutorial />
+            {/* Sidebar navigation */}
+            <Nav />
+            {/* Main content — padding adjusts with sidebar collapse state */}
+            <LayoutShell>
               <AuthGuard>
                 {children}
               </AuthGuard>
-            </main>
-          </div>
+            </LayoutShell>
+          </SidebarProvider>
         </StoreProvider>
       </body>
     </html>

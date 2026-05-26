@@ -922,6 +922,57 @@ export async function deleteGrammarSentences(grammarId: string): Promise<void> {
   }
 }
 
+/**
+ * Trim the shared sentence pool for a grammar point to at most `maxSize` rows,
+ * deleting the oldest sentences (by created_at) when the pool exceeds the limit.
+ *
+ * This is called automatically after each generation batch so that the pool stays
+ * within bounds while always keeping the freshest sentences.
+ *
+ * Returns the number of sentences actually deleted (0 if no trim was needed).
+ */
+export async function trimGrammarSentencesPool(
+  grammarId: string,
+  maxSize: number,
+): Promise<number> {
+  try {
+    // 1. Count how many sentences currently exist for this grammar point
+    const { count, error: countErr } = await supabase
+      .from('grammar_sentences')
+      .select('*', { count: 'exact', head: true })
+      .eq('grammar_id', grammarId)
+
+    if (countErr || count === null || count <= maxSize) return 0
+
+    const excess = count - maxSize
+
+    // 2. Fetch the IDs of the oldest `excess` sentences
+    const { data, error: fetchErr } = await supabase
+      .from('grammar_sentences')
+      .select('id')
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+      .limit(excess)
+
+    if (fetchErr || !data?.length) return 0
+
+    const ids = data.map(r => r.id as string)
+
+    // 3. Delete them
+    const { error: deleteErr } = await supabase
+      .from('grammar_sentences')
+      .delete()
+      .in('id', ids)
+
+    if (deleteErr) { console.warn('trimGrammarSentencesPool:', deleteErr.message); return 0 }
+
+    return ids.length
+  } catch (e) {
+    console.warn('trimGrammarSentencesPool exception:', e)
+    return 0
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Grammar SRS — per-user progress
 // ---------------------------------------------------------------------------
@@ -964,6 +1015,37 @@ export async function fetchAllGrammarSrsStats(): Promise<GrammarSrsStat[]> {
       level: r.level,
       next_review: r.next_review,
     }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Fetch a random sample of vocabulary from the Japanese school curriculum.
+ * Grade 1–6 = primaria (primary), Grade 7–9 = secundaria (secondary).
+ * Used to provide vocabulary hints when generating AI grammar sentences,
+ * so that practice sentences use common, learner-appropriate words.
+ */
+export async function fetchSchoolVocabSample(
+  sampleSize: number = 30,
+): Promise<{ jp: string; reading: string; meaning_es: string; meaning_ca: string | null; meaning_en: string | null }[]> {
+  try {
+    const { data, error } = await supabase
+      .from('vocabulary')
+      .select('word, reading, meaning_es, meaning_ca, meaning_en')
+      .lte('grade', 9)
+      .limit(400)
+    if (error) { console.warn('fetchSchoolVocabSample:', error); return [] }
+    return [...(data ?? [])]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, sampleSize)
+      .map(d => ({
+        jp: String(d.word ?? ''),
+        reading: String(d.reading ?? ''),
+        meaning_es: String(d.meaning_es ?? ''),
+        meaning_ca: d.meaning_ca ? String(d.meaning_ca) : null,
+        meaning_en: d.meaning_en ? String(d.meaning_en) : null,
+      }))
   } catch {
     return []
   }

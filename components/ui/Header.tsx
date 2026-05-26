@@ -32,11 +32,11 @@ export default function Header() {
 
   if (!hasActive) {
     return (
-      <header className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-sm px-4 py-3">
+      <header className="bg-white/80 backdrop-blur border-b border-violet-100/80 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
-            <p className="text-indigo-100/90 text-xs">{t(lang, 'header_subtitle')}</p>
-            <p className="text-indigo-200/70 text-[11px] mt-0.5 capitalize">{today}</p>
+            <p className="text-violet-500/80 text-xs font-medium">{t(lang, 'header_subtitle')}</p>
+            <p className="text-slate-400 text-[11px] mt-0.5 capitalize">{today}</p>
           </div>
         </div>
       </header>
@@ -44,30 +44,32 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-sm px-4 py-3">
+    <header className="bg-white/80 backdrop-blur border-b border-violet-100/80 px-4 py-3 shadow-[0_2px_12px_rgba(139,92,246,0.05)]">
       <div className="max-w-5xl mx-auto space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-indigo-100/90 text-xs">{t(lang, 'header_subtitle')}</p>
-            <p className="text-indigo-200/70 text-[11px] mt-0.5 capitalize">{today}</p>
+            <p className="text-violet-500/80 text-xs font-medium">{t(lang, 'header_subtitle')}</p>
+            <p className="text-slate-400 text-[11px] mt-0.5 capitalize">{today}</p>
           </div>
         </div>
 
-        <div data-tutorial-id="header-forecast" className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 sm:p-4 space-y-3">
-
-          {/* Sección de hoy con desglose por horas */}
+        <div
+          data-tutorial-id="header-forecast"
+          className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 border border-violet-100/80 rounded-2xl p-3 sm:p-4 space-y-3"
+        >
+          {/* Today + hourly breakdown */}
           <div className="space-y-2">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">
+                <p className="text-violet-500 text-xs font-semibold uppercase tracking-wide">
                   {t(lang, 'header_today')}
                 </p>
-                <p className="text-3xl sm:text-4xl font-bold tabular-nums leading-none mt-1">
+                <p className="text-3xl sm:text-4xl font-bold tabular-nums leading-none mt-1 text-violet-700">
                   {todayCount}
                 </p>
               </div>
               {todayCount === 0 && (
-                <span className="text-indigo-100 text-xs bg-white/10 px-2 py-1 rounded-lg">
+                <span className="text-violet-500 text-xs bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-xl">
                   {t(lang, 'header_no_reviews')}
                 </span>
               )}
@@ -79,16 +81,16 @@ export default function Header() {
                   {hourlyForecast.map(h => (
                     <div
                       key={h.hour}
-                      className={`flex flex-col items-center px-2 py-1.5 rounded-lg text-xs min-w-[3rem] ${
+                      className={`flex flex-col items-center px-2 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
                         h.isCurrent
-                          ? 'bg-amber-400/30 border border-amber-300/50'
-                          : 'bg-white/10 border border-white/10'
+                          ? 'bg-violet-100 border border-violet-200/80 shadow-sm'
+                          : 'bg-white/60 border border-violet-100/60'
                       }`}
                     >
-                      <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-amber-200' : 'text-indigo-200'}`}>
+                      <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600' : 'text-slate-400'}`}>
                         {h.label}
                       </span>
-                      <span className={`tabular-nums font-bold text-sm mt-0.5 ${h.isCurrent ? 'text-amber-100' : 'text-white'}`}>
+                      <span className={`tabular-nums font-bold text-sm mt-0.5 ${h.isCurrent ? 'text-violet-700' : 'text-slate-600'}`}>
                         +{h.due}
                       </span>
                     </div>
@@ -98,11 +100,11 @@ export default function Header() {
             )}
           </div>
 
-          <div className="border-t border-white/15" />
+          <div className="border-t border-violet-100/80" />
 
-          {/* Resto de la semana */}
+          {/* Week forecast */}
           <div>
-            <p className="text-indigo-100 text-xs font-medium mb-2">{t(lang, 'header_forecast')}</p>
+            <p className="text-violet-500 text-xs font-semibold mb-2">{t(lang, 'header_forecast')}</p>
             <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
               <div className="flex gap-3 min-w-max">
                 {futureDays.map(day => (
@@ -110,11 +112,11 @@ export default function Header() {
                     key={day.date.toISOString()}
                     className="flex flex-col items-center min-w-[2.5rem]"
                   >
-                    <span className="text-indigo-200/90 text-xs font-medium capitalize">
+                    <span className="text-slate-400 text-xs font-medium capitalize">
                       {day.dayLabel}
                     </span>
                     <span className={`text-xs font-bold tabular-nums mt-0.5 ${
-                      day.newDue > 0 ? 'text-white' : 'text-indigo-300/40'
+                      day.newDue > 0 ? 'text-violet-600' : 'text-slate-300'
                     }`}>
                       {day.newDue > 0 ? `+${day.newDue}` : '—'}
                     </span>
@@ -123,7 +125,6 @@ export default function Header() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </header>
