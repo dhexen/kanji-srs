@@ -312,10 +312,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (intervals) setSrsIntervals(intervals)
     }).catch(e => console.warn('Could not load SRS intervals config:', e))
 
-    // Initial session check (fast path — handles page refresh with existing session)
+    // Initial session check — comportamiento original intacto
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        // Guard: onAuthStateChange SIGNED_IN might have already handled this
+        // Si onAuthStateChange SIGNED_IN ya procesó esta sesión, no repetir syncDown
         if (userRef.current) return
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
@@ -324,8 +324,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_ROLE', payload: role })
         await syncDown()
       } else {
-        // Guard: SIGNED_IN may arrive slightly later (PKCE exchange in progress)
-        if (loadedRef.current) return
+        // Sin sesión: marcar como cargado para que AuthGuard pueda redirigir a /login
         hydratingRef.current = false
         loadedRef.current = true
         dispatch({ type: 'SET_DB', payload: [] })
@@ -333,8 +332,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    // Auth state listener — handles magic link / OAuth code exchange redirects.
-    // These are async: the PKCE exchange may complete AFTER getSession() returns null.
+    // Listener para magic links y OAuth PKCE: la sesión puede establecerse
+    // de forma asíncrona DESPUÉS de que getSession() ya haya devuelto null.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user && !userRef.current) {
         const user = { email: session.user.email!, id: session.user.id }

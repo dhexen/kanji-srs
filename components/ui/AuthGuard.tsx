@@ -11,15 +11,17 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter()
   const lang = state.lang
 
-  // /stats es accesible sin login (estadísticas públicas)
-  if (pathname === '/stats') return <>{children}</>
-
-  // Cuando la sesión está cargada y no hay usuario, redirigir a /login
+  // useEffect SIEMPRE antes de cualquier return condicional (reglas de hooks)
   useEffect(() => {
+    // /stats es público — no redirigir
+    if (pathname === '/stats') return
     if (state.loaded && !state.user) {
       router.replace('/login')
     }
-  }, [state.loaded, state.user, router])
+  }, [state.loaded, state.user, pathname, router])
+
+  // /stats es accesible sin login
+  if (pathname === '/stats') return <>{children}</>
 
   // Spinner mientras se carga la sesión
   if (!state.loaded) {
