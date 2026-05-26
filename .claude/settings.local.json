@@ -22,7 +22,8 @@
       "PowerShell(cd \"C:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\"; $job = Start-Job -ScriptBlock { cd \"C:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\"; npm run dev 2>&1 }; Start-Sleep -Seconds 15; Receive-Job $job; Stop-Job $job; Remove-Job $job)",
       "Bash(npx next *)",
       "Bash(git reset *)",
-      "Bash(git commit -m 'auth: página de login dedicada con Google y magic link por email *)"
+      "Bash(git commit -m 'auth: página de login dedicada con Google y magic link por email *)",
+      "Bash(git commit -m 'fix auth: corregir violacion de hooks en AuthGuard y guard de loadedRef en store *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
