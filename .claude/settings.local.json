@@ -23,7 +23,8 @@
       "Bash(npx next *)",
       "Bash(git reset *)",
       "Bash(git commit -m 'auth: página de login dedicada con Google y magic link por email *)",
-      "Bash(git commit -m 'fix auth: corregir violacion de hooks en AuthGuard y guard de loadedRef en store *)"
+      "Bash(git commit -m 'fix auth: corregir violacion de hooks en AuthGuard y guard de loadedRef en store *)",
+      "Bash(git commit -m 'fix auth: AuthShell controla todo el layout segun estado de sesion *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
