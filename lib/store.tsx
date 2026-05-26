@@ -135,6 +135,7 @@ interface StoreContextType {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string) => Promise<'ok' | 'needs_confirmation'>
   signInWithGoogle: () => Promise<void>
+  signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -311,8 +312,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (intervals) setSrsIntervals(intervals)
     }).catch(e => console.warn('Could not load SRS intervals config:', e))
 
+    // Initial session check (fast path — handles page refresh with existing session)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // Guard: onAuthStateChange SIGNED_IN might have already handled this
+        if (userRef.current) return
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
@@ -320,12 +324,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_ROLE', payload: role })
         await syncDown()
       } else {
+        // Guard: SIGNED_IN may arrive slightly later (PKCE exchange in progress)
+        if (loadedRef.current) return
         hydratingRef.current = false
         loadedRef.current = true
         dispatch({ type: 'SET_DB', payload: [] })
         dispatch({ type: 'SET_LOADED' })
       }
     })
+
+    // Auth state listener — handles magic link / OAuth code exchange redirects.
+    // These are async: the PKCE exchange may complete AFTER getSession() returns null.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user && !userRef.current) {
+        const user = { email: session.user.email!, id: session.user.id }
+        dispatch({ type: 'SET_USER', payload: user })
+        userRef.current = user
+        const role = await getUserRole(session.user.id)
+        dispatch({ type: 'SET_ROLE', payload: role })
+        await syncDown()
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [syncDown])
 
   const login = useCallback(async (email: string, password: string) => {
@@ -359,7 +380,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : '/' },
+      options: {
+        redirectTo: typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback`
+          : '/auth/callback',
+      },
+    })
+    if (error) throw error
+  }, [])
+
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback`
+          : '/auth/callback',
+        shouldCreateUser: true,
+      },
     })
     if (error) throw error
   }, [])
@@ -398,6 +436,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       login,
       signup,
       signInWithGoogle,
+      signInWithMagicLink,
       logout,
     }}>
       {children}
