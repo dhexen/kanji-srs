@@ -4,6 +4,7 @@ import type { GrammarPoint, GrammarRole } from '@/lib/grammar-mnn1'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
+import GeminiApiTutorial from './GeminiApiTutorial'
 
 interface AiToken {
   text: string
@@ -26,7 +27,8 @@ interface Props {
 }
 
 function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }) {
-  const [showTranslation, setShowTranslation] = useState(true)
+  // Translation is hidden by default — the student tries to understand first
+  const [showTranslation, setShowTranslation] = useState(false)
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
@@ -198,16 +200,15 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
         </div>
       )}
 
-      {!generated && !loading && (
+      {!generated && !loading && !geminiKey && (
+        <GeminiApiTutorial lang={lang} compact />
+      )}
+
+      {!generated && !loading && geminiKey && (
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
           <p className="text-sm text-slate-500">
-            Genera 5 frases de ejemplo usando tu vocabulario activo, con colores que marcan la gramática.
+            Genera 5 frases de ejemplo con colores que marcan cada función gramatical.
           </p>
-          {!geminiKey && (
-            <p className="text-xs text-amber-600 mt-2">
-              💡 Configura tu API Key de Gemini en la pestaña Contexto para uso ilimitado.
-            </p>
-          )}
         </div>
       )}
 

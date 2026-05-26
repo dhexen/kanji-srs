@@ -123,6 +123,18 @@ function isKanji(ch: string): boolean {
 }
 
 /**
+ * Grammatical particles whose orthographic form differs from their phonetic
+ * reading. The AI sometimes stores the phonetic form in reading fields
+ * (e.g. "わ" for the particle は). We accept both when searching for the
+ * anchor character that delimits a kanji block's reading.
+ *
+ *   は (topic / subject-marker) → pronounced わ
+ *   を (object marker)          → pronounced お
+ *   へ (direction marker)       → pronounced え
+ */
+const PARTICLE_PHONETIC: Record<string, string> = { 'は': 'わ', 'を': 'お', 'へ': 'え' }
+
+/**
  * Splits a mixed kanji+kana `text` into tokens, pairing each consecutive
  * kanji block with its kana reading extracted from `reading` (a flat kana
  * string). Non-kanji characters (kana, ASCII, punctuation) are single-char
@@ -130,7 +142,9 @@ function isKanji(ch: string): boolean {
  *
  * Uses the same heuristic as the furigana renderer in GrammarPractice:
  * the kana reading for a kanji block ends where the next non-kanji character
- * of `text` appears in `reading`.
+ * of `text` appears in `reading`. When that character is a particle whose
+ * reading may be stored in phonetic form (は→わ, を→お, へ→え), both the
+ * orthographic and phonetic forms are accepted as anchors.
  */
 function buildKanaTokens(
   text: string,
@@ -158,14 +172,26 @@ function buildKanaTokens(
 
       // The kana reading for this block ends where the next non-kanji char
       // of `text` first appears in `reading` starting from `ri`.
+      // Also accept the phonetic alternative for particles (は/わ, を/お, へ/え).
       let readingEnd: number
       if (kanjiEnd >= text.length) {
         // Last block — consume the rest of `reading`
         readingEnd = reading.length
       } else {
         const nextCh = text[kanjiEnd]
-        let s = ri
-        while (s < reading.length && reading[s] !== nextCh) s++
+        const phoneticAlt = PARTICLE_PHONETIC[nextCh]  // may be undefined
+        // Start at ri+1: a kanji block must consume at least one reading
+        // character, so the anchor can never be at position ri itself.
+        // This prevents a false match when the phonetic alt (e.g. 'わ')
+        // appears as the very first character of the reading — which would
+        // happen if the AI stored 'わたしわ…' and we searched for は/わ from
+        // position 0, incorrectly assigning an empty reading to the kanji block.
+        let s = ri + 1
+        while (
+          s < reading.length &&
+          reading[s] !== nextCh &&
+          reading[s] !== phoneticAlt
+        ) s++
         readingEnd = s
       }
 

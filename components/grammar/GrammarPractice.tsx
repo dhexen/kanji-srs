@@ -22,6 +22,7 @@ import {
   saveGrammarSrsResult,
   fetchSchoolVocabSample,
 } from '@/lib/supabase'
+import GeminiApiTutorial from './GeminiApiTutorial'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
@@ -77,12 +78,23 @@ function isKanjiChar(ch: string): boolean {
 }
 
 /**
+ * Grammatical particles whose orthographic writing differs from their phonetic
+ * reading. AI-generated reading fields sometimes use the phonetic form
+ * (e.g. "わ" for は). Accepting both prevents the entire remaining reading
+ * from being wrongly assigned to the preceding kanji block.
+ */
+const RUBY_PARTICLE_PHONETIC: Record<string, string> = { 'は': 'わ', 'を': 'お', 'へ': 'え' }
+
+/**
  * Splits `text` (kanji/kana mixed) into tokens, each carrying a ruby reading
  * extracted from the flat `reading` string.
  *
  * Algorithm: walk through `text`; when encountering a kana character it must
  * match the same position in `reading` (advance both). Kanji sequences are
  * assigned the reading characters up to the position of the next kana anchor.
+ * For grammatical particles (は/を/へ) the phonetic alternative is also
+ * accepted as anchor (は→わ, を→お, へ→え) in case the AI stored the
+ * phonetic form in the reading field.
  */
 function buildRubyTokens(text: string, reading: string): RubyToken[] {
   if (!text) return []
@@ -107,16 +119,26 @@ function buildRubyTokens(text: string, reading: string): RubyToken[] {
 
       // Find the reading for this kanji block:
       // the reading ends where the next text character (after the kanji block)
-      // appears in the reading string.
+      // appears in the reading string. Also accept the phonetic alternative
+      // for particles (は/わ, を/お, へ/え) to handle AI-generated readings.
       let readingEnd: number
       if (kanjiEnd >= text.length) {
         // Last group — consume the rest of reading
         readingEnd = reading.length
       } else {
         const nextCh = text[kanjiEnd]
-        // Search forward in reading from current position for that character
-        let searchPos = ri
-        while (searchPos < reading.length && reading[searchPos] !== nextCh) searchPos++
+        const phoneticAlt = RUBY_PARTICLE_PHONETIC[nextCh]
+        // Start at ri+1: a kanji block must consume at least one reading
+        // character, so the anchor can never be at position ri itself.
+        // Starting at ri would cause a false early match when the phonetic
+        // alt (e.g. 'わ') happens to be the very first char of the reading
+        // (e.g. 'わたしわ…'), assigning an empty ruby to the preceding kanji.
+        let searchPos = ri + 1
+        while (
+          searchPos < reading.length &&
+          reading[searchPos] !== nextCh &&
+          reading[searchPos] !== phoneticAlt
+        ) searchPos++
         readingEnd = searchPos
       }
 
@@ -328,6 +350,7 @@ Otras reglas:
 - Frases naturales y correctas, nivel ${grammar.jlpt}
 - Varía sujetos, contextos y vocabulario; usa el vocabulario disponible
 - before_reading y after_reading: solo kana (para mostrar furigana al alumno)
+- ⚠️ REGLA CRÍTICA de lectura: en before_reading y after_reading escribe SIEMPRE las partículas con su forma ortográfica, NO fonética: usa は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" (correcto), NO "わたしわがくせい" (incorrecto)
 - answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
 - Genera exactamente ${GENERATE_SIZE} frases distintas`
 
@@ -570,32 +593,39 @@ Otras reglas:
       <div className="space-y-5">
         <BackHeader onBack={onBack} label={`🏋️ ${t(lang, 'gp_practice')}: ${grammar.pattern}`} />
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-3">
-          <p className="text-4xl">📝</p>
-          <p className="text-base font-semibold text-slate-700">{t(lang, 'gp_no_sentences')}</p>
-          <p className="text-sm text-slate-500">{t(lang, 'gp_generate_hint')}</p>
-          <p className="text-xs text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
-            🌐 {t(lang, 'gp_pool_shared_info')}
-          </p>
-          {!sessionToken && (
-            <p className="text-xs text-amber-600 font-medium">
-              💡 {t(lang, 'gp_need_login')}
-            </p>
-          )}
-          {genError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-              {genError}
+        {/* If no API key: show interactive tutorial */}
+        {!geminiKey ? (
+          <GeminiApiTutorial lang={lang} />
+        ) : (
+          <>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-3">
+              <p className="text-4xl">📝</p>
+              <p className="text-base font-semibold text-slate-700">{t(lang, 'gp_no_sentences')}</p>
+              <p className="text-sm text-slate-500">{t(lang, 'gp_generate_hint')}</p>
+              <p className="text-xs text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+                🌐 {t(lang, 'gp_pool_shared_info')}
+              </p>
+              {!sessionToken && (
+                <p className="text-xs text-amber-600 font-medium">
+                  💡 {t(lang, 'gp_need_login')}
+                </p>
+              )}
+              {genError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                  {genError}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <button
-          onClick={generate}
-          disabled={!sessionToken}
-          className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm"
-        >
-          ✨ {t(lang, 'gp_generate_btn').replace('{n}', String(TARGET_POOL))}
-        </button>
+            <button
+              onClick={generate}
+              disabled={!sessionToken}
+              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm"
+            >
+              ✨ {t(lang, 'gp_generate_btn').replace('{n}', String(TARGET_POOL))}
+            </button>
+          </>
+        )}
 
         <button onClick={onBack} className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm transition">
           ← {t(lang, 'gp_back_detail')}
@@ -679,6 +709,11 @@ Otras reglas:
           <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
             {genError}
           </div>
+        )}
+
+        {/* API Key tutorial — shown when the user has no key but there are already sentences in the pool */}
+        {!geminiKey && (
+          <GeminiApiTutorial lang={lang} compact />
         )}
 
         {/* Start button */}
