@@ -1072,3 +1072,94 @@ export async function saveGrammarSrsResult(
     console.error('saveGrammarSrsResult exception:', e)
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User grammar examples — personal AI example pool (5 generated, 10 max)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface UserGrammarExample {
+  id: string
+  grammar_id: string
+  /** AiToken[] serialised as JSONB */
+  jp: unknown[]
+  /** AiToken[] serialised as JSONB */
+  translation: unknown[]
+}
+
+const USER_GRAMMAR_EXAMPLES_MAX = 10
+
+/**
+ * Returns all saved example sentences for the current user and grammar point,
+ * ordered oldest → newest.  Returns [] if the table doesn't exist yet.
+ */
+export async function fetchUserGrammarExamples(
+  grammarId: string,
+): Promise<UserGrammarExample[]> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_grammar_examples')
+      .select('id, grammar_id, jp, translation')
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+    if (error) { console.warn('fetchUserGrammarExamples:', error.message); return [] }
+    return (data ?? []) as UserGrammarExample[]
+  } catch (e) {
+    console.warn('fetchUserGrammarExamples exception:', e)
+    return []
+  }
+}
+
+/**
+ * Inserts new example sentences for the current user, then trims the pool to
+ * at most USER_GRAMMAR_EXAMPLES_MAX (10) by deleting the oldest rows.
+ */
+export async function saveUserGrammarExamples(
+  grammarId: string,
+  sentences: { jp: unknown[]; translation: unknown[] }[],
+): Promise<void> {
+  if (!sentences.length) return
+  try {
+    const user = await requireUser()
+
+    // 1. Insert new rows
+    const rows = sentences.map(s => ({
+      user_id:    user.id,
+      grammar_id: grammarId,
+      jp:         s.jp,
+      translation: s.translation,
+    }))
+    const { error: insertErr } = await supabase
+      .from('user_grammar_examples')
+      .insert(rows)
+    if (insertErr) { console.warn('saveUserGrammarExamples insert:', insertErr.message); return }
+
+    // 2. Count total
+    const { count, error: countErr } = await supabase
+      .from('user_grammar_examples')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+    if (countErr || count === null || count <= USER_GRAMMAR_EXAMPLES_MAX) return
+
+    // 3. Delete oldest to keep within cap
+    const excess = count - USER_GRAMMAR_EXAMPLES_MAX
+    const { data: oldest, error: fetchErr } = await supabase
+      .from('user_grammar_examples')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+      .limit(excess)
+    if (fetchErr || !oldest?.length) return
+    const ids = oldest.map(r => r.id as string)
+    const { error: deleteErr } = await supabase
+      .from('user_grammar_examples')
+      .delete()
+      .in('id', ids)
+    if (deleteErr) console.warn('saveUserGrammarExamples trim:', deleteErr.message)
+  } catch (e) {
+    console.warn('saveUserGrammarExamples exception:', e)
+  }
+}

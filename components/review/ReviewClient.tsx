@@ -11,7 +11,7 @@ type Phase = 'select' | 'playing' | 'done'
 
 export default function ReviewClient() {
   const { state } = useStore()
-  const [selectedModes, setSelectedModes] = useState<ReviewMode[]>(['multi'])
+  const [selectedModes, setSelectedModes] = useState<ReviewMode[]>(['multi', 'meaning', 'kanji', 'reading', 'reverse'])
   const [phase, setPhase] = useState<Phase>('select')
   const [sequence, setSequence] = useState<SessionItem[]>([])
   const [index, setIndex] = useState(0)
@@ -63,7 +63,7 @@ export default function ReviewClient() {
       <ModeSelector
         selectedModes={selectedModes}
         onToggle={m => setSelectedModes(prev =>
-          prev.includes(m) ? (prev.length > 1 ? prev.filter(x => x !== m) : prev) : [...prev, m]
+          prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
         )}
         pendingCount={pendingCount}
         onStart={start}

@@ -25,6 +25,7 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
   const { state } = useStore()
   const lang = state.lang
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
+  const noModesSelected = selectedModes.length === 0
 
   return (
     <div data-tutorial-id="review-mode-selector" className="space-y-3">
@@ -57,8 +58,9 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
             <div className="flex flex-col gap-2 items-end">
               <button
                 onClick={() => onStart(false)}
-                disabled={!hasWords}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-semibold rounded-xl text-sm transition shadow-sm shadow-violet-200 active:scale-95"
+                disabled={!hasWords || noModesSelected}
+                title={noModesSelected ? t(lang, 'review_no_modes_selected') : undefined}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm shadow-violet-200 active:scale-95"
               >
                 {t(lang, 'review_start')}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -79,8 +81,9 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
           </div>
           <button
             onClick={() => onStart(true)}
-            disabled={!hasWords}
-            className="mt-3 w-full py-2 bg-slate-50 hover:bg-violet-50 disabled:opacity-40 text-slate-600 hover:text-violet-600 font-semibold rounded-xl text-sm transition border border-slate-200 hover:border-violet-200 active:scale-95"
+            disabled={!hasWords || noModesSelected}
+            title={noModesSelected ? t(lang, 'review_no_modes_selected') : undefined}
+            className="mt-3 w-full py-2 bg-slate-50 hover:bg-violet-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600 hover:text-violet-600 font-semibold rounded-xl text-sm transition border border-slate-200 hover:border-violet-200 active:scale-95"
           >
             {t(lang, 'review_free')}
           </button>
@@ -115,6 +118,14 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
           )
         })}
       </div>
+
+      {/* ── No modes selected warning ── */}
+      {noModesSelected && (
+        <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 flex items-center gap-2">
+          <span>⚠️</span>
+          {t(lang, 'review_no_modes_selected')}
+        </p>
+      )}
 
       {/* ── No words warning ── */}
       {!hasWords && (
