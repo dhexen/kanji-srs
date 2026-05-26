@@ -27,8 +27,21 @@ interface Props {
 }
 
 function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }) {
-  // Translation is hidden by default — the student tries to understand first
+  // Both are hidden by default — student reads first, then checks
   const [showTranslation, setShowTranslation] = useState(false)
+  const [showFurigana, setShowFurigana]       = useState(false)
+
+  const furiganaLabel =
+    lang === 'en' ? (showFurigana ? 'Hide furigana' : 'Show furigana') :
+    lang === 'ca' ? (showFurigana ? 'Amaga furigana' : 'Mostra furigana') :
+    lang === 'ja' ? (showFurigana ? 'ふりがなを隠す' : 'ふりがなを表示') :
+    (showFurigana ? 'Ocultar furigana' : 'Mostrar furigana')
+
+  const translationLabel =
+    lang === 'en' ? (showTranslation ? 'Hide translation' : 'Show translation') :
+    lang === 'ca' ? (showTranslation ? 'Amaga traducció' : 'Mostra traducció') :
+    lang === 'ja' ? (showTranslation ? '訳を隠す' : '訳を表示') :
+    (showTranslation ? 'Ocultar traducción' : 'Mostrar traducción')
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
@@ -39,7 +52,7 @@ function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }
           return (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
               <span className="text-[10px] text-slate-400 min-h-[14px]">
-                {t.furigana || ''}
+                {showFurigana ? (t.furigana || '') : ''}
               </span>
               <span className={`${c.bg} ${c.text} border ${c.border} font-bold rounded-md px-2 py-0.5 text-xl whitespace-nowrap`}>
                 {t.text}
@@ -63,12 +76,22 @@ function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }
         </div>
       )}
 
-      <button
-        onClick={() => setShowTranslation(v => !v)}
-        className="text-[10px] text-slate-400 hover:text-slate-600 transition"
-      >
-        {showTranslation ? 'Ocultar traducción' : 'Mostrar traducción'}
-      </button>
+      {/* Controls */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowFurigana(v => !v)}
+          className="text-[10px] text-slate-400 hover:text-slate-600 transition"
+        >
+          {furiganaLabel}
+        </button>
+        <span className="text-slate-200 text-[10px]">|</span>
+        <button
+          onClick={() => setShowTranslation(v => !v)}
+          className="text-[10px] text-slate-400 hover:text-slate-600 transition"
+        >
+          {translationLabel}
+        </button>
+      </div>
     </div>
   )
 }

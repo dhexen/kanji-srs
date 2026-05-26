@@ -46,7 +46,14 @@ function StructureDisplay({ parts, lang }: { parts: StructurePart[]; lang: Lang 
 }
 
 function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }) {
-  const [showGloss, setShowGloss] = useState(true)
+  const [showGloss, setShowGloss]       = useState(true)
+  const [showFurigana, setShowFurigana] = useState(false)
+
+  const furiganaLabel =
+    lang === 'en' ? (showFurigana ? 'Hide furigana' : 'Show furigana') :
+    lang === 'ca' ? (showFurigana ? 'Amaga furigana' : 'Mostra furigana') :
+    lang === 'ja' ? (showFurigana ? 'ふりがなを隠す' : 'ふりがなを表示') :
+    (showFurigana ? 'Ocultar furigana' : 'Mostrar furigana')
 
   const getGloss = (tk: ExampleToken) => {
     if (lang === 'ca') return tk.gloss_ca
@@ -61,6 +68,12 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
           {t(lang, 'gp_example')}
         </span>
         <button
+          onClick={() => setShowFurigana(v => !v)}
+          className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 text-slate-500 hover:bg-slate-100 transition"
+        >
+          {furiganaLabel}
+        </button>
+        <button
           onClick={() => setShowGloss(v => !v)}
           className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 text-slate-500 hover:bg-slate-100 transition"
         >
@@ -73,7 +86,7 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
           {tokens.map((tk, i) => (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
               <span className="text-[10px] text-slate-400 min-h-[14px]">
-                {tk.furigana || ''}
+                {showFurigana ? (tk.furigana || '') : ''}
               </span>
               <span className={`${ROLE_COLORS[tk.role].bg} ${ROLE_COLORS[tk.role].text} border ${ROLE_COLORS[tk.role].border} font-bold rounded-md px-2 py-0.5 text-xl whitespace-nowrap`}>
                 {tk.text}

@@ -192,7 +192,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
 function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanjis: Set<string>; onRemove: () => void }) {
   const [showTrans, setShowTrans] = useState<'es' | 'ca' | 'en' | null>(null)
-  const [showFurigana, setShowFurigana] = useState(true)
+  const [showFurigana, setShowFurigana] = useState(false)
   const [showOnlyUnknown, setShowOnlyUnknown] = useState(false)
 
   const badge: Record<string, string> = {
