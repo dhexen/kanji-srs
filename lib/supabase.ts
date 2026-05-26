@@ -110,23 +110,23 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
   // Merge image_url, category, word_type from shared vocabulary table
   const words = items.map(i => i.jp)
   if (words.length > 0) {
-    // Try full query (image_url + category + word_type). If it fails (e.g. columns
-    // not yet added), fall back to a minimal query with just image_url.
-    let vocabMeta: { word: string; image_url?: string | null; category?: string | null; word_type?: string | null }[] | null = null
+    // Try full query (image_url + grade + category + word_type). If it fails (e.g. columns
+    // not yet added), fall back to a minimal query with just image_url + grade.
+    let vocabMeta: { word: string; image_url?: string | null; grade?: number | null; category?: string | null; word_type?: string | null }[] | null = null
     try {
       const { data, error } = await supabase
         .from('vocabulary')
-        .select('word, image_url, category, word_type')
+        .select('word, image_url, grade, category, word_type')
         .in('word', words)
       if (!error) vocabMeta = data
     } catch { /* network error */ }
 
     if (!vocabMeta) {
-      // Fallback: only fetch image_url to be safe against missing columns
+      // Fallback: only fetch image_url + grade to be safe against missing columns
       try {
         const { data } = await supabase
           .from('vocabulary')
-          .select('word, image_url')
+          .select('word, image_url, grade')
           .in('word', words)
         vocabMeta = data
       } catch { /* ignore */ }
@@ -139,6 +139,7 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
         if (!shared) return i
         const updates: Partial<typeof i> = {}
         if (shared.image_url) updates.image_url = shared.image_url as string
+        if (shared.grade) updates.grade = shared.grade as number
         if (shared.category) updates.category = shared.category as typeof i.category
         if (shared.word_type) updates.word_type = shared.word_type as typeof i.word_type
         return Object.keys(updates).length > 0 ? { ...i, ...updates } : i
@@ -753,29 +754,44 @@ export async function insertUnofficialVocab(entry: {
   if (error) throw error
 }
 
+export interface VocabMeta {
+  image_url?: string
+  grade?: number
+}
+
 /**
- * Fetch image_url for a list of words directly from the vocabulary table.
- * Returns a Map of word → image_url for words that have a non-null image.
- * Used as a reliable fallback when state.db items don't have image_url populated.
+ * Fetch vocabulary metadata (image_url, grade) for a list of words directly from the
+ * vocabulary table. Used as a reliable fallback when state.db items don't have these
+ * fields populated (e.g. store merge failed on login, or images added after last sync).
  */
-export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, string>> {
+export async function fetchVocabMeta(words: string[]): Promise<Map<string, VocabMeta>> {
   if (words.length === 0) return new Map()
   try {
     const { data } = await supabase
       .from('vocabulary')
-      .select('word, image_url')
+      .select('word, image_url, grade')
       .in('word', words)
-      .not('image_url', 'is', null)
-      .neq('image_url', '')
     if (!data) return new Map()
     return new Map(
-      (data as { word: string; image_url: string }[])
-        .filter(d => d.image_url)
-        .map(d => [d.word, d.image_url])
+      (data as { word: string; image_url?: string | null; grade?: number | null }[]).map(d => [
+        d.word,
+        {
+          ...(d.image_url ? { image_url: d.image_url } : {}),
+          ...(d.grade ? { grade: d.grade } : {}),
+        },
+      ])
     )
   } catch {
     return new Map()
   }
+}
+
+/** @deprecated Use fetchVocabMeta instead */
+export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, string>> {
+  const meta = await fetchVocabMeta(words)
+  const result = new Map<string, string>()
+  meta.forEach((v, k) => { if (v.image_url) result.set(k, v.image_url) })
+  return result
 }
 
 export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {

@@ -127,6 +127,7 @@ export interface VocabItem {
   due: number
   status: 'locked' | 'active'
   image_url?: string
+  grade?: number        // Japanese school grade (1-9)
   category?: VocabCategory
   word_type?: VocabWordType
   // Per-mode SRS

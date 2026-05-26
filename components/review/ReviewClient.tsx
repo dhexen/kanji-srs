@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
-import { fetchVocabImageUrls } from '@/lib/supabase'
+import { fetchVocabMeta } from '@/lib/supabase'
 import ModeSelector from './ModeSelector'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
@@ -45,17 +45,23 @@ export default function ReviewClient() {
 
     setIsStarting(true)
     try {
-      // Inject image URLs for items that don't have one in the store.
-      // Direct fetch from vocabulary table — always reflects latest images
-      // regardless of whether the store merge worked correctly on login.
-      const wordsWithoutImage = [...new Set(seq.filter(s => !s.item.image_url).map(s => s.item.jp))]
+      // Fetch vocabulary metadata (image_url + grade) for items that are missing them.
+      // Direct fetch from vocabulary table — always reflects latest data regardless of
+      // whether the store merge worked correctly on login.
+      const wordsMissingMeta = [...new Set(
+        seq.filter(s => !s.item.image_url || !s.item.grade).map(s => s.item.jp)
+      )]
       let finalSeq = seq
-      if (wordsWithoutImage.length > 0) {
-        const imageMap = await fetchVocabImageUrls(wordsWithoutImage)
-        if (imageMap.size > 0) {
+      if (wordsMissingMeta.length > 0) {
+        const metaMap = await fetchVocabMeta(wordsMissingMeta)
+        if (metaMap.size > 0) {
           finalSeq = seq.map(s => {
-            const url = s.item.image_url ?? imageMap.get(s.item.jp)
-            return url ? { ...s, item: { ...s.item, image_url: url } } : s
+            const meta = metaMap.get(s.item.jp)
+            if (!meta) return s
+            const updates: Partial<typeof s.item> = {}
+            if (!s.item.image_url && meta.image_url) updates.image_url = meta.image_url
+            if (!s.item.grade && meta.grade) updates.grade = meta.grade
+            return Object.keys(updates).length > 0 ? { ...s, item: { ...s.item, ...updates } } : s
           })
         }
       }

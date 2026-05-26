@@ -169,11 +169,19 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         )}
 
         <div className={`pb-6 px-4 ${hasImage ? 'pt-5' : 'pt-12'}`}>
-          <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 mb-4 tracking-wide">
+          <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 mb-2 tracking-wide">
             {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
           </div>
+
+          {/* Significado — visible en multi (donde la pregunta es la lectura, no el significado) */}
+          {mode === 'multi' && (
+            <p className="text-slate-600 text-base font-medium mb-2">{meaning}</p>
+          )}
+
           <p className="text-slate-500 text-sm">{questionPrompt[mode]}</p>
-          {(item.word_type || item.category) && (
+
+          {/* Badges: tipo de palabra, categoría y curso */}
+          {(item.word_type || item.category || item.grade) && (
             <div className="flex flex-wrap justify-center gap-1.5 mt-3">
               {item.word_type && (
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
@@ -183,6 +191,11 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
               {item.category && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
                   {t(lang, `cat_${item.category}`)}
+                </span>
+              )}
+              {item.grade && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  📚 {lang === 'ja' ? `${item.grade}年` : lang === 'en' ? `Grade ${item.grade}` : lang === 'ca' ? `Curs ${item.grade}` : `Curso ${item.grade}`}
                 </span>
               )}
             </div>

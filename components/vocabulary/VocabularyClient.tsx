@@ -197,6 +197,7 @@ export default function VocabularyClient() {
         meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
         srsLevel: 1, due: now, status: 'active',
         ...(w.image_url ? { image_url: w.image_url } : {}),
+        ...(w.grade ? { grade: w.grade } : {}),
         ...(w.category ? { category: w.category } : {}),
         ...(w.word_type ? { word_type: w.word_type } : {}),
       } as VocabItem
@@ -215,6 +216,7 @@ export default function VocabularyClient() {
         meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
         srsLevel: 8, due: masterDue, status: 'active',
         ...(w.image_url ? { image_url: w.image_url } : {}),
+        ...(w.grade ? { grade: w.grade } : {}),
         ...(w.category ? { category: w.category } : {}),
         ...(w.word_type ? { word_type: w.word_type } : {}),
       } as VocabItem
@@ -270,6 +272,7 @@ export default function VocabularyClient() {
             meaning: v.meaning_es, meaning_ca: v.meaning_ca, meaning_en: v.meaning_en,
             srsLevel: 8, due: masterDue, status: 'active',
             ...(v.image_url ? { image_url: v.image_url } : {}),
+            ...(v.grade ? { grade: v.grade } : {}),
             ...(v.category ? { category: v.category } : {}),
             ...(v.word_type ? { word_type: v.word_type } : {}),
           } as VocabItem
@@ -318,6 +321,7 @@ export default function VocabularyClient() {
         meaning_en: v.meaning_en,
         srsLevel: 1, due: now, status: 'active',
         ...(v.image_url ? { image_url: v.image_url } : {}),
+        ...(v.grade ? { grade: v.grade } : {}),
         ...(v.category ? { category: v.category } : {}),
         ...(v.word_type ? { word_type: v.word_type } : {}),
       } as VocabItem
