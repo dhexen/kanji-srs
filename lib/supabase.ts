@@ -108,28 +108,42 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
   const items = (data || []).map(rowToVocabItem)
 
   // Merge image_url, category, word_type from shared vocabulary table
-  try {
-    const words = items.map(i => i.jp)
-    if (words.length > 0) {
-      const { data: sharedData } = await supabase
+  const words = items.map(i => i.jp)
+  if (words.length > 0) {
+    // Try full query (image_url + category + word_type). If it fails (e.g. columns
+    // not yet added), fall back to a minimal query with just image_url.
+    let vocabMeta: { word: string; image_url?: string | null; category?: string | null; word_type?: string | null }[] | null = null
+    try {
+      const { data, error } = await supabase
         .from('vocabulary')
         .select('word, image_url, category, word_type')
         .in('word', words)
-      if (sharedData && sharedData.length > 0) {
-        const sharedMap = new Map(sharedData.map(d => [d.word as string, d]))
-        return items.map(i => {
-          const shared = sharedMap.get(i.jp)
-          if (!shared) return i
-          const updates: Partial<typeof i> = {}
-          if (shared.image_url) updates.image_url = shared.image_url as string
-          if (shared.category) updates.category = shared.category as typeof i.category
-          if (shared.word_type) updates.word_type = shared.word_type as typeof i.word_type
-          return Object.keys(updates).length > 0 ? { ...i, ...updates } : i
-        })
-      }
+      if (!error) vocabMeta = data
+    } catch { /* network error */ }
+
+    if (!vocabMeta) {
+      // Fallback: only fetch image_url to be safe against missing columns
+      try {
+        const { data } = await supabase
+          .from('vocabulary')
+          .select('word, image_url')
+          .in('word', words)
+        vocabMeta = data
+      } catch { /* ignore */ }
     }
-  } catch {
-    // columns not yet added — skip silently
+
+    if (vocabMeta && vocabMeta.length > 0) {
+      const sharedMap = new Map(vocabMeta.map(d => [d.word as string, d]))
+      return items.map(i => {
+        const shared = sharedMap.get(i.jp)
+        if (!shared) return i
+        const updates: Partial<typeof i> = {}
+        if (shared.image_url) updates.image_url = shared.image_url as string
+        if (shared.category) updates.category = shared.category as typeof i.category
+        if (shared.word_type) updates.word_type = shared.word_type as typeof i.word_type
+        return Object.keys(updates).length > 0 ? { ...i, ...updates } : i
+      })
+    }
   }
   return items
 }
@@ -737,6 +751,31 @@ export async function insertUnofficialVocab(entry: {
   if (error?.message?.includes('check_vocab_insert_rate'))
     throw new Error('Has alcanzado el límite de 20 palabras nuevas en 24 horas. Inténtalo mañana.')
   if (error) throw error
+}
+
+/**
+ * Fetch image_url for a list of words directly from the vocabulary table.
+ * Returns a Map of word → image_url for words that have a non-null image.
+ * Used as a reliable fallback when state.db items don't have image_url populated.
+ */
+export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, string>> {
+  if (words.length === 0) return new Map()
+  try {
+    const { data } = await supabase
+      .from('vocabulary')
+      .select('word, image_url')
+      .in('word', words)
+      .not('image_url', 'is', null)
+      .neq('image_url', '')
+    if (!data) return new Map()
+    return new Map(
+      (data as { word: string; image_url: string }[])
+        .filter(d => d.image_url)
+        .map(d => [d.word, d.image_url])
+    )
+  } catch {
+    return new Map()
+  }
 }
 
 export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {

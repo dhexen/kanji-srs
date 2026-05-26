@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
+import { fetchVocabImageUrls } from '@/lib/supabase'
 import ModeSelector from './ModeSelector'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
@@ -16,6 +17,7 @@ export default function ReviewClient() {
   const [sequence, setSequence] = useState<SessionItem[]>([])
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
   const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
@@ -36,14 +38,35 @@ export default function ReviewClient() {
     return items.sort(() => Math.random() - 0.5)
   }
 
-  function start(practice: boolean) {
+  async function start(practice: boolean) {
     if (activeWords.length === 0) return
     const seq = buildSequence(practice)
     if (!practice && seq.length === 0) { setPhase('done'); return }
-    setIsPractice(practice)
-    setSequence(seq)
-    setIndex(0)
-    setPhase('playing')
+
+    setIsStarting(true)
+    try {
+      // Inject image URLs for items that don't have one in the store.
+      // Direct fetch from vocabulary table — always reflects latest images
+      // regardless of whether the store merge worked correctly on login.
+      const wordsWithoutImage = [...new Set(seq.filter(s => !s.item.image_url).map(s => s.item.jp))]
+      let finalSeq = seq
+      if (wordsWithoutImage.length > 0) {
+        const imageMap = await fetchVocabImageUrls(wordsWithoutImage)
+        if (imageMap.size > 0) {
+          finalSeq = seq.map(s => {
+            const url = s.item.image_url ?? imageMap.get(s.item.jp)
+            return url ? { ...s, item: { ...s.item, image_url: url } } : s
+          })
+        }
+      }
+
+      setIsPractice(practice)
+      setSequence(finalSeq)
+      setIndex(0)
+      setPhase('playing')
+    } finally {
+      setIsStarting(false)
+    }
   }
 
   function onNext() {
@@ -68,6 +91,7 @@ export default function ReviewClient() {
         pendingCount={pendingCount}
         onStart={start}
         hasWords={activeWords.length > 0}
+        isStarting={isStarting}
       />
     )
   }

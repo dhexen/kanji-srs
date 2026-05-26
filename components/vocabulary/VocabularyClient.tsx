@@ -196,6 +196,9 @@ export default function VocabularyClient() {
         kanji: w.kanji, jp: w.word, reading: w.reading,
         meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
         srsLevel: 1, due: now, status: 'active',
+        ...(w.image_url ? { image_url: w.image_url } : {}),
+        ...(w.category ? { category: w.category } : {}),
+        ...(w.word_type ? { word_type: w.word_type } : {}),
       } as VocabItem
       await addVocabItems([activateItem(base, 1, now)])
       loadGradeStats()
@@ -211,6 +214,9 @@ export default function VocabularyClient() {
         kanji: w.kanji, jp: w.word, reading: w.reading,
         meaning: w.meaning_es, meaning_ca: w.meaning_ca, meaning_en: w.meaning_en,
         srsLevel: 8, due: masterDue, status: 'active',
+        ...(w.image_url ? { image_url: w.image_url } : {}),
+        ...(w.category ? { category: w.category } : {}),
+        ...(w.word_type ? { word_type: w.word_type } : {}),
       } as VocabItem
       await addVocabItems([activateItem(base, 8, masterDue)])
       loadGradeStats()
@@ -263,6 +269,9 @@ export default function VocabularyClient() {
             kanji: v.kanji, jp: v.word, reading: v.reading,
             meaning: v.meaning_es, meaning_ca: v.meaning_ca, meaning_en: v.meaning_en,
             srsLevel: 8, due: masterDue, status: 'active',
+            ...(v.image_url ? { image_url: v.image_url } : {}),
+            ...(v.category ? { category: v.category } : {}),
+            ...(v.word_type ? { word_type: v.word_type } : {}),
           } as VocabItem
           return activateItem(base, 8, masterDue)
         })
@@ -308,6 +317,9 @@ export default function VocabularyClient() {
         meaning_ca: v.meaning_ca,
         meaning_en: v.meaning_en,
         srsLevel: 1, due: now, status: 'active',
+        ...(v.image_url ? { image_url: v.image_url } : {}),
+        ...(v.category ? { category: v.category } : {}),
+        ...(v.word_type ? { word_type: v.word_type } : {}),
       } as VocabItem
       return activateItem(base, 1, now)
     })

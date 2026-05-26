@@ -10,6 +10,7 @@ interface Props {
   pendingCount: number
   onStart: (practice: boolean) => void
   hasWords: boolean
+  isStarting?: boolean
 }
 
 // Pastel accent per mode (replaces the hard colorOn/colorOff from MODE_CONFIG for the bento grid)
@@ -21,11 +22,12 @@ const MODE_PASTEL: Record<ReviewMode, { bg: string; bgActive: string; text: stri
   reverse: { bg: 'bg-white',          bgActive: 'bg-emerald-100', text: 'text-slate-500', textActive: 'text-emerald-700',ring: 'ring-emerald-200', dot: 'bg-emerald-400'},
 }
 
-export default function ModeSelector({ selectedModes, onToggle, pendingCount, onStart, hasWords }: Props) {
+export default function ModeSelector({ selectedModes, onToggle, pendingCount, onStart, hasWords, isStarting = false }: Props) {
   const { state } = useStore()
   const lang = state.lang
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
   const noModesSelected = selectedModes.length === 0
+  const startDisabled = !hasWords || noModesSelected || isStarting
 
   return (
     <div data-tutorial-id="review-mode-selector" className="space-y-3">
@@ -58,14 +60,16 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
             <div className="flex flex-col gap-2 items-end">
               <button
                 onClick={() => onStart(false)}
-                disabled={!hasWords || noModesSelected}
+                disabled={startDisabled}
                 title={noModesSelected ? t(lang, 'review_no_modes_selected') : undefined}
                 className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm shadow-violet-200 active:scale-95"
               >
-                {t(lang, 'review_start')}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                {isStarting ? '⏳' : t(lang, 'review_start')}
+                {!isStarting && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
@@ -81,11 +85,11 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
           </div>
           <button
             onClick={() => onStart(true)}
-            disabled={!hasWords || noModesSelected}
+            disabled={startDisabled}
             title={noModesSelected ? t(lang, 'review_no_modes_selected') : undefined}
             className="mt-3 w-full py-2 bg-slate-50 hover:bg-violet-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600 hover:text-violet-600 font-semibold rounded-xl text-sm transition border border-slate-200 hover:border-violet-200 active:scale-95"
           >
-            {t(lang, 'review_free')}
+            {isStarting ? '⏳' : t(lang, 'review_free')}
           </button>
         </div>
 
