@@ -111,15 +111,126 @@ export function formatNextReview(ms: number, lang = 'es'): string {
   return `en ${minutes} min`
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-form answer matching helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Returns true if `ch` is a CJK kanji character. */
+function isKanji(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0
+  return (cp >= 0x4e00 && cp <= 0x9fff)   // CJK unified ideographs
+      || (cp >= 0x3400 && cp <= 0x4dbf)   // CJK extension A
+}
+
+/**
+ * Splits a mixed kanji+kana `text` into tokens, pairing each consecutive
+ * kanji block with its kana reading extracted from `reading` (a flat kana
+ * string). Non-kanji characters (kana, ASCII, punctuation) are single-char
+ * tokens with no kana alternative.
+ *
+ * Uses the same heuristic as the furigana renderer in GrammarPractice:
+ * the kana reading for a kanji block ends where the next non-kanji character
+ * of `text` appears in `reading`.
+ */
+function buildKanaTokens(
+  text: string,
+  reading: string,
+): { base: string; kana?: string }[] {
+  if (!text) return []
+  if (!reading || reading === text) return [{ base: text }]
+
+  const tokens: { base: string; kana?: string }[] = []
+  let ti = 0  // cursor in `text`
+  let ri = 0  // cursor in `reading`
+
+  while (ti < text.length) {
+    const ch = text[ti]
+
+    if (!isKanji(ch)) {
+      // Kana / punctuation / ASCII — emit as plain token, advance both cursors
+      tokens.push({ base: ch })
+      ri++
+      ti++
+    } else {
+      // Kanji block: collect consecutive kanji characters
+      let kanjiEnd = ti + 1
+      while (kanjiEnd < text.length && isKanji(text[kanjiEnd])) kanjiEnd++
+
+      // The kana reading for this block ends where the next non-kanji char
+      // of `text` first appears in `reading` starting from `ri`.
+      let readingEnd: number
+      if (kanjiEnd >= text.length) {
+        // Last block — consume the rest of `reading`
+        readingEnd = reading.length
+      } else {
+        const nextCh = text[kanjiEnd]
+        let s = ri
+        while (s < reading.length && reading[s] !== nextCh) s++
+        readingEnd = s
+      }
+
+      const kana = reading.slice(ri, readingEnd)
+      tokens.push({ base: text.slice(ti, kanjiEnd), kana: kana || undefined })
+      ti = kanjiEnd
+      ri = readingEnd
+    }
+  }
+
+  return tokens
+}
+
+/**
+ * Given a kanji string and its flat kana reading, generates EVERY valid
+ * rendition where each kanji block is written EITHER fully as kanji OR
+ * fully as kana — but never mixed within a single block.
+ *
+ * Example — '私は学生' + 'わたしはがくせい':
+ *   → ['私は学生', 'わたしは学生', '私はがくせい', 'わたしはがくせい']
+ *
+ * A mixed form like '学せい' is NOT among the outputs, so it will not match.
+ */
+function generateAllValidForms(text: string, reading: string): string[] {
+  if (!text) return ['']
+
+  const tokens = buildKanaTokens(text, reading)
+
+  // Indices of tokens that have a kana alternative (i.e., kanji blocks)
+  const altIdx = tokens.reduce<number[]>((acc, t, i) => {
+    if (t.kana) acc.push(i)
+    return acc
+  }, [])
+
+  // No kanji → only one valid form
+  if (altIdx.length === 0) return [text]
+
+  // 2^N combinations where N = number of kanji blocks (typically 1–5 per segment)
+  const n = altIdx.length
+  const forms: string[] = []
+
+  for (let mask = 0; mask < (1 << n); mask++) {
+    const parts = tokens.map((tok, tokIdx) => {
+      const pos = altIdx.indexOf(tokIdx)
+      if (pos === -1 || !tok.kana) return tok.base
+      // bit set → use kana reading; bit unset → keep kanji
+      return (mask & (1 << pos)) !== 0 ? tok.kana : tok.base
+    })
+    forms.push(parts.join(''))
+  }
+
+  return forms
+}
+
 /**
  * Checks whether the user's full-sentence input matches the correct sentence.
  *
- * "Correct" is evaluated against the kana reading form
- * (sentence_before_reading + answer + sentence_after_reading), which is what
- * romaji → hiragana input will produce. Falls back to the kanji form so that
- * users typing with a Japanese IME can also be accepted.
+ * Accepts any rendition where each kanji block in the before/after segments
+ * is written EITHER fully as kanji OR fully as its kana reading.
+ * Writing a single block with a mix of kanji and kana (e.g. 学せい) is
+ * treated as incorrect.
  *
- * Both sides are normalised before comparison (punctuation stripped, etc.).
+ * The grammar answer token is always kana and is compared verbatim.
+ * All comparisons are performed after normalisation (punctuation stripped,
+ * katakana → hiragana, whitespace collapsed).
  */
 export function checkFullSentence(
   userInput: string,
@@ -132,15 +243,23 @@ export function checkFullSentence(
   const norm = normalizeAnswer(userInput)
   if (!norm) return false
 
-  // Primary: kana form — what romaji / hiragana input produces
-  const beforeKana = sentenceBeforeReading || sentenceBefore
-  const afterKana  = sentenceAfterReading  || sentenceAfter
-  const kanaFull   = normalizeAnswer(beforeKana + answer + afterKana)
-  if (norm === kanaFull) return true
+  // Generate all valid forms for the before and after segments.
+  // Each kanji block can independently be kanji or its kana reading.
+  const beforeForms = generateAllValidForms(
+    sentenceBefore,
+    sentenceBeforeReading || sentenceBefore,
+  )
+  const afterForms = generateAllValidForms(
+    sentenceAfter,
+    sentenceAfterReading || sentenceAfter,
+  )
 
-  // Fallback: kanji form — for users with a Japanese IME
-  const kanjiFull = normalizeAnswer(sentenceBefore + answer + sentenceAfter)
-  if (norm === kanjiFull) return true
+  // The grammar answer is always kana — check every before × after combination.
+  for (const before of beforeForms) {
+    for (const after of afterForms) {
+      if (norm === normalizeAnswer(before + answer + after)) return true
+    }
+  }
 
   return false
 }
