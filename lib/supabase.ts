@@ -586,13 +586,13 @@ export async function uploadProgress(vocabDb: VocabItem[]) {
  * 2. Direct SELECT on user_roles table (legacy / if RPC missing)
  * 3. NEXT_PUBLIC_ADMIN_EMAILS env var (emergency fallback)
  */
-export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
+export async function getUserRole(userId: string): Promise<'admin' | 'contributor' | 'user'> {
   // 1. Try RPC (bypasses RLS — most reliable)
   try {
     const { data, error } = await supabase.rpc('get_my_role')
     if (!error && typeof data === 'string') {
       console.log('[getUserRole] RPC hit:', userId, '→', data)
-      return data as 'admin' | 'user'
+      return data as 'admin' | 'contributor' | 'user'
     }
     if (error) console.warn('[getUserRole] RPC error:', error.code, error.message)
   } catch (e) {
@@ -604,7 +604,7 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
     const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle()
     if (!error && data) {
       console.log('[getUserRole] DB hit:', userId, '→', data.role)
-      return data.role as 'admin' | 'user'
+      return data.role as 'admin' | 'contributor' | 'user'
     }
     if (error) console.warn('[getUserRole] DB error:', error.code, error.message)
     else console.warn('[getUserRole] No row in user_roles for', userId)
@@ -615,7 +615,7 @@ export async function getUserRole(userId: string): Promise<'admin' | 'user'> {
   return 'user'
 }
 
-export async function setUserRole(userId: string, role: 'admin' | 'user') {
+export async function setUserRole(userId: string, role: 'admin' | 'contributor' | 'user') {
   const { error } = await supabase.from('user_roles').upsert({ user_id: userId, role }, { onConflict: 'user_id' })
   if (error) throw error
 }
@@ -1240,6 +1240,48 @@ export async function fetchUserGrammarExamples(
   } catch (e) {
     console.warn('fetchUserGrammarExamples exception:', e)
     return []
+  }
+}
+
+/**
+ * Update the jp and translation arrays of a single user grammar example.
+ * Only the owner can update their own row (RLS enforced by user_id).
+ */
+export async function updateUserGrammarExample(
+  id: string,
+  jp: unknown[],
+  translation: unknown[],
+): Promise<void> {
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('user_grammar_examples')
+      .update({ jp, translation })
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) console.warn('updateUserGrammarExample:', error.message)
+  } catch (e) {
+    console.warn('updateUserGrammarExample exception:', e)
+  }
+}
+
+/**
+ * Update selected fields of a shared grammar practice sentence.
+ * The grammar_sentences table is a shared pool (no user_id). Admin/contributor
+ * roles can fix AI-generated sentences for all users.
+ */
+export async function updateGrammarSentence(
+  id: string,
+  patch: Partial<Omit<GrammarSentence, 'id' | 'grammar_id'>>,
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('grammar_sentences')
+      .update(patch)
+      .eq('id', id)
+    if (error) console.warn('updateGrammarSentence:', error.message)
+  } catch (e) {
+    console.warn('updateGrammarSentence exception:', e)
   }
 }
 

@@ -122,9 +122,10 @@ interface Props {
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
+  canEdit?: boolean
 }
 
-export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack }: Props) {
+export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit }: Props) {
   const [practiceMode, setPracticeMode] = useState(false)
 
   // ── Practice mode: render GrammarPractice in place of the detail ──────────
@@ -137,6 +138,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setPracticeMode(false)}
+        canEdit={canEdit}
       />
     )
   }
@@ -242,6 +244,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         geminiKey={geminiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
+        canEdit={canEdit}
       />
     </div>
   )

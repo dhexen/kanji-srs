@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const { adminId, service } = await requireAdmin(request)
     const { role } = await request.json()
-    if (role !== 'admin' && role !== 'user') {
+    if (role !== 'admin' && role !== 'contributor' && role !== 'user') {
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
     }
     if (params.userId === adminId && role !== 'admin') {

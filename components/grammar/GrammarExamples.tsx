@@ -8,6 +8,7 @@ import GeminiApiTutorial from './GeminiApiTutorial'
 import {
   fetchUserGrammarExamples,
   saveUserGrammarExamples,
+  updateUserGrammarExample,
 } from '@/lib/supabase'
 
 const MAX_POOL = 10
@@ -20,6 +21,7 @@ interface AiToken {
 }
 
 interface AiSentence {
+  id?: string
   jp: AiToken[]
   translation: AiToken[]
 }
@@ -30,15 +32,31 @@ interface Props {
   geminiKey: string
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
+  canEdit?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }) {
+function AiSentenceCard({
+  sentence,
+  lang,
+  canEdit,
+  onUpdate,
+}: {
+  sentence: AiSentence
+  lang: Lang
+  canEdit?: boolean
+  onUpdate?: (id: string, jp: AiToken[], translation: AiToken[]) => Promise<void>
+}) {
   const [showTranslation, setShowTranslation] = useState(false)
   const [showFurigana, setShowFurigana]       = useState(false)
+  const [editing, setEditing]                 = useState(false)
+  const [editJp, setEditJp]                   = useState('')
+  const [editTranslation, setEditTranslation] = useState('')
+  const [saving, setSaving]                   = useState(false)
+  const [saveError, setSaveError]             = useState('')
 
   const furiganaLabel =
     lang === 'en' ? (showFurigana ? 'Hide furigana' : 'Show furigana') :
@@ -52,8 +70,136 @@ function AiSentenceCard({ sentence, lang }: { sentence: AiSentence; lang: Lang }
     lang === 'ja' ? (showTranslation ? '訳を隠す' : '訳を表示') :
     (showTranslation ? 'Ocultar traducción' : 'Mostrar traducción')
 
+  function startEdit() {
+    setEditJp(sentence.jp.map(t => t.text).join(''))
+    setEditTranslation(sentence.translation.map(t => t.text).join(''))
+    setSaveError('')
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    if (!onUpdate || !sentence.id) return
+    const trimJp = editJp.trim()
+    const trimTr = editTranslation.trim()
+    if (!trimJp) { setSaveError('La frase en japonés no puede estar vacía.'); return }
+    if (!trimTr) { setSaveError('La traducción no puede estar vacía.'); return }
+
+    const newJp: AiToken[] = [{ text: trimJp, role: 'noun' as GrammarRole }]
+    const newTr: AiToken[] = [{ text: trimTr, role: 'noun' as GrammarRole }]
+    setSaving(true)
+    setSaveError('')
+    try {
+      await onUpdate(sentence.id, newJp, newTr)
+      setEditing(false)
+    } catch {
+      setSaveError('Error al guardar. Inténtalo de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Edit mode ────────────────────────────────────────────────────────────
+  if (editing) {
+    const jpLabel =
+      lang === 'en' ? 'Japanese sentence' :
+      lang === 'ca' ? 'Frase en japonès' :
+      'Frase en japonés'
+    const trLabel =
+      lang === 'en' ? 'Translation' :
+      lang === 'ca' ? 'Traducció' :
+      'Traducción'
+    const saveLabel =
+      lang === 'en' ? 'Save' :
+      lang === 'ca' ? 'Desar' :
+      'Guardar'
+    const cancelLabel =
+      lang === 'en' ? 'Cancel' :
+      lang === 'ca' ? 'Cancel·lar' :
+      'Cancelar'
+
+    return (
+      <div className="bg-amber-50 rounded-xl border border-amber-300 p-4 space-y-3">
+        {/* Edit header */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-amber-800">✏️{' '}
+            {lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
+          </span>
+        </div>
+
+        {/* JP input */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-600">{jpLabel}</label>
+          <input
+            type="text"
+            value={editJp}
+            onChange={e => setEditJp(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-400 focus:outline-none text-base font-bold text-slate-800 bg-white"
+            dir="ltr"
+            lang="ja"
+          />
+        </div>
+
+        {/* Translation input */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-600">{trLabel}</label>
+          <input
+            type="text"
+            value={editTranslation}
+            onChange={e => setEditTranslation(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-400 focus:outline-none text-sm text-slate-800 bg-white"
+          />
+        </div>
+
+        {saveError && (
+          <p className="text-xs text-red-600">{saveError}</p>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-semibold transition"
+          >
+            {saving && (
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+              </svg>
+            )}
+            💾 {saveLabel}
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            disabled={saving}
+            className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition"
+          >
+            {cancelLabel}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal view ───────────────────────────────────────────────────────────
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+      {/* Edit button (admin/contributor only) */}
+      {canEdit && sentence.id && (
+        <div className="flex justify-end">
+          <button
+            onClick={startEdit}
+            title={lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            {lang === 'en' ? 'Edit' : lang === 'ca' ? 'Editar' : 'Editar'}
+          </button>
+        </div>
+      )}
+
       {/* Japanese tokens */}
       <div className="flex flex-wrap items-end gap-1.5">
         {sentence.jp.map((t, i) => {
@@ -114,8 +260,9 @@ const VALID_ROLES: GrammarRole[] = [
   'verb', 'key', 'copula', 'particle', 'noun', 'adjective', 'conjunction', 'auxiliary',
 ]
 
-function castSentences(rows: { jp: unknown[]; translation: unknown[] }[]): AiSentence[] {
+function castSentences(rows: { id?: string; jp: unknown[]; translation: unknown[] }[]): AiSentence[] {
   return rows.map(row => ({
+    id: row.id as string | undefined,
     jp: (row.jp ?? []).map((t: any) => ({
       text:     String(t.text ?? ''),
       furigana: t.furigana ?? undefined,
@@ -132,7 +279,7 @@ function castSentences(rows: { jp: unknown[]; translation: unknown[] }[]): AiSen
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken, activeVocab }: Props) {
+export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken, activeVocab, canEdit }: Props) {
   const [sentences, setSentences]   = useState<AiSentence[]>([])
   const [dbLoading, setDbLoading]   = useState(true)   // initial DB fetch
   const [genLoading, setGenLoading] = useState(false)  // AI generation
@@ -235,6 +382,14 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
     }
   }
 
+  // ── Handle inline edit update ─────────────────────────────────────────────
+  async function handleUpdate(id: string, jp: AiToken[], translation: AiToken[]) {
+    await updateUserGrammarExample(id, jp, translation)
+    setSentences(prev => prev.map(s =>
+      s.id === id ? { ...s, jp, translation } : s
+    ))
+  }
+
   // ── Labels ────────────────────────────────────────────────────────────────
   const genLabel =
     genLoading ? (
@@ -321,7 +476,13 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
       {/* Sentence cards */}
       {sentences.map((s, i) => (
-        <AiSentenceCard key={i} sentence={s} lang={lang} />
+        <AiSentenceCard
+          key={s.id ?? i}
+          sentence={s}
+          lang={lang}
+          canEdit={canEdit}
+          onUpdate={handleUpdate}
+        />
       ))}
     </div>
   )

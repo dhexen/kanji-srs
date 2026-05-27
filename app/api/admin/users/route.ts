@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     if (String(password).length < 8) {
       return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 })
     }
-    const user = await createAdminUser(service, email, password, role === 'admin' ? 'admin' : 'user')
+    const validRole = role === 'admin' ? 'admin' : role === 'contributor' ? 'contributor' : 'user'
+    const user = await createAdminUser(service, email, password, validRole)
     return NextResponse.json(user)
   } catch (e) {
     return adminJsonError(e)

@@ -25,7 +25,7 @@ export type { ContextText }
 interface State {
   db: VocabItem[]
   user: { email: string; id: string } | null
-  role: 'admin' | 'user'
+  role: 'admin' | 'contributor' | 'user'
   syncing: boolean
   loaded: boolean
   geminiApiKey: string
@@ -37,7 +37,7 @@ interface State {
 type Action =
   | { type: 'SET_DB'; payload: VocabItem[] }
   | { type: 'SET_USER'; payload: { email: string; id: string } | null }
-  | { type: 'SET_ROLE'; payload: 'admin' | 'user' }
+  | { type: 'SET_ROLE'; payload: 'admin' | 'contributor' | 'user' }
   | { type: 'SET_SYNCING'; payload: boolean }
   | { type: 'SET_LOADED' }
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
@@ -145,7 +145,7 @@ const StoreContext = createContext<StoreContextType | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
-    db: [], user: null, role: 'user', syncing: false, loaded: false,
+    db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', syncing: false, loaded: false,
     geminiApiKey: '', pexelsApiKey: '', contextTexts: [], lang: 'es',
   })
 

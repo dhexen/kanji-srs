@@ -37,7 +37,7 @@ export default function AdminClient() {
   const [users, setUsers] = useState<AdminUserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' as 'admin' | 'user' })
+  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' as 'admin' | 'contributor' | 'user' })
   const [restoreUserId, setRestoreUserId] = useState<string | null>(null)
   const [snapshots, setSnapshots] = useState<AdminSnapshotRow[]>([])
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
@@ -314,12 +314,12 @@ export default function AdminClient() {
     }
   }
 
-  async function toggleRole(user: AdminUserRow) {
-    const newRole = user.role === 'admin' ? 'user' : 'admin'
+  async function changeRole(user: AdminUserRow, newRole: 'admin' | 'contributor' | 'user') {
     try {
       await updateAdminUserRole(user.user_id, newRole)
       setUsers(prev => prev.map(u => u.user_id === user.user_id ? { ...u, role: newRole } : u))
-      showToast(`Rol: ${newRole}`, 'success')
+      const label = newRole === 'admin' ? '👑 Admin' : newRole === 'contributor' ? '✏️ Contributor' : '👤 Usuario'
+      showToast(`Rol cambiado a: ${label}`, 'success')
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : 'Error', 'error')
     }
@@ -437,7 +437,7 @@ export default function AdminClient() {
       {/* ── TAB: USUARIOS ─────────────────────────────────────────────── */}
       {activeTab === 'users' && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
               <div className="text-3xl font-bold text-amber-600">{users.length}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Usuarios</div>
@@ -445,6 +445,10 @@ export default function AdminClient() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
               <div className="text-3xl font-bold text-indigo-600">{users.filter(u => u.role === 'admin').length}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Admins</div>
+            </div>
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+              <div className="text-3xl font-bold text-violet-600">{users.filter(u => u.role === 'contributor').length}</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Contributors</div>
             </div>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center col-span-2 md:col-span-1">
               <div className="text-3xl font-bold text-emerald-600">{users.reduce((s, u) => s + u.wordCount, 0)}</div>
@@ -463,10 +467,11 @@ export default function AdminClient() {
                 onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
                 className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm" autoComplete="new-password" />
               <select value={newUser.role}
-                onChange={e => setNewUser(u => ({ ...u, role: e.target.value as 'admin' | 'user' }))}
+                onChange={e => setNewUser(u => ({ ...u, role: e.target.value as 'admin' | 'contributor' | 'user' }))}
                 className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white">
-                <option value="user">Usuario</option>
-                <option value="admin">Administrador</option>
+                <option value="user">👤 Usuario</option>
+                <option value="contributor">✏️ Contributor</option>
+                <option value="admin">👑 Administrador</option>
               </select>
               <button type="button" disabled={creating} onClick={handleCreate}
                 className="py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition">
@@ -505,18 +510,29 @@ export default function AdminClient() {
                             </td>
                             <td className="py-3 px-4 font-semibold text-slate-700">{user.wordCount}</td>
                             <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-md text-xs font-bold ${user.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                                {user.role === 'admin' ? '👑 Admin' : '👤 Usuario'}
+                              <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                user.role === 'admin'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : user.role === 'contributor'
+                                  ? 'bg-violet-100 text-violet-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {user.role === 'admin' ? '👑 Admin' : user.role === 'contributor' ? '✏️ Contributor' : '👤 Usuario'}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.created_at ? formatDate(user.created_at) : '—'}</td>
                             <td className="py-3 px-4">
                               <div className="flex flex-wrap justify-end gap-1.5">
                                 {!isMe && (
-                                  <button type="button" onClick={() => toggleRole(user)}
-                                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">
-                                    {user.role === 'admin' ? '↓ Usuario' : '↑ Admin'}
-                                  </button>
+                                  <select
+                                    value={user.role}
+                                    onChange={e => changeRole(user, e.target.value as 'admin' | 'contributor' | 'user')}
+                                    className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border-0 cursor-pointer"
+                                  >
+                                    <option value="user">👤 Usuario</option>
+                                    <option value="contributor">✏️ Contributor</option>
+                                    <option value="admin">👑 Admin</option>
+                                  </select>
                                 )}
                                 <button type="button" onClick={() => openRestore(user.user_id)}
                                   className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700">

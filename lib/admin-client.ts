@@ -18,7 +18,7 @@ async function parseAdminResponse<T>(res: Response): Promise<T> {
 export interface AdminUserRow {
   user_id: string
   email: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'contributor' | 'user'
   created_at: string
   wordCount: number
   last_sign_in?: string | null
@@ -37,7 +37,7 @@ export async function fetchAdminUsers(): Promise<AdminUserRow[]> {
   return data.users
 }
 
-export async function createAdminUser(email: string, password: string, role: 'admin' | 'user') {
+export async function createAdminUser(email: string, password: string, role: 'admin' | 'contributor' | 'user') {
   const res = await fetch('/api/admin/users', {
     method: 'POST',
     headers: await adminAuthHeaders(),
@@ -54,7 +54,7 @@ export async function deleteAdminUser(userId: string) {
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
-export async function updateAdminUserRole(userId: string, role: 'admin' | 'user') {
+export async function updateAdminUserRole(userId: string, role: 'admin' | 'contributor' | 'user') {
   const res = await fetch(`/api/admin/users/${userId}/role`, {
     method: 'PATCH',
     headers: await adminAuthHeaders(),

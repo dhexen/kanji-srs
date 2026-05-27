@@ -166,6 +166,7 @@ function GrammarSrsQueue({
   sessionToken,
   activeVocab,
   onBack,
+  canEdit,
 }: {
   queue: GrammarPointWithBook[]
   lang: string
@@ -173,6 +174,7 @@ function GrammarSrsQueue({
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
+  canEdit?: boolean
 }) {
   const [idx, setIdx] = useState(0)
 
@@ -239,6 +241,7 @@ function GrammarSrsQueue({
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setIdx(i => i + 1)}   // "back" in queue mode = advance to next
+        canEdit={canEdit}
       />
     </div>
   )
@@ -332,6 +335,7 @@ export default function GrammarClient() {
 
   const activeVocab = state.db.filter(i => i.status === 'active')
   const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
+  const canEdit = state.role === 'admin' || state.role === 'contributor'
 
   // ── Sub-views ────────────────────────────────────────────────────────────
 
@@ -344,6 +348,7 @@ export default function GrammarClient() {
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setView({ kind: 'list' })}
+        canEdit={canEdit}
       />
     )
   }
@@ -357,6 +362,7 @@ export default function GrammarClient() {
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setView({ kind: 'list' })}
+        canEdit={canEdit}
       />
     )
   }
@@ -370,6 +376,7 @@ export default function GrammarClient() {
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setView({ kind: 'list' })}
+        canEdit={canEdit}
       />
     )
   }

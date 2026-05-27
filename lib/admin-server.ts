@@ -109,7 +109,7 @@ export async function listAdminUsers(service: SupabaseClient) {
     return {
       user_id: u.id,
       email: u.email ?? '',
-      role: (roleRow?.role as 'admin' | 'user') ?? 'user',
+      role: (roleRow?.role as 'admin' | 'contributor' | 'user') ?? 'user',
       created_at: roleRow?.created_at ?? u.created_at,
       wordCount: wordCounts[u.id] ?? 0,
       last_sign_in: u.last_sign_in_at,
@@ -121,7 +121,7 @@ export async function createAdminUser(
   service: SupabaseClient,
   email: string,
   password: string,
-  role: 'admin' | 'user',
+  role: 'admin' | 'contributor' | 'user',
 ) {
   const { data, error } = await service.auth.admin.createUser({
     email,
@@ -145,7 +145,7 @@ export async function deleteAdminUser(service: SupabaseClient, userId: string) {
   if (error) throw new AdminApiError(error.message, 400)
 }
 
-export async function setAdminUserRole(service: SupabaseClient, userId: string, role: 'admin' | 'user') {
+export async function setAdminUserRole(service: SupabaseClient, userId: string, role: 'admin' | 'contributor' | 'user') {
   const { error } = await service.from('user_roles').upsert({ user_id: userId, role }, { onConflict: 'user_id' })
   if (error) throw new AdminApiError(error.message, 500)
 }
