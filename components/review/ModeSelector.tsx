@@ -11,6 +11,8 @@ interface Props {
   onStart: (practice: boolean) => void
   hasWords: boolean
   isStarting?: boolean
+  onQuickImport?: (n: number) => void
+  isImporting?: boolean
 }
 
 // Pastel accent per mode (replaces the hard colorOn/colorOff from MODE_CONFIG for the bento grid)
@@ -22,7 +24,7 @@ const MODE_PASTEL: Record<ReviewMode, { bg: string; bgActive: string; text: stri
   reverse: { bg: 'bg-white',          bgActive: 'bg-emerald-100', text: 'text-slate-500', textActive: 'text-emerald-700',ring: 'ring-emerald-200', dot: 'bg-emerald-400'},
 }
 
-export default function ModeSelector({ selectedModes, onToggle, pendingCount, onStart, hasWords, isStarting = false }: Props) {
+export default function ModeSelector({ selectedModes, onToggle, pendingCount, onStart, hasWords, isStarting = false, onQuickImport, isImporting = false }: Props) {
   const { state } = useStore()
   const lang = state.lang
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
@@ -136,6 +138,28 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
           {t(lang, 'review_no_words')}
         </p>
+      )}
+
+      {/* ── Quick import section ── */}
+      {onQuickImport && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+          <div className="mb-3">
+            <p className="text-sm font-semibold text-slate-700">📥 {t(lang, 'review_import_title')}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{t(lang, 'review_import_sub')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {([3, 5, 15] as const).map(n => (
+              <button
+                key={n}
+                onClick={() => onQuickImport(n)}
+                disabled={isImporting}
+                className="flex-1 min-w-[100px] py-2.5 px-3 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-600 hover:text-violet-700 font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              >
+                {isImporting ? t(lang, 'review_import_loading') : t(lang, `review_import_k${n}`)}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

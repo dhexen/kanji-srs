@@ -1,10 +1,11 @@
 'use client'
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react'
-import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals } from './srs'
+import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals, masterItem } from './srs'
 import type { ContextText } from './progress'
 import {
   supabase,
   downloadAccountData,
+  upsertVocabItem,
   upsertVocabItems,
   saveReviewResult,
   deleteAllUserVocab,
@@ -124,6 +125,7 @@ interface StoreContextType {
   addVocabItems: (items: VocabItem[]) => Promise<void>
   saveVocabDb: (db: VocabItem[]) => Promise<void>
   applyReviewResult: (jp: string, mode: ReviewMode, isCorrect: boolean) => void
+  masterVocabItem: (jp: string) => Promise<void>
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
   resetRemoteProgress: () => Promise<void>
@@ -135,7 +137,6 @@ interface StoreContextType {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string) => Promise<'ok' | 'needs_confirmation'>
   signInWithGoogle: () => Promise<void>
-  signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -226,6 +227,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const applyReviewResult = useCallback((jp: string, mode: ReviewMode, isCorrect: boolean) => {
     dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
   }, [dispatchPersist])
+
+  /** Sets all SRS levels for a word to 7 (Maestro) across all modes, then persists. */
+  const masterVocabItem = useCallback(async (jp: string) => {
+    const prevDb = dbRef.current
+    const item = prevDb.find(i => i.jp === jp)
+    if (!item) return
+    const mastered = masterItem(item)
+    const nextDb = prevDb.map(i => i.jp === jp ? mastered : i)
+    dbRef.current = nextDb
+    dispatch({ type: 'SET_DB', payload: nextDb })
+    if (canPersist(userRef, hydratingRef)) {
+      void upsertVocabItem(mastered, nextDb).catch(reportPersistError)
+    }
+  }, [])
 
   const syncDown = useCallback(async () => {
     hydratingRef.current = true
@@ -388,19 +403,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
-  const signInWithMagicLink = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback`
-          : '/auth/callback',
-        shouldCreateUser: true,
-      },
-    })
-    if (error) throw error
-  }, [])
-
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     hydratingRef.current = false
@@ -424,6 +426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addVocabItems,
       saveVocabDb,
       applyReviewResult,
+      masterVocabItem,
       syncUp,
       syncDown,
       resetRemoteProgress,
@@ -435,7 +438,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       login,
       signup,
       signInWithGoogle,
-      signInWithMagicLink,
       logout,
     }}>
       {children}

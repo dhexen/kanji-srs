@@ -816,6 +816,86 @@ export async function getRandomKanjis(_count: number, grade = 1) {
   return Array.from(new Set((data || []).map((d: { kanji: string }) => d.kanji))) as string[]
 }
 
+/**
+ * Fetch the next N kanjis (across all grades, ordered grade ASC then sort_order ASC)
+ * that the user hasn't imported yet, along with their vocabulary words.
+ *
+ * @param n - Number of kanjis to fetch (typically 3, 5, or 15)
+ * @param existingJpWords - Set of word JP values already in the user's DB
+ * @returns Array of vocabulary rows ready to be imported as active items
+ */
+export async function getNextNewVocab(
+  n: number,
+  existingJpWords: Set<string>,
+): Promise<Array<{
+  kanji: string; word: string; reading: string;
+  meaning_es: string; meaning_ca: string | null; meaning_en: string | null;
+  image_url: string | null; grade: number; category: string | null; word_type: string | null;
+  sort_order: number;
+}>> {
+  // Fetch all kanjis ordered by grade then sort_order
+  const { data: kanjiRows, error: kanjiErr } = await supabase
+    .from('vocabulary')
+    .select('kanji, grade, sort_order')
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })
+  if (kanjiErr) throw kanjiErr
+
+  // Deduplicate kanjis preserving first-seen order (grade/sort_order already sorted)
+  const seenKanjis = new Set<string>()
+  const orderedKanjis: Array<{ kanji: string; grade: number }> = []
+  for (const row of kanjiRows ?? []) {
+    if (!seenKanjis.has(row.kanji)) {
+      seenKanjis.add(row.kanji)
+      orderedKanjis.push({ kanji: row.kanji, grade: row.grade })
+    }
+  }
+
+  // Pick the first N kanjis whose words are NOT yet in the user's DB
+  const selectedKanjis: Array<{ kanji: string; grade: number }> = []
+  for (const k of orderedKanjis) {
+    if (selectedKanjis.length >= n) break
+    // We'll check per-kanji whether any word is new after fetching
+    selectedKanjis.push(k)
+  }
+
+  if (selectedKanjis.length === 0) return []
+
+  // Fetch full vocab for those kanjis
+  const kanjiList = selectedKanjis.map(k => k.kanji)
+  const { data: vocabRows, error: vocabErr } = await supabase
+    .from('vocabulary')
+    .select('kanji, word, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type, sort_order')
+    .in('kanji', kanjiList)
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })
+  if (vocabErr) throw vocabErr
+
+  // Filter to only words not yet in user's DB, then check we still have N kanjis with new words
+  const newWords = (vocabRows ?? []).filter(v => !existingJpWords.has(v.word))
+
+  // Trim to kanjis that actually have new words, keep at most N kanjis
+  const kanjisWithNewWords = new Set(newWords.map(v => v.kanji))
+  const keptKanjis = kanjiList.filter(k => kanjisWithNewWords.has(k)).slice(0, n)
+  const keptSet = new Set(keptKanjis)
+
+  return newWords
+    .filter(v => keptSet.has(v.kanji))
+    .map(v => ({
+      kanji: v.kanji,
+      word: v.word,
+      reading: v.reading,
+      meaning_es: v.meaning_es ?? '',
+      meaning_ca: v.meaning_ca ?? null,
+      meaning_en: v.meaning_en ?? null,
+      image_url: v.image_url ?? null,
+      grade: v.grade ?? 1,
+      category: v.category ?? null,
+      word_type: v.word_type ?? null,
+      sort_order: v.sort_order ?? 0,
+    }))
+}
+
 // ---------------------------------------------------------------------------
 // App config (global settings — e.g. SRS intervals)
 // ---------------------------------------------------------------------------

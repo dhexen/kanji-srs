@@ -29,7 +29,8 @@
       "Bash(node_modules/.bin/next build *)",
       "Bash(git commit -m 'landing: nueva página de bienvenida con login + elimina acceso público sin login *)",
       "Bash(git commit -m 'fix: landing page sin sidebar — ruta raiz va a /login directamente *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -m 'feat: quick-import kanjis, ya-me-lo-sé button, furigana in meaning mode, glosario-only vocab *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
