@@ -27,7 +27,9 @@
       "Bash(git commit -m 'fix auth: AuthShell controla todo el layout segun estado de sesion *)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/next build *)",
-      "Bash(git commit -m 'landing: nueva página de bienvenida con login + elimina acceso público sin login *)"
+      "Bash(git commit -m 'landing: nueva página de bienvenida con login + elimina acceso público sin login *)",
+      "Bash(git commit -m 'fix: landing page sin sidebar — ruta raiz va a /login directamente *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
