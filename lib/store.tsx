@@ -344,9 +344,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        const role = await getUserRole(session.user.id)
+        // Paralelizar getUserRole y syncDown — no dependen entre sí, ahorra ~300-600ms
+        const [role] = await Promise.all([getUserRole(session.user.id), syncDown()])
         dispatch({ type: 'SET_ROLE', payload: role })
-        await syncDown()
       } else {
         // Sin sesión: marcar como cargado para que AuthGuard pueda redirigir a /login
         hydratingRef.current = false
@@ -370,9 +370,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        const role = await getUserRole(session.user.id)
+        const [role] = await Promise.all([getUserRole(session.user.id), syncDown()])
         dispatch({ type: 'SET_ROLE', payload: role })
-        await syncDown()
       }
     })
 
@@ -385,9 +384,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const user = { email: data.user.email!, id: data.user.id }
     dispatch({ type: 'SET_USER', payload: user })
     userRef.current = user
-    const role = await getUserRole(data.user.id)
+    const [role] = await Promise.all([getUserRole(data.user.id), syncDown()])
     dispatch({ type: 'SET_ROLE', payload: role })
-    await syncDown()
   }, [syncDown])
 
   const signup = useCallback(async (email: string, password: string): Promise<'ok' | 'needs_confirmation'> => {

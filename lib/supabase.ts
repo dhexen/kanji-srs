@@ -11,7 +11,19 @@ import {
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-export const supabase = createClient(url, key)
+
+// Supabase client con timeout de 12s en cada fetch para evitar cuelgues infinitos
+// (p.ej. proyecto pausado en free tier, red lenta, etc.)
+export const supabase = createClient(url, key, {
+  global: {
+    fetch: (input, init) => {
+      const controller = new AbortController()
+      const id = setTimeout(() => controller.abort(), 12000)
+      return fetch(input, { ...init, signal: controller.signal })
+        .finally(() => clearTimeout(id))
+    },
+  },
+})
 
 /** True after we detect user_vocab_progress is unavailable (migration not applied). */
 let legacyVocabMode = false
@@ -33,10 +45,13 @@ function isSchemaUnavailable(error: { code?: string; message?: string } | null):
   )
 }
 
+// getSession() usa el token cacheado en localStorage — no hace round-trip al servidor.
+// getUser() siempre valida con el servidor (lento). Usamos getSession() para todas
+// las operaciones de BD donde solo necesitamos el user_id.
 async function requireUser() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  return user
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) throw new Error('No autenticado')
+  return session.user
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -507,8 +522,9 @@ export async function downloadAccountData(): Promise<{
   context_texts: ContextText[]
   language: string
 } | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  // Usar getSession() (caché) en lugar de getUser() (red) — mucho más rápido
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
 
   try {
     await migrateLegacyProgressIfNeeded()
