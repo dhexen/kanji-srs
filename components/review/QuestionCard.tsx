@@ -37,6 +37,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [imgVote, setImgVote] = useState<1 | -1 | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
+  const submittedAtRef = useRef<number>(0)
 
   const handleImgError = useCallback(() => setImgError(true), [])
 
@@ -65,11 +66,15 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     if (isTypingMode) setTimeout(() => inputRef.current?.focus(), 100)
   }, [isTypingMode])
 
-  // Enter para pasar al siguiente cuando ya hay respuesta
+  // Enter para pasar al siguiente cuando ya hay respuesta.
+  // El guard de 400 ms evita que el mismo Enter que comprueba la respuesta
+  // salte también el feedback antes de que el usuario lo vea.
   useEffect(() => {
     if (answerState === 'waiting') return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') onNext()
+      if (e.key === 'Enter' && Date.now() - submittedAtRef.current > 400) {
+        onNext()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -86,6 +91,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   }
 
   const handleResult = (isCorrect: boolean) => {
+    submittedAtRef.current = Date.now()
     setAnswerState(isCorrect ? 'correct' : 'incorrect')
     if (!isPractice) {
       applyReviewResult(item.jp, mode, isCorrect)
