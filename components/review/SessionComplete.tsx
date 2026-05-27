@@ -7,7 +7,7 @@ export default function SessionComplete({ onBack, isPractice, total }: Props) {
   const { state } = useStore()
   const lang = state.lang
   return (
-    <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center">
+    <div className="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
       <div className="text-6xl mb-4">🏆</div>
       <h2 className="text-2xl font-bold text-slate-800 mb-2">{t(lang, 'review_complete_title')}</h2>
       <p className="text-slate-500 mb-6">

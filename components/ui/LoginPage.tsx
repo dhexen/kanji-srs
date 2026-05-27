@@ -94,29 +94,33 @@ export default function LoginPage() {
   // ── Spinner inicial ───────────────────────────────────────────────────────
   if (!state.loaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-pink-50">
-        <LangSelector lang={lang} onChange={setLang} />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-violet-50/30 to-pink-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600" />
       </div>
     )
   }
 
-  // ── Confirmación de email ─────────────────────────────────────────────────
-  if (confirmEmail) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-pink-50 px-4">
-        <LangSelector lang={lang} onChange={setLang} />
-        <div className="w-full max-w-sm text-center bg-white rounded-2xl shadow-sm border border-slate-100 p-10">
-          <div className="text-5xl mb-4 select-none">📧</div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">{t(lang, 'login_confirm_title')}</h2>
-          <p className="text-sm text-slate-500 leading-relaxed mb-6">
-            {t(lang, 'login_confirm_body')}{' '}
-            <strong className="text-slate-700 break-all">{confirmEmail}</strong>
-          </p>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-violet-50/30 to-pink-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4">
+      <div className="w-full max-w-sm">
+
+        {/* ── Branding ─────────────────────────────────────────── */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-3 select-none">🌸</div>
+          <h1 className="text-3xl font-bold text-violet-700 tracking-wide">小学校漢字</h1>
+          <p className="text-violet-400 text-sm font-medium mt-1">SRS</p>
+          <p className="text-slate-500 text-sm mt-2">{t(lang, 'login_tagline')}</p>
+        </div>
+
+        {/* ── Card ─────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
+
+          {/* Google */}
           <button
             type="button"
-            onClick={() => { setConfirmEmail(''); setPassword('') }}
-            className="text-sm text-violet-600 hover:underline"
+            onClick={handleGoogle}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600 transition-all disabled:opacity-50 cursor-pointer"
           >
             {t(lang, 'login_confirm_back')}
           </button>
@@ -191,10 +195,19 @@ export default function LoginPage() {
                 </button>
               ))}
             </div>
-
-            <div className="p-7 space-y-4">
-
-              {/* Google */}
+          ) : (
+            /* Formulario de email */
+            <form onSubmit={handleMagicLink} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder={t(lang, 'login_email_ph')}
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                required
+                autoComplete="email"
+                autoFocus
+              />
               <button
                 type="button"
                 onClick={handleGoogle}

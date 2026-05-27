@@ -7,6 +7,8 @@ body { font-family: 'Noto Sans JP', sans-serif; }
 .kanji-font { font-family: 'Kiwi Maru', serif; }
 .custom-scroll::-webkit-scrollbar { width: 6px; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
+.dark .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

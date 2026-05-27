@@ -6,6 +6,7 @@ import { fetchVocabMeta, getNextNewVocab } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 import ModeSelector from './ModeSelector'
+import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
 
@@ -49,9 +50,6 @@ export default function ReviewClient() {
 
     setIsStarting(true)
     try {
-      // Fetch vocabulary metadata (image_url + grade) for items that are missing them.
-      // Direct fetch from vocabulary table — always reflects latest data regardless of
-      // whether the store merge worked correctly on login.
       const wordsMissingMeta = [...new Set(
         seq.filter(s => !s.item.image_url || !s.item.grade).map(s => s.item.jp)
       )]
@@ -79,12 +77,35 @@ export default function ReviewClient() {
     }
   }
 
+  /**
+   * Start a review session with a specific set of newly-added items.
+   * Called by QuickAddPanel after activating new kanjis.
+   * The items already have full vocab metadata from the DB fetch.
+   */
+  async function startWithItems(newItems: VocabItem[]) {
+    if (newItems.length === 0) return
+    setIsStarting(true)
+    try {
+      const modesActive = selectedModes.length > 0 ? selectedModes : (['multi', 'meaning', 'kanji', 'reading', 'reverse'] as ReviewMode[])
+      const seq: SessionItem[] = []
+      newItems.forEach(item => {
+        modesActive.forEach(mode => seq.push({ item, mode }))
+      })
+      const shuffled = seq.sort(() => Math.random() - 0.5)
+      setIsPractice(false)
+      setSequence(shuffled)
+      setIndex(0)
+      setPhase('playing')
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
   function onNext() {
     if (index + 1 >= sequence.length) setPhase('done')
     else setIndex(i => i + 1)
   }
 
-  // Quit mid-session → back to selector
   function onQuit() {
     setPhase('select')
     setSequence([])
@@ -149,18 +170,21 @@ export default function ReviewClient() {
 
   if (phase === 'select') {
     return (
-      <ModeSelector
-        selectedModes={selectedModes}
-        onToggle={m => setSelectedModes(prev =>
-          prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
-        )}
-        pendingCount={pendingCount}
-        onStart={start}
-        hasWords={activeWords.length > 0}
-        isStarting={isStarting}
-        onQuickImport={state.user ? quickImport : undefined}
-        isImporting={isImporting}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div className="md:col-span-2">
+          <ModeSelector
+            selectedModes={selectedModes}
+            onToggle={m => setSelectedModes(prev =>
+              prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
+            )}
+            pendingCount={pendingCount}
+            onStart={() => start(false)}
+            hasWords={activeWords.length > 0}
+            isStarting={isStarting}
+          />
+        </div>
+        <QuickAddPanel onAdded={startWithItems} />
+      </div>
     )
   }
 
