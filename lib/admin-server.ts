@@ -81,6 +81,54 @@ export async function requireAdmin(request: Request): Promise<{
   return { adminId: user.id, service }
 }
 
+/**
+ * Lighter auth check for content editors (admin + contributor).
+ * Does NOT require AAL2 (2FA) — suitable for vocabulary/sentence editing.
+ */
+export async function requireEditorRole(request: Request): Promise<{
+  userId: string
+  role: 'admin' | 'contributor'
+  service: SupabaseClient
+}> {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new AdminApiError('No autenticado', 401)
+  }
+  const token = authHeader.slice(7)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const userClient = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  const { data: { user }, error } = await userClient.auth.getUser(token)
+  if (error || !user) throw new AdminApiError('Sesión inválida', 401)
+
+  const service = createServiceClient()
+  const { data: roleRow } = await service
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const dbRole = roleRow?.role
+
+  // Fallback: env-based admin list
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+  const isEnvAdmin = Boolean(user.email && adminEmails.includes(user.email.toLowerCase()))
+
+  if (dbRole !== 'admin' && dbRole !== 'contributor' && !isEnvAdmin) {
+    throw new AdminApiError('Se requiere rol de editor (admin o contributor)', 403)
+  }
+
+  const effectiveRole: 'admin' | 'contributor' =
+    dbRole === 'contributor' ? 'contributor' : 'admin'
+
+  return { userId: user.id, role: effectiveRole, service }
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))

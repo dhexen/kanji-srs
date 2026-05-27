@@ -182,6 +182,27 @@ export async function updateImageReport(opts: {
 // ---------------------------------------------------------------------------
 
 /**
+ * Update editable fields of a shared vocabulary entry (reading + meanings).
+ * Requires admin or contributor role. Change propagates to all users.
+ */
+export async function updateVocabWord(
+  word: string,
+  patch: {
+    reading?: string
+    meaning_es?: string
+    meaning_ca?: string | null
+    meaning_en?: string | null
+  },
+): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(patch),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
+/**
  * Delete a word from the shared vocabulary table for everyone.
  * Admin only — server validates AAL2 + admin role.
  */
