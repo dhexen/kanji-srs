@@ -12,7 +12,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="text-slate-800 min-h-screen">
+      <head>
+        {/* Anti-flash: apply dark class before React hydration */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var t = localStorage.getItem('kanji-srs-theme') || 'system';
+            if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+              document.documentElement.classList.add('dark');
+            }
+          } catch(e) {}
+        `}} />
+      </head>
+      <body className="text-slate-800 dark:text-slate-100 dark:bg-slate-950 min-h-screen">
         <StoreProvider>
           {/* Toast siempre disponible, incluso en la página de login */}
           <Toast />

@@ -45,7 +45,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
     // Mientras carga: spinner sin nav (nunca mostrar el sidebar antes de saber si hay sesión)
     if (!state.loaded) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-gradient-to-br from-slate-50 via-violet-50/30 to-pink-50/20">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-gradient-to-br from-slate-50 via-violet-50/30 to-pink-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           <div className="text-5xl select-none">🌸</div>
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600" />
         </div>
