@@ -34,7 +34,8 @@
       "Bash(gh repo *)",
       "Bash(git commit -m 'fix: carga instantánea al refrescar + añadir signInWithMagicLink *)",
       "Bash(npm run *)",
-      "Bash(git commit -m 'feat: contributor role + edición inline de frases IA para admin/contributor *)"
+      "Bash(git commit -m 'feat: contributor role + edición inline de frases IA para admin/contributor *)",
+      "Bash(git commit -m 'feat: edición de vocabulario global para admin/contributor *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
