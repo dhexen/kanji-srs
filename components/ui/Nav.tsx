@@ -7,6 +7,7 @@ import { getPendingCount, ALL_REVIEW_MODES } from '@/lib/srs'
 import { t } from '@/lib/i18n'
 import { fetchKnownGrammar } from '@/lib/supabase'
 import { useSidebar } from '@/lib/sidebar-context'
+import ThemeToggle from './ThemeToggle'
 
 const TOTAL_GRAMMAR_POINTS = 121
 
@@ -44,10 +45,10 @@ function NavItem({
         {...(tutorialId ? { 'data-tutorial-id': tutorialId } : {})}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
           active
-            ? 'bg-violet-100 text-violet-700 shadow-sm'
+            ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 shadow-sm'
             : isAdmin
-            ? 'text-amber-600 hover:bg-amber-50 hover:text-amber-700'
-            : 'text-slate-500 hover:bg-violet-50 hover:text-violet-600'
+            ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400'
         }`}
       >
         <span className="text-lg w-6 text-center shrink-0">{icon}</span>
@@ -61,7 +62,7 @@ function NavItem({
       {progress !== null && (
         <div className="px-3 pb-1.5 -mt-0.5">
           <div className="flex items-center gap-1.5 pl-9">
-            <div className="flex-1 h-1 bg-violet-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1 bg-violet-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   (progress ?? 0) >= 80 ? 'bg-emerald-400' :
@@ -112,8 +113,8 @@ function NavSection({
         {...(tutorialId ? { 'data-tutorial-id': tutorialId } : {})}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
           isOnSection
-            ? 'bg-violet-100 text-violet-700 shadow-sm'
-            : 'text-slate-500 hover:bg-violet-50 hover:text-violet-600'
+            ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400'
         }`}
       >
         <span className="text-lg w-6 text-center shrink-0">{icon}</span>
@@ -129,7 +130,7 @@ function NavSection({
       {progress !== null && progress !== undefined && (
         <div className="px-3 pb-1.5 -mt-0.5">
           <div className="flex items-center gap-1.5 pl-9">
-            <div className="flex-1 h-1 bg-violet-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1 bg-violet-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   progress >= 80 ? 'bg-emerald-400' :
@@ -144,15 +145,15 @@ function NavSection({
       )}
 
       {isOpen && (
-        <div className="ml-4 pl-3 border-l border-violet-100 space-y-0.5 mt-0.5 mb-1">
+        <div className="ml-4 pl-3 border-l border-violet-100 dark:border-slate-700 space-y-0.5 mt-0.5 mb-1">
           {subItems.map(child => (
             <Link
               key={child.href}
               href={child.href}
               className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
                 isChildActive(child.tabKey, child.isDefault)
-                  ? 'bg-violet-100/80 text-violet-700'
-                  : 'text-slate-400 hover:bg-violet-50 hover:text-violet-600'
+                  ? 'bg-violet-100/80 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  : 'text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400'
               }`}
             >
               <span className="text-sm w-4 text-center shrink-0">{child.icon}</span>
@@ -207,7 +208,6 @@ function NavInner() {
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
   const hasActiveVocab = state.db.some(i => i.status === 'active')
 
-
   const profileSubItems: SubItem[] = [
     { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
     { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
@@ -222,7 +222,7 @@ function NavInner() {
         <Link href="/review" className="flex items-center gap-2 group">
           <span className="text-2xl">🌸</span>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-violet-700 tracking-wide leading-tight group-hover:text-violet-500 transition-colors">
+            <h1 className="text-base font-bold text-violet-700 dark:text-violet-400 tracking-wide leading-tight group-hover:text-violet-500 transition-colors">
               小学校漢字
             </h1>
             <p className="text-[10px] text-violet-400 font-medium">SRS</p>
@@ -232,27 +232,27 @@ function NavInner() {
 
       {/* User info */}
       {state.user && (
-        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-violet-50 border border-violet-100/80">
+        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100/80 dark:border-violet-800/40">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400" />
-            <span className="text-xs text-slate-600 truncate">{state.user.email}</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{state.user.email}</span>
           </div>
           {state.role && (
-            <span className="mt-1 inline-block text-[10px] text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded-md">
+            <span className="mt-1 inline-block text-[10px] text-violet-500 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded-md">
               {state.role}
             </span>
           )}
         </div>
       )}
       {!state.user && state.loaded && (
-        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100">
+        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full shrink-0 bg-amber-400 animate-pulse" />
-            <span className="text-xs text-amber-600">{t(lang, 'header_local')}</span>
+            <span className="text-xs text-amber-600 dark:text-amber-400">{t(lang, 'header_local')}</span>
           </div>
         </div>
       )}
-      <div className="mx-3 mb-2 border-t border-violet-100/80" />
+      <div className="mx-3 mb-2 border-t border-violet-100/80 dark:border-slate-700" />
 
       {/* Nav links */}
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto custom-scroll">
@@ -297,19 +297,19 @@ function NavInner() {
 
       {/* Syncing */}
       {state.syncing && (
-        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-violet-50">
+        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-violet-50 dark:bg-slate-800">
           <span className="text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
         </div>
       )}
 
-      {/* Collapse toggle — dentro del sidebar */}
-      <div className="shrink-0 p-2 border-t border-violet-100/80 flex items-center justify-between px-3">
-        <span className="text-[10px] text-slate-400 font-medium">Menú</span>
+      {/* Bottom bar: theme toggle + collapse button */}
+      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-between px-3">
+        <ThemeToggle />
         <button
           type="button"
           onClick={toggle}
           title="Ocultar menú"
-          className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-violet-50 hover:text-violet-500 transition-all"
+          className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-500 dark:hover:text-violet-400 transition-all"
         >
           {/* Flecha apunta a la izquierda (ocultar) */}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -327,7 +327,7 @@ function NavInner() {
       <aside
         className={[
           'hidden lg:flex fixed inset-y-0 left-0 z-40 w-56 flex-col',
-          'bg-white border-r border-violet-100',
+          'bg-white dark:bg-slate-900 border-r border-violet-100 dark:border-slate-800',
           'shadow-[2px_0_20px_rgba(139,92,246,0.07)]',
           'transition-transform duration-300 ease-in-out',
           collapsed ? '-translate-x-full' : 'translate-x-0',
@@ -346,9 +346,9 @@ function NavInner() {
           'hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-30',
           'flex-col items-center justify-center',
           'w-5 h-14 rounded-r-xl',
-          'bg-white border border-l-0 border-violet-100',
+          'bg-white dark:bg-slate-900 border border-l-0 border-violet-100 dark:border-slate-800',
           'shadow-[2px_0_8px_rgba(139,92,246,0.1)]',
-          'text-violet-400 hover:text-violet-600 hover:bg-violet-50',
+          'text-violet-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-slate-800',
           'transition-all duration-300',
           collapsed ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
         ].join(' ')}
@@ -360,11 +360,11 @@ function NavInner() {
       </button>
 
       {/* ────────────────── Mobile top bar ────────────────── */}
-      <div className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-violet-100 shadow-sm flex items-center gap-3 px-4 py-3">
+      <div className="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-3">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="p-1.5 -ml-1.5 rounded-xl text-slate-500 hover:bg-violet-50 hover:text-violet-600 transition"
+          className="p-1.5 -ml-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition"
           aria-label="Abrir menú"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -373,7 +373,7 @@ function NavInner() {
         </button>
         <Link href="/review" className="flex items-center gap-2">
           <span className="text-xl">🌸</span>
-          <span className="font-bold text-sm tracking-wide text-violet-700">小学校漢字 SRS</span>
+          <span className="font-bold text-sm tracking-wide text-violet-700 dark:text-violet-400">小学校漢字 SRS</span>
         </Link>
         {state.syncing && (
           <span className="ml-auto text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
@@ -384,11 +384,11 @@ function NavInner() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="relative w-64 max-w-[80vw] flex flex-col bg-white shadow-2xl animate-slide-in">
+          <div className="relative w-64 max-w-[80vw] flex flex-col bg-white dark:bg-slate-900 shadow-2xl animate-slide-in">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="absolute top-3 right-3 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-violet-50 transition"
+              className="absolute top-3 right-3 p-1.5 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-800 transition"
               aria-label="Cerrar menú"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">

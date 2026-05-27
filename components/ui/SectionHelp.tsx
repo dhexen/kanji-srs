@@ -27,10 +27,10 @@ function getSectionSeenKey(section: string, version?: number) {
 }
 
 const CARD_COLORS = [
-  { bg: 'bg-indigo-50', border: 'border-indigo-100', iconBg: 'bg-indigo-100', title: 'text-indigo-900', body: 'text-indigo-700' },
-  { bg: 'bg-emerald-50', border: 'border-emerald-100', iconBg: 'bg-emerald-100', title: 'text-emerald-900', body: 'text-emerald-700' },
-  { bg: 'bg-amber-50', border: 'border-amber-100', iconBg: 'bg-amber-100', title: 'text-amber-900', body: 'text-amber-700' },
-  { bg: 'bg-rose-50', border: 'border-rose-100', iconBg: 'bg-rose-100', title: 'text-rose-900', body: 'text-rose-700' },
+  { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-100 dark:border-indigo-800/30', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', title: 'text-indigo-900 dark:text-indigo-300', body: 'text-indigo-700 dark:text-indigo-400' },
+  { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-100 dark:border-emerald-800/30', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', title: 'text-emerald-900 dark:text-emerald-300', body: 'text-emerald-700 dark:text-emerald-400' },
+  { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-100 dark:border-amber-800/30', iconBg: 'bg-amber-100 dark:bg-amber-900/40', title: 'text-amber-900 dark:text-amber-300', body: 'text-amber-700 dark:text-amber-400' },
+  { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-100 dark:border-rose-800/30', iconBg: 'bg-rose-100 dark:bg-rose-900/40', title: 'text-rose-900 dark:text-rose-300', body: 'text-rose-700 dark:text-rose-400' },
 ]
 
 const HELP: Record<string, SectionContent> = {
@@ -395,15 +395,15 @@ export default function SectionHelp({ section, lang }: Props) {
           onClick={handleClose}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl">
-              <h2 className="font-bold text-slate-800 text-base">{txt(content.title)}</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-2xl">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100 text-base">{txt(content.title)}</h2>
               <button
                 onClick={handleClose}
-                className="text-slate-400 hover:text-slate-600 transition text-lg leading-none"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition text-lg leading-none"
                 aria-label={closeLabel}
               >
                 ✕
@@ -412,7 +412,7 @@ export default function SectionHelp({ section, lang }: Props) {
 
             <div className="p-5 space-y-4">
               {/* Intro */}
-              <p className="text-slate-500 text-sm leading-relaxed">{txt(content.intro)}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{txt(content.intro)}</p>
 
               {/* Feature cards */}
               <div className="space-y-3">

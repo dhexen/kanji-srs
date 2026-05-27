@@ -32,11 +32,11 @@ export default function Header() {
 
   if (!hasActive) {
     return (
-      <header className="bg-white/80 backdrop-blur border-b border-violet-100/80 px-4 py-3">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-violet-100/80 dark:border-slate-800 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <p className="text-violet-500/80 text-xs font-medium">{t(lang, 'header_subtitle')}</p>
-            <p className="text-slate-400 text-[11px] mt-0.5 capitalize">{today}</p>
+            <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 capitalize">{today}</p>
           </div>
         </div>
       </header>
@@ -44,18 +44,18 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white/80 backdrop-blur border-b border-violet-100/80 px-4 py-3 shadow-[0_2px_12px_rgba(139,92,246,0.05)]">
+    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-violet-100/80 dark:border-slate-800 px-4 py-3 shadow-[0_2px_12px_rgba(139,92,246,0.05)]">
       <div className="max-w-5xl mx-auto space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-violet-500/80 text-xs font-medium">{t(lang, 'header_subtitle')}</p>
-            <p className="text-slate-400 text-[11px] mt-0.5 capitalize">{today}</p>
+            <p className="text-slate-400 dark:text-slate-500 text-[11px] mt-0.5 capitalize">{today}</p>
           </div>
         </div>
 
         <div
           data-tutorial-id="header-forecast"
-          className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 border border-violet-100/80 rounded-2xl p-3 sm:p-4 space-y-3"
+          className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-3 sm:p-4 space-y-3"
         >
           {/* Today + hourly breakdown */}
           <div className="space-y-2">
@@ -83,8 +83,8 @@ export default function Header() {
                       key={h.hour}
                       className={`flex flex-col items-center px-2 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
                         h.isCurrent
-                          ? 'bg-violet-100 border border-violet-200/80 shadow-sm'
-                          : 'bg-white/60 border border-violet-100/60'
+                          ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-200/80 dark:border-violet-700/40 shadow-sm'
+                          : 'bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40'
                       }`}
                     >
                       <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600' : 'text-slate-400'}`}>
@@ -100,7 +100,7 @@ export default function Header() {
             )}
           </div>
 
-          <div className="border-t border-violet-100/80" />
+          <div className="border-t border-violet-100/80 dark:border-slate-700" />
 
           {/* Week forecast */}
           <div>
