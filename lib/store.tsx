@@ -137,6 +137,7 @@ interface StoreContextType {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string) => Promise<'ok' | 'needs_confirmation'>
   signInWithGoogle: () => Promise<void>
+  signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -343,30 +344,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     }, 15000)
 
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Initial session check — getSession() lee de localStorage, es instantáneo
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         // Si onAuthStateChange SIGNED_IN ya procesó esta sesión, no repetir syncDown
         if (userRef.current) return
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        // getUserRole y syncDown en paralelo.
-        // Despachamos el rol en cuanto llega (sin esperar a syncDown) para que
-        // el panel admin aparezca antes de que terminen de cargar los datos.
+        // Marcar como cargado INMEDIATAMENTE para evitar el spinner largo.
+        // La app se renderiza al instante; syncDown carga los datos en background.
+        loadedRef.current = true
+        dispatch({ type: 'SET_LOADED' })
         getUserRole(session.user.id)
           .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
           .catch(() => { /* rol queda como 'user' por defecto */ })
-        await syncDown()
+        void syncDown()
       } else {
-        // Sin sesión: marcar como cargado para que AuthGuard pueda redirigir a /login
+        // Sin sesión: marcar como cargado para que AuthShell pueda redirigir a /login
         hydratingRef.current = false
         loadedRef.current = true
         dispatch({ type: 'SET_DB', payload: [] })
         dispatch({ type: 'SET_LOADED' })
       }
     }).catch((e) => {
-      // Si getSession falla (p.ej. red caída), liberar el spinner y redirigir a /login
+      // Si getSession falla (p.ej. red caída), liberar el spinner igualmente
       console.error('[store] getSession error:', e)
       if (!loadedRef.current) {
         loadedRef.current = true
@@ -376,15 +378,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // Listener para magic links y OAuth PKCE: la sesión puede establecerse
     // de forma asíncrona DESPUÉS de que getSession() ya haya devuelto null.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user && !userRef.current) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
+        loadedRef.current = true
+        dispatch({ type: 'SET_LOADED' })
         getUserRole(session.user.id)
           .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
           .catch(() => {})
-        await syncDown()
+        void syncDown()
       }
     })
 
@@ -432,6 +436,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/callback`
+          : '/auth/callback',
+      },
+    })
+    if (error) throw error
+  }, [])
+
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     hydratingRef.current = false
@@ -467,6 +483,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       login,
       signup,
       signInWithGoogle,
+      signInWithMagicLink,
       logout,
     }}>
       {children}
