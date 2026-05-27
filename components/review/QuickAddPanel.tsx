@@ -6,7 +6,6 @@ import { getRandomKanjis, getVocabularyByKanjis } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
-// Replicated from VocabularyClient — activates all per-mode levels
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
   Object.values(MODE_CONFIG).forEach(cfg => {
@@ -28,10 +27,24 @@ const GRADE_LABEL: Record<number, Record<string, string>> = {
   9: { es: '3º Sec.',       ca: '3r Sec.',       en: '9th Grade', ja: '中3' },
 }
 
-const PACK_ICON: Record<number, string> = { 3: '🚀', 5: '📖', 15: '🏋️' }
+// Per-language labels
+const L = {
+  title:       { es: 'Nuevos kanjis',             ca: 'Nous kanjis',              en: 'New kanji',          ja: '新しい漢字' },
+  searching:   { es: 'Buscando...',               ca: 'Cercant...',               en: 'Searching...',       ja: '検索中...' },
+  complete:    { es: '¡Todos los kanjis completados! 🎉', ca: 'Tots els kanjis completats! 🎉', en: 'All kanji completed! 🎉', ja: '全漢字完了！🎉' },
+  available:   { es: 'disponibles',               ca: 'disponibles',              en: 'available',          ja: '個利用可能' },
+  words:       { es: 'palabras',                  ca: 'paraules',                 en: 'words',              ja: '語' },
+  rhythm: {
+    3:  { es: 'Ritmo normal',         ca: 'Ritme normal',         en: 'Normal pace',    ja: '通常ペース' },
+    5:  { es: 'Ritmo rápido',         ca: 'Ritme ràpid',          en: 'Fast pace',      ja: '速いペース' },
+    15: { es: 'Ritmo súper rápido',   ca: 'Ritme molt ràpid',     en: 'Super fast',     ja: '超速ペース' },
+  } as Record<number, Record<string, string>>,
+}
+
+// Approximate word count per pack (3 words per kanji on average)
+const WORD_COUNTS: Record<number, number> = { 3: 9, 5: 15, 15: 45 }
 
 interface Props {
-  /** Called with the newly activated items — parent starts review with them */
   onAdded: (items: VocabItem[]) => void
 }
 
@@ -43,13 +56,11 @@ export default function QuickAddPanel({ onAdded }: Props) {
   const [detecting, setDetecting] = useState(true)
   const lang = state.lang
 
-  // All kanji chars currently in the user's DB
   const activeKanjis = useMemo(
     () => new Set(state.db.map(i => i.kanji).filter(Boolean) as string[]),
     [state.db],
   )
 
-  // Detect next grade: scan grades 1-9, take first with unlearned kanjis
   useEffect(() => {
     if (!state.user || !state.loaded) { setDetecting(false); return }
 
@@ -66,9 +77,8 @@ export default function QuickAddPanel({ onAdded }: Props) {
             return
           }
         }
-        // All grades complete
         if (!cancelled) { setNextGrade(null); setNextKanjis([]) }
-      } catch { /* silencioso — el panel simplemente no aparece */ } finally {
+      } catch { /* silencioso */ } finally {
         if (!cancelled) setDetecting(false)
       }
     }
@@ -94,15 +104,11 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
       const newItems: VocabItem[] = newWords.map((v: any) => {
         const base: VocabItem = {
-          kanji: v.kanji,
-          jp: v.word,
-          reading: v.reading,
+          kanji: v.kanji, jp: v.word, reading: v.reading,
           meaning: v.meaning_es,
           ...(v.meaning_ca ? { meaning_ca: v.meaning_ca } : {}),
           ...(v.meaning_en ? { meaning_en: v.meaning_en } : {}),
-          srsLevel: 1,
-          due: now,
-          status: 'active',
+          srsLevel: 1, due: now, status: 'active',
           ...(v.image_url  ? { image_url:  v.image_url  } : {}),
           ...(v.grade      ? { grade:      v.grade      } : {}),
           ...(v.category   ? { category:   v.category   } : {}),
@@ -121,128 +127,101 @@ export default function QuickAddPanel({ onAdded }: Props) {
     }
   }
 
-  // Don't render if not logged in
   if (!state.user) return null
 
-  const PACKS = [
-    { count: 3,  label: t(lang, 'vocab_k3')  },
-    { count: 5,  label: t(lang, 'vocab_k5')  },
-    { count: 15, label: t(lang, 'vocab_k15') },
-  ]
+  const lx = (map: Record<string, string>) => map[lang] ?? map.es
+  const gradeLabel = nextGrade ? (GRADE_LABEL[nextGrade]?.[lang] ?? GRADE_LABEL[nextGrade]?.es ?? '') : ''
+  const previewKanjis = nextKanjis.slice(0, 12)
 
-  const gradeLabel = nextGrade
-    ? (GRADE_LABEL[nextGrade]?.[lang] ?? GRADE_LABEL[nextGrade]?.es ?? '')
-    : ''
-
-  const previewKanjis = nextKanjis.slice(0, 14)
-
-  const addLabel: Record<string, string> = {
-    es: 'Añadir nuevos kanjis',
-    ca: 'Afegir nous kanjis',
-    en: 'Add new kanji',
-    ja: '新しい漢字を追加',
-  }
-  const searchingLabel: Record<string, string> = {
-    es: 'Buscando siguientes kanjis...',
-    ca: 'Cercant els kanjis següents...',
-    en: 'Finding next kanji...',
-    ja: '次の漢字を検索中...',
-  }
-  const completeLabel: Record<string, string> = {
-    es: '¡Has completado todos los kanjis disponibles!',
-    ca: 'Has completat tots els kanjis disponibles!',
-    en: 'All available kanji completed!',
-    ja: '全漢字完了！',
-  }
-  const availableLabel: Record<string, string> = {
-    es: 'kanjis disponibles',
-    ca: 'kanjis disponibles',
-    en: 'available',
-    ja: '個利用可能',
-  }
-  const footerLabel: Record<string, string> = {
-    es: 'Se añaden al SRS · el repaso empieza ahora mismo',
-    ca: "S'afegeixen al SRS · el repàs comença ara",
-    en: 'Added to SRS · review starts right away',
-    ja: 'SRSに追加 · すぐに学習開始',
-  }
+  const PACKS = [3, 5, 15]
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm space-y-3">
+    <div className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
 
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-base">📥</span>
-        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-          {addLabel[lang] ?? addLabel.es}
+      <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-3">
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+          📥 {lx(L.title)}
         </p>
+        {nextGrade && !detecting && (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+            {gradeLabel} · {nextKanjis.length} {lx(L.available)}
+          </p>
+        )}
       </div>
 
-      {/* States */}
-      {detecting ? (
-        <div className="flex items-center gap-2 py-1">
-          <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-violet-400" />
-          <span className="text-xs text-slate-400 dark:text-slate-500">
-            {searchingLabel[lang] ?? searchingLabel.es}
-          </span>
-        </div>
-      ) : !nextGrade ? (
-        <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold py-1">
-          🎉 {completeLabel[lang] ?? completeLabel.es}
-        </p>
-      ) : (
-        <>
-          {/* Grade name + remaining count */}
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            {gradeLabel} · {nextKanjis.length} {availableLabel[lang] ?? availableLabel.es}
-          </p>
+      {/* Body */}
+      <div className="flex-1 bg-white dark:bg-slate-800 p-3 flex flex-col gap-2">
 
-          {/* Kanji character preview */}
-          <div className="flex flex-wrap gap-1">
-            {previewKanjis.map(k => (
-              <span
-                key={k}
-                className="kanji-font text-sm font-bold px-1.5 py-0.5 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600 leading-tight"
-              >
-                {k}
-              </span>
-            ))}
-            {nextKanjis.length > 14 && (
-              <span className="text-xs text-slate-400 dark:text-slate-500 self-center pl-1">
-                +{nextKanjis.length - 14}
-              </span>
-            )}
+        {detecting ? (
+          <div className="flex items-center gap-2 py-3">
+            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-violet-400 shrink-0" />
+            <span className="text-xs text-slate-400 dark:text-slate-500">{lx(L.searching)}</span>
           </div>
-
-          {/* Pack buttons */}
-          <div className="flex gap-2">
-            {PACKS.map(p => {
-              const actual = Math.min(p.count, nextKanjis.length)
-              return (
-                <button
-                  key={p.count}
-                  onClick={() => handleAdd(p.count)}
-                  disabled={loading !== null}
-                  className="flex-1 py-2.5 text-sm font-bold rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-40 transition active:scale-95 flex flex-col items-center justify-center gap-0.5"
+        ) : !nextGrade ? (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold py-2 text-center">
+            {lx(L.complete)}
+          </p>
+        ) : (
+          <>
+            {/* Kanji preview chips */}
+            <div className="flex flex-wrap gap-1 pb-1">
+              {previewKanjis.map(k => (
+                <span
+                  key={k}
+                  className="kanji-font text-sm font-bold px-1.5 py-0.5 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600 leading-tight"
                 >
-                  {loading === p.count
-                    ? <span className="text-base">⏳</span>
-                    : <>
-                        <span>{`+${actual}`}</span>
-                        <span className="text-[11px] font-normal opacity-60">{PACK_ICON[p.count]}</span>
-                      </>
-                  }
-                </button>
-              )
-            })}
-          </div>
+                  {k}
+                </span>
+              ))}
+              {nextKanjis.length > 12 && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 self-center pl-0.5">
+                  +{nextKanjis.length - 12}
+                </span>
+              )}
+            </div>
 
-          {/* Footer hint */}
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
-            {footerLabel[lang] ?? footerLabel.es}
-          </p>
-        </>
-      )}
+            {/* Pack buttons — vertical list */}
+            <div className="flex flex-col gap-2">
+              {PACKS.map(count => {
+                const actual = Math.min(count, nextKanjis.length)
+                const wordCount = WORD_COUNTS[count]
+                const busy = loading === count
+
+                return (
+                  <button
+                    key={count}
+                    onClick={() => handleAdd(count)}
+                    disabled={loading !== null}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-left transition-all active:scale-[0.98] border-2 border-indigo-100 dark:border-indigo-800/50 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:border-indigo-200 dark:hover:border-indigo-700 disabled:opacity-40"
+                  >
+                    {busy ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-indigo-500 shrink-0" />
+                        <span className="text-sm font-bold text-indigo-600 dark:text-indigo-300">
+                          {lx(L.searching)}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 leading-snug">
+                          +{actual} kanjis
+                          <span className="font-normal text-indigo-400 dark:text-indigo-500 ml-1.5 text-xs">
+                            ({wordCount} {lx(L.words)})
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          {lx(L.rhythm[count])}
+                        </p>
+                      </>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
