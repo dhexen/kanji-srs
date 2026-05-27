@@ -24,7 +24,10 @@
       "Bash(git reset *)",
       "Bash(git commit -m 'auth: página de login dedicada con Google y magic link por email *)",
       "Bash(git commit -m 'fix auth: corregir violacion de hooks en AuthGuard y guard de loadedRef en store *)",
-      "Bash(git commit -m 'fix auth: AuthShell controla todo el layout segun estado de sesion *)"
+      "Bash(git commit -m 'fix auth: AuthShell controla todo el layout segun estado de sesion *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/next build *)",
+      "Bash(git commit -m 'landing: nueva página de bienvenida con login + elimina acceso público sin login *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
