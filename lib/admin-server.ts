@@ -144,12 +144,31 @@ export async function listAdminUsers(service: SupabaseClient) {
 
   const roleMap = new Map((roles || []).map(r => [r.user_id, r]))
 
-  const { data: vocabRows, error: vocabError } = await service.from('user_vocab_progress').select('user_id')
-  if (vocabError) throw new AdminApiError(vocabError.message, 500)
-
+  // Count words from the normalized table (new schema)
   const wordCounts: Record<string, number> = {}
+  const { data: vocabRows } = await service.from('user_vocab_progress').select('user_id')
   for (const row of vocabRows || []) {
     wordCounts[row.user_id] = (wordCounts[row.user_id] || 0) + 1
+  }
+
+  // Fallback: for users still in legacy mode, count from srs_progress.vocab_db JSON
+  const { data: legacyRows } = await service.from('srs_progress').select('user_id, vocab_db')
+  for (const row of legacyRows || []) {
+    if (!wordCounts[row.user_id] && Array.isArray(row.vocab_db)) {
+      wordCounts[row.user_id] = row.vocab_db.length
+    }
+  }
+
+  // Best-effort: total login count per user via the public.get_user_login_counts() RPC.
+  // Requires running supabase-login-stats-migration.sql in the Supabase SQL Editor first.
+  const loginCounts: Record<string, number> = {}
+  try {
+    const { data: rpcRows } = await service.rpc('get_user_login_counts')
+    for (const row of (rpcRows as Array<{ user_id: string; login_count: number }> | null) ?? []) {
+      if (row.user_id) loginCounts[row.user_id] = Number(row.login_count)
+    }
+  } catch {
+    // Function not yet created — login_count will be null for all users.
   }
 
   return (listData.users || []).map(u => {
@@ -160,7 +179,8 @@ export async function listAdminUsers(service: SupabaseClient) {
       role: (roleRow?.role as 'admin' | 'contributor' | 'user') ?? 'user',
       created_at: roleRow?.created_at ?? u.created_at,
       wordCount: wordCounts[u.id] ?? 0,
-      last_sign_in: u.last_sign_in_at,
+      last_sign_in: u.last_sign_in_at ?? null,
+      login_count: loginCounts[u.id] ?? null,
     }
   }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 }

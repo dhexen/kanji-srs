@@ -22,6 +22,7 @@ export interface AdminUserRow {
   created_at: string
   wordCount: number
   last_sign_in?: string | null
+  login_count?: number | null
 }
 
 export interface AdminSnapshotRow {

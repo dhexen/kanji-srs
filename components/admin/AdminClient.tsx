@@ -533,11 +533,15 @@ export default function AdminClient() {
               : users.length === 0 ? <div className="p-8 text-center text-slate-400">No hay usuarios.</div>
               : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[720px]">
+                  <table className="w-full text-left border-collapse min-w-[960px]">
                     <thead>
                       <tr className="bg-slate-100 text-slate-500 text-xs uppercase tracking-wider">
-                        <th className="py-3 px-4">Email</th><th className="py-3 px-4">Palabras</th>
-                        <th className="py-3 px-4">Rol</th><th className="py-3 px-4">Registro</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Palabras</th>
+                        <th className="py-3 px-4">Rol</th>
+                        <th className="py-3 px-4">Registro</th>
+                        <th className="py-3 px-4 whitespace-nowrap">Último acceso</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">Logins</th>
                         <th className="py-3 px-4 text-right">Acciones</th>
                       </tr>
                     </thead>
@@ -564,6 +568,12 @@ export default function AdminClient() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.created_at ? formatDate(user.created_at) : '—'}</td>
+                            <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.last_sign_in ? formatDate(user.last_sign_in) : '—'}</td>
+                            <td className="py-3 px-4 text-center">
+                              {user.login_count != null
+                                ? <span className="font-semibold text-slate-700">{user.login_count}</span>
+                                : <span className="text-slate-300 text-xs">—</span>}
+                            </td>
                             <td className="py-3 px-4">
                               <div className="flex flex-wrap justify-end gap-1.5">
                                 {!isMe && (
