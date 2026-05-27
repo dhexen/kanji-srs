@@ -272,6 +272,10 @@ function NavInner() {
           badge={0} progress={grammarPct} pathname={pathname}
         />
         <NavItem
+          href="/kana" icon="🔤" label={stripEmoji(t(lang, 'nav_kana'))}
+          badge={0} progress={null} pathname={pathname}
+        />
+        <NavItem
           href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
           badge={0} progress={null} pathname={pathname}
         />
