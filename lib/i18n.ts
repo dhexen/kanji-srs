@@ -408,6 +408,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     review_import_k15: 'Próximos 15 kanjis',
     review_import_loading: 'Importando...',
     review_import_empty: 'Ya tienes todo el vocabulario disponible.',
+    review_import_added: '{n} kanjis nuevos añadidos ✓',
     review_i_know_it: 'Ya me lo sé ✓',
   },
 
@@ -792,6 +793,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     review_import_k15: 'Propers 15 kanjis',
     review_import_loading: 'Important...',
     review_import_empty: 'Ja tens tot el vocabulari disponible.',
+    review_import_added: '{n} kanjis nous afegits ✓',
     review_i_know_it: 'Ja me\'l sé ✓',
   },
 
@@ -1176,6 +1178,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     review_import_k15: 'Next 15 kanji',
     review_import_loading: 'Importing...',
     review_import_empty: 'You already have all available vocabulary.',
+    review_import_added: '{n} new kanji added ✓',
     review_i_know_it: 'I already know it ✓',
   },
 
@@ -1560,6 +1563,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     review_import_k15: '次の15漢字',
     review_import_loading: 'インポート中...',
     review_import_empty: 'すべての語彙をインポート済みです。',
+    review_import_added: '{n}個の漢字を追加しました ✓',
     review_i_know_it: '知っている ✓',
   },
 }

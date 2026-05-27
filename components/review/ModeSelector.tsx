@@ -142,22 +142,35 @@ export default function ModeSelector({ selectedModes, onToggle, pendingCount, on
 
       {/* ── Quick import section ── */}
       {onQuickImport && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-          <div className="mb-3">
-            <p className="text-sm font-semibold text-slate-700">📥 {t(lang, 'review_import_title')}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{t(lang, 'review_import_sub')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {([3, 5, 15] as const).map(n => (
-              <button
-                key={n}
-                onClick={() => onQuickImport(n)}
-                disabled={isImporting}
-                className="flex-1 min-w-[100px] py-2.5 px-3 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-slate-600 hover:text-violet-700 font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
-              >
-                {isImporting ? t(lang, 'review_import_loading') : t(lang, `review_import_k${n}`)}
-              </button>
-            ))}
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl border border-emerald-100 shadow-sm p-5">
+          {/* Decorative circle */}
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-100/60 rounded-full pointer-events-none" />
+          <div className="absolute -bottom-4 -right-2 w-14 h-14 bg-teal-100/50 rounded-full pointer-events-none" />
+
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-lg">🌱</span>
+              <p className="text-sm font-bold text-emerald-800">{t(lang, 'review_import_title')}</p>
+            </div>
+            <p className="text-xs text-emerald-600/70 mb-4 pl-7">{t(lang, 'review_import_sub')}</p>
+
+            <div className="flex flex-wrap gap-2">
+              {([3, 5, 15] as const).map(n => (
+                <button
+                  key={n}
+                  onClick={() => onQuickImport(n)}
+                  disabled={isImporting}
+                  className="flex-1 min-w-[90px] py-2.5 px-3 rounded-xl bg-white/80 hover:bg-white border border-emerald-200 hover:border-emerald-400 text-emerald-800 font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-sm"
+                >
+                  {isImporting ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin inline-block" />
+                      {t(lang, 'review_import_loading')}
+                    </span>
+                  ) : t(lang, `review_import_k${n}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

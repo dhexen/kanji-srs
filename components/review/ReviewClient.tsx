@@ -122,12 +122,18 @@ export default function ReviewClient() {
 
       await addVocabItems(newItems)
 
+      // Toast de éxito: muestra cuántos kanjis únicos se han añadido
+      const uniqueKanjis = new Set(vocabRows.map(v => v.kanji)).size
+      showToast(t(lang, 'review_import_added').replace('{n}', String(uniqueKanjis)), 'success')
+
       // Build a review session for only the newly imported words using selectedModes
       const seq: SessionItem[] = []
       newItems.forEach(item => {
         selectedModes.forEach(mode => seq.push({ item, mode }))
       })
       const shuffled = seq.sort(() => Math.random() - 0.5)
+
+      if (shuffled.length === 0) return  // sin modos seleccionados, no iniciar sesión
 
       setIsPractice(false)
       setSequence(shuffled)
