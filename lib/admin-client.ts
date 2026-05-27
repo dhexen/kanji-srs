@@ -267,6 +267,74 @@ export async function importVocabBatch(
 // Vocabulary category/word_type classification
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Unified full classification (word_type + category + image + antonyms)
+// ---------------------------------------------------------------------------
+
+export interface FullClassifyStats {
+  total:          number
+  with_type:      number
+  with_category:  number
+  with_image:     number
+  antonym_pairs:  number
+  pending:        number
+}
+
+export interface FullClassifyResult {
+  processed:           number
+  updated_vocab:       number
+  new_images:          number
+  not_imageable:       number
+  no_source_image:     number
+  antonym_pairs_added: number
+  message?:            string
+}
+
+export async function fetchFullClassifyStats(): Promise<FullClassifyStats> {
+  const res = await fetch('/api/admin/classify-vocab-full', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<FullClassifyStats>(res)
+}
+
+export async function runFullClassifyBatch(opts: {
+  limit?:        number
+  geminiApiKey?: string
+  pexelsApiKey?: string
+}): Promise<FullClassifyResult> {
+  const res = await fetch('/api/admin/classify-vocab-full', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<FullClassifyResult>(res)
+}
+
+// ---------------------------------------------------------------------------
+// Antonym pairs management
+// ---------------------------------------------------------------------------
+
+/**
+ * Add an antonym pair. Requires admin or contributor role.
+ */
+export async function addAntonymPair(wordA: string, wordB: string): Promise<{ ok: boolean }> {
+  const res = await fetch('/api/admin/vocab/antonyms', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ word_a: wordA, word_b: wordB }),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
+/**
+ * Delete an antonym pair by ID. Requires admin or contributor role.
+ */
+export async function deleteAntonymPair(id: number): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/antonyms/${id}`, {
+    method: 'DELETE',
+    headers: await adminAuthHeaders(),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
 export interface ClassifyStats {
   total: number
   with_type: number

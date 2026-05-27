@@ -35,11 +35,13 @@
       "Bash(git commit -m 'fix: carga instantánea al refrescar + añadir signInWithMagicLink *)",
       "Bash(npm run *)",
       "Bash(git commit -m 'feat: contributor role + edición inline de frases IA para admin/contributor *)",
-      "Bash(git commit -m 'feat: edición de vocabulario global para admin/contributor *)"
+      "Bash(git commit -m 'feat: edición de vocabulario global para admin/contributor *)",
+      "Bash(mkdir -p \"/home/dhexen/Documentos/proyecto/kanji-srs/app/api/admin/vocab/antonyms/[id]\")"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
-      "c:\\Users\\dhexe\\Documents\\Proyectos\\kanji-srs\\app\\api\\admin\\vocab"
+      "c:\\Users\\dhexe\\Documents\\Proyectos\\kanji-srs\\app\\api\\admin\\vocab",
+      "/home/dhexen/Documentos/proyecto/kanji-srs/app/api/admin/vocab/antonyms"
     ]
   }
 }

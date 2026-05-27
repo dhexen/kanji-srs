@@ -22,6 +22,8 @@ import {
   classifyVocabBatch,
   fetchImageReports,
   updateImageReport,
+  fetchFullClassifyStats,
+  runFullClassifyBatch,
   type AdminUserRow,
   type AdminSnapshotRow,
   type ImageStats,
@@ -29,6 +31,8 @@ import {
   type ClassifyStats,
   type ClassifyBatchResult,
   type ImageReport,
+  type FullClassifyStats,
+  type FullClassifyResult,
 } from '@/lib/admin-client'
 import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
@@ -51,11 +55,17 @@ export default function AdminClient() {
   const [imgGeminiKey, setImgGeminiKey] = useState('')
   const [imgPexelsKey, setImgPexelsKey] = useState('')
 
-  // Vocabulary classification
+  // Vocabulary classification (legacy, per-feature)
   const [clsStats, setClsStats] = useState<ClassifyStats | null>(null)
   const [clsProcessing, setClsProcessing] = useState(false)
   const [clsLastResult, setClsLastResult] = useState<ClassifyBatchResult | null>(null)
   const [clsGeminiKey, setClsGeminiKey] = useState('')
+
+  // ── Unified full classification (word_type + category + image + antonyms) ──
+  const [fullStats,      setFullStats]      = useState<FullClassifyStats | null>(null)
+  const [fullProcessing, setFullProcessing] = useState(false)
+  const [fullLastResult, setFullLastResult] = useState<FullClassifyResult | null>(null)
+  const [showLegacy,     setShowLegacy]     = useState(false)
 
   // Tabs
   const searchParams = useSearchParams()
@@ -97,6 +107,7 @@ export default function AdminClient() {
       loadSrsIntervals()
       fetchImageStats().then(setImgStats).catch(() => {})
       fetchClassifyStats().then(setClsStats).catch(() => {})
+      fetchFullClassifyStats().then(setFullStats).catch(() => {})
     }
   }, [isAdmin, aal])
 
@@ -204,6 +215,38 @@ export default function AdminClient() {
       showToast(e instanceof Error ? e.message : 'Error procesando imágenes', 'error')
     } finally {
       setImgProcessing(false)
+    }
+  }
+
+  async function handleFullClassifyBatch() {
+    setFullProcessing(true)
+    setFullLastResult(null)
+    try {
+      const result = await runFullClassifyBatch({
+        limit:        35,
+        geminiApiKey: imgGeminiKey || undefined,
+        pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
+      })
+      setFullLastResult(result)
+      // Refresh all stat blocks
+      const [stats, imgS, clsS] = await Promise.all([
+        fetchFullClassifyStats().catch(() => null),
+        fetchImageStats().catch(() => null),
+        fetchClassifyStats().catch(() => null),
+      ])
+      if (stats) setFullStats(stats)
+      if (imgS)  setImgStats(imgS)
+      if (clsS)  setClsStats(clsS)
+      showToast(
+        result.processed === 0
+          ? 'No quedan palabras pendientes'
+          : `Procesadas ${result.processed} palabras · ${result.new_images} imágenes · ${result.antonym_pairs_added} pares nuevos`,
+        'success',
+      )
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error en clasificación completa', 'error')
+    } finally {
+      setFullProcessing(false)
     }
   }
 
@@ -403,7 +446,7 @@ export default function AdminClient() {
 
   const tabs = [
     { key: 'users' as const,  label: '👥 Usuarios' },
-    { key: 'images' as const, label: '🖼️ Imágenes' },
+    { key: 'images' as const, label: '✨ Clasificación' },
     { key: 'vocab' as const,  label: '📚 Vocabulario' },
     { key: 'system' as const, label: '⚙️ Sistema' },
   ]
@@ -560,10 +603,10 @@ export default function AdminClient() {
         </>
       )}
 
-      {/* ── TAB: IMÁGENES ─────────────────────────────────────────────── */}
+      {/* ── TAB: CLASIFICACIÓN ───────────────────────────────────────── */}
       {activeTab === 'images' && (
         <>
-          {/* API keys — compartidas por todas las secciones de imágenes */}
+          {/* API keys */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <h3 className="font-bold text-slate-800 mb-3">🔑 Claves API</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -582,46 +625,140 @@ export default function AdminClient() {
             </div>
           </div>
 
-          {/* Procesamiento en batch */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
-            <h3 className="font-bold text-slate-800 mb-1">🖼️ Procesar imágenes</h3>
-            <p className="text-xs text-slate-400 mb-4">Gemini clasifica qué palabras son imaginables y Pexels aporta la foto.</p>
+          {/* ── CLASIFICACIÓN UNIFICADA ─────────────────────────────────────── */}
+          <div className="bg-gradient-to-br from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 rounded-2xl border border-indigo-100 p-5 md:p-6 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-base mb-0.5">
+                ✨ Clasificación completa — 1 llamada Gemini
+              </h3>
+              <p className="text-xs text-slate-500">
+                Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta contrarios. Procesa 35 palabras a la vez.
+              </p>
+            </div>
 
-            {imgStats && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {/* Stats grid */}
+            {fullStats && (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {[
-                  { label: 'Total', value: imgStats.total, color: 'text-slate-700' },
-                  { label: 'Con imagen', value: imgStats.with_image, color: 'text-emerald-600' },
-                  { label: 'Revisadas', value: imgStats.checked, color: 'text-indigo-600' },
-                  { label: 'Pendientes', value: imgStats.pending, color: imgStats.pending > 0 ? 'text-amber-600' : 'text-slate-400' },
+                  { label: 'Total',      value: fullStats.total,         color: 'text-slate-700' },
+                  { label: 'Tipo gram.', value: fullStats.with_type,     color: 'text-emerald-600' },
+                  { label: 'Categoría', value: fullStats.with_category,  color: 'text-indigo-600' },
+                  { label: 'Imagen',    value: fullStats.with_image,     color: 'text-violet-600' },
+                  { label: 'Contrarios', value: fullStats.antonym_pairs, color: 'text-sky-600' },
+                  { label: 'Pendientes', value: fullStats.pending,       color: fullStats.pending > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400' },
                 ].map(s => (
-                  <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
-                    <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
+                  <div key={s.label} className="bg-white/80 rounded-xl p-2.5 text-center shadow-sm">
+                    <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{s.label}</div>
                   </div>
                 ))}
               </div>
             )}
 
-            {imgLastResult && imgLastResult.processed > 0 && (
-              <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
-                Último batch: <strong>{imgLastResult.processed}</strong> procesadas ·{' '}
-                <strong>{imgLastResult.new_images}</strong> nuevas · <strong>{imgLastResult.not_imageable}</strong> no imaginables ·{' '}
-                <strong>{imgLastResult.no_source_image}</strong> sin foto
+            {/* Last result */}
+            {fullLastResult && fullLastResult.processed > 0 && (
+              <div className="bg-white/90 rounded-xl px-4 py-3 text-sm text-slate-700 border border-indigo-100 space-y-0.5">
+                <p className="font-semibold text-indigo-700">Último lote</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5 text-xs text-slate-600 mt-1">
+                  <span>🔠 Procesadas: <strong>{fullLastResult.processed}</strong></span>
+                  <span>🏷️ Vocab actualizadas: <strong>{fullLastResult.updated_vocab}</strong></span>
+                  <span>🖼️ Imágenes nuevas: <strong>{fullLastResult.new_images}</strong></span>
+                  <span>⇄ Contrarios añadidos: <strong>{fullLastResult.antonym_pairs_added}</strong></span>
+                  <span>🚫 No imaginables: <strong>{fullLastResult.not_imageable}</strong></span>
+                  <span>📷 Sin foto: <strong>{fullLastResult.no_source_image}</strong></span>
+                </div>
+                {fullLastResult.message && (
+                  <p className="text-xs text-indigo-500 mt-1">{fullLastResult.message}</p>
+                )}
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={imgProcessing || imgStats?.pending === 0} onClick={handleProcessImages}
-                className="py-2.5 px-5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition">
-                {imgProcessing ? 'Procesando…' : imgStats?.pending === 0 ? 'Todo procesado ✓' : `Procesar lote (${Math.min(40, imgStats?.pending ?? 0)} palabras)`}
-              </button>
-              <button type="button" disabled={imgResetting || imgProcessing} onClick={handleResetNoImage}
-                title="Vuelve a marcar como pendientes las palabras sin imagen para reintentarlas"
-                className="py-2.5 px-5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-sm transition">
-                {imgResetting ? 'Reseteando…' : '↺ Reintentar sin foto'}
-              </button>
-            </div>
+            {/* Action button */}
+            <button
+              type="button"
+              disabled={fullProcessing || fullStats?.pending === 0}
+              onClick={handleFullClassifyBatch}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-sm"
+            >
+              {fullProcessing
+                ? '⏳ Clasificando…'
+                : fullStats?.pending === 0
+                ? '✓ Todo clasificado'
+                : `✨ Clasificar lote (${Math.min(35, fullStats?.pending ?? 0)} palabras)`}
+            </button>
+          </div>
+
+          {/* ── SECCIONES INDIVIDUALES (avanzado / legacy) ──────────────────── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowLegacy(v => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              <span>⚙️ Acciones individuales (avanzado)</span>
+              <span className="text-slate-400 text-xs">{showLegacy ? '▲ Ocultar' : '▼ Mostrar'}</span>
+            </button>
+
+            {showLegacy && (
+              <div className="p-5 space-y-6 border-t border-slate-100">
+
+                {/* Imágenes sola */}
+                <div>
+                  <h4 className="font-semibold text-slate-700 mb-1">🖼️ Solo imágenes (Gemini + Pexels)</h4>
+                  <p className="text-xs text-slate-400 mb-3">Útil para reintentar palabras sin foto. Requiere Pexels Key.</p>
+                  {imgStats && (
+                    <div className="flex gap-4 text-xs text-slate-500 mb-3">
+                      <span>Total: <strong>{imgStats.total}</strong></span>
+                      <span className="text-emerald-600">Con imagen: <strong>{imgStats.with_image}</strong></span>
+                      <span className="text-amber-600">Pendientes: <strong>{imgStats.pending}</strong></span>
+                    </div>
+                  )}
+                  {imgLastResult && imgLastResult.processed > 0 && (
+                    <p className="text-xs text-emerald-700 mb-3">
+                      Último: {imgLastResult.processed} procesadas · {imgLastResult.new_images} nuevas
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" disabled={imgProcessing || imgStats?.pending === 0} onClick={handleProcessImages}
+                      className="py-2 px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+                      {imgProcessing ? 'Procesando…' : `Procesar lote imágenes (${Math.min(40, imgStats?.pending ?? 0)})`}
+                    </button>
+                    <button type="button" disabled={imgResetting || imgProcessing} onClick={handleResetNoImage}
+                      className="py-2 px-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
+                      {imgResetting ? 'Reseteando…' : '↺ Reintentar sin foto'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Clasificación solo tipo+categoría */}
+                <div>
+                  <h4 className="font-semibold text-slate-700 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
+                  <p className="text-xs text-slate-400 mb-3">Sin imágenes ni contrarios.</p>
+                  {clsStats && (
+                    <div className="flex gap-4 text-xs text-slate-500 mb-3">
+                      <span>Total: <strong>{clsStats.total}</strong></span>
+                      <span className="text-emerald-600">Con tipo: <strong>{clsStats.with_type}</strong></span>
+                      <span className="text-amber-600">Sin clasificar: <strong>{clsStats.pending}</strong></span>
+                    </div>
+                  )}
+                  {clsLastResult && (
+                    <p className="text-xs text-indigo-700 mb-3">
+                      Último: {clsLastResult.processed} procesadas · {clsLastResult.updated} actualizadas
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mb-3">
+                    <input type="password" value={clsGeminiKey} onChange={e => setClsGeminiKey(e.target.value)}
+                      placeholder="Gemini API Key (deja vacío para usar la de arriba)"
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs" />
+                  </div>
+                  <button type="button" disabled={clsProcessing || clsStats?.pending === 0} onClick={handleClassifyBatch}
+                    className="py-2 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+                    {clsProcessing ? 'Clasificando…' : `Clasificar lote tipo/cat. (${Math.min(50, clsStats?.pending ?? 0)})`}
+                  </button>
+                </div>
+
+              </div>
+            )}
           </div>
 
           {/* Reportes de votos negativos */}
@@ -648,19 +785,14 @@ export default function AdminClient() {
                   const urlOpen = imgReportUrlOpen === r.word
                   return (
                     <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 rounded-xl bg-slate-50/60">
-                      {/* Thumbnail */}
                       <img src={r.image_url} alt={r.word}
                         className="w-full sm:w-20 h-20 object-cover rounded-lg shrink-0 self-center sm:self-start" />
-
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="kanji-font text-xl font-bold text-slate-800">{r.word}</span>
                           <span className="text-xs text-slate-400">{r.meaning_es}</span>
                           <span className="ml-auto text-xs font-semibold text-rose-600">👍 {r.upvotes} · 👎 {r.downvotes}</span>
                         </div>
-
-                        {/* Actions */}
                         <div className="flex flex-wrap gap-2 mt-2">
                           <button type="button" disabled={acting} onClick={() => handleReportAction(r.word, 'remove')}
                             className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold disabled:opacity-50 transition">
@@ -675,7 +807,6 @@ export default function AdminClient() {
                             🔗 URL manual
                           </button>
                         </div>
-
                         {urlOpen && (
                           <div className="flex gap-2 mt-2">
                             <input type="url" placeholder="https://…" value={imgReportUrls[r.word] ?? ''}
@@ -694,46 +825,6 @@ export default function AdminClient() {
                 })}
               </div>
             )}
-          </div>
-
-          {/* Clasificación de vocabulario */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
-            <h3 className="font-bold text-slate-800 mb-1">🏷️ Clasificación de vocabulario</h3>
-            <p className="text-xs text-slate-400 mb-4">Gemini asigna tipo gramatical y categoría semántica a cada palabra.</p>
-
-            {clsStats && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                {[
-                  { label: 'Total', value: clsStats.total, color: 'text-slate-700' },
-                  { label: 'Con tipo', value: clsStats.with_type, color: 'text-emerald-600' },
-                  { label: 'Con categoría', value: clsStats.with_category, color: 'text-indigo-600' },
-                  { label: 'Sin clasificar', value: clsStats.pending, color: clsStats.pending > 0 ? 'text-amber-600' : 'text-slate-400' },
-                ].map(s => (
-                  <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
-                    <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {clsLastResult && (
-              <div className="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-800">
-                Último lote: {clsLastResult.processed} procesadas · {clsLastResult.updated} actualizadas
-                {clsLastResult.message && <span className="ml-1 text-indigo-500">{clsLastResult.message}</span>}
-              </div>
-            )}
-
-            <div className="mb-4">
-              <input type="password" value={clsGeminiKey} onChange={e => setClsGeminiKey(e.target.value)}
-                placeholder="Gemini API Key (deja vacío para reusar la de arriba)"
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
-            </div>
-
-            <button type="button" disabled={clsProcessing || clsStats?.pending === 0} onClick={handleClassifyBatch}
-              className="py-2.5 px-5 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition">
-              {clsProcessing ? 'Clasificando…' : clsStats?.pending === 0 ? 'Todo clasificado ✓' : `Clasificar lote (${Math.min(50, clsStats?.pending ?? 0)} palabras)`}
-            </button>
           </div>
         </>
       )}

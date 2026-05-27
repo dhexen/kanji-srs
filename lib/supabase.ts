@@ -1183,6 +1183,98 @@ export async function fetchSchoolVocabSample(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Contrarios (antonym pairs)
+// ---------------------------------------------------------------------------
+
+export interface AntonymEntry {
+  word:       string
+  kanji:      string
+  reading:    string
+  meaning_es: string
+  meaning_ca: string | null
+  meaning_en: string | null
+  word_type:  string | null
+  grade:      number | null
+}
+
+export interface AntonymPair {
+  id:     number
+  word_a: AntonymEntry
+  word_b: AntonymEntry
+}
+
+/**
+ * Fetch all antonym pairs, resolved with full vocabulary data for each word.
+ * Public read — no auth required.
+ */
+export async function fetchAntonymPairs(): Promise<AntonymPair[]> {
+  try {
+    const { data: pairs, error: pairsErr } = await supabase
+      .from('vocab_antonyms')
+      .select('id, word_a, word_b')
+      .order('id', { ascending: true })
+
+    if (pairsErr) {
+      // Table might not exist yet (migration not applied)
+      if (isSchemaUnavailable(pairsErr) || (pairsErr.message ?? '').toLowerCase().includes('vocab_antonyms')) return []
+      throw pairsErr
+    }
+    if (!pairs || pairs.length === 0) return []
+
+    // Collect all unique words needed
+    const allWords = [...new Set([
+      ...pairs.map(p => p.word_a as string),
+      ...pairs.map(p => p.word_b as string),
+    ])]
+
+    const { data: vocabData, error: vocabErr } = await supabase
+      .from('vocabulary')
+      .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, word_type, grade')
+      .in('word', allWords)
+
+    if (vocabErr) throw vocabErr
+
+    const vocabMap = new Map(
+      (vocabData ?? []).map(v => [v.word as string, v])
+    )
+
+    const result: AntonymPair[] = []
+    for (const pair of pairs) {
+      const a = vocabMap.get(pair.word_a as string)
+      const b = vocabMap.get(pair.word_b as string)
+      if (!a || !b) continue
+      result.push({
+        id: pair.id as number,
+        word_a: {
+          word:       String(a.word),
+          kanji:      String(a.kanji),
+          reading:    String(a.reading),
+          meaning_es: String(a.meaning_es ?? ''),
+          meaning_ca: a.meaning_ca ? String(a.meaning_ca) : null,
+          meaning_en: a.meaning_en ? String(a.meaning_en) : null,
+          word_type:  a.word_type  ? String(a.word_type)  : null,
+          grade:      typeof a.grade === 'number' ? a.grade : null,
+        },
+        word_b: {
+          word:       String(b.word),
+          kanji:      String(b.kanji),
+          reading:    String(b.reading),
+          meaning_es: String(b.meaning_es ?? ''),
+          meaning_ca: b.meaning_ca ? String(b.meaning_ca) : null,
+          meaning_en: b.meaning_en ? String(b.meaning_en) : null,
+          word_type:  b.word_type  ? String(b.word_type)  : null,
+          grade:      typeof b.grade === 'number' ? b.grade : null,
+        },
+      })
+    }
+    return result
+  } catch (e) {
+    console.warn('fetchAntonymPairs exception:', e)
+    return []
+  }
+}
+
 /**
  * Upsert the SRS result for a grammar point after a practice session.
  */
