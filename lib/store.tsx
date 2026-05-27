@@ -327,7 +327,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (intervals) setSrsIntervals(intervals)
     }).catch(e => console.warn('Could not load SRS intervals config:', e))
 
-    // Initial session check — comportamiento original intacto
+    // Safety net: if SET_LOADED hasn't fired after 15s, force it to unblock the spinner
+    const loadTimeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        console.warn('[store] loading timeout — forcing SET_LOADED')
+        loadedRef.current = true
+        dispatch({ type: 'SET_LOADED' })
+      }
+    }, 15000)
+
+    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         // Si onAuthStateChange SIGNED_IN ya procesó esta sesión, no repetir syncDown
@@ -345,6 +354,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_DB', payload: [] })
         dispatch({ type: 'SET_LOADED' })
       }
+    }).catch((e) => {
+      // Si getSession falla (p.ej. red caída), liberar el spinner y redirigir a /login
+      console.error('[store] getSession error:', e)
+      if (!loadedRef.current) {
+        loadedRef.current = true
+        dispatch({ type: 'SET_LOADED' })
+      }
     })
 
     // Listener para magic links y OAuth PKCE: la sesión puede establecerse
@@ -360,7 +376,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { subscription.unsubscribe(); clearTimeout(loadTimeout) }
   }, [syncDown])
 
   const login = useCallback(async (email: string, password: string) => {
