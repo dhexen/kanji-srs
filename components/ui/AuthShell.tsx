@@ -7,7 +7,6 @@
  *   cargando sesión          → spinner central sin nav (nunca se muestra el sidebar a no-usuarios)
  *   cargado, sin usuario     → null (la redirección a /login está en curso)
  *   cargado, con usuario     → app completa con sidebar
- *   /stats (público)         → app completa con sidebar, accesible sin login
  */
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -19,8 +18,8 @@ import Tutorial from './Tutorial'
 
 // Páginas de autenticación: sin sidebar, sin AuthGuard
 const AUTH_PAGES = ['/login', '/auth/callback']
-// Páginas accesibles sin login (con sidebar si hay sesión, sin sidebar si no)
-const PUBLIC_PAGES = ['/stats']
+// Ninguna página es accesible sin login — todas requieren autenticación
+const PUBLIC_PAGES: string[] = []
 
 export default function AuthShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
