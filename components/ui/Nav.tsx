@@ -208,11 +208,6 @@ function NavInner() {
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
   const hasActiveVocab = state.db.some(i => i.status === 'active')
 
-  const vocabSubItems: SubItem[] = [
-    { href: '/vocabulary?tab=import',   icon: '📥', label: t(lang, 'vocab_tab_import'),   tabKey: 'import',   isDefault: true,  badge: false },
-    { href: '/vocabulary?tab=glossary', icon: '📋', label: t(lang, 'vocab_tab_glossary'), tabKey: 'glossary', isDefault: false, badge: false },
-  ]
-
   const profileSubItems: SubItem[] = [
     { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
     { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
@@ -266,12 +261,11 @@ function NavInner() {
           badge={pendingReview} tutorialId="nav-review"
           progress={null} pathname={pathname}
         />
-        <NavSection
-          icon="📚" label={stripEmoji(t(lang, 'nav_vocabulary'))}
-          basePath="/vocabulary" subItems={vocabSubItems}
-          tutorialId="nav-vocabulary"
+        <NavItem
+          href="/vocabulary" icon="📚" label={stripEmoji(t(lang, 'nav_vocabulary'))}
+          badge={0} tutorialId="nav-vocabulary"
           progress={hasActiveVocab ? vocabPct : null}
-          pathname={pathname} currentTab={currentTab}
+          pathname={pathname}
         />
         <NavItem
           href="/grammar" icon="📖" label={stripEmoji(t(lang, 'nav_grammar'))}
