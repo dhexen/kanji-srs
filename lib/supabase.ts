@@ -12,13 +12,15 @@ import {
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Supabase client con timeout de 12s en cada fetch para evitar cuelgues infinitos
-// (p.ej. proyecto pausado en free tier, red lenta, etc.)
+// Supabase client con timeout de 45s en cada fetch.
+// Los proyectos free tier de Supabase pueden tardar 20-30s en "despertar"
+// cuando han estado inactivos, por lo que necesitamos un timeout generoso.
+// El timeout de 15s en store.tsx desbloquea la UI antes de que esto expire.
 export const supabase = createClient(url, key, {
   global: {
     fetch: (input, init) => {
       const controller = new AbortController()
-      const id = setTimeout(() => controller.abort(), 12000)
+      const id = setTimeout(() => controller.abort(), 45000)
       return fetch(input, { ...init, signal: controller.signal })
         .finally(() => clearTimeout(id))
     },

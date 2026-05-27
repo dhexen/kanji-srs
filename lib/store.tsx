@@ -327,6 +327,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (intervals) setSrsIntervals(intervals)
     }).catch(e => console.warn('Could not load SRS intervals config:', e))
 
+    // Aviso de conexión lenta (proyectos free tier de Supabase tardan ~20-30s en despertar)
+    const slowConnTimeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        showToast('Conectando con la base de datos…', 'info')
+      }
+    }, 5000)
+
     // Safety net: if SET_LOADED hasn't fired after 15s, force it to unblock the spinner
     const loadTimeout = setTimeout(() => {
       if (!loadedRef.current) {
@@ -344,9 +351,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        // Paralelizar getUserRole y syncDown — no dependen entre sí, ahorra ~300-600ms
-        const [role] = await Promise.all([getUserRole(session.user.id), syncDown()])
-        dispatch({ type: 'SET_ROLE', payload: role })
+        // getUserRole y syncDown en paralelo.
+        // Despachamos el rol en cuanto llega (sin esperar a syncDown) para que
+        // el panel admin aparezca antes de que terminen de cargar los datos.
+        getUserRole(session.user.id)
+          .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+          .catch(() => { /* rol queda como 'user' por defecto */ })
+        await syncDown()
       } else {
         // Sin sesión: marcar como cargado para que AuthGuard pueda redirigir a /login
         hydratingRef.current = false
@@ -370,12 +381,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        const [role] = await Promise.all([getUserRole(session.user.id), syncDown()])
-        dispatch({ type: 'SET_ROLE', payload: role })
+        getUserRole(session.user.id)
+          .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+          .catch(() => {})
+        await syncDown()
       }
     })
 
-    return () => { subscription.unsubscribe(); clearTimeout(loadTimeout) }
+    return () => { subscription.unsubscribe(); clearTimeout(loadTimeout); clearTimeout(slowConnTimeout) }
   }, [syncDown])
 
   const login = useCallback(async (email: string, password: string) => {
@@ -384,8 +397,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const user = { email: data.user.email!, id: data.user.id }
     dispatch({ type: 'SET_USER', payload: user })
     userRef.current = user
-    const [role] = await Promise.all([getUserRole(data.user.id), syncDown()])
-    dispatch({ type: 'SET_ROLE', payload: role })
+    getUserRole(data.user.id)
+      .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+      .catch(() => {})
+    await syncDown()
   }, [syncDown])
 
   const signup = useCallback(async (email: string, password: string): Promise<'ok' | 'needs_confirmation'> => {
