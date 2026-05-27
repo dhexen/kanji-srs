@@ -36,7 +36,8 @@
       "Bash(npm run *)",
       "Bash(git commit -m 'feat: contributor role + edición inline de frases IA para admin/contributor *)",
       "Bash(git commit -m 'feat: edición de vocabulario global para admin/contributor *)",
-      "Bash(mkdir -p \"/home/dhexen/Documentos/proyecto/kanji-srs/app/api/admin/vocab/antonyms/[id]\")"
+      "Bash(mkdir -p \"/home/dhexen/Documentos/proyecto/kanji-srs/app/api/admin/vocab/antonyms/[id]\")",
+      "Bash(git commit -m 'feat: sección kana con nemotécnica y tests \\(hiragana + katakana\\) *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
