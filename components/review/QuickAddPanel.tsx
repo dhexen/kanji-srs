@@ -54,6 +54,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
   const [nextGrade, setNextGrade] = useState<number | null>(null)
   const [nextKanjis, setNextKanjis] = useState<string[]>([])
   const [detecting, setDetecting] = useState(true)
+  const [includeUnofficial, setIncludeUnofficial] = useState(false)
   const lang = state.lang
 
   const activeKanjis = useMemo(
@@ -92,7 +93,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
     setLoading(packSize)
     try {
       const kanjisToAdd = nextKanjis.slice(0, packSize)
-      const vocab = await getVocabularyByKanjis(kanjisToAdd, nextGrade)
+      const vocab = await getVocabularyByKanjis(kanjisToAdd, nextGrade, includeUnofficial)
       const now = Date.now()
       const existingWords = new Set(state.db.map(i => i.jp))
       const newWords = ((vocab ?? []) as any[]).filter(v => !existingWords.has(v.word))
@@ -164,6 +165,19 @@ export default function QuickAddPanel({ onAdded }: Props) {
           </p>
         ) : (
           <>
+            {/* Non-official toggle */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeUnofficial}
+                onChange={e => setIncludeUnofficial(e.target.checked)}
+                className="w-3.5 h-3.5 rounded accent-amber-500"
+              />
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {t(lang, 'quickadd_include_unofficial')}
+              </span>
+            </label>
+
             {/* Kanji preview chips */}
             <div className="flex flex-wrap gap-1 pb-1">
               {previewKanjis.map(k => (

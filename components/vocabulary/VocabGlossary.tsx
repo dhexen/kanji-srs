@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { fetchAllVocabByGrade, FullVocabEntry } from '@/lib/supabase'
-import { deleteVocabWord, updateVocabWord } from '@/lib/admin-client'
+import { deleteVocabWord, updateVocabWord, addVocabWord } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -20,6 +20,13 @@ const GRADES = [
 const PRIMARY_GRADES   = GRADES.filter(g => g.group === 'primary')
 const SECONDARY_GRADES = GRADES.filter(g => g.group === 'secondary')
 
+// Regex: CJK Unified Ideographs (main BMP ranges)
+const KANJI_RE = /[一-鿿㐀-䶿]/gu
+
+function detectKanji(str: string): string[] {
+  return Array.from(new Set(str.match(KANJI_RE) ?? []))
+}
+
 export default function VocabGlossary() {
   const { state } = useStore()
   const lang = state.lang
@@ -30,6 +37,7 @@ export default function VocabGlossary() {
   const [words, setWords] = useState<FullVocabEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
+  const [showUnofficial, setShowUnofficial] = useState(true)
 
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -43,6 +51,21 @@ export default function VocabGlossary() {
   const [editMeaningEn, setEditMeaningEn] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editError,  setEditError]  = useState('')
+
+  // Add word state
+  const [showAddModal, setShowAddModal]       = useState(false)
+  const [addWord,       setAddWord]           = useState('')
+  const [addReading,    setAddReading]        = useState('')
+  const [addMeaningEs,  setAddMeaningEs]      = useState('')
+  const [addMeaningCa,  setAddMeaningCa]      = useState('')
+  const [addMeaningEn,  setAddMeaningEn]      = useState('')
+  const [addSaving,     setAddSaving]         = useState(false)
+  const [addError,      setAddError]          = useState('')
+  // Pre-selected kanji for the "+" icon inside a kanji section (hint only)
+  const [addHintKanji,  setAddHintKanji]      = useState('')
+
+  // Promote/demote state
+  const [promotingWord, setPromotingWord] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -60,8 +83,10 @@ export default function VocabGlossary() {
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    if (!q) return words
-    return words.filter(w =>
+    let list = words
+    if (!showUnofficial) list = list.filter(w => w.is_official)
+    if (!q) return list
+    return list.filter(w =>
       w.word.includes(filter.trim()) ||
       w.kanji.includes(filter.trim()) ||
       w.reading.toLowerCase().includes(q) ||
@@ -69,7 +94,7 @@ export default function VocabGlossary() {
       (w.meaning_en?.toLowerCase().includes(q)) ||
       (w.meaning_ca?.toLowerCase().includes(q))
     )
-  }, [words, filter])
+  }, [words, filter, showUnofficial])
 
   // Group by kanji, preserving sort order from the DB
   const grouped = useMemo(() => {
@@ -142,10 +167,89 @@ export default function VocabGlossary() {
     }
   }
 
+  // ── Add word ──────────────────────────────────────────────────────────────
+  function openAddModal(hintKanji = '') {
+    setAddWord('')
+    setAddReading('')
+    setAddMeaningEs('')
+    setAddMeaningCa('')
+    setAddMeaningEn('')
+    setAddError('')
+    setAddHintKanji(hintKanji)
+    setShowAddModal(true)
+  }
+
+  async function confirmAdd() {
+    const trimWord    = addWord.trim()
+    const trimReading = addReading.trim()
+    const trimEs      = addMeaningEs.trim()
+    if (!trimWord)    { setAddError('La palabra (kanji) es obligatoria.'); return }
+    if (!trimReading) { setAddError('La lectura es obligatoria.'); return }
+    if (!trimEs)      { setAddError('El significado en español es obligatorio.'); return }
+
+    setAddSaving(true)
+    setAddError('')
+    try {
+      const result = await addVocabWord({
+        word: trimWord, reading: trimReading, meaning_es: trimEs,
+        meaning_ca: addMeaningCa.trim() || undefined,
+        meaning_en: addMeaningEn.trim() || undefined,
+      })
+      // Add new entries to local state for the current grade view
+      const newEntries: FullVocabEntry[] = result.kanjis
+        .filter(k => k.grade === grade)
+        .map(k => ({
+          word: trimWord,
+          kanji: k.kanji,
+          reading: trimReading,
+          meaning_es: trimEs,
+          meaning_ca: addMeaningCa.trim() || null,
+          meaning_en: addMeaningEn.trim() || null,
+          is_official: false,
+          sort_order: 99999,
+        }))
+      if (newEntries.length > 0) {
+        setWords(prev => [...prev, ...newEntries])
+      }
+      showToast(
+        t(lang, 'glossary_add_success').replace('{n}', String(result.count)),
+        'success',
+      )
+      setShowAddModal(false)
+    } catch (e: unknown) {
+      setAddError(e instanceof Error ? e.message : 'Error añadiendo la palabra')
+    } finally {
+      setAddSaving(false)
+    }
+  }
+
+  // ── Promote / demote ──────────────────────────────────────────────────────
+  async function toggleOfficial(w: FullVocabEntry) {
+    if (promotingWord) return
+    setPromotingWord(w.word)
+    try {
+      await updateVocabWord(w.word, { is_official: !w.is_official })
+      setWords(prev => prev.map(v =>
+        v.word !== w.word ? v : { ...v, is_official: !w.is_official, sort_order: w.is_official ? 99999 : v.sort_order }
+      ))
+      showToast(
+        w.is_official ? t(lang, 'glossary_demoted') : t(lang, 'glossary_promoted'),
+        'success',
+      )
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setPromotingWord(null)
+    }
+  }
+
   const gradeLabel = (g: typeof GRADES[0]) =>
     g.label[lang as keyof typeof g.label] ?? g.label.es
 
   const kanjiKeys = Object.keys(grouped)
+
+  // Kanji chars detected in the add modal input (for the hint preview)
+  const detectedKanjiInInput = detectKanji(addWord)
 
   return (
     <div className="space-y-4">
@@ -190,22 +294,52 @@ export default function VocabGlossary() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm px-4 py-2.5 flex items-center gap-3">
-        <span className="text-slate-400 shrink-0">🔍</span>
-        <input
-          type="text"
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          placeholder={t(lang, 'vocab_search_ph')}
-          className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-800 dark:text-slate-100"
-        />
-        {filter && (
+      {/* Toolbar: search + toggles + add button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search bar */}
+        <div className="flex-1 min-w-[180px] bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm px-4 py-2.5 flex items-center gap-3">
+          <span className="text-slate-400 shrink-0">🔍</span>
+          <input
+            type="text"
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            placeholder={t(lang, 'vocab_search_ph')}
+            className="flex-1 text-sm bg-transparent outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-800 dark:text-slate-100"
+          />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Toggle non-official visibility */}
+        <button
+          onClick={() => setShowUnofficial(v => !v)}
+          title={showUnofficial ? t(lang, 'glossary_hide_unofficial') : t(lang, 'glossary_show_unofficial')}
+          className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all shrink-0 ${
+            showUnofficial
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 hover:bg-amber-100'
+              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-amber-300'
+          }`}
+        >
+          {showUnofficial ? '👁 ' : '🚫 '}
+          {showUnofficial ? t(lang, 'glossary_hide_unofficial') : t(lang, 'glossary_show_unofficial')}
+        </button>
+
+        {/* Add word button (admin + contributor) */}
+        {canEdit && (
           <button
-            onClick={() => setFilter('')}
-            className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0"
+            onClick={() => openAddModal()}
+            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
-            ×
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            {t(lang, 'glossary_add_btn')}
           </button>
         )}
       </div>
@@ -216,6 +350,11 @@ export default function VocabGlossary() {
           {t(lang, 'glossary_words_n').replace('{n}', String(filtered.length))}
           {' · '}
           {kanjiKeys.length} kanjis
+          {!showUnofficial && words.some(w => !w.is_official) && (
+            <span className="ml-1 text-amber-500">
+              · {words.filter(w => !w.is_official).length} ocultas
+            </span>
+          )}
         </p>
       )}
 
@@ -240,9 +379,23 @@ export default function VocabGlossary() {
                 {/* Kanji header */}
                 <div className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/30 flex items-center gap-3">
                   <span className="kanji-font text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-none">{kanji}</span>
-                  <span className="text-xs text-indigo-400 dark:text-indigo-500 font-medium">
+                  <span className="text-xs text-indigo-400 dark:text-indigo-500 font-medium flex-1">
                     {kanjiWords.length} {t(lang, 'study_words')}
                   </span>
+                  {/* Per-kanji add word button */}
+                  {canEdit && (
+                    <button
+                      onClick={() => openAddModal(kanji)}
+                      title={t(lang, 'glossary_add_btn')}
+                      className="w-6 h-6 flex items-center justify-center rounded-full
+                                 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white
+                                 bg-emerald-50 dark:bg-emerald-900/30 transition-all"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
                 {/* Word rows */}
@@ -251,7 +404,7 @@ export default function VocabGlossary() {
                     <div
                       key={w.word}
                       className={`flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition group ${
-                        !w.is_official ? 'bg-red-50/40 dark:bg-red-900/10' : ''
+                        !w.is_official ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''
                       }`}
                     >
                       {/* Word */}
@@ -269,11 +422,50 @@ export default function VocabGlossary() {
                         {meaning(w)}
                       </span>
 
-                      {/* Unofficial badge */}
+                      {/* Unofficial badge + promote button */}
                       {!w.is_official && (
-                        <span className="text-xs text-red-500 font-medium bg-red-50 border border-red-100 px-1.5 py-0.5 rounded shrink-0">
-                          {t(lang, 'vocab_unofficial')}
+                        <span className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 px-1.5 py-0.5 rounded">
+                            {t(lang, 'vocab_unofficial')}
+                          </span>
+                          {canEdit && (
+                            <button
+                              onClick={() => toggleOfficial(w)}
+                              disabled={promotingWord === w.word}
+                              title={t(lang, 'glossary_promote_btn')}
+                              className="w-5 h-5 flex items-center justify-center rounded-full
+                                         text-emerald-500 hover:text-white hover:bg-emerald-500
+                                         bg-emerald-50 dark:bg-emerald-900/30
+                                         opacity-0 group-hover:opacity-100 transition-all
+                                         disabled:opacity-40"
+                            >
+                              {promotingWord === w.word
+                                ? <span className="text-[8px]">…</span>
+                                : <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                              }
+                            </button>
+                          )}
                         </span>
+                      )}
+
+                      {/* Demote official → unofficial (admin/contributor) */}
+                      {w.is_official && canEdit && (
+                        <button
+                          onClick={() => toggleOfficial(w)}
+                          disabled={promotingWord === w.word}
+                          title={t(lang, 'glossary_demote_btn')}
+                          className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full
+                                     text-slate-300 hover:text-amber-600 hover:bg-amber-50
+                                     opacity-0 group-hover:opacity-100 transition-all
+                                     disabled:opacity-40 hidden"
+                          // Hidden by default — only show for non-curriculum words someday
+                        >
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       )}
 
                       {/* Edit button (admin + contributor) */}
@@ -283,7 +475,7 @@ export default function VocabGlossary() {
                           title={t(lang, 'glossary_edit_btn')}
                           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full
                                      text-indigo-400 hover:text-white hover:bg-indigo-500
-                                     bg-indigo-50 opacity-0 group-hover:opacity-100
+                                     bg-indigo-50 dark:bg-indigo-900/30 opacity-0 group-hover:opacity-100
                                      transition-all"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -299,7 +491,7 @@ export default function VocabGlossary() {
                           title={t(lang, 'glossary_delete_btn')}
                           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full
                                      text-rose-400 hover:text-white hover:bg-rose-500
-                                     bg-rose-50 opacity-0 group-hover:opacity-100
+                                     bg-rose-50 dark:bg-rose-900/30 opacity-0 group-hover:opacity-100
                                      transition-all text-sm font-bold leading-none"
                         >
                           ×
@@ -380,7 +572,7 @@ export default function VocabGlossary() {
               {lang === 'en'
                 ? 'This change will apply to all users.'
                 : lang === 'ca'
-                ? 'Aquest canvi s\'aplicarà a tots els usuaris.'
+                ? "Aquest canvi s'aplicarà a tots els usuaris."
                 : 'Este cambio se aplicará a todos los usuarios.'}
             </p>
 
@@ -447,6 +639,140 @@ export default function VocabGlossary() {
                   </svg>
                 )}
                 {editSaving ? '...' : `💾 ${t(lang, 'glossary_edit_save')}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add word modal ────────────────────────────────────────────────── */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  ✨ {t(lang, 'glossary_add_title')}
+                </h3>
+                {addHintKanji && (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Kanji: <span className="kanji-font font-bold text-indigo-500">{addHintKanji}</span>
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => !addSaving && setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Note: non-official */}
+            <p className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
+              📝{' '}
+              {lang === 'en'
+                ? 'The word will be added as unofficial and will be visible to all users. Admins and contributors can promote it to official.'
+                : lang === 'ca'
+                ? "La paraula s'afegirà com a no oficial i serà visible per a tots els usuaris. Admins i contribuïdors poden promoure-la a oficial."
+                : 'La palabra se añadirá como no oficial y será visible para todos los usuarios. Admins y contribuidores pueden promoverla a oficial.'}
+            </p>
+
+            {/* Word input */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                {lang === 'en' ? 'Word (kanji)' : lang === 'ca' ? 'Paraula (kanji)' : 'Palabra (kanji)'}
+              </label>
+              <input
+                value={addWord}
+                onChange={e => setAddWord(e.target.value)}
+                placeholder={t(lang, 'glossary_add_word_ph')}
+                className="w-full px-3 py-2 text-base border border-slate-200 dark:border-slate-600 rounded-xl focus:border-emerald-400 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 kanji-font font-bold"
+                lang="ja"
+                autoFocus
+              />
+              {/* Detected kanjis preview */}
+              {addWord.trim() ? (
+                detectedKanjiInInput.length > 0 ? (
+                  <p className="text-[11px] text-slate-400 pt-0.5">
+                    {t(lang, 'glossary_add_detecting')}{' '}
+                    {detectedKanjiInInput.map(k => (
+                      <span key={k} className="kanji-font font-bold text-indigo-500 mr-1">{k}</span>
+                    ))}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-600 pt-0.5">
+                    {t(lang, 'glossary_add_no_kanji')}
+                  </p>
+                )
+              ) : null}
+            </div>
+
+            {/* Reading */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                {t(lang, 'glossary_edit_reading')} (hiragana)
+              </label>
+              <input
+                value={addReading}
+                onChange={e => setAddReading(e.target.value)}
+                placeholder={t(lang, 'glossary_add_reading_ph')}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl focus:border-emerald-400 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
+                lang="ja"
+              />
+            </div>
+
+            {/* Meanings */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                {lang === 'en' ? 'Meanings' : lang === 'ca' ? 'Significats' : 'Significados'}
+              </label>
+              {([
+                { code: 'ES', val: addMeaningEs, set: setAddMeaningEs, required: true,  ph: t(lang, 'glossary_add_meaning_ph') },
+                { code: 'CA', val: addMeaningCa, set: setAddMeaningCa, required: false, ph: lang === 'en' ? 'optional' : 'opcional' },
+                { code: 'EN', val: addMeaningEn, set: setAddMeaningEn, required: false, ph: lang === 'en' ? 'optional' : 'opcional' },
+              ] as const).map(({ code, val, set, required, ph }) => (
+                <div key={code} className="flex items-center gap-2">
+                  <span className="w-7 text-[10px] font-bold text-slate-400 shrink-0">
+                    {code}{required && <span className="text-red-400">*</span>}
+                  </span>
+                  <input
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    placeholder={ph}
+                    className="flex-1 px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-emerald-400 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {addError && (
+              <p className="text-xs text-red-600 dark:text-red-400">{addError}</p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end pt-1">
+              <button
+                onClick={() => setShowAddModal(false)}
+                disabled={addSaving}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition disabled:opacity-40"
+              >
+                {t(lang, 'glossary_cancel')}
+              </button>
+              <button
+                onClick={confirmAdd}
+                disabled={addSaving || detectedKanjiInInput.length === 0}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition disabled:opacity-40 min-w-[7rem] flex items-center justify-center gap-1.5"
+              >
+                {addSaving && (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+                  </svg>
+                )}
+                {addSaving ? '...' : t(lang, 'glossary_add_save')}
               </button>
             </div>
           </div>

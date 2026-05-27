@@ -812,13 +812,28 @@ export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, 
   return result
 }
 
-export async function getVocabularyByKanjis(kanjis: string[], grade = 1) {
-  const { data, error } = await supabase
+/**
+ * Fetch all vocabulary words for the given kanjis and grade.
+ * @param includeNonOfficial – if false (default) only official words are returned.
+ *   Pass true to also include community-added unofficial words.
+ */
+export async function getVocabularyByKanjis(
+  kanjis: string[],
+  grade = 1,
+  includeNonOfficial = false,
+) {
+  let query = supabase
     .from('vocabulary')
     .select('*')
     .in('kanji', kanjis)
     .eq('grade', grade)
     .order('sort_order', { ascending: true })
+
+  if (!includeNonOfficial) {
+    query = query.eq('is_official', true)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   return data
 }

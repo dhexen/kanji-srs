@@ -182,8 +182,11 @@ export async function updateImageReport(opts: {
 // ---------------------------------------------------------------------------
 
 /**
- * Update editable fields of a shared vocabulary entry (reading + meanings).
+ * Update editable fields of a shared vocabulary entry (reading, meanings, is_official).
  * Requires admin or contributor role. Change propagates to all users.
+ *
+ * When is_official is set to true the server recalculates sort_order so the word
+ * appears right after the official curriculum for each of its kanjis.
  */
 export async function updateVocabWord(
   word: string,
@@ -192,6 +195,7 @@ export async function updateVocabWord(
     meaning_es?: string
     meaning_ca?: string | null
     meaning_en?: string | null
+    is_official?: boolean
   },
 ): Promise<{ ok: boolean }> {
   const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
@@ -200,6 +204,33 @@ export async function updateVocabWord(
     body: JSON.stringify(patch),
   })
   return parseAdminResponse<{ ok: boolean }>(res)
+}
+
+export interface AddVocabResult {
+  ok: boolean
+  kanjis: Array<{ kanji: string; grade: number }>
+  count: number
+}
+
+/**
+ * Add a new unofficial vocabulary word to the shared vocabulary table.
+ * The server auto-detects which kanjis (that already exist in the DB) the word
+ * contains and inserts one row per matching kanji.
+ * Requires admin or contributor role.
+ */
+export async function addVocabWord(entry: {
+  word: string
+  reading: string
+  meaning_es: string
+  meaning_ca?: string
+  meaning_en?: string
+}): Promise<AddVocabResult> {
+  const res = await fetch('/api/admin/vocab', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(entry),
+  })
+  return parseAdminResponse<AddVocabResult>(res)
 }
 
 /**

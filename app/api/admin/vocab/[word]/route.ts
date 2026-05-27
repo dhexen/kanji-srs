@@ -37,8 +37,15 @@ export async function DELETE(
 
 /**
  * PATCH /api/admin/vocab/[word]
- * Updates editable fields of a vocabulary entry (reading + meanings).
+ * Updates editable fields of a vocabulary entry (reading, meanings, is_official).
  * Requires admin or contributor role (no AAL2 / 2FA needed).
+ *
+ * When is_official is set to true, the word's sort_order is recalculated so it
+ * appears after the existing official curriculum for each of its kanjis
+ * (sort_order = max_official_sort_order_for_that_kanji + 1000), keeping it out
+ * of the main curriculum but still ordered before non-official (99999).
+ * When set to false, sort_order is reset to 99999.
+ *
  * The change propagates to all users because it edits the shared vocabulary table.
  */
 export async function PATCH(
@@ -51,6 +58,55 @@ export async function PATCH(
     if (!word) throw new AdminApiError('Palabra requerida', 400)
 
     const body = await request.json()
+
+    // ── Handle is_official promotion/demotion separately (needs per-kanji logic) ──
+    if (typeof body.is_official === 'boolean') {
+      if (body.is_official === true) {
+        // Promote: find the kanji rows for this word, recalculate sort_order per kanji
+        const { data: wordRows, error: rowsErr } = await service
+          .from('vocabulary')
+          .select('kanji')
+          .eq('word', word)
+        if (rowsErr) throw new AdminApiError(rowsErr.message, 500)
+
+        for (const row of wordRows ?? []) {
+          // Max sort_order among OFFICIAL words for this kanji (excluding the word being promoted)
+          const { data: maxRow } = await service
+            .from('vocabulary')
+            .select('sort_order')
+            .eq('kanji', row.kanji)
+            .eq('is_official', true)
+            .neq('word', word)
+            .order('sort_order', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          // Place after curriculum but well before 99999 (non-official)
+          const baseOrder = (maxRow?.sort_order ?? 0) < 90000
+            ? (maxRow?.sort_order ?? 0)
+            : 0
+          const newOrder = baseOrder + 1000
+
+          const { error: upErr } = await service
+            .from('vocabulary')
+            .update({ is_official: true, sort_order: newOrder })
+            .eq('word', word)
+            .eq('kanji', row.kanji)
+          if (upErr) throw new AdminApiError(upErr.message, 500)
+        }
+        return NextResponse.json({ ok: true })
+      } else {
+        // Demote back to non-official
+        const { error } = await service
+          .from('vocabulary')
+          .update({ is_official: false, sort_order: 99999 })
+          .eq('word', word)
+        if (error) throw new AdminApiError(error.message, 500)
+        return NextResponse.json({ ok: true })
+      }
+    }
+
+    // ── Normal field edit (reading + meanings) ──
     const patch: Record<string, string | null> = {}
 
     if (typeof body.reading === 'string') {
