@@ -1,8 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
-import { fetchVocabMeta } from '@/lib/supabase'
+import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue, migrateItem } from '@/lib/srs'
+import { fetchVocabMeta, getNextNewVocab } from '@/lib/supabase'
+import { showToast } from '@/components/ui/Toast'
+import { t } from '@/lib/i18n'
 import ModeSelector from './ModeSelector'
 import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
@@ -12,13 +14,15 @@ export type SessionItem = { item: VocabItem; mode: ReviewMode }
 type Phase = 'select' | 'playing' | 'done'
 
 export default function ReviewClient() {
-  const { state } = useStore()
+  const { state, addVocabItems } = useStore()
+  const lang = state.lang
   const [selectedModes, setSelectedModes] = useState<ReviewMode[]>(['multi', 'meaning', 'kanji', 'reading', 'reverse'])
   const [phase, setPhase] = useState<Phase>('select')
   const [sequence, setSequence] = useState<SessionItem[]>([])
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
   const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
@@ -106,6 +110,62 @@ export default function ReviewClient() {
     setPhase('select')
     setSequence([])
     setIndex(0)
+  }
+
+  // Import the next N kanjis and immediately start a review session with them
+  async function quickImport(n: number) {
+    if (!state.user) return
+    setIsImporting(true)
+    try {
+      const existingJpWords = new Set(state.db.map(i => i.jp))
+      const vocabRows = await getNextNewVocab(n, existingJpWords)
+
+      if (vocabRows.length === 0) {
+        showToast(t(lang, 'review_import_empty'), 'info')
+        return
+      }
+
+      const now = Date.now()
+      const newItems: VocabItem[] = vocabRows.map(v => {
+        const base: VocabItem = {
+          kanji: v.kanji, jp: v.word, reading: v.reading,
+          meaning: v.meaning_es, meaning_ca: v.meaning_ca ?? undefined, meaning_en: v.meaning_en ?? undefined,
+          srsLevel: 1, due: now, status: 'active',
+          ...(v.image_url ? { image_url: v.image_url } : {}),
+          grade: v.grade,
+          ...(v.category ? { category: v.category as VocabItem['category'] } : {}),
+          ...(v.word_type ? { word_type: v.word_type as VocabItem['word_type'] } : {}),
+        }
+        // Initialize all per-mode SRS fields to level 1
+        const migrated = migrateItem({ ...base, status: 'active' })
+        return migrated
+      })
+
+      await addVocabItems(newItems)
+
+      // Toast de éxito: muestra cuántos kanjis únicos se han añadido
+      const uniqueKanjis = new Set(vocabRows.map(v => v.kanji)).size
+      showToast(t(lang, 'review_import_added').replace('{n}', String(uniqueKanjis)), 'success')
+
+      // Build a review session for only the newly imported words using selectedModes
+      const seq: SessionItem[] = []
+      newItems.forEach(item => {
+        selectedModes.forEach(mode => seq.push({ item, mode }))
+      })
+      const shuffled = seq.sort(() => Math.random() - 0.5)
+
+      if (shuffled.length === 0) return  // sin modos seleccionados, no iniciar sesión
+
+      setIsPractice(false)
+      setSequence(shuffled)
+      setIndex(0)
+      setPhase('playing')
+    } catch (e) {
+      console.error('quickImport error:', e)
+      showToast('Error al importar', 'error')
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   if (phase === 'select') {

@@ -57,7 +57,7 @@ function ProgressRing({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, login, signup, signInWithGoogle, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
   const [activeTab, setActiveTab] = useState<TabKey>(
@@ -68,10 +68,7 @@ export default function StatsClient() {
   useEffect(() => {
     setActiveTab(tabParam === 'settings' ? 'settings' : tabParam === 'account' ? 'account' : 'stats')
   }, [tabParam])
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
   const [geminiKey, setGeminiKey] = useState(state.geminiApiKey ?? '')
   const [geminiStepsOpen, setGeminiStepsOpen] = useState(false)
   const [pexelsKey, setPexelsKey] = useState(state.pexelsApiKey ?? '')
@@ -490,93 +487,21 @@ export default function StatsClient() {
       {activeTab === 'account' && (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h3 className="font-bold text-slate-900">{t(lang, 'stats_account')}</h3>
-          {state.user ? (
-            <div className="space-y-3">
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                  <span className="text-sm font-bold text-emerald-800">{t(lang, 'stats_sync_active')}</span>
-                </div>
-                <p className="text-xs text-emerald-600">{state.user.email}</p>
-                <p className="text-xs text-emerald-500 mt-1">{t(lang, 'stats_sync_msg')}</p>
+          <div className="space-y-3">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span className="text-sm font-bold text-emerald-800">{t(lang, 'stats_sync_active')}</span>
               </div>
-              {state.syncing && <div className="text-xs text-indigo-500 flex items-center gap-2 animate-pulse"><span>↕</span>{t(lang, 'header_syncing')}</div>}
-              <button onClick={() => handleAuth(logout, t(lang, 'stats_logout'))}
-                className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-xl text-sm transition">
-                {t(lang, 'stats_logout')}
-              </button>
+              <p className="text-xs text-emerald-600">{state.user?.email}</p>
+              <p className="text-xs text-emerald-500 mt-1">{t(lang, 'stats_sync_msg')}</p>
             </div>
-          ) : emailSent ? (
-            <div className="space-y-4">
-              <div className="p-5 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
-                <div className="text-3xl mb-2">📧</div>
-                <p className="font-bold text-indigo-800 text-sm">{t(lang, 'stats_check_email')}</p>
-                <p className="text-xs text-indigo-600 mt-1">
-                  {t(lang, 'stats_email_sent').replace('{email}', email)}
-                </p>
-              </div>
-              <button onClick={() => setEmailSent(false)} className="w-full py-2 text-xs text-slate-400 hover:text-slate-600 transition">
-                {t(lang, 'stats_back_login')}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">{t(lang, 'stats_no_session')}</div>
-
-              {/* Google */}
-              <button
-                disabled={authLoading}
-                onClick={() => handleAuth(signInWithGoogle, t(lang, 'stats_google_redirecting'))}
-                className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-sm disabled:opacity-50 transition flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                {t(lang, 'stats_google_login')}
-              </button>
-
-              <div className="flex items-center gap-2">
-                <hr className="flex-1 border-slate-200" />
-                <span className="text-xs text-slate-400">{t(lang, 'stats_or')}</span>
-                <hr className="flex-1 border-slate-200" />
-              </div>
-
-              <input type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder={t(lang, 'stats_email')}
-                autoComplete="off" data-lpignore="true" className="w-full px-3 py-2 border rounded-lg text-sm" />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t(lang, 'stats_password')}
-                autoComplete="new-password" data-lpignore="true" className="w-full px-3 py-2 border rounded-lg text-sm" />
-              <div className="flex gap-2">
-                <button disabled={authLoading} onClick={() => handleAuth(() => login(email, password), t(lang, 'stats_login'))}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm disabled:opacity-50 transition">
-                  {t(lang, 'stats_login')}
-                </button>
-                <button
-                  disabled={authLoading}
-                  onClick={async () => {
-                    setAuthLoading(true)
-                    try {
-                      const result = await signup(email, password)
-                      if (result === 'needs_confirmation') {
-                        setEmailSent(true)
-                      } else {
-                        showToast(t(lang, 'stats_signup'), 'success')
-                      }
-                    } catch (e: any) {
-                      showToast(e.message, 'error')
-                    } finally {
-                      setAuthLoading(false)
-                    }
-                  }}
-                  className="flex-1 py-2.5 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-lg text-sm disabled:opacity-50 transition"
-                >
-                  {t(lang, 'stats_signup')}
-                </button>
-              </div>
-            </div>
-          )}
+            {state.syncing && <div className="text-xs text-indigo-500 flex items-center gap-2 animate-pulse"><span>↕</span>{t(lang, 'header_syncing')}</div>}
+            <button onClick={() => handleAuth(logout, t(lang, 'stats_logout'))}
+              className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-xl text-sm transition">
+              {t(lang, 'stats_logout')}
+            </button>
+          </div>
         </div>
       )}
     </div>

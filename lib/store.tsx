@@ -1,10 +1,11 @@
 'use client'
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react'
-import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals } from './srs'
+import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals, masterItem } from './srs'
 import type { ContextText } from './progress'
 import {
   supabase,
   downloadAccountData,
+  upsertVocabItem,
   upsertVocabItems,
   saveReviewResult,
   deleteAllUserVocab,
@@ -124,6 +125,7 @@ interface StoreContextType {
   addVocabItems: (items: VocabItem[]) => Promise<void>
   saveVocabDb: (db: VocabItem[]) => Promise<void>
   applyReviewResult: (jp: string, mode: ReviewMode, isCorrect: boolean) => void
+  masterVocabItem: (jp: string) => Promise<void>
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
   resetRemoteProgress: () => Promise<void>
@@ -135,7 +137,6 @@ interface StoreContextType {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string) => Promise<'ok' | 'needs_confirmation'>
   signInWithGoogle: () => Promise<void>
-  signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -227,6 +228,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
   }, [dispatchPersist])
 
+  /** Sets all SRS levels for a word to 7 (Maestro) across all modes, then persists. */
+  const masterVocabItem = useCallback(async (jp: string) => {
+    const prevDb = dbRef.current
+    const item = prevDb.find(i => i.jp === jp)
+    if (!item) return
+    const mastered = masterItem(item)
+    const nextDb = prevDb.map(i => i.jp === jp ? mastered : i)
+    dbRef.current = nextDb
+    dispatch({ type: 'SET_DB', payload: nextDb })
+    if (canPersist(userRef, hydratingRef)) {
+      void upsertVocabItem(mastered, nextDb).catch(reportPersistError)
+    }
+  }, [])
+
   const syncDown = useCallback(async () => {
     hydratingRef.current = true
     try {
@@ -312,7 +327,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (intervals) setSrsIntervals(intervals)
     }).catch(e => console.warn('Could not load SRS intervals config:', e))
 
-    // Initial session check — comportamiento original intacto
+    // Aviso de conexión lenta (proyectos free tier de Supabase tardan ~20-30s en despertar)
+    const slowConnTimeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        showToast('Conectando con la base de datos…', 'info')
+      }
+    }, 5000)
+
+    // Safety net: if SET_LOADED hasn't fired after 15s, force it to unblock the spinner
+    const loadTimeout = setTimeout(() => {
+      if (!loadedRef.current) {
+        console.warn('[store] loading timeout — forcing SET_LOADED')
+        loadedRef.current = true
+        dispatch({ type: 'SET_LOADED' })
+      }
+    }, 15000)
+
+    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         // Si onAuthStateChange SIGNED_IN ya procesó esta sesión, no repetir syncDown
@@ -320,14 +351,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        const role = await getUserRole(session.user.id)
-        dispatch({ type: 'SET_ROLE', payload: role })
+        // getUserRole y syncDown en paralelo.
+        // Despachamos el rol en cuanto llega (sin esperar a syncDown) para que
+        // el panel admin aparezca antes de que terminen de cargar los datos.
+        getUserRole(session.user.id)
+          .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+          .catch(() => { /* rol queda como 'user' por defecto */ })
         await syncDown()
       } else {
         // Sin sesión: marcar como cargado para que AuthGuard pueda redirigir a /login
         hydratingRef.current = false
         loadedRef.current = true
         dispatch({ type: 'SET_DB', payload: [] })
+        dispatch({ type: 'SET_LOADED' })
+      }
+    }).catch((e) => {
+      // Si getSession falla (p.ej. red caída), liberar el spinner y redirigir a /login
+      console.error('[store] getSession error:', e)
+      if (!loadedRef.current) {
+        loadedRef.current = true
         dispatch({ type: 'SET_LOADED' })
       }
     })
@@ -339,13 +381,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const user = { email: session.user.email!, id: session.user.id }
         dispatch({ type: 'SET_USER', payload: user })
         userRef.current = user
-        const role = await getUserRole(session.user.id)
-        dispatch({ type: 'SET_ROLE', payload: role })
+        getUserRole(session.user.id)
+          .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+          .catch(() => {})
         await syncDown()
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { subscription.unsubscribe(); clearTimeout(loadTimeout); clearTimeout(slowConnTimeout) }
   }, [syncDown])
 
   const login = useCallback(async (email: string, password: string) => {
@@ -354,8 +397,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const user = { email: data.user.email!, id: data.user.id }
     dispatch({ type: 'SET_USER', payload: user })
     userRef.current = user
-    const role = await getUserRole(data.user.id)
-    dispatch({ type: 'SET_ROLE', payload: role })
+    getUserRole(data.user.id)
+      .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
+      .catch(() => {})
     await syncDown()
   }, [syncDown])
 
@@ -388,19 +432,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
-  const signInWithMagicLink = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback`
-          : '/auth/callback',
-        shouldCreateUser: true,
-      },
-    })
-    if (error) throw error
-  }, [])
-
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     hydratingRef.current = false
@@ -424,6 +455,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addVocabItems,
       saveVocabDb,
       applyReviewResult,
+      masterVocabItem,
       syncUp,
       syncDown,
       resetRemoteProgress,
@@ -435,7 +467,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       login,
       signup,
       signInWithGoogle,
-      signInWithMagicLink,
       logout,
     }}>
       {children}

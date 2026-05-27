@@ -294,3 +294,14 @@ export function getMeaningForLang(item: VocabItem, lang: string): string {
   if (lang === 'en' && item.meaning_en) return item.meaning_en
   return item.meaning
 }
+
+/** Sets all mode levels to 7 with due dates 5 years in the future (effectively mastered). */
+export function masterItem(item: VocabItem): VocabItem {
+  const farFuture = Date.now() + 5 * 365 * 24 * 60 * 60 * 1000
+  const result = { ...item, srsLevel: 7, due: farFuture, status: 'active' as const }
+  Object.values(MODE_CONFIG).forEach(cfg => {
+    ;(result as any)[cfg.key + '_level'] = 7
+    ;(result as any)[cfg.key + '_due'] = farFuture
+  })
+  return result
+}

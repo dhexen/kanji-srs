@@ -2,12 +2,10 @@
 /**
  * AuthShell — punto único de control del layout según el estado de autenticación.
  *
- * Estados posibles:
- *   /login | /auth/callback  → sin sidebar, sin spinner, solo la página
- *   cargando sesión          → spinner central sin nav (nunca se muestra el sidebar a no-usuarios)
- *   cargado, sin usuario     → null (la redirección a /login está en curso)
- *   cargado, con usuario     → app completa con sidebar
- *   /stats (público)         → app completa con sidebar, accesible sin login
+ * - /login | /auth/callback → solo el contenido, sin sidebar, sin nav
+ * - cargando sesión         → spinner central (sin nav nunca)
+ * - sin usuario             → null mientras el router redirige a /login
+ * - con usuario             → app completa con sidebar
  */
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -17,25 +15,22 @@ import Nav from './Nav'
 import LayoutShell from './LayoutShell'
 import Tutorial from './Tutorial'
 
-// Páginas de autenticación: sin sidebar, sin AuthGuard
-const AUTH_PAGES = ['/login', '/auth/callback']
-// Páginas accesibles sin login (con sidebar si hay sesión, sin sidebar si no)
-const PUBLIC_PAGES = ['/stats']
+// Rutas que se muestran sin sidebar ni autenticación
+const AUTH_PAGES = ['/', '/login', '/auth/callback']
 
 export default function AuthShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { state } = useStore()
   const router = useRouter()
 
-  // Redirigir a /login cuando no hay sesión y la ruta lo requiere
+  // Redirigir a /login si no hay sesión en rutas protegidas
   useEffect(() => {
-    const needsAuth = !AUTH_PAGES.includes(pathname) && !PUBLIC_PAGES.includes(pathname)
-    if (state.loaded && !state.user && needsAuth) {
+    if (!AUTH_PAGES.includes(pathname) && state.loaded && !state.user) {
       router.replace('/login')
     }
   }, [state.loaded, state.user, pathname, router])
 
-  // ── Páginas de auth (login / callback): solo el contenido, sin shell ────
+  // ── Páginas de auth / landing: solo el contenido, sin shell ─────────────
   if (AUTH_PAGES.includes(pathname)) {
     return <>{children}</>
   }
@@ -56,7 +51,10 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
     if (!state.user) return null
   }
 
-  // ── App completa con sidebar (usuario autenticado o ruta pública) ────────
+  // Sin usuario: redirección en curso, no renderizar nada con sidebar
+  if (!state.user) return null
+
+  // ── App completa con sidebar ─────────────────────────────────────────────
   return (
     <SidebarProvider>
       <Tutorial />

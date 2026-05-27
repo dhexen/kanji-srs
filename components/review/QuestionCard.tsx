@@ -24,7 +24,7 @@ function normalizeJP(str: string) {
 }
 
 export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onNext, onQuit }: Props) {
-  const { applyReviewResult, state } = useStore()
+  const { applyReviewResult, masterVocabItem, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
   const { level } = getModeLevelAndDue(item, mode)
@@ -175,6 +175,11 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
             {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
           </div>
 
+          {/* Furigana — visible en meaning (lectura del kanji como pista) */}
+          {mode === 'meaning' && item.reading && (
+            <p className="text-slate-400 text-sm font-medium mb-1 tracking-widest">{item.reading}</p>
+          )}
+
           {/* Significado — visible en multi (donde la pregunta es la lectura, no el significado) */}
           {mode === 'multi' && (
             <p className="text-slate-600 dark:text-slate-300 text-base font-medium mb-2">{meaning}</p>
@@ -204,6 +209,22 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           )}
         </div>
       </div>
+
+      {/* "Ya me lo sé" — visible in waiting state for all modes */}
+      {answerState === 'waiting' && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={async () => {
+              await masterVocabItem(item.jp)
+              onNext()
+            }}
+            className="text-xs font-semibold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded-lg transition"
+          >
+            {t(lang, 'review_i_know_it')}
+          </button>
+        </div>
+      )}
 
       {/* Multi choice */}
       {isMultiChoice && answerState === 'waiting' && (

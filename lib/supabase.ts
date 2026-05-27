@@ -11,7 +11,21 @@ import {
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-export const supabase = createClient(url, key)
+
+// Supabase client con timeout de 45s en cada fetch.
+// Los proyectos free tier de Supabase pueden tardar 20-30s en "despertar"
+// cuando han estado inactivos, por lo que necesitamos un timeout generoso.
+// El timeout de 15s en store.tsx desbloquea la UI antes de que esto expire.
+export const supabase = createClient(url, key, {
+  global: {
+    fetch: (input, init) => {
+      const controller = new AbortController()
+      const id = setTimeout(() => controller.abort(), 45000)
+      return fetch(input, { ...init, signal: controller.signal })
+        .finally(() => clearTimeout(id))
+    },
+  },
+})
 
 /** True after we detect user_vocab_progress is unavailable (migration not applied). */
 let legacyVocabMode = false
@@ -33,10 +47,13 @@ function isSchemaUnavailable(error: { code?: string; message?: string } | null):
   )
 }
 
+// getSession() usa el token cacheado en localStorage — no hace round-trip al servidor.
+// getUser() siempre valida con el servidor (lento). Usamos getSession() para todas
+// las operaciones de BD donde solo necesitamos el user_id.
 async function requireUser() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  return user
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) throw new Error('No autenticado')
+  return session.user
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -507,8 +524,9 @@ export async function downloadAccountData(): Promise<{
   context_texts: ContextText[]
   language: string
 } | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  // Usar getSession() (caché) en lugar de getUser() (red) — mucho más rápido
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
 
   try {
     await migrateLegacyProgressIfNeeded()
@@ -814,6 +832,65 @@ export async function getRandomKanjis(_count: number, grade = 1) {
   if (error) throw error
   // Deduplicate preserving sort_order (Set keeps insertion order)
   return Array.from(new Set((data || []).map((d: { kanji: string }) => d.kanji))) as string[]
+}
+
+/**
+ * Fetch the next N kanjis (across all grades, ordered grade ASC then sort_order ASC)
+ * that the user hasn't imported yet, along with their vocabulary words.
+ *
+ * Strategy: fetch all vocab once, filter to words NOT in the user's DB, then pick
+ * the first N unique kanjis from that filtered set (preserving grade/sort_order).
+ * This correctly skips kanjis that have already been fully imported.
+ *
+ * @param n - Number of kanjis to fetch (typically 3, 5, or 15)
+ * @param existingJpWords - Set of word JP values already in the user's DB
+ * @returns Array of vocabulary rows ready to be imported as active items
+ */
+export async function getNextNewVocab(
+  n: number,
+  existingJpWords: Set<string>,
+): Promise<Array<{
+  kanji: string; word: string; reading: string;
+  meaning_es: string; meaning_ca: string | null; meaning_en: string | null;
+  image_url: string | null; grade: number; category: string | null; word_type: string | null;
+  sort_order: number;
+}>> {
+  // Fetch all vocab ordered by grade then sort_order (single query)
+  const { data: allVocab, error } = await supabase
+    .from('vocabulary')
+    .select('kanji, word, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type, sort_order')
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+
+  // Keep only words NOT already in user's DB
+  const newWords = (allVocab ?? []).filter(v => !existingJpWords.has(v.word))
+
+  // Walk through new words in order, collecting unique kanjis until we have N
+  const selectedKanjis = new Set<string>()
+  for (const row of newWords) {
+    if (selectedKanjis.size >= n) break
+    selectedKanjis.add(row.kanji)
+  }
+
+  if (selectedKanjis.size === 0) return []
+
+  // Return all new words that belong to those N kanjis
+  return newWords
+    .filter(v => selectedKanjis.has(v.kanji))
+    .map(v => ({
+      kanji: v.kanji,
+      word: v.word,
+      reading: v.reading,
+      meaning_es: v.meaning_es ?? '',
+      meaning_ca: v.meaning_ca ?? null,
+      meaning_en: v.meaning_en ?? null,
+      image_url: v.image_url ?? null,
+      grade: v.grade ?? 1,
+      category: v.category ?? null,
+      word_type: v.word_type ?? null,
+      sort_order: v.sort_order ?? 0,
+    }))
 }
 
 // ---------------------------------------------------------------------------
