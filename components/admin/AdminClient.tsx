@@ -24,6 +24,8 @@ import {
   updateImageReport,
   fetchFullClassifyStats,
   runFullClassifyBatch,
+  fetchFeedbackReports,
+  updateFeedbackStatus,
   type AdminUserRow,
   type AdminSnapshotRow,
   type ImageStats,
@@ -33,6 +35,7 @@ import {
   type ImageReport,
   type FullClassifyStats,
   type FullClassifyResult,
+  type FeedbackReport,
 } from '@/lib/admin-client'
 import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
@@ -70,8 +73,8 @@ export default function AdminClient() {
   // Tabs
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState<'users' | 'images' | 'vocab' | 'system'>(
-    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : 'users',
+  const [activeTab, setActiveTab] = useState<'users' | 'images' | 'vocab' | 'system' | 'feedback'>(
+    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : 'users',
   )
 
   // Image vote reports
@@ -82,6 +85,12 @@ export default function AdminClient() {
   const [imgReportUrlOpen, setImgReportUrlOpen] = useState<string | null>(null)
   const [imgCandidates, setImgCandidates] = useState<Record<string, string>>({})
   const [imgCandidateActing, setImgCandidateActing] = useState<string | null>(null)
+
+  // Feedback reports
+  const [feedbackReports, setFeedbackReports] = useState<FeedbackReport[] | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackExpanded, setFeedbackExpanded] = useState<string | null>(null)
+  const [feedbackUpdating, setFeedbackUpdating] = useState<string | null>(null)
 
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
@@ -99,7 +108,7 @@ export default function AdminClient() {
 
   useEffect(() => {
     setActiveTab(
-      tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : 'users',
+      tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : 'users',
     )
   }, [tabParam])
 
@@ -486,10 +495,11 @@ export default function AdminClient() {
   const restoreTarget = users.find(u => u.user_id === restoreUserId)
 
   const tabs = [
-    { key: 'users' as const,  label: '👥 Usuarios' },
-    { key: 'images' as const, label: '✨ Clasificación' },
-    { key: 'vocab' as const,  label: '📚 Vocabulario' },
-    { key: 'system' as const, label: '⚙️ Sistema' },
+    { key: 'users' as const,    label: '👥 Usuarios' },
+    { key: 'images' as const,   label: '✨ Clasificación' },
+    { key: 'vocab' as const,    label: '📚 Vocabulario' },
+    { key: 'system' as const,   label: '⚙️ Sistema' },
+    { key: 'feedback' as const, label: '🐛 Feedback' },
   ]
 
   return (
@@ -987,6 +997,136 @@ export default function AdminClient() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ── TAB: FEEDBACK ────────────────────────────────────────────── */}
+      {activeTab === 'feedback' && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">🐛 Reportes de usuarios</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Bugs y mejoras enviados por los usuarios, agrupados por autor.</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setFeedbackLoading(true)
+                try { setFeedbackReports(await fetchFeedbackReports()) }
+                catch (e: any) { showToast(e.message || 'Error', 'error') }
+                finally { setFeedbackLoading(false) }
+              }}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition"
+            >
+              {feedbackLoading ? 'Cargando…' : feedbackReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
+            </button>
+          </div>
+
+          {feedbackReports === null && !feedbackLoading && (
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Pulsa «Cargar reportes» para ver los reportes.</p>
+          )}
+
+          {feedbackReports !== null && feedbackReports.length === 0 && (
+            <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay reportes todavía.</p>
+          )}
+
+          {feedbackReports !== null && feedbackReports.length > 0 && (() => {
+            // Group by user_email
+            const byUser = new Map<string, FeedbackReport[]>()
+            for (const r of feedbackReports) {
+              const key = r.user_email
+              if (!byUser.has(key)) byUser.set(key, [])
+              byUser.get(key)!.push(r)
+            }
+            return (
+              <div className="space-y-4">
+                {Array.from(byUser.entries()).map(([email, reports]) => {
+                  const openCount = reports.filter(r => r.status === 'open').length
+                  return (
+                    <div key={email} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                      {/* User header */}
+                      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700/50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{email}</span>
+                          <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300">{reports.length} reporte{reports.length !== 1 ? 's' : ''}</span>
+                          {openCount > 0 && (
+                            <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">{openCount} abierto{openCount !== 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Reports list */}
+                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {reports.map(report => {
+                          const isOpen = feedbackExpanded === report.id
+                          const dateStr = new Date(report.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          return (
+                            <div key={report.id}>
+                              {/* Row summary — clickable */}
+                              <button
+                                type="button"
+                                onClick={() => setFeedbackExpanded(isOpen ? null : report.id)}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition"
+                              >
+                                <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+                                  report.type === 'bug'
+                                    ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                                    : 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                                }`}>
+                                  {report.type === 'bug' ? '🐛 Bug' : '✨ Mejora'}
+                                </span>
+                                <span className="text-xs text-sky-600 dark:text-sky-400 shrink-0">{report.section}</span>
+                                <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 truncate">{report.description}</span>
+                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${
+                                  report.status === 'open'
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {report.status === 'open' ? 'Abierto' : 'Resuelto'}
+                                </span>
+                                <span className="text-slate-300 dark:text-slate-600 text-xs">{isOpen ? '▲' : '▼'}</span>
+                              </button>
+                              {/* Expanded detail */}
+                              {isOpen && (
+                                <div className="px-4 pb-4 pt-1 bg-slate-50 dark:bg-slate-700/30 space-y-3">
+                                  <div className="text-xs text-slate-400 dark:text-slate-500">{dateStr}</div>
+                                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{report.description}</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={feedbackUpdating === report.id}
+                                      onClick={async () => {
+                                        const newStatus = report.status === 'open' ? 'resolved' : 'open'
+                                        setFeedbackUpdating(report.id)
+                                        try {
+                                          await updateFeedbackStatus(report.id, newStatus)
+                                          setFeedbackReports(prev => prev ? prev.map(r => r.id === report.id ? { ...r, status: newStatus } : r) : prev)
+                                        } catch (e: any) {
+                                          showToast(e.message || 'Error', 'error')
+                                        } finally {
+                                          setFeedbackUpdating(null)
+                                        }
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                        report.status === 'open'
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                                      }`}
+                                    >
+                                      {feedbackUpdating === report.id ? '…' : report.status === 'open' ? '✓ Marcar resuelto' : '↩ Reabrir'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
       )}
 

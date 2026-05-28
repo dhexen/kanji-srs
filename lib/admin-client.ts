@@ -397,3 +397,30 @@ export async function classifyVocabBatch(opts: {
   })
   return parseAdminResponse<ClassifyBatchResult>(res)
 }
+
+export interface FeedbackReport {
+  id: string
+  user_id: string
+  user_email: string
+  type: 'bug' | 'mejora'
+  section: string
+  description: string
+  status: 'open' | 'resolved'
+  created_at: string
+}
+
+export async function fetchFeedbackReports(): Promise<FeedbackReport[]> {
+  const headers = await adminAuthHeaders()
+  const res = await fetch('/api/admin/feedback', { headers })
+  return parseAdminResponse<FeedbackReport[]>(res)
+}
+
+export async function updateFeedbackStatus(id: string, status: 'open' | 'resolved'): Promise<void> {
+  const headers = await adminAuthHeaders()
+  const res = await fetch('/api/admin/feedback', {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ id, status }),
+  })
+  await parseAdminResponse<{ ok: boolean }>(res)
+}

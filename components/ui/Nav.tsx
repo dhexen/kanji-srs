@@ -8,6 +8,7 @@ import { t } from '@/lib/i18n'
 import { fetchKnownGrammar } from '@/lib/supabase'
 import { useSidebar } from '@/lib/sidebar-context'
 import ThemeToggle from './ThemeToggle'
+import FeedbackModal from './FeedbackModal'
 
 const TOTAL_GRAMMAR_POINTS = 121
 
@@ -235,6 +236,7 @@ function NavInner() {
   const isAdmin = effectiveRole === 'admin'
   const lang = state.lang
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
 
   useEffect(() => { setMobileOpen(false) }, [pathname, currentTab])
@@ -441,8 +443,17 @@ function NavInner() {
         </div>
       )}
 
-      {/* Bottom: collapse */}
-      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-end px-3">
+      {/* Bottom: feedback + collapse */}
+      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-between px-3">
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          title="Reportar incidencia o mejora"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition-all"
+        >
+          <span>🐛</span>
+          <span>Reportar</span>
+        </button>
         <button
           type="button"
           onClick={toggle}
@@ -454,6 +465,7 @@ function NavInner() {
           </svg>
         </button>
       </div>
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   )
 

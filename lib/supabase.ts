@@ -1444,3 +1444,20 @@ export async function saveUserGrammarExamples(
     console.warn('saveUserGrammarExamples exception:', e)
   }
 }
+
+export async function submitFeedbackReport(payload: {
+  type: 'bug' | 'mejora'
+  section: string
+  description: string
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { error } = await supabase.from('feedback_reports').insert({
+    user_id: user.id,
+    user_email: user.email ?? '',
+    type: payload.type,
+    section: payload.section,
+    description: payload.description,
+  })
+  if (error) throw new Error(error.message)
+}
