@@ -313,50 +313,6 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         </div>
       )}
 
-      {/* Tarjeta de detalles al revelar respuesta */}
-      {answerState !== 'waiting' && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800">
-          {/* Foto */}
-          {hasImage && (
-            <img
-              src={item.image_url!}
-              alt={meaning}
-              onError={handleImgError}
-              className="w-full h-36 sm:h-44 object-cover"
-            />
-          )}
-          <div className="p-4 space-y-2 text-center">
-            {/* Kanji + lectura */}
-            <p className="kanji-font text-3xl font-bold text-slate-800 dark:text-slate-100">{item.jp}</p>
-            {item.reading && item.reading !== item.jp && (
-              <p className="text-sm text-slate-400 dark:text-slate-500 tracking-widest">{item.reading}</p>
-            )}
-            {/* Significado */}
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-200">{meaning}</p>
-            {/* Badges: tipo, categoría, curso */}
-            {(item.word_type || item.category || item.grade) && (
-              <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-                {item.word_type && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
-                    {t(lang, `wt_${item.word_type}`)}
-                  </span>
-                )}
-                {item.category && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
-                    {t(lang, `cat_${item.category}`)}
-                  </span>
-                )}
-                {item.grade && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
-                    📚 {lang === 'ja' ? `${item.grade}年` : lang === 'en' ? `Grade ${item.grade}` : lang === 'ca' ? `Curs ${item.grade}` : `Curso ${item.grade}`}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {answerState !== 'waiting' && (
         <button onClick={onNext} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-md">
           {t(lang, 'review_next')} <span className="opacity-60 text-sm font-normal ml-1">↵</span>
