@@ -302,10 +302,20 @@ function NavInner() {
             {state.syncing && (
               <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">{t(lang, 'header_syncing')}</span>
             )}
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              title="Reportar incidencia o mejora"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition-all"
+            >
+              <span>🐛</span>
+              <span className="hidden sm:inline">Reportar</span>
+            </button>
             <ProfileMenu />
             <ThemeToggle />
           </div>
         </div>
+        <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       </>
     )
   }
