@@ -32,8 +32,12 @@ export interface AdminSnapshotRow {
   word_count: number
 }
 
-export async function fetchAdminUsers(): Promise<AdminUserRow[]> {
-  const res = await fetch('/api/admin/users', { headers: await adminAuthHeaders() })
+export async function fetchAdminUsers(filters: { q?: string; role?: string } = {}): Promise<AdminUserRow[]> {
+  const params = new URLSearchParams()
+  if (filters.q)    params.set('q',    filters.q)
+  if (filters.role) params.set('role', filters.role)
+  const qs = params.toString()
+  const res = await fetch(`/api/admin/users${qs ? `?${qs}` : ''}`, { headers: await adminAuthHeaders() })
   const data = await parseAdminResponse<{ users: AdminUserRow[] }>(res)
   return data.users
 }

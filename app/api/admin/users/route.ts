@@ -9,7 +9,13 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const { service } = await requireAdmin(request)
-    const users = await listAdminUsers(service)
+    const { searchParams } = new URL(request.url)
+    const q    = searchParams.get('q')    ?? undefined
+    const role = searchParams.get('role') ?? undefined
+    if (!q && (!role || role === 'all')) {
+      return NextResponse.json({ users: [] })
+    }
+    const users = await listAdminUsers(service, { q, role })
     return NextResponse.json({ users })
   } catch (e) {
     return adminJsonError(e)

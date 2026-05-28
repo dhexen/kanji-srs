@@ -42,7 +42,10 @@ import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } 
 export default function AdminClient() {
   const { state } = useStore()
   const [users, setUsers] = useState<AdminUserRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const [searchRole, setSearchRole] = useState('all')
   const [creating, setCreating] = useState(false)
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' as 'admin' | 'contributor' | 'user' })
   const [restoreUserId, setRestoreUserId] = useState<string | null>(null)
@@ -114,7 +117,6 @@ export default function AdminClient() {
 
   useEffect(() => {
     if (isAdmin && aal === 'aal2') {
-      loadUsers()
       loadSrsIntervals()
       fetchImageStats().then(setImgStats).catch(() => {})
       fetchClassifyStats().then(setClsStats).catch(() => {})
@@ -378,10 +380,11 @@ export default function AdminClient() {
     setImgCandidates(prev => { const n = { ...prev }; delete n[word]; return n })
   }
 
-  async function loadUsers() {
+  async function loadUsers(q = searchQ, role = searchRole) {
     setLoading(true)
+    setSearched(true)
     try {
-      setUsers(await fetchAdminUsers())
+      setUsers(await fetchAdminUsers({ q: q || undefined, role: role !== 'all' ? role : undefined }))
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : 'Error cargando usuarios', 'error')
     } finally {
@@ -574,14 +577,53 @@ export default function AdminClient() {
             </div>
           </div>
 
+          {/* Buscar usuarios */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
+            <form
+              onSubmit={e => { e.preventDefault(); loadUsers() }}
+              className="flex flex-wrap gap-3 items-end"
+            >
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Email</label>
+                <input
+                  type="text"
+                  placeholder="Buscar por email…"
+                  value={searchQ}
+                  onChange={e => setSearchQ(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Rol</label>
+                <select
+                  value={searchRole}
+                  onChange={e => setSearchRole(e.target.value)}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                >
+                  <option value="all">Todos los roles</option>
+                  <option value="admin">👑 Admin</option>
+                  <option value="contributor">✏️ Contributor</option>
+                  <option value="user">👤 Usuario</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition"
+              >
+                {loading ? 'Buscando…' : '🔍 Buscar'}
+              </button>
+            </form>
+          </div>
+
           {/* Tabla usuarios */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">Usuarios</h3>
-              <button type="button" onClick={loadUsers} className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold">🔄 Actualizar</button>
-            </div>
-            {loading ? <div className="p-8 text-center text-slate-400">Cargando…</div>
-              : users.length === 0 ? <div className="p-8 text-center text-slate-400">No hay usuarios.</div>
+            {!searched
+              ? <div className="p-8 text-center text-slate-400 dark:text-slate-500">Usa el buscador para encontrar usuarios.</div>
+              : loading
+              ? <div className="p-8 text-center text-slate-400">Buscando…</div>
+              : users.length === 0
+              ? <div className="p-8 text-center text-slate-400 dark:text-slate-500">No se encontraron usuarios.</div>
               : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[960px]">

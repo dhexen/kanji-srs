@@ -135,7 +135,13 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-export async function listAdminUsers(service: SupabaseClient) {
+export async function listAdminUsers(
+  service: SupabaseClient,
+  filters: { q?: string; role?: string } = {},
+) {
+  const { q, role } = filters
+  const emailFilter = q?.trim().toLowerCase() ?? ''
+
   const { data: listData, error: listError } = await service.auth.admin.listUsers({ perPage: 1000 })
   if (listError) throw new AdminApiError(listError.message, 500)
 
@@ -144,34 +150,51 @@ export async function listAdminUsers(service: SupabaseClient) {
 
   const roleMap = new Map((roles || []).map(r => [r.user_id, r]))
 
-  // Count words from the normalized table (new schema)
+  // Apply filters before the heavy word-count queries
+  let filtered = (listData.users || []).filter(u => {
+    if (emailFilter && !u.email?.toLowerCase().includes(emailFilter)) return false
+    if (role && role !== 'all') {
+      const userRole = (roleMap.get(u.id)?.role as string) ?? 'user'
+      if (userRole !== role) return false
+    }
+    return true
+  })
+
+  if (filtered.length === 0) return []
+
+  const matchedIds = new Set(filtered.map(u => u.id))
+
+  // Word counts — only for matched users
   const wordCounts: Record<string, number> = {}
-  const { data: vocabRows } = await service.from('user_vocab_progress').select('user_id')
+  const { data: vocabRows } = await service
+    .from('user_vocab_progress')
+    .select('user_id')
+    .in('user_id', [...matchedIds])
   for (const row of vocabRows || []) {
     wordCounts[row.user_id] = (wordCounts[row.user_id] || 0) + 1
   }
 
-  // Fallback: for users still in legacy mode, count from srs_progress.vocab_db JSON
-  const { data: legacyRows } = await service.from('srs_progress').select('user_id, vocab_db')
+  const { data: legacyRows } = await service
+    .from('srs_progress')
+    .select('user_id, vocab_db')
+    .in('user_id', [...matchedIds])
   for (const row of legacyRows || []) {
     if (!wordCounts[row.user_id] && Array.isArray(row.vocab_db)) {
       wordCounts[row.user_id] = row.vocab_db.length
     }
   }
 
-  // Best-effort: total login count per user via the public.get_user_login_counts() RPC.
-  // Requires running supabase-login-stats-migration.sql in the Supabase SQL Editor first.
   const loginCounts: Record<string, number> = {}
   try {
     const { data: rpcRows } = await service.rpc('get_user_login_counts')
     for (const row of (rpcRows as Array<{ user_id: string; login_count: number }> | null) ?? []) {
-      if (row.user_id) loginCounts[row.user_id] = Number(row.login_count)
+      if (row.user_id && matchedIds.has(row.user_id)) loginCounts[row.user_id] = Number(row.login_count)
     }
   } catch {
     // Function not yet created — login_count will be null for all users.
   }
 
-  return (listData.users || []).map(u => {
+  return filtered.map(u => {
     const roleRow = roleMap.get(u.id)
     return {
       user_id: u.id,
