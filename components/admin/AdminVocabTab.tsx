@@ -6,8 +6,12 @@ import {
   deleteVocabWord,
   deleteVocabByGrade,
   importVocabBatch,
+  fetchVocabReports,
+  updateVocabReportStatus,
+  updateVocabWord,
   type VocabImportRow,
   type VocabImportResult,
+  type VocabReport,
 } from '@/lib/admin-client'
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
@@ -86,6 +90,14 @@ export default function AdminVocabTab() {
   // ── Delete by grade ──────────────────────────────────────────────────────────
   const [deleteGrade, setDeleteGrade]     = useState(1)
   const [deletingGrade, setDeletingGrade] = useState(false)
+
+  // ── Vocab reports ────────────────────────────────────────────────────────────
+  const [vocabReports, setVocabReports]         = useState<VocabReport[] | null>(null)
+  const [vocabReportsLoading, setVocabReportsLoading] = useState(false)
+  const [reportExpanded, setReportExpanded]     = useState<string | null>(null)
+  const [reportUpdating, setReportUpdating]     = useState<string | null>(null)
+  const [editDraft, setEditDraft]               = useState<Record<string, { reading: string; meaning_es: string }>>({})
+  const [editSaving, setEditSaving]             = useState<string | null>(null)
 
   // ── Import ───────────────────────────────────────────────────────────────────
   const fileRef                      = useRef<HTMLInputElement>(null)
@@ -456,6 +468,181 @@ export default function AdminVocabTab() {
             )}
           </div>
         )}
+      </div>
+
+      {/* ── Vocab reports ─────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">🚩 Errores reportados</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Lecturas o significados incorrectos reportados por usuarios. Edita y valida directamente.</p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              setVocabReportsLoading(true)
+              try { setVocabReports(await fetchVocabReports()) }
+              catch (e: any) { showToast(e.message || 'Error', 'error') }
+              finally { setVocabReportsLoading(false) }
+            }}
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition"
+          >
+            {vocabReportsLoading ? 'Cargando…' : vocabReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
+          </button>
+        </div>
+
+        {vocabReports === null && !vocabReportsLoading && (
+          <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-6">Pulsa «Cargar reportes» para ver los errores reportados.</p>
+        )}
+        {vocabReports !== null && vocabReports.length === 0 && (
+          <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay errores reportados — ¡todo correcto!</p>
+        )}
+
+        {vocabReports !== null && vocabReports.length > 0 && (() => {
+          // Group by word
+          const byWord = new Map<string, VocabReport[]>()
+          for (const r of vocabReports) {
+            if (!byWord.has(r.word)) byWord.set(r.word, [])
+            byWord.get(r.word)!.push(r)
+          }
+          return (
+            <div className="space-y-3">
+              {Array.from(byWord.entries()).map(([word, reports]) => {
+                const openCount = reports.filter(r => r.status === 'open').length
+                const draft = editDraft[word]
+                return (
+                  <div key={word} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    {/* Word header */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const isOpen = reportExpanded === word
+                        setReportExpanded(isOpen ? null : word)
+                        if (!isOpen && !editDraft[word]) {
+                          // Prefill from first report's context (word text only — real values come from search)
+                          setEditDraft(d => ({ ...d, [word]: { reading: '', meaning_es: '' } }))
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left"
+                    >
+                      <span className="kanji-font text-lg font-bold text-slate-800 dark:text-slate-100">{word}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300">{reports.length} reporte{reports.length !== 1 ? 's' : ''}</span>
+                      {openCount > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">{openCount} abierto{openCount !== 1 ? 's' : ''}</span>
+                      )}
+                      <span className="ml-auto text-slate-300 dark:text-slate-600 text-xs">{reportExpanded === word ? '▲' : '▼'}</span>
+                    </button>
+
+                    {reportExpanded === word && (
+                      <div className="p-4 space-y-4 bg-slate-50/50 dark:bg-slate-700/20">
+                        {/* Reports list */}
+                        <div className="space-y-2">
+                          {reports.map(r => (
+                            <div key={r.id} className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                              <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                                r.field === 'reading'  ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' :
+                                r.field === 'meaning'  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' :
+                                r.field === 'kanji'    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
+                                                         'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                              }`}>
+                                {r.field === 'reading' ? 'Lectura' : r.field === 'meaning' ? 'Significado' : r.field === 'kanji' ? 'Kanji' : 'General'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{r.user_email} · {new Date(r.created_at).toLocaleDateString('es-ES')}</p>
+                                {r.description && <p className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">{r.description}</p>}
+                              </div>
+                              <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${
+                                r.status === 'open'
+                                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                              }`}>
+                                {r.status === 'open' ? 'Abierto' : 'Resuelto'}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={reportUpdating === r.id}
+                                onClick={async () => {
+                                  const newStatus = r.status === 'open' ? 'resolved' : 'open'
+                                  setReportUpdating(r.id)
+                                  try {
+                                    await updateVocabReportStatus(r.id, newStatus)
+                                    setVocabReports(prev => prev ? prev.map(x => x.id === r.id ? { ...x, status: newStatus } : x) : prev)
+                                  } catch (e: any) { showToast(e.message || 'Error', 'error') }
+                                  finally { setReportUpdating(null) }
+                                }}
+                                className="shrink-0 text-xs text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition font-medium"
+                              >
+                                {reportUpdating === r.id ? '…' : r.status === 'open' ? '✓ Resolver' : '↩ Reabrir'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Inline edit */}
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">✏️ Corregir en vocabulario compartido (afecta a todos los usuarios)</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Lectura (hiragana)</label>
+                              <input
+                                type="text"
+                                value={draft?.reading ?? ''}
+                                onChange={e => setEditDraft(d => ({ ...d, [word]: { ...d[word], reading: e.target.value } }))}
+                                placeholder="Lectura actual…"
+                                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Significado (español)</label>
+                              <input
+                                type="text"
+                                value={draft?.meaning_es ?? ''}
+                                onChange={e => setEditDraft(d => ({ ...d, [word]: { ...d[word], meaning_es: e.target.value } }))}
+                                placeholder="Significado actual…"
+                                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              type="button"
+                              disabled={editSaving === word || (!draft?.reading && !draft?.meaning_es)}
+                              onClick={async () => {
+                                if (!draft?.reading && !draft?.meaning_es) return
+                                setEditSaving(word)
+                                try {
+                                  const patch: Parameters<typeof updateVocabWord>[1] = {}
+                                  if (draft.reading)    patch.reading    = draft.reading
+                                  if (draft.meaning_es) patch.meaning_es = draft.meaning_es
+                                  await updateVocabWord(word, patch)
+                                  // Resolve all open reports for this word
+                                  const openIds = reports.filter(r => r.status === 'open').map(r => r.id)
+                                  await Promise.all(openIds.map(id => updateVocabReportStatus(id, 'resolved')))
+                                  setVocabReports(prev => prev
+                                    ? prev.map(r => r.word === word && r.status === 'open' ? { ...r, status: 'resolved' } : r)
+                                    : prev)
+                                  setEditDraft(d => ({ ...d, [word]: { reading: '', meaning_es: '' } }))
+                                  showToast(`✓ "${word}" corregido y reportes resueltos`, 'success')
+                                } catch (e: any) {
+                                  showToast(e.message || 'Error guardando', 'error')
+                                } finally {
+                                  setEditSaving(null)
+                                }
+                              }}
+                              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition"
+                            >
+                              {editSaving === word ? 'Guardando…' : '💾 Guardar y resolver'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

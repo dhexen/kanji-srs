@@ -402,6 +402,31 @@ export async function classifyVocabBatch(opts: {
   return parseAdminResponse<ClassifyBatchResult>(res)
 }
 
+export interface VocabReport {
+  id: string
+  word: string
+  user_id: string
+  user_email: string
+  field: 'reading' | 'meaning' | 'kanji' | 'general'
+  description: string | null
+  status: 'open' | 'resolved'
+  created_at: string
+}
+
+export async function fetchVocabReports(): Promise<VocabReport[]> {
+  const res = await fetch('/api/admin/vocab-reports', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<VocabReport[]>(res)
+}
+
+export async function updateVocabReportStatus(id: string, status: 'open' | 'resolved'): Promise<void> {
+  const res = await fetch('/api/admin/vocab-reports', {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ id, status }),
+  })
+  await parseAdminResponse<{ ok: boolean }>(res)
+}
+
 export interface FeedbackReport {
   id: string
   user_id: string

@@ -4,7 +4,7 @@ import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
-import { submitImageVote } from '@/lib/supabase'
+import { submitImageVote, submitVocabReport } from '@/lib/supabase'
 import type { SessionItem } from './ReviewClient'
 
 interface Props {
@@ -35,14 +35,22 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [inputValue, setInputValue] = useState('')
   const [imgError, setImgError] = useState(false)
   const [imgVote, setImgVote] = useState<1 | -1 | null>(null)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportField, setReportField] = useState<'reading' | 'meaning' | 'kanji' | 'general'>('general')
+  const [reportDesc, setReportDesc] = useState('')
+  const [reportSending, setReportSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
   const submittedAtRef = useRef<number>(0)
 
   const handleImgError = useCallback(() => setImgError(true), [])
 
-  // Reset image state when the word changes
-  useEffect(() => { setImgError(false); setImgVote(null) }, [item.jp])
+  // Reset per-card state when the word changes
+  useEffect(() => {
+    setImgError(false); setImgVote(null)
+    setReportOpen(false); setReportDesc(''); setReportSent(false); setReportField('general')
+  }, [item.jp])
 
   const handleImgVote = useCallback(async (vote: 1 | -1) => {
     setImgVote(vote)
@@ -310,6 +318,77 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
             ? (isPaperMode ? t(lang, 'review_paper_correct') : t(lang, 'review_correct'))
             : isPaperMode ? t(lang, 'review_paper_incorrect')
             : `${t(lang, 'review_wrong')} ${mode === 'meaning' ? meaning : item.reading}`}
+        </div>
+      )}
+
+      {/* Report error */}
+      {answerState !== 'waiting' && (
+        <div className="text-right">
+          {!reportOpen && !reportSent && (
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+            >
+              🚩 Reportar error en esta palabra
+            </button>
+          )}
+          {reportSent && (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">✓ Reporte enviado</span>
+          )}
+          {reportOpen && !reportSent && (
+            <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-left space-y-2">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">¿Qué está mal?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {([['reading','Lectura'],['meaning','Significado'],['kanji','Kanji'],['general','Otro']] as const).map(([v, label]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setReportField(v)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                      reportField === v
+                        ? 'bg-rose-100 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400'
+                        : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportDesc}
+                onChange={e => setReportDesc(e.target.value)}
+                placeholder="Describe el error (opcional)…"
+                rows={2}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-400"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={reportSending}
+                  onClick={async () => {
+                    setReportSending(true)
+                    try {
+                      await submitVocabReport({ word: item.jp, field: reportField, description: reportDesc })
+                      setReportSent(true)
+                      setReportOpen(false)
+                    } catch { /* ignore */ }
+                    finally { setReportSending(false) }
+                  }}
+                  className="text-xs font-semibold px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-lg transition"
+                >
+                  {reportSending ? 'Enviando…' : 'Enviar'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

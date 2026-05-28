@@ -124,42 +124,61 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
   }
   const items = (data || []).map(rowToVocabItem)
 
-  // Merge image_url, category, word_type from shared vocabulary table
+  // Merge all canonical fields from the shared vocabulary table.
+  // This ensures admin corrections to reading/meaning propagate to every user
+  // on their next load, without needing to update individual user rows.
   const words = items.map(i => i.jp)
   if (words.length > 0) {
-    // Try full query (image_url + grade + category + word_type). If it fails (e.g. columns
-    // not yet added), fall back to a minimal query with just image_url + grade.
-    let vocabMeta: { word: string; image_url?: string | null; grade?: number | null; category?: string | null; word_type?: string | null }[] | null = null
+    type VocabMeta = {
+      word: string
+      kanji?: string | null
+      reading?: string | null
+      meaning_es?: string | null
+      meaning_ca?: string | null
+      meaning_en?: string | null
+      image_url?: string | null
+      grade?: number | null
+      category?: string | null
+      word_type?: string | null
+    }
+    // Deduplicate: vocabulary may have multiple rows per word (one per kanji entry).
+    // We only need one row per word for the metadata merge.
+    let vocabMeta: VocabMeta[] | null = null
     try {
       const { data, error } = await supabase
         .from('vocabulary')
-        .select('word, image_url, grade, category, word_type')
+        .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type')
         .in('word', words)
-      if (!error) vocabMeta = data
-    } catch { /* network error */ }
-
-    if (!vocabMeta) {
-      // Fallback: only fetch image_url + grade to be safe against missing columns
-      try {
-        const { data } = await supabase
-          .from('vocabulary')
-          .select('word, image_url, grade')
-          .in('word', words)
-        vocabMeta = data
-      } catch { /* ignore */ }
-    }
+      if (!error && data) {
+        // Keep first row per word
+        const seen = new Set<string>()
+        vocabMeta = data.filter((d: VocabMeta) => {
+          if (seen.has(d.word)) return false
+          seen.add(d.word)
+          return true
+        })
+      }
+    } catch { /* network error — use stored values */ }
 
     if (vocabMeta && vocabMeta.length > 0) {
-      const sharedMap = new Map(vocabMeta.map(d => [d.word as string, d]))
+      const sharedMap = new Map(vocabMeta.map(d => [d.word, d]))
       return items.map(i => {
         const shared = sharedMap.get(i.jp)
         if (!shared) return i
-        const updates: Partial<typeof i> = {}
-        if (shared.image_url) updates.image_url = shared.image_url as string
-        if (shared.grade) updates.grade = shared.grade as number
-        if (shared.category) updates.category = shared.category as typeof i.category
-        if (shared.word_type) updates.word_type = shared.word_type as typeof i.word_type
-        return Object.keys(updates).length > 0 ? { ...i, ...updates } : i
+        return {
+          ...i,
+          // Canonical fields — always prefer shared vocabulary over stale user copy
+          kanji:      shared.kanji      || i.kanji,
+          reading:    shared.reading    || i.reading,
+          meaning:    shared.meaning_es || i.meaning,
+          meaning_ca: shared.meaning_ca ?? i.meaning_ca,
+          meaning_en: shared.meaning_en ?? i.meaning_en,
+          // Enrichment fields
+          ...(shared.image_url  ? { image_url:  shared.image_url  } : {}),
+          ...(shared.grade      ? { grade:      shared.grade      } : {}),
+          ...(shared.category   ? { category:   shared.category as typeof i.category  } : {}),
+          ...(shared.word_type  ? { word_type:  shared.word_type  as typeof i.word_type } : {}),
+        }
       })
     }
   }
@@ -1443,6 +1462,23 @@ export async function saveUserGrammarExamples(
   } catch (e) {
     console.warn('saveUserGrammarExamples exception:', e)
   }
+}
+
+export async function submitVocabReport(payload: {
+  word: string
+  field: 'reading' | 'meaning' | 'kanji' | 'general'
+  description?: string
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { error } = await supabase.from('vocab_reports').insert({
+    word: payload.word,
+    user_id: user.id,
+    user_email: user.email ?? '',
+    field: payload.field,
+    description: payload.description ?? '',
+  })
+  if (error) throw new Error(error.message)
 }
 
 export async function submitFeedbackReport(payload: {
