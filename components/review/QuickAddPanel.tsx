@@ -142,7 +142,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
       {/* Header */}
       <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-3">
         <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-          📥 {lx(L.title)}
+          {lx(L.title)}
         </p>
         {nextGrade && !detecting && (
           <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
