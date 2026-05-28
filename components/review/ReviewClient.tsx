@@ -2,10 +2,9 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
-import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
+import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
 import { fetchVocabMeta } from '@/lib/supabase'
 import { t } from '@/lib/i18n'
-import ModeSelector from './ModeSelector'
 import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
@@ -55,7 +54,7 @@ export default function ReviewClient() {
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
-  const [showModes, setShowModes] = useState(false)
+  const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
   const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
@@ -153,17 +152,9 @@ export default function ReviewClient() {
   }
 
   if (phase === 'select') {
-    const TILES = [
-      {
-        id: 'mode',
-        label: strip(t(lang, 'nav_review')),
-        icon: <IconMode />,
-        color: 'text-violet-600 dark:text-violet-400',
-        bg: showModes
-          ? 'bg-violet-100 dark:bg-violet-900/40 border-violet-200 dark:border-violet-700'
-          : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20',
-        onClick: () => setShowModes(s => !s),
-      },
+    const sectionsLabel = ({ es: 'Secciones', ca: 'Seccions', en: 'Sections', ja: 'セクション' } as Record<string, string>)[lang] ?? 'Secciones'
+
+    const SECTIONS = [
       {
         id: 'vocab',
         label: strip(t(lang, 'nav_vocabulary')),
@@ -179,6 +170,14 @@ export default function ReviewClient() {
         color: 'text-emerald-600 dark:text-emerald-400',
         bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
         href: '/grammar',
+      },
+      {
+        id: 'kana',
+        label: strip(t(lang, 'nav_kana')),
+        icon: <IconMode />,
+        color: 'text-violet-600 dark:text-violet-400',
+        bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20',
+        href: '/kana',
       },
       {
         id: 'context',
@@ -221,9 +220,7 @@ export default function ReviewClient() {
                 ? '⏳'
                 : (
                   <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     {strip(t(lang, 'review_start'))}
                   </>
                 )}
@@ -291,54 +288,57 @@ export default function ReviewClient() {
           )}
         </div>
 
-        {/* ── Tipus de repàs + Nous Kanjis ──────────────────────────── */}
+        {/* ── Selector de modos (pills en fila) ─────────────────────── */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+            {t(lang, 'review_subtitle')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {modes.map(([id, cfg]) => {
+              const active = selectedModes.includes(id)
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSelectedModes(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  )}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all active:scale-95 ${
+                    active
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
+                  }`}
+                >
+                  {t(lang, cfg.label_key)}
+                </button>
+              )
+            })}
+          </div>
+          {selectedModes.length === 0 && (
+            <p className="text-[11px] text-rose-500 dark:text-rose-400 mt-2">
+              ⚠ {t(lang, 'review_no_modes_selected')}
+            </p>
+          )}
+        </div>
+
+        {/* ── Seccions + Nous Kanjis ─────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
 
-          {/* Tipus de repàs */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              {t(lang, 'review_title')}
-            </h3>
+          {/* Seccions */}
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">{sectionsLabel}</h3>
             <div className="grid grid-cols-2 gap-2">
-              {TILES.map(tile =>
-                tile.href ? (
-                  <Link
-                    key={tile.id}
-                    href={tile.href}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer ${tile.bg}`}
-                  >
-                    <span className={tile.color}>{tile.icon}</span>
-                    <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
-                  </Link>
-                ) : (
-                  <button
-                    key={tile.id}
-                    type="button"
-                    onClick={tile.onClick}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer ${tile.bg}`}
-                  >
-                    <span className={tile.color}>{tile.icon}</span>
-                    <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
-                  </button>
-                )
-              )}
+              {SECTIONS.map(tile => (
+                <Link
+                  key={tile.id}
+                  href={tile.href}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
+                >
+                  <span className={tile.color}>{tile.icon}</span>
+                  <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
+                </Link>
+              ))}
             </div>
-
-            {/* Inline ModeSelector when Mode tile is active */}
-            {showModes && (
-              <div className="pt-1">
-                <ModeSelector
-                  selectedModes={selectedModes}
-                  onToggle={m => setSelectedModes(prev =>
-                    prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
-                  )}
-                  pendingCount={pendingCount}
-                  onStart={() => start(false)}
-                  hasWords={activeWords.length > 0}
-                  isStarting={isStarting}
-                />
-              </div>
-            )}
           </div>
 
           {/* Nous Kanjis */}

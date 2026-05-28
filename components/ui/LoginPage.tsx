@@ -67,10 +67,8 @@ export default function LoginPage() {
 
         {/* ── Branding ─────────────────────────────────────────── */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-3 select-none">🌸</div>
-          <h1 className="text-3xl font-bold text-violet-700 tracking-wide">小学校漢字</h1>
-          <p className="text-violet-400 text-sm font-medium mt-1">SRS</p>
-          <p className="text-slate-500 text-sm mt-2">{t(lang, 'login_tagline')}</p>
+          <h1 className="text-5xl font-bold text-violet-700 dark:text-violet-400 tracking-wide mb-3">栞</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">{t(lang, 'login_tagline')}</p>
         </div>
 
         {/* ── Card ─────────────────────────────────────────────── */}

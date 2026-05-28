@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
@@ -24,7 +24,63 @@ type SubItem = {
   badge: boolean
 }
 
-// ── NavItem ──────────────────────────────────────────────────────────────────
+// ── ProfileMenu ───────────────────────────────────────────────────────────────
+function ProfileMenu() {
+  const { state } = useStore()
+  const lang = state.lang
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  if (!state.user) return null
+
+  const initial = (state.user.email?.[0] ?? '?').toUpperCase()
+  const items = [
+    { href: '/stats?tab=stats',    label: stripEmoji(t(lang, 'stats_tab_stats')) },
+    { href: '/stats?tab=settings', label: stripEmoji(t(lang, 'stats_tab_settings')) },
+    { href: '/stats?tab=account',  label: stripEmoji(t(lang, 'stats_tab_account')) },
+  ]
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(s => !s)}
+        className="w-8 h-8 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-sm hover:bg-violet-700 dark:hover:bg-violet-600 transition-colors select-none"
+        aria-label="Perfil"
+      >
+        {initial}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden z-50">
+          <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{state.user.email}</p>
+          </div>
+          {items.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="flex items-center px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700/60 transition-all"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({
   href, icon, label, badge, tutorialId, progress, isAdmin, pathname,
 }: {
@@ -79,7 +135,7 @@ function NavItem({
   )
 }
 
-// ── NavSection ───────────────────────────────────────────────────────────────
+// ── NavSection ────────────────────────────────────────────────────────────────
 function NavSection({
   icon, label, basePath, subItems, tutorialId, progress, pathname, currentTab,
 }: {
@@ -208,25 +264,44 @@ function NavInner() {
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
   const hasActiveVocab = state.db.some(i => i.status === 'active')
 
+  // ── Non-admin: simple sticky top bar ─────────────────────────────────────
+  if (!isAdmin) {
+    return (
+      <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-2.5">
+        <Link href="/review" className="font-bold text-xl text-violet-700 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 transition-colors select-none">
+          栞
+        </Link>
+        {pendingReview > 0 && (
+          <span className="text-[10px] font-bold text-white bg-rose-400 px-1.5 py-0.5 rounded-full tabular-nums">
+            {pendingReview}
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          {state.syncing && (
+            <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">{t(lang, 'header_syncing')}</span>
+          )}
+          <ProfileMenu />
+          <ThemeToggle />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Admin: full sidebar ───────────────────────────────────────────────────
   const profileSubItems: SubItem[] = [
     { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
     { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
     { href: '/stats?tab=account',  icon: '👤', label: stripEmoji(t(lang, 'stats_tab_account')),  tabKey: 'account',  isDefault: false, badge: !state.user },
   ]
 
-  // ── Sidebar content (reutilizado en desktop y mobile) ────────────────────
   const sidebarContent = (
     <>
       {/* Logo */}
       <div className="shrink-0 px-4 py-3">
-        <Link href="/review" className="flex items-center gap-2 group">
-          <span className="text-2xl">🌸</span>
-          <div className="min-w-0">
-            <h1 className="text-base font-bold text-violet-700 dark:text-violet-400 tracking-wide leading-tight group-hover:text-violet-500 transition-colors">
-              小学校漢字
-            </h1>
-            <p className="text-[10px] text-violet-400 font-medium">SRS</p>
-          </div>
+        <Link href="/review" className="group">
+          <h1 className="text-xl font-bold text-violet-700 dark:text-violet-400 group-hover:text-violet-500 transition-colors">
+            栞
+          </h1>
         </Link>
       </div>
 
@@ -239,7 +314,7 @@ function NavInner() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-slate-700 dark:text-slate-200 font-semibold truncate leading-tight">{state.user.email}</p>
-              <p className="text-[10px] text-violet-500 dark:text-violet-400 mt-0.5">小学校漢字 SRS</p>
+              <p className="text-[10px] text-violet-500 dark:text-violet-400 mt-0.5">栞</p>
             </div>
           </div>
         </div>
@@ -284,19 +359,17 @@ function NavInner() {
           basePath="/stats" subItems={profileSubItems}
           pathname={pathname} currentTab={currentTab}
         />
-        {isAdmin && (
-          <NavSection
-            icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
-            basePath="/admin"
-            subItems={[
-              { href: '/admin?tab=users',  icon: '👥', label: 'Usuarios',    tabKey: 'users',  isDefault: true,  badge: false },
-              { href: '/admin?tab=images', icon: '🖼️', label: 'Imágenes',    tabKey: 'images', isDefault: false, badge: false },
-              { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario', tabKey: 'vocab',  isDefault: false, badge: false },
-              { href: '/admin?tab=system', icon: '⚙️', label: 'Sistema',     tabKey: 'system', isDefault: false, badge: false },
-            ]}
-            pathname={pathname} currentTab={currentTab}
-          />
-        )}
+        <NavSection
+          icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
+          basePath="/admin"
+          subItems={[
+            { href: '/admin?tab=users',  icon: '👥', label: 'Usuarios',    tabKey: 'users',  isDefault: true,  badge: false },
+            { href: '/admin?tab=images', icon: '🖼️', label: 'Imágenes',    tabKey: 'images', isDefault: false, badge: false },
+            { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario', tabKey: 'vocab',  isDefault: false, badge: false },
+            { href: '/admin?tab=system', icon: '⚙️', label: 'Sistema',     tabKey: 'system', isDefault: false, badge: false },
+          ]}
+          pathname={pathname} currentTab={currentTab}
+        />
       </nav>
 
       {/* Syncing */}
@@ -306,7 +379,7 @@ function NavInner() {
         </div>
       )}
 
-      {/* CTA: Iniciar Repàs */}
+      {/* CTA */}
       {state.user && hasActiveVocab && (
         <div className="shrink-0 mx-3 mb-3">
           <Link
@@ -321,7 +394,7 @@ function NavInner() {
         </div>
       )}
 
-      {/* Bottom bar: collapse button */}
+      {/* Bottom: collapse */}
       <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-end px-3">
         <button
           type="button"
@@ -339,8 +412,7 @@ function NavInner() {
 
   return (
     <>
-      {/* ────────────────── Desktop sidebar (lg+) ────────────────── */}
-      {/* El sidebar se desliza fuera de pantalla cuando collapsed */}
+      {/* Desktop sidebar */}
       <aside
         className={[
           'hidden lg:flex fixed inset-y-0 left-0 z-40 w-56 flex-col',
@@ -353,8 +425,7 @@ function NavInner() {
         {sidebarContent}
       </aside>
 
-      {/* ── Pestaña para volver a mostrar el sidebar ── */}
-      {/* Aparece en el borde izquierdo cuando el sidebar está oculto */}
+      {/* Re-show tab */}
       <button
         type="button"
         onClick={toggle}
@@ -376,7 +447,7 @@ function NavInner() {
         </svg>
       </button>
 
-      {/* ────────────────── Mobile top bar ────────────────── */}
+      {/* Mobile top bar (admin) */}
       <div className="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-3">
         <button
           type="button"
@@ -388,10 +459,7 @@ function NavInner() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <Link href="/review" className="flex items-center gap-2">
-          <span className="text-xl">🌸</span>
-          <span className="font-bold text-sm tracking-wide text-violet-700 dark:text-violet-400">小学校漢字 SRS</span>
-        </Link>
+        <Link href="/review" className="font-bold text-lg text-violet-700 dark:text-violet-400">栞</Link>
         <div className="ml-auto flex items-center gap-2">
           {state.syncing && (
             <span className="text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
@@ -400,7 +468,7 @@ function NavInner() {
         </div>
       </div>
 
-      {/* ────────────────── Mobile slide-over ────────────────── */}
+      {/* Mobile slide-over */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />

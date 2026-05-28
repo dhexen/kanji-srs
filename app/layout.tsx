@@ -5,7 +5,7 @@ import Toast from '@/components/ui/Toast'
 import AuthShell from '@/components/ui/AuthShell'
 
 export const metadata: Metadata = {
-  title: '小学校漢字 SRS',
+  title: '栞',
   description: 'Aprende kanjis con repetición espaciada e IA',
 }
 
