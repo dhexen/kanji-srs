@@ -111,6 +111,11 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
   return (
     <div className="space-y-6">
+      {/* Back to dashboard */}
+      <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        ← Dashboard
+      </Link>
+
       {/* Config panel */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-2 mb-1">

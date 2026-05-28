@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import KanaLearn from './KanaLearn'
 import KanaTest from './KanaTest'
 
@@ -12,6 +13,11 @@ export default function KanaClient() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      {/* Back to dashboard */}
+      <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        ← Dashboard
+      </Link>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-violet-700 dark:text-violet-400">

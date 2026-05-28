@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { t } from '@/lib/i18n'
 import VocabGlossary from './VocabGlossary'
@@ -21,6 +22,11 @@ export default function VocabularyClient() {
 
   return (
     <div className="space-y-4">
+      {/* Back to dashboard */}
+      <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        ← Dashboard
+      </Link>
+
       {/* Tab bar */}
       <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-800/60 rounded-xl p-1">
         {TABS.map(({ key, icon, label }) => (

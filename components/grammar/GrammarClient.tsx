@@ -390,6 +390,11 @@ export default function GrammarClient() {
 
   return (
     <div className="space-y-4">
+      {/* Back to dashboard */}
+      <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        ← Dashboard
+      </Link>
+
       {/* API Key banner */}
       {!state.geminiApiKey && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">

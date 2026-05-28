@@ -195,7 +195,7 @@ export default function ReviewClient() {
         {/* ── Hero ──────────────────────────────────────────────────── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug">
-            {t(lang, 'header_subtitle')}
+            Dashboard
           </h1>
           <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5 capitalize">{todayStr}</p>
         </div>

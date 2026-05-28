@@ -57,7 +57,7 @@ function ProgressRing({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey, setSimulatedRole } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
   const [activeTab, setActiveTab] = useState<TabKey>(
@@ -186,6 +186,11 @@ export default function StatsClient() {
 
   return (
     <div className="space-y-6">
+      {/* Back to dashboard */}
+      <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        ← Dashboard
+      </Link>
+
       {/* Page header */}
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'nav_stats')}</h1>
@@ -501,6 +506,43 @@ export default function StatsClient() {
               className="w-full py-2.5 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl text-sm transition">
               {t(lang, 'stats_logout')}
             </button>
+
+            {/* Role simulation — admins only */}
+            {state.role === 'admin' && (
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">👁 Simular rol</p>
+                <div className="flex gap-2 flex-wrap">
+                  {(['admin', 'contributor', 'user'] as const).map(role => {
+                    const active = (state.simulatedRole ?? state.role) === role
+                    const isCurrentReal = !state.simulatedRole && role === state.role
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setSimulatedRole(isCurrentReal ? null : role)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          active
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                        }`}
+                      >
+                        {role === 'user' ? '👤 Usuario' : role === 'contributor' ? '✏️ Contributor' : '👑 Admin'}
+                        {isCurrentReal && <span className="ml-1 text-[9px] opacity-60">real</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                {state.simulatedRole && (
+                  <button
+                    type="button"
+                    onClick={() => setSimulatedRole(null)}
+                    className="mt-2 text-xs text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors underline"
+                  >
+                    Salir de la simulación
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
