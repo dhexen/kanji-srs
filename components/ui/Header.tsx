@@ -107,21 +107,36 @@ export default function Header() {
             <p className="text-violet-500 text-xs font-semibold mb-2">{t(lang, 'header_forecast')}</p>
             <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
               <div className="flex gap-3 min-w-max">
-                {futureDays.map(day => (
-                  <div
-                    key={day.date.toISOString()}
-                    className="flex flex-col items-center min-w-[2.5rem]"
-                  >
-                    <span className="text-slate-400 text-xs font-medium capitalize">
-                      {day.dayLabel}
-                    </span>
-                    <span className={`text-xs font-bold tabular-nums mt-0.5 ${
-                      day.newDue > 0 ? 'text-violet-600' : 'text-slate-300'
-                    }`}>
-                      {day.newDue > 0 ? `+${day.newDue}` : '—'}
-                    </span>
-                  </div>
-                ))}
+                {futureDays.map(day => {
+                  const carried = day.cumulative - day.newDue
+                  const hasCarried = carried > 0
+                  const hasNew = day.newDue > 0
+                  const isEmpty = day.cumulative === 0
+                  return (
+                    <div
+                      key={day.date.toISOString()}
+                      className="flex flex-col items-center min-w-[3rem]"
+                    >
+                      <span className="text-slate-400 text-xs font-medium capitalize">
+                        {day.dayLabel}
+                      </span>
+                      <span className="text-xs font-bold tabular-nums mt-0.5 text-center leading-tight">
+                        {isEmpty ? (
+                          <span className="text-slate-300">—</span>
+                        ) : hasCarried && hasNew ? (
+                          <span className="text-violet-600">
+                            {carried}{' '}
+                            <span className="text-violet-400 font-semibold text-[10px]">(+{day.newDue})</span>
+                          </span>
+                        ) : hasCarried ? (
+                          <span className="text-violet-600">{carried}</span>
+                        ) : (
+                          <span className="text-violet-600">+{day.newDue}</span>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
