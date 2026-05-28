@@ -112,18 +112,18 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
   return (
     <div className="space-y-6">
       {/* Config panel */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-slate-800">💬 Textos en Contexto con IA</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">💬 Textos en Contexto con IA</h2>
           <SectionHelp section="context" lang={lang} />
         </div>
-        <p className="text-slate-500 text-sm mb-5">Genera textos en japonés usando tu vocabulario aprendido. Se guardan las últimas 10 frases.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-5">Genera textos en japonés usando tu vocabulario aprendido. Se guardan las últimas 10 frases.</p>
 
         {/* API Key banner */}
         {!state.geminiApiKey && (
-          <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-amber-800">🔑 {t(lang, 'api_missing_banner')}</p>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">🔑 {t(lang, 'api_missing_banner')}</p>
             </div>
             <Link
               href="/stats"
@@ -137,16 +137,16 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
         {/* Topic + Level + Button */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Tema</label>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Tema</label>
             <select value={topic} onChange={e => setTopic(e.target.value)}
-              className="w-full px-4 py-2.5 border rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
               {TOPICS.map(t => <option key={t.v} value={t.v}>{t.e} {t.v}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Dificultad</label>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Dificultad</label>
             <select value={level} onChange={e => setLevel(e.target.value)}
-              className="w-full px-4 py-2.5 border rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500">
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
               {LEVELS.map(l => <option key={l.v} value={l.v}>{l.l} ({l.d})</option>)}
             </select>
           </div>
@@ -162,7 +162,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
         {/* Error message */}
         {errorMsg && (
-          <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 flex items-start gap-2">
+          <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-xl text-sm text-rose-700 dark:text-rose-400 flex items-start gap-2">
             <span className="shrink-0">❌</span>
             <span>{errorMsg}</span>
           </div>
@@ -172,10 +172,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
       {/* Texts list */}
       <div className="space-y-4">
         {state.contextTexts.length === 0 ? (
-          <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center text-slate-400">
+          <div className="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center text-slate-400 dark:text-slate-500">
             <div className="text-5xl mb-3">📖</div>
-            <p className="font-semibold text-slate-500">Elige un tema y pulsa Generar texto</p>
-            <p className="text-sm mt-1 text-slate-400">Se guardarán las últimas 10 frases generadas</p>
+            <p className="font-semibold text-slate-500 dark:text-slate-400">Elige un tema y pulsa Generar texto</p>
+            <p className="text-sm mt-1 text-slate-400 dark:text-slate-500">Se guardarán las últimas 10 frases generadas</p>
           </div>
         ) : state.contextTexts.map(t => (
           <TextCard
@@ -196,15 +196,13 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
   const [showOnlyUnknown, setShowOnlyUnknown] = useState(false)
 
   const badge: Record<string, string> = {
-    simple: 'bg-emerald-100 text-emerald-700',
-    normal: 'bg-amber-100 text-amber-700',
-    complejo: 'bg-rose-100 text-rose-700',
+    simple: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+    normal: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    complejo: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
   }
 
-  // Process japanese text: show/hide furigana based on toggles
   function processJapanese(html: string) {
     if (!html) return ''
-    // Parse ruby tags and selectively show/hide rt based on settings
     return html.replace(/<ruby>([^<]*)<rt>([^<]*)<\/rt><\/ruby>/g, (_, kanji, reading) => {
       const shouldShow = showFurigana && (!showOnlyUnknown || !userKanjis.has(kanji.trim()))
       if (shouldShow) {
@@ -221,29 +219,29 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
   ]
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-lg">{text.emoji}</span>
-          <span className="text-sm font-bold text-slate-700 capitalize">{text.topic}</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-bold ${badge[text.level] || 'bg-slate-100 text-slate-600'}`}>{text.level}</span>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">{text.topic}</span>
+          <span className={`px-2 py-0.5 rounded text-xs font-bold ${badge[text.level] || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>{text.level}</span>
         </div>
-        <button onClick={onRemove} className="text-slate-300 hover:text-rose-400 font-bold transition text-lg">✕</button>
+        <button onClick={onRemove} className="text-slate-300 dark:text-slate-600 hover:text-rose-400 dark:hover:text-rose-400 font-bold transition text-lg">✕</button>
       </div>
 
       {/* Furigana controls */}
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={() => setShowFurigana(s => !s)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showFurigana ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-300'}`}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showFurigana ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700'}`}
         >
           {showFurigana ? '🈶 Furigana visible' : '🈚 Furigana oculto'}
         </button>
         {showFurigana && (
           <button
             onClick={() => setShowOnlyUnknown(s => !s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showOnlyUnknown ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-300'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showOnlyUnknown ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700'}`}
           >
             {showOnlyUnknown ? '👁️ Solo kanjis nuevos' : '👁️ Todos los kanjis'}
           </button>
@@ -252,13 +250,13 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
 
       {/* Japanese text with furigana */}
       <p
-        className="kanji-font text-xl md:text-2xl leading-loose text-slate-800 mb-3"
+        className="kanji-font text-xl md:text-2xl leading-loose text-slate-800 dark:text-slate-100 mb-3"
         dangerouslySetInnerHTML={{ __html: processJapanese(text.japanese) }}
       />
 
       {/* Words used */}
       {text.words_used?.length > 0 && (
-        <p className="text-xs text-indigo-400 mb-3">
+        <p className="text-xs text-indigo-400 dark:text-indigo-400 mb-3">
           📝 Vocabulario: <span className="font-medium">{text.words_used.join(' · ')}</span>
         </p>
       )}
@@ -269,7 +267,7 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
           <button
             key={tr.key}
             onClick={() => setShowTrans(showTrans === tr.key ? null : tr.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showTrans === tr.key ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showTrans === tr.key ? 'bg-slate-700 dark:bg-slate-600 text-white border-slate-700 dark:border-slate-600' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-400'}`}
           >
             {tr.label}
           </button>
@@ -278,7 +276,7 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
 
       {/* Translation content */}
       {showTrans && (
-        <div className="mt-3 pt-3 border-t border-dashed border-slate-200 text-sm text-slate-600 leading-relaxed">
+        <div className="mt-3 pt-3 border-t border-dashed border-slate-200 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           {translations.find(t => t.key === showTrans)?.content || '—'}
         </div>
       )}

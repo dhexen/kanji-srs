@@ -99,7 +99,6 @@ export default function ModeSelector({
                   <span className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full transition-all ${
                     active ? `${p.dot} scale-100` : `${p.dotInactive} scale-90`
                   }`} />
-                  <span className="text-base">{cfg.label}</span>
                   <span className="text-xs font-semibold leading-tight">{t(lang, cfg.label_key)}</span>
                   <span className="text-[10px] opacity-60 leading-snug">{t(lang, cfg.desc_key)}</span>
                 </button>

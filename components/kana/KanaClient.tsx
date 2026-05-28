@@ -14,8 +14,8 @@ export default function KanaClient() {
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-violet-700 dark:text-violet-400 flex items-center gap-2">
-          <span>🔤</span> Hiragana & Katakana
+        <h1 className="text-2xl font-bold text-violet-700 dark:text-violet-400">
+          Hiragana & Katakana
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Aprende los dos silabarios japoneses con nemotécnica visual y pon a prueba tus conocimientos.
@@ -41,7 +41,7 @@ export default function KanaClient() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 bg-violet-50 dark:bg-slate-800 rounded-xl p-1 w-fit">
-        {([['learn','📖 Aprender'],['test','🎯 Test']] as [Tab, string][]).map(([t, label]) => (
+        {([['learn','Aprender'],['test','Test']] as [Tab, string][]).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
