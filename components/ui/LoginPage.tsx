@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { t } from '@/lib/i18n'
+import ThemeToggle from './ThemeToggle'
 
 export default function LoginPage() {
   const { state, signInWithGoogle, signInWithMagicLink } = useStore()
@@ -59,6 +60,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-violet-50/30 to-pink-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4">
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
 
         {/* ── Branding ─────────────────────────────────────────── */}

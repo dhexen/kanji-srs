@@ -232,16 +232,16 @@ function NavInner() {
 
       {/* User info */}
       {state.user && (
-        <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100/80 dark:border-violet-800/40">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-400" />
-            <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{state.user.email}</span>
+        <div className="mx-3 mb-2 px-3 py-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100/80 dark:border-violet-800/40">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-sm shrink-0 select-none">
+              {(state.user.email?.[0] ?? '?').toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-slate-700 dark:text-slate-200 font-semibold truncate leading-tight">{state.user.email}</p>
+              <p className="text-[10px] text-violet-500 dark:text-violet-400 mt-0.5">小学校漢字 SRS</p>
+            </div>
           </div>
-          {state.role && (
-            <span className="mt-1 inline-block text-[10px] text-violet-500 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded-md">
-              {state.role}
-            </span>
-          )}
         </div>
       )}
       {!state.user && state.loaded && (
@@ -306,16 +306,29 @@ function NavInner() {
         </div>
       )}
 
-      {/* Bottom bar: theme toggle + collapse button */}
-      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-between px-3">
-        <ThemeToggle />
+      {/* CTA: Iniciar Repàs */}
+      {state.user && hasActiveVocab && (
+        <div className="shrink-0 mx-3 mb-3">
+          <Link
+            href="/review"
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-semibold rounded-xl text-sm transition shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            {stripEmoji(t(lang, 'review_start'))}
+          </Link>
+        </div>
+      )}
+
+      {/* Bottom bar: collapse button */}
+      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-end px-3">
         <button
           type="button"
           onClick={toggle}
           title="Ocultar menú"
           className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-500 dark:hover:text-violet-400 transition-all"
         >
-          {/* Flecha apunta a la izquierda (ocultar) */}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
@@ -379,9 +392,12 @@ function NavInner() {
           <span className="text-xl">🌸</span>
           <span className="font-bold text-sm tracking-wide text-violet-700 dark:text-violet-400">小学校漢字 SRS</span>
         </Link>
-        {state.syncing && (
-          <span className="ml-auto text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {state.syncing && (
+            <span className="text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* ────────────────── Mobile slide-over ────────────────── */}

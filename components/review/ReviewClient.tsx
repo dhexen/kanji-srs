@@ -1,8 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useStore } from '@/lib/store'
-import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue } from '@/lib/srs'
+import { ReviewMode, VocabItem, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
 import { fetchVocabMeta } from '@/lib/supabase'
+import { t } from '@/lib/i18n'
 import ModeSelector from './ModeSelector'
 import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
@@ -11,17 +13,65 @@ import SessionComplete from './SessionComplete'
 export type SessionItem = { item: VocabItem; mode: ReviewMode }
 type Phase = 'select' | 'playing' | 'done'
 
+function strip(s: string) {
+  return s.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[^\w　-鿿]/u, '').trim()
+}
+
+function IconMode() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+    </svg>
+  )
+}
+function IconVocab() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+    </svg>
+  )
+}
+function IconGrammar() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  )
+}
+function IconContext() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+    </svg>
+  )
+}
+
 export default function ReviewClient() {
   const { state } = useStore()
+  const lang = state.lang
   const [selectedModes, setSelectedModes] = useState<ReviewMode[]>(['multi', 'meaning', 'kanji', 'reading', 'reverse'])
   const [phase, setPhase] = useState<Phase>('select')
   const [sequence, setSequence] = useState<SessionItem[]>([])
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+  const [showModes, setShowModes] = useState(false)
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
   const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
+
+  const forecast = useMemo(() => getReviewForecast(state.db, lang, 7), [state.db, lang])
+  const hourlyForecast = useMemo(() => getHourlyForecast(state.db), [state.db])
+  const todayCount = forecast[0]?.newDue ?? 0
+  const futureDays = forecast.slice(1)
+
+  const localeTag = lang === 'ja' ? 'ja-JP' : lang === 'ca' ? 'ca-ES' : lang === 'en' ? 'en-GB' : 'es-ES'
+  const todayStr = new Date().toLocaleDateString(localeTag, {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+
+  // Personal stats
+  const masteredCount = useMemo(() => activeWords.filter(w => w.srsLevel >= 5).length, [activeWords])
 
   function buildSequence(practice: boolean): SessionItem[] {
     const now = Date.now()
@@ -73,11 +123,6 @@ export default function ReviewClient() {
     }
   }
 
-  /**
-   * Start a review session with a specific set of newly-added items.
-   * Called by QuickAddPanel after activating new kanjis.
-   * The items already have full vocab metadata from the DB fetch.
-   */
   async function startWithItems(newItems: VocabItem[]) {
     if (newItems.length === 0) return
     setIsStarting(true)
@@ -87,9 +132,8 @@ export default function ReviewClient() {
       newItems.forEach(item => {
         modesActive.forEach(mode => seq.push({ item, mode }))
       })
-      const shuffled = seq.sort(() => Math.random() - 0.5)
       setIsPractice(false)
-      setSequence(shuffled)
+      setSequence(seq.sort(() => Math.random() - 0.5))
       setIndex(0)
       setPhase('playing')
     } finally {
@@ -109,21 +153,215 @@ export default function ReviewClient() {
   }
 
   if (phase === 'select') {
+    const TILES = [
+      {
+        id: 'mode',
+        label: strip(t(lang, 'nav_review')),
+        icon: <IconMode />,
+        color: 'text-violet-600 dark:text-violet-400',
+        bg: showModes
+          ? 'bg-violet-100 dark:bg-violet-900/40 border-violet-200 dark:border-violet-700'
+          : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20',
+        onClick: () => setShowModes(s => !s),
+      },
+      {
+        id: 'vocab',
+        label: strip(t(lang, 'nav_vocabulary')),
+        icon: <IconVocab />,
+        color: 'text-indigo-600 dark:text-indigo-400',
+        bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20',
+        href: '/vocabulary',
+      },
+      {
+        id: 'grammar',
+        label: strip(t(lang, 'nav_grammar')),
+        icon: <IconGrammar />,
+        color: 'text-emerald-600 dark:text-emerald-400',
+        bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
+        href: '/grammar',
+      },
+      {
+        id: 'context',
+        label: strip(t(lang, 'nav_context')),
+        icon: <IconContext />,
+        color: 'text-pink-600 dark:text-pink-400',
+        bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-pink-50 dark:hover:bg-pink-900/20',
+        href: '/context',
+      },
+    ]
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <div className="md:col-span-2">
-          <ModeSelector
-            selectedModes={selectedModes}
-            onToggle={m => setSelectedModes(prev =>
-              prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
-            )}
-            pendingCount={pendingCount}
-            onStart={() => start(false)}
-            hasWords={activeWords.length > 0}
-            isStarting={isStarting}
-          />
+      <div className="space-y-4">
+
+        {/* ── Hero ──────────────────────────────────────────────────── */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug">
+            {t(lang, 'header_subtitle')}
+          </h1>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5 capitalize">{todayStr}</p>
         </div>
-        <QuickAddPanel onAdded={startWithItems} />
+
+        {/* ── Forecast card ─────────────────────────────────────────── */}
+        <div className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
+                {t(lang, 'header_today')}
+              </p>
+              <p className="text-5xl font-bold tabular-nums leading-none mt-1 text-violet-700 dark:text-violet-300">
+                {todayCount}
+              </p>
+            </div>
+            <button
+              onClick={() => start(false)}
+              disabled={activeWords.length === 0 || isStarting}
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
+            >
+              {isStarting
+                ? '⏳'
+                : (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    {strip(t(lang, 'review_start'))}
+                  </>
+                )}
+            </button>
+          </div>
+
+          {/* Hourly timeline */}
+          {hourlyForecast.length > 0 && (
+            <div className="overflow-x-auto no-scrollbar mt-4 -mx-1 px-1">
+              <div className="flex gap-1.5 min-w-max pb-0.5">
+                {hourlyForecast.map(h => (
+                  <div
+                    key={h.hour}
+                    className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
+                      h.isCurrent
+                        ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-200/80 dark:border-violet-700/40 shadow-sm'
+                        : 'bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40'
+                    }`}
+                  >
+                    <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      {h.label}
+                    </span>
+                    <span className={`tabular-nums font-bold text-sm mt-0.5 ${h.isCurrent ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                      +{h.due}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Weekly forecast */}
+          {futureDays.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-violet-100/80 dark:border-slate-700">
+              <p className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide mb-2">
+                {t(lang, 'header_forecast')}
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                {futureDays.map(day => {
+                  const carried = day.cumulative - day.newDue
+                  const hasCarried = carried > 0
+                  const hasNew = day.newDue > 0
+                  const isEmpty = day.cumulative === 0
+                  return (
+                    <div key={day.date.toISOString()} className="flex flex-col items-center min-w-[2.5rem]">
+                      <span className="text-slate-400 dark:text-slate-500 text-[10px] font-medium capitalize">{day.dayLabel}</span>
+                      <span className="text-xs font-bold tabular-nums mt-0.5 leading-tight">
+                        {isEmpty ? (
+                          <span className="text-slate-300 dark:text-slate-600">—</span>
+                        ) : hasCarried && hasNew ? (
+                          <span className="text-violet-600 dark:text-violet-400">
+                            {carried} <span className="text-violet-400 dark:text-violet-500 font-semibold text-[10px]">(+{day.newDue})</span>
+                          </span>
+                        ) : hasCarried ? (
+                          <span className="text-violet-600 dark:text-violet-400">{carried}</span>
+                        ) : (
+                          <span className="text-violet-600 dark:text-violet-400">+{day.newDue}</span>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Tipus de repàs + Nous Kanjis ──────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+
+          {/* Tipus de repàs */}
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              {t(lang, 'review_title')}
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {TILES.map(tile =>
+                tile.href ? (
+                  <Link
+                    key={tile.id}
+                    href={tile.href}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer ${tile.bg}`}
+                  >
+                    <span className={tile.color}>{tile.icon}</span>
+                    <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
+                  </Link>
+                ) : (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    onClick={tile.onClick}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer ${tile.bg}`}
+                  >
+                    <span className={tile.color}>{tile.icon}</span>
+                    <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Inline ModeSelector when Mode tile is active */}
+            {showModes && (
+              <div className="pt-1">
+                <ModeSelector
+                  selectedModes={selectedModes}
+                  onToggle={m => setSelectedModes(prev =>
+                    prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
+                  )}
+                  pendingCount={pendingCount}
+                  onStart={() => start(false)}
+                  hasWords={activeWords.length > 0}
+                  isStarting={isStarting}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Nous Kanjis */}
+          <QuickAddPanel onAdded={startWithItems} />
+        </div>
+
+        {/* ── Dades totals ──────────────────────────────────────────── */}
+        {activeWords.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Palabras activas', value: activeWords.length, color: 'text-violet-600 dark:text-violet-400' },
+              { label: 'Dominadas', value: masteredCount, color: 'text-emerald-600 dark:text-emerald-400' },
+              { label: 'Pendientes hoy', value: todayCount, color: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Por aprender', value: activeWords.length - masteredCount, color: 'text-pink-600 dark:text-pink-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm text-center">
+                <p className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     )
   }
