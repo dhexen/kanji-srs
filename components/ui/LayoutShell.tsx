@@ -6,7 +6,8 @@ import Header from './Header'
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar()
   const { state } = useStore()
-  const isAdmin = state.role === 'admin'
+  const effectiveRole = state.simulatedRole ?? state.role
+  const isAdmin = effectiveRole === 'admin'
 
   return (
     <div

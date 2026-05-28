@@ -26,6 +26,7 @@ interface State {
   db: VocabItem[]
   user: { email: string; id: string } | null
   role: 'admin' | 'contributor' | 'user'
+  simulatedRole: 'admin' | 'contributor' | 'user' | null
   syncing: boolean
   loaded: boolean
   geminiApiKey: string
@@ -38,6 +39,7 @@ type Action =
   | { type: 'SET_DB'; payload: VocabItem[] }
   | { type: 'SET_USER'; payload: { email: string; id: string } | null }
   | { type: 'SET_ROLE'; payload: 'admin' | 'contributor' | 'user' }
+  | { type: 'SET_SIMULATED_ROLE'; payload: 'admin' | 'contributor' | 'user' | null }
   | { type: 'SET_SYNCING'; payload: boolean }
   | { type: 'SET_LOADED' }
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
@@ -55,6 +57,7 @@ function appReducer(state: State, action: Action): State {
     case 'SET_DB': return { ...state, db: action.payload }
     case 'SET_USER': return { ...state, user: action.payload }
     case 'SET_ROLE': return { ...state, role: action.payload }
+    case 'SET_SIMULATED_ROLE': return { ...state, simulatedRole: action.payload }
     case 'SET_SYNCING': return { ...state, syncing: action.payload }
     case 'SET_LOADED': return { ...state, loaded: true }
     case 'SET_GEMINI_KEY': return { ...state, geminiApiKey: action.payload }
@@ -139,13 +142,14 @@ interface StoreContextType {
   signInWithGoogle: () => Promise<void>
   signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
+  setSimulatedRole: (role: 'admin' | 'contributor' | 'user' | null) => void
 }
 
 const StoreContext = createContext<StoreContextType | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
-    db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', syncing: false, loaded: false,
+    db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
     geminiApiKey: '', pexelsApiKey: '', contextTexts: [], lang: 'es',
   })
 
@@ -464,6 +468,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dbRef.current = []
   }, [])
 
+  const setSimulatedRole = useCallback((role: 'admin' | 'contributor' | 'user' | null) => {
+    dispatch({ type: 'SET_SIMULATED_ROLE', payload: role })
+  }, [])
+
   return (
     <StoreContext.Provider value={{
       state,
@@ -485,6 +493,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signInWithMagicLink,
       logout,
+      setSimulatedRole,
     }}>
       {children}
     </StoreContext.Provider>

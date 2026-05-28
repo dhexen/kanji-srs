@@ -303,13 +303,16 @@ export default function ReviewClient() {
                   onClick={() => setSelectedModes(prev =>
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                   )}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all active:scale-95 ${
+                  className={`px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
                     active
                       ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                       : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
                   }`}
                 >
-                  {t(lang, cfg.label_key)}
+                  <span className="block text-xs font-semibold leading-tight">{t(lang, cfg.label_key)}</span>
+                  <span className={`block text-[10px] leading-tight mt-0.5 ${active ? 'text-violet-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {t(lang, cfg.desc_key)}
+                  </span>
                 </button>
               )
             })}

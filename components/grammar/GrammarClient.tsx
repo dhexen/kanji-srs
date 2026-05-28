@@ -71,14 +71,14 @@ function GrammarCard({
     <div
       className={`relative flex items-center gap-3 rounded-xl border p-3.5 cursor-pointer transition-all group ${
         known
-          ? 'bg-emerald-50 border-emerald-200 opacity-70 hover:opacity-90'
-          : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 opacity-70 hover:opacity-90'
+          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm'
       }`}
       onClick={() => onSelect(grammar)}
     >
       {/* Number badge */}
       <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-        known ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
+        known ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
       }`}>
         {grammar.number}
       </div>
@@ -87,14 +87,14 @@ function GrammarCard({
         {/* JLPT + lesson + book */}
         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-            grammar.jlpt === 'N5' ? 'bg-emerald-100 text-emerald-700' :
-            grammar.jlpt === 'N4' ? 'bg-blue-100 text-blue-700' :
-            'bg-violet-100 text-violet-700'
+            grammar.jlpt === 'N5' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' :
+            grammar.jlpt === 'N4' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400' :
+            'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400'
           }`}>
             {grammar.jlpt}
           </span>
           {showBook && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
               {grammar.book === 'mnn1' ? 'MNN1' : 'MNN2'}
             </span>
           )}
@@ -115,7 +115,7 @@ function GrammarCard({
         </div>
 
         {/* Pattern */}
-        <p className="font-bold text-slate-800 text-sm truncate">{grammar.pattern}</p>
+        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{grammar.pattern}</p>
         {/* Name */}
         <p className="text-xs text-slate-500 truncate">{name}</p>
         {/* Structure preview */}
@@ -137,8 +137,8 @@ function GrammarCard({
         title={known ? t(lang as any, 'grammar_unknown_title') : t(lang as any, 'grammar_known_title')}
         className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
           known
-            ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
-            : 'bg-slate-100 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500'
+            ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-800'
+            : 'bg-slate-100 dark:bg-slate-700 text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-500'
         }`}
       >
         {known ? (
@@ -189,7 +189,7 @@ function GrammarSrsQueue({
         </button>
         <div className="text-center py-12">
           <p className="text-4xl mb-3">✅</p>
-          <p className="text-lg font-bold text-slate-800">{t(lang as any, 'gp_no_due')}</p>
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{t(lang as any, 'gp_no_due')}</p>
           <p className="text-sm text-slate-500 mt-1">{t(lang as any, 'gp_no_due_sub')}</p>
         </div>
       </div>
@@ -201,7 +201,7 @@ function GrammarSrsQueue({
       <div className="space-y-5">
         <div className="text-center py-10 space-y-3">
           <p className="text-5xl">🎉</p>
-          <p className="text-xl font-bold text-slate-800">{t(lang as any, 'gp_srs_queue_done')}</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{t(lang as any, 'gp_srs_queue_done')}</p>
           <p className="text-sm text-slate-500">
             {t(lang as any, 'gp_srs_queue_reviewed').replace('{n}', String(queue.length))}
           </p>
@@ -227,7 +227,7 @@ function GrammarSrsQueue({
           {t(lang as any, 'gp_quit')} ✕
         </button>
       </div>
-      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+      <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
         <div
           className="bg-indigo-500 h-full rounded-full transition-all"
           style={{ width: `${(idx / queue.length) * 100}%` }}
@@ -335,7 +335,8 @@ export default function GrammarClient() {
 
   const activeVocab = state.db.filter(i => i.status === 'active')
   const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
-  const canEdit = state.role === 'admin' || state.role === 'contributor'
+  const effectiveRole = state.simulatedRole ?? state.role
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
   // ── Sub-views ────────────────────────────────────────────────────────────
 
@@ -391,9 +392,9 @@ export default function GrammarClient() {
     <div className="space-y-4">
       {/* API Key banner */}
       {!state.geminiApiKey && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800">🔑 {t(lang, 'api_missing_banner')}</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">🔑 {t(lang, 'api_missing_banner')}</p>
           </div>
           <Link
             href="/stats"
@@ -407,7 +408,7 @@ export default function GrammarClient() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-800">{t(lang, 'grammar_title')}</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'grammar_title')}</h1>
           <SectionHelp section="grammar" lang={lang} />
         </div>
         <p className="text-sm text-slate-500 mt-0.5">{subtitleText}</p>
@@ -417,14 +418,14 @@ export default function GrammarClient() {
       {state.user && (
         <div className={`rounded-xl border p-4 flex items-center gap-4 ${
           dueGrammarPoints.length > 0
-            ? 'bg-rose-50 border-rose-200'
-            : 'bg-slate-50 border-slate-200'
+            ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
+            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
         }`}>
           <div className="text-2xl shrink-0">
             {dueGrammarPoints.length > 0 ? '⏰' : '🏋️'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
               {t(lang, 'gp_srs_review_title')}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -439,7 +440,7 @@ export default function GrammarClient() {
             className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition ${
               dueGrammarPoints.length > 0
                 ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
             }`}
           >
             {dueGrammarPoints.length > 0
@@ -457,7 +458,7 @@ export default function GrammarClient() {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
             bookFilter === 'all'
               ? 'bg-slate-700 text-white border-slate-700'
-              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
           }`}
         >
           {t(lang, 'grammar_all')}
@@ -469,7 +470,7 @@ export default function GrammarClient() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
               bookFilter === b.key
                 ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
             }`}
           >
             {b.label}
@@ -478,16 +479,16 @@ export default function GrammarClient() {
       </div>
 
       {/* Progress bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-slate-600">{t(lang, 'grammar_progress')}</span>
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{t(lang, 'grammar_progress')}</span>
           <span className="text-sm font-bold text-emerald-600">
             {t(lang, 'grammar_mastered_count')
               .replace('{done}', String(totalKnownInBook))
               .replace('{total}', String(totalInBook))}
           </span>
         </div>
-        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-400 rounded-full transition-all duration-500"
             style={{ width: totalInBook > 0 ? `${(totalKnownInBook / totalInBook) * 100}%` : '0%' }}
@@ -506,7 +507,7 @@ export default function GrammarClient() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t(lang, 'grammar_search_ph')}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -523,7 +524,7 @@ export default function GrammarClient() {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                 jlptFilter === f
                   ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
               }`}
             >
               {f === 'all' ? t(lang, 'grammar_filter_all') : f}
@@ -535,7 +536,7 @@ export default function GrammarClient() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ml-auto ${
               hideKnown
                 ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
             }`}
           >
             {hideKnown ? t(lang, 'grammar_hiding_known') : t(lang, 'grammar_hide_known')}
@@ -566,7 +567,7 @@ export default function GrammarClient() {
                   {bookFilter === 'all' ? `${book === 'mnn1' ? 'MNN1' : 'MNN2'} · ` : ''}
                   {t(lang, 'grammar_lesson').replace('{n}', String(lesson))}
                 </span>
-                <div className="flex-1 h-px bg-slate-200" />
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
                 <span className="text-xs text-slate-400">
                   {points.filter(g => knownIds.has(g.id)).length}/{points.length}
                 </span>

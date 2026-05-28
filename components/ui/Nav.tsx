@@ -228,9 +228,11 @@ function NavInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab')
-  const { state } = useStore()
+  const { state, setSimulatedRole } = useStore()
   const { collapsed, toggle } = useSidebar()
-  const isAdmin = state.role === 'admin'
+  const isRealAdmin = state.role === 'admin'
+  const effectiveRole = state.simulatedRole ?? state.role
+  const isAdmin = effectiveRole === 'admin'
   const lang = state.lang
   const [mobileOpen, setMobileOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
@@ -267,23 +269,42 @@ function NavInner() {
   // ── Non-admin: simple sticky top bar ─────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-2.5">
-        <Link href="/review" className="font-bold text-xl text-violet-700 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 transition-colors select-none">
-          栞
-        </Link>
-        {pendingReview > 0 && (
-          <span className="text-[10px] font-bold text-white bg-rose-400 px-1.5 py-0.5 rounded-full tabular-nums">
-            {pendingReview}
-          </span>
+      <>
+        {/* Simulation banner — only shown to real admin simulating a non-admin role */}
+        {isRealAdmin && state.simulatedRole && (
+          <div className="sticky top-0 z-50 flex items-center justify-between gap-2 px-4 py-1.5 bg-amber-500 text-white text-xs font-semibold">
+            <span>
+              👁 Simulando como: <strong className="font-bold capitalize">
+                {state.simulatedRole === 'user' ? 'Usuario' : state.simulatedRole === 'contributor' ? 'Contributor' : 'Admin'}
+              </strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSimulatedRole(null)}
+              className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            >
+              ✕ Salir
+            </button>
+          </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
-          {state.syncing && (
-            <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">{t(lang, 'header_syncing')}</span>
+        <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-2.5">
+          <Link href="/review" className="font-bold text-xl text-violet-700 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 transition-colors select-none">
+            栞
+          </Link>
+          {pendingReview > 0 && (
+            <span className="text-[10px] font-bold text-white bg-rose-400 px-1.5 py-0.5 rounded-full tabular-nums">
+              {pendingReview}
+            </span>
           )}
-          <ProfileMenu />
-          <ThemeToggle />
+          <div className="ml-auto flex items-center gap-2">
+            {state.syncing && (
+              <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">{t(lang, 'header_syncing')}</span>
+            )}
+            <ProfileMenu />
+            <ThemeToggle />
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -370,6 +391,32 @@ function NavInner() {
           ]}
           pathname={pathname} currentTab={currentTab}
         />
+        {/* Role simulation controls — admin only */}
+        <div className="px-2 pt-1">
+          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide px-1 mb-1.5">👁 Simular rol</p>
+          <div className="flex flex-col gap-1">
+            {(['admin', 'contributor', 'user'] as const).map(role => {
+              const active = state.simulatedRole === role || (!state.simulatedRole && role === state.role)
+              const isCurrentReal = !state.simulatedRole && role === state.role
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setSimulatedRole(isCurrentReal ? null : role)}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
+                    active
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                  <span className="capitalize">{role === 'user' ? 'Usuario' : role === 'contributor' ? 'Contributor' : 'Admin'}</span>
+                  {isCurrentReal && <span className="ml-auto text-[9px] text-slate-400 dark:text-slate-500">real</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </nav>
 
       {/* Syncing */}

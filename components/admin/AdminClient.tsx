@@ -458,10 +458,10 @@ export default function AdminClient() {
 
   if (!isAdmin) {
     return (
-      <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center">
+      <div className="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
         <div className="text-5xl mb-3">🚫</div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Acceso restringido</h2>
-        <p className="text-slate-500 text-sm">Solo los administradores pueden acceder a este panel.</p>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Acceso restringido</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Solo los administradores pueden acceder a este panel.</p>
       </div>
     )
   }
@@ -476,8 +476,8 @@ export default function AdminClient() {
 
   if (aal === 'aal1') {
     return (
-      <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Panel de Administración</h2>
+      <div className="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6 text-center">Panel de Administración</h2>
         <AdminMfaGate onVerified={() => setAal('aal2')} />
       </div>
     )
@@ -501,7 +501,7 @@ export default function AdminClient() {
       </div>
 
       {/* Tab bar */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-1 flex gap-1 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-1 flex gap-1 shadow-sm">
         {tabs.map(tab => (
           <button
             key={tab.key}
@@ -510,7 +510,7 @@ export default function AdminClient() {
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-semibold transition ${
               activeTab === tab.key
                 ? 'bg-amber-500 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             {tab.label}
@@ -522,37 +522,37 @@ export default function AdminClient() {
       {activeTab === 'users' && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
               <div className="text-3xl font-bold text-amber-600">{users.length}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Usuarios</div>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
               <div className="text-3xl font-bold text-indigo-600">{users.filter(u => u.role === 'admin').length}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Admins</div>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
               <div className="text-3xl font-bold text-violet-600">{users.filter(u => u.role === 'contributor').length}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Contributors</div>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center col-span-2 md:col-span-1">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center col-span-2 md:col-span-1">
               <div className="text-3xl font-bold text-emerald-600">{users.reduce((s, u) => s + u.wordCount, 0)}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Palabras totales</div>
             </div>
           </div>
 
           {/* Crear usuario */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
-            <h3 className="font-bold text-slate-800 mb-4">➕ Crear usuario</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">➕ Crear usuario</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input type="email" placeholder="Email" value={newUser.email}
                 onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
-                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm" autoComplete="off" />
+                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
               <input type="password" placeholder="Contraseña (mín. 6)" value={newUser.password}
                 onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
-                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm" autoComplete="new-password" />
+                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="new-password" />
               <select value={newUser.role}
                 onChange={e => setNewUser(u => ({ ...u, role: e.target.value as 'admin' | 'contributor' | 'user' }))}
-                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white">
+                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100">
                 <option value="user">👤 Usuario</option>
                 <option value="contributor">✏️ Contributor</option>
                 <option value="admin">👑 Administrador</option>
@@ -565,9 +565,9 @@ export default function AdminClient() {
           </div>
 
           {/* Tabla usuarios */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800">Usuarios</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">Usuarios</h3>
               <button type="button" onClick={loadUsers} className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold">🔄 Actualizar</button>
             </div>
             {loading ? <div className="p-8 text-center text-slate-400">Cargando…</div>
@@ -576,7 +576,7 @@ export default function AdminClient() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[960px]">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-500 text-xs uppercase tracking-wider">
+                      <tr className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                         <th className="py-3 px-4">Email</th>
                         <th className="py-3 px-4">Palabras</th>
                         <th className="py-3 px-4">Rol</th>
@@ -590,20 +590,20 @@ export default function AdminClient() {
                       {users.map(user => {
                         const isMe = user.user_id === state.user?.id
                         return (
-                          <tr key={user.user_id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <tr key={user.user_id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                             <td className="py-3 px-4">
-                              <span className="font-medium text-slate-800">{user.email || '—'}</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{user.email || '—'}</span>
                               {isMe && <span className="ml-2 text-indigo-500 text-xs font-bold">(tú)</span>}
                               <p className="font-mono text-[10px] text-slate-400 mt-0.5">{user.user_id.slice(0, 8)}…</p>
                             </td>
-                            <td className="py-3 px-4 font-semibold text-slate-700">{user.wordCount}</td>
+                            <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">{user.wordCount}</td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                                 user.role === 'admin'
-                                  ? 'bg-amber-100 text-amber-700'
+                                  ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400'
                                   : user.role === 'contributor'
-                                  ? 'bg-violet-100 text-violet-700'
-                                  : 'bg-slate-100 text-slate-600'
+                                  ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                               }`}>
                                 {user.role === 'admin' ? '👑 Admin' : user.role === 'contributor' ? '✏️ Contributor' : '👤 Usuario'}
                               </span>
@@ -621,7 +621,7 @@ export default function AdminClient() {
                                   <select
                                     value={user.role}
                                     onChange={e => changeRole(user, e.target.value as 'admin' | 'contributor' | 'user')}
-                                    className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border-0 cursor-pointer"
+                                    className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-0 cursor-pointer"
                                   >
                                     <option value="user">👤 Usuario</option>
                                     <option value="contributor">✏️ Contributor</option>
@@ -629,12 +629,12 @@ export default function AdminClient() {
                                   </select>
                                 )}
                                 <button type="button" onClick={() => openRestore(user.user_id)}
-                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700">
+                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400">
                                   💾 Backup
                                 </button>
                                 {!isMe && (
                                   <button type="button" onClick={() => handleDelete(user)}
-                                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700">
+                                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400">
                                     🗑️
                                   </button>
                                 )}
@@ -658,20 +658,20 @@ export default function AdminClient() {
       {activeTab === 'images' && (
         <>
           {/* API keys */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 className="font-bold text-slate-800 mb-3">🔑 Claves API</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">🔑 Claves API</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Gemini API Key</label>
                 <input type="password" placeholder="AIza… (opcional si hay clave en servidor)"
                   value={imgGeminiKey} onChange={e => setImgGeminiKey(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm" autoComplete="off" />
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Pexels API Key</label>
                 <input type="password" placeholder="pexels.com/api — clave gratuita inmediata"
                   value={imgPexelsKey} onChange={e => setImgPexelsKey(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm" autoComplete="off" />
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
               </div>
             </div>
           </div>
@@ -679,10 +679,10 @@ export default function AdminClient() {
           {/* ── CLASIFICACIÓN UNIFICADA ─────────────────────────────────────── */}
           <div className="bg-gradient-to-br from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 rounded-2xl border border-indigo-100 p-5 md:p-6 space-y-4">
             <div>
-              <h3 className="font-bold text-slate-800 text-base mb-0.5">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-0.5">
                 ✨ Clasificación completa — 1 llamada Gemini
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta contrarios. Procesa 35 palabras a la vez.
               </p>
             </div>
@@ -740,22 +740,22 @@ export default function AdminClient() {
           </div>
 
           {/* ── SECCIONES INDIVIDUALES (avanzado / legacy) ──────────────────── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
             <button
               type="button"
               onClick={() => setShowLegacy(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
             >
               <span>⚙️ Acciones individuales (avanzado)</span>
               <span className="text-slate-400 text-xs">{showLegacy ? '▲ Ocultar' : '▼ Mostrar'}</span>
             </button>
 
             {showLegacy && (
-              <div className="p-5 space-y-6 border-t border-slate-100">
+              <div className="p-5 space-y-6 border-t border-slate-100 dark:border-slate-700">
 
                 {/* Imágenes sola */}
                 <div>
-                  <h4 className="font-semibold text-slate-700 mb-1">🖼️ Solo imágenes (Gemini + Pexels)</h4>
+                  <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🖼️ Solo imágenes (Gemini + Pexels)</h4>
                   <p className="text-xs text-slate-400 mb-3">Útil para reintentar palabras sin foto. Requiere Pexels Key.</p>
                   {imgStats && (
                     <div className="flex gap-4 text-xs text-slate-500 mb-3">
@@ -783,7 +783,7 @@ export default function AdminClient() {
 
                 {/* Clasificación solo tipo+categoría */}
                 <div>
-                  <h4 className="font-semibold text-slate-700 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
+                  <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
                   <p className="text-xs text-slate-400 mb-3">Sin imágenes ni contrarios.</p>
                   {clsStats && (
                     <div className="flex gap-4 text-xs text-slate-500 mb-3">
@@ -800,7 +800,7 @@ export default function AdminClient() {
                   <div className="flex items-center gap-2 mb-3">
                     <input type="password" value={clsGeminiKey} onChange={e => setClsGeminiKey(e.target.value)}
                       placeholder="Gemini API Key (deja vacío para usar la de arriba)"
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs" />
+                      className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-slate-100" />
                   </div>
                   <button type="button" disabled={clsProcessing || clsStats?.pending === 0} onClick={handleClassifyBatch}
                     className="py-2 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
@@ -813,10 +813,10 @@ export default function AdminClient() {
           </div>
 
           {/* Reportes de votos negativos */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-bold text-slate-800">👎 Imágenes reportadas</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">👎 Imágenes reportadas</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Palabras cuya imagen tiene más 👎 que 👍 de los usuarios.</p>
               </div>
               <button type="button" onClick={loadImgReports} disabled={imgReportsLoading}
@@ -839,7 +839,7 @@ export default function AdminClient() {
 
                   if (candidate) {
                     return (
-                      <div key={r.word} className="flex flex-col gap-3 p-3 border border-violet-200 rounded-xl bg-violet-50/40">
+                      <div key={r.word} className="flex flex-col gap-3 p-3 border border-violet-200 dark:border-violet-800 rounded-xl bg-violet-50/40 dark:bg-violet-900/20">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="kanji-font text-xl font-bold text-slate-800">{r.word}</span>
                           <span className="text-xs text-slate-400">{r.meaning_es}</span>
@@ -875,18 +875,18 @@ export default function AdminClient() {
                   }
 
                   return (
-                    <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 rounded-xl bg-slate-50/60">
+                    <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 dark:border-slate-700 rounded-xl bg-slate-50/60 dark:bg-slate-700/30">
                       <img src={r.image_url} alt={r.word}
                         className="w-full sm:w-20 h-20 object-cover rounded-lg shrink-0 self-center sm:self-start" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="kanji-font text-xl font-bold text-slate-800">{r.word}</span>
+                          <span className="kanji-font text-xl font-bold text-slate-800 dark:text-slate-100">{r.word}</span>
                           <span className="text-xs text-slate-400">{r.meaning_es}</span>
                           <span className="ml-auto text-xs font-semibold text-rose-600">👍 {r.upvotes} · 👎 {r.downvotes}</span>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <button type="button" disabled={acting} onClick={() => handleReportAction(r.word, 'remove')}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold disabled:opacity-50 transition">
+                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold disabled:opacity-50 transition">
                             🗑️ Quitar
                           </button>
                           <button type="button" disabled={acting || candidateActing} onClick={() => handlePreviewSearch(r.word)}
@@ -902,7 +902,7 @@ export default function AdminClient() {
                           <div className="flex gap-2 mt-2">
                             <input type="url" placeholder="https://…" value={imgReportUrls[r.word] ?? ''}
                               onChange={e => setImgReportUrls(prev => ({ ...prev, [r.word]: e.target.value }))}
-                              className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm" />
+                              className="flex-1 px-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-700 dark:text-slate-100" />
                             <button type="button" disabled={acting || !imgReportUrls[r.word]}
                               onClick={() => handleReportAction(r.word, 'set_url')}
                               className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition">
@@ -925,14 +925,14 @@ export default function AdminClient() {
 
       {/* ── TAB: SISTEMA ─────────────────────────────────────────────── */}
       {activeTab === 'system' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-slate-800">Intervalos SRS</h3>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">Intervalos SRS</h3>
               <p className="text-xs text-slate-400 mt-0.5">Tiempo entre repasos por nivel. Se aplica a todos los usuarios.</p>
             </div>
             <button type="button" onClick={handleResetSrsIntervals}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition">
               Restaurar defecto
             </button>
           </div>
@@ -944,7 +944,7 @@ export default function AdminClient() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                    <tr className="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                       <th className="py-2.5 px-3">Nivel</th><th className="py-2.5 px-3">Etapa</th>
                       <th className="py-2.5 px-3">Intervalo</th><th className="py-2.5 px-3 text-center">Actual</th>
                       <th className="py-2.5 px-3 text-center text-slate-400">Defecto</th>
@@ -955,11 +955,11 @@ export default function AdminClient() {
                       const defaultMs = DEFAULT_SRS_INTERVALS[i]
                       const isModified = ms !== defaultMs
                       return (
-                        <tr key={i} className={`border-b border-slate-100 ${isModified ? 'bg-amber-50/50' : ''} ${i === 0 ? 'opacity-50' : ''}`}>
+                        <tr key={i} className={`border-b border-slate-100 dark:border-slate-700 ${isModified ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''} ${i === 0 ? 'opacity-50' : ''}`}>
                           <td className="py-2.5 px-3">
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">{i}</span>
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs">{i}</span>
                           </td>
-                          <td className="py-2.5 px-3 font-medium text-slate-700">{STAGE_NAMES[i]}</td>
+                          <td className="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">{STAGE_NAMES[i]}</td>
                           <td className="py-2.5 px-3">
                             {i === 0 ? <span className="text-slate-400 text-xs">Siempre 0 (inmediato)</span>
                               : <SrsIntervalInput ms={ms} onChange={(newMs) => handleIntervalChange(i, newMs)} />}
@@ -977,8 +977,8 @@ export default function AdminClient() {
                 </table>
               </div>
               {srsIntervalsChanged && (
-                <div className="mt-4 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                  <p className="text-xs text-amber-700 font-medium">Hay cambios sin guardar</p>
+                <div className="mt-4 flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Hay cambios sin guardar</p>
                   <button type="button" disabled={srsIntervalsSaving} onClick={handleSaveSrsIntervals}
                     className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold rounded-lg text-sm transition">
                     {srsIntervalsSaving ? 'Guardando...' : 'Guardar intervalos'}
@@ -993,11 +993,11 @@ export default function AdminClient() {
       {/* Backup restore modal — global (outside tabs) */}
       {restoreUserId && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 max-h-[85vh] flex flex-col">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-start gap-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 dark:border-slate-700 max-h-[85vh] flex flex-col">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-start gap-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-lg">Restaurar backup</h3>
-                <p className="text-sm text-slate-500 mt-1">{restoreTarget?.email}</p>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">Restaurar backup</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{restoreTarget?.email}</p>
                 <p className="text-xs text-slate-400 mt-0.5">Últimos 10 snapshots automáticos</p>
               </div>
               <button type="button" onClick={() => setRestoreUserId(null)}
@@ -1005,12 +1005,12 @@ export default function AdminClient() {
             </div>
             <div className="p-5 overflow-y-auto flex-1 space-y-2">
               {snapshotsLoading ? <p className="text-slate-400 text-sm text-center py-6">Cargando backups…</p>
-                : snapshots.length === 0 ? <p className="text-slate-500 text-sm text-center py-6 bg-slate-50 rounded-xl">Este usuario no tiene backups aún.</p>
+                : snapshots.length === 0 ? <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-6 bg-slate-50 dark:bg-slate-800 rounded-xl">Este usuario no tiene backups aún.</p>
                 : snapshots.map(s => (
-                  <div key={s.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80">
+                  <div key={s.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800">
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm">{formatDate(s.created_at)}</p>
-                      <p className="text-xs text-slate-500">{s.word_count} palabras · {s.reason}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{formatDate(s.created_at)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{s.word_count} palabras · {s.reason}</p>
                     </div>
                     <button type="button" disabled={restoringId !== null}
                       onClick={() => handleRestore(restoreUserId, s.id, formatDate(s.created_at))}
@@ -1071,7 +1071,7 @@ function SrsIntervalInput({ ms, onChange }: { ms: number; onChange: (ms: number)
           setValue(v)
           emitChange(v, unit)
         }}
-        className="w-20 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        className="w-20 px-2.5 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
       />
       <select
         value={unit}
@@ -1080,7 +1080,7 @@ function SrsIntervalInput({ ms, onChange }: { ms: number; onChange: (ms: number)
           setUnit(u)
           emitChange(value, u)
         }}
-        className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
       >
         <option value="minutes">min</option>
         <option value="hours">horas</option>

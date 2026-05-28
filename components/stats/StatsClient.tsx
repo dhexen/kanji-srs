@@ -33,7 +33,7 @@ function ProgressRing({
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-16 h-16">
         <svg className="w-16 h-16 -rotate-90" viewBox="0 0 72 72">
-          <circle cx="36" cy="36" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-slate-100" />
+          <circle cx="36" cy="36" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-slate-100 dark:text-slate-700" />
           <circle
             cx="36" cy="36" r={r} fill="none"
             stroke="currentColor" strokeWidth="6"
@@ -47,7 +47,7 @@ function ProgressRing({
         </span>
       </div>
       <div className="text-center">
-        <p className="text-sm font-semibold text-slate-700">{label}</p>
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</p>
         <p className="text-[11px] text-slate-400">{sub}</p>
       </div>
     </div>
@@ -188,20 +188,20 @@ export default function StatsClient() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">{t(lang, 'nav_stats')}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'nav_stats')}</h1>
         <SectionHelp section="profile" lang={lang} />
       </div>
 
       {/* Tab bar — visible on mobile only (desktop uses the sidebar submenu) */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl lg:hidden">
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl lg:hidden">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`relative flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === tab.key
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             {tab.label}
@@ -217,8 +217,8 @@ export default function StatsClient() {
       {activeTab === 'stats' && (
         <div className="space-y-6">
           {/* Progress overview */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h3 className="font-bold text-slate-800 mb-5">{t(lang, 'stats_prog_overview')}</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-5">{t(lang, 'stats_prog_overview')}</h3>
             <div className="flex justify-around gap-4">
               <ProgressRing
                 pct={vocabPct}
@@ -249,7 +249,7 @@ export default function StatsClient() {
               { label: t(lang, 'stats_pending'),        val: pending,                                                color: 'text-amber-600' },
               { label: t(lang, 'stats_mastered'),       val: mastered,                                               color: 'text-purple-600' },
             ].map(s => (
-              <div key={s.label} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
+              <div key={s.label} className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
                 <div className={`text-3xl font-bold ${s.color}`}>{s.val}</div>
                 <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1">{s.label}</div>
               </div>
@@ -265,18 +265,18 @@ export default function StatsClient() {
       {activeTab === 'settings' && (
         <div className="space-y-4">
           {/* Gemini API Key */}
-          <div data-tutorial-id="profile-api-section" className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <div data-tutorial-id="profile-api-section" className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
             <div>
-              <h3 className="font-bold text-slate-900">{t(lang, 'api_title')}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{t(lang, 'api_subtitle')}</p>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100">{t(lang, 'api_title')}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t(lang, 'api_subtitle')}</p>
             </div>
 
             {/* Sections that use it */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 font-medium">
+              <span className="text-xs px-2.5 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg border border-purple-100 dark:border-purple-800 font-medium">
                 {t(lang, 'stats_ai_context')}
               </span>
-              <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 font-medium">
+              <span className="text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-800 font-medium">
                 {t(lang, 'stats_ai_grammar')}
               </span>
             </div>
@@ -293,17 +293,17 @@ export default function StatsClient() {
               </button>
 
               {geminiStepsOpen && (
-                <div className="mt-3 bg-slate-50 rounded-xl p-4">
-                  <ol className="space-y-2.5 text-xs text-slate-600">
+                <div className="mt-3 bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                  <ol className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
                     {[
                       { n: 1, es: <>Ve a <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> e inicia sesión con tu cuenta de Google</>, en: <>Go to <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> and sign in with your Google account</>, ca: <>Ves a <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> i inicia sessió amb el teu compte de Google</>, ja: <><a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">aistudio.google.com</a> にアクセスし、Googleアカウントでログイン</> },
                       { n: 2, es: <>Haz clic en <strong>«Get API key»</strong> en el menú lateral izquierdo</>, en: <>Click <strong>"Get API key"</strong> in the left sidebar</>, ca: <>Fes clic a <strong>«Get API key»</strong> al menú lateral esquerre</>, ja: <>左メニューの <strong>「Get API key」</strong> をクリック</> },
                       { n: 3, es: <>Pulsa <strong>«Create API key»</strong> y selecciona o crea un proyecto</>, en: <>Click <strong>"Create API key"</strong> and select or create a project</>, ca: <>Prem <strong>«Create API key»</strong> i selecciona o crea un projecte</>, ja: <><strong>「Create API key」</strong> を押してプロジェクトを選択または作成</> },
-                      { n: 4, es: <>Copia la clave generada — empieza por <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, en: <>Copy the generated key — starts with <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, ca: <>Copia la clau generada — comença per <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code></>, ja: <>生成されたキーをコピー — <code className="bg-slate-200 px-1 rounded text-slate-700">AIzaSy...</code> で始まります</> },
+                      { n: 4, es: <>Copia la clave generada — empieza por <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded text-slate-700 dark:text-slate-300">AIzaSy...</code></>, en: <>Copy the generated key — starts with <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded text-slate-700 dark:text-slate-300">AIzaSy...</code></>, ca: <>Copia la clau generada — comença per <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded text-slate-700 dark:text-slate-300">AIzaSy...</code></>, ja: <>生成されたキーをコピー — <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded text-slate-700 dark:text-slate-300">AIzaSy...</code> で始まります</> },
                       { n: 5, es: <>Pégala en el campo de abajo y pulsa <strong>Guardar</strong></>, en: <>Paste it in the field below and press <strong>Save</strong></>, ca: <>Enganxa-la al camp de sota i prem <strong>Guardar</strong></>, ja: <>下のフィールドに貼り付けて <strong>保存</strong> を押す</> },
                     ].map(step => (
                       <li key={step.n} className="flex gap-2.5 items-start">
-                        <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-bold text-[10px] flex items-center justify-center mt-0.5">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] flex items-center justify-center mt-0.5">
                           {step.n}
                         </span>
                         <span>{(step as any)[lang] ?? step.es}</span>
@@ -319,8 +319,8 @@ export default function StatsClient() {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-600">API Key</label>
                 {state.geminiApiKey
-                  ? <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
-                  : <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
+                  ? <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
+                  : <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
                 }
               </div>
               <div className="flex gap-2">
@@ -329,7 +329,7 @@ export default function StatsClient() {
                   value={geminiKey}
                   onChange={e => setGeminiKey(e.target.value)}
                   placeholder="AIzaSy..."
-                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-slate-100"
                 />
                 <button
                   onClick={handleSaveGeminiKey}
@@ -350,10 +350,10 @@ export default function StatsClient() {
           </div>
 
           {/* Pexels API Key — solo admins */}
-          {state.role === 'admin' && <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          {state.role === 'admin' && <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
             <div>
-              <h3 className="font-bold text-slate-900">Pexels API Key</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100">Pexels API Key</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {lang === 'ca' ? 'Per a la cerca automàtica d\'imatges de vocabulari' :
                  lang === 'en' ? 'For automatic vocabulary image search' :
                  lang === 'ja' ? '語彙画像の自動検索用' :
@@ -362,7 +362,7 @@ export default function StatsClient() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-100 font-medium">
+              <span className="text-xs px-2.5 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 rounded-lg border border-rose-100 dark:border-rose-800 font-medium">
                 {lang === 'ca' ? '🖼️ Imatges de vocabulari' :
                  lang === 'en' ? '🖼️ Vocabulary images' :
                  lang === 'ja' ? '🖼️ 語彙画像' :
@@ -370,7 +370,7 @@ export default function StatsClient() {
               </span>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4 text-xs text-slate-600 space-y-2">
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 text-xs text-slate-600 dark:text-slate-300 space-y-2">
               {[
                 { n: 1,
                   es: <>Ve a <a href="https://www.pexels.com/api/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-medium">pexels.com/api</a> e inicia sesión o crea una cuenta gratuita</>,
@@ -392,7 +392,7 @@ export default function StatsClient() {
                 },
               ].map(step => (
                 <div key={step.n} className="flex gap-2.5 items-start">
-                  <span className="shrink-0 w-5 h-5 rounded-full bg-rose-100 text-rose-600 font-bold text-[10px] flex items-center justify-center mt-0.5">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900 text-rose-600 dark:text-rose-400 font-bold text-[10px] flex items-center justify-center mt-0.5">
                     {step.n}
                   </span>
                   <span>{(step as any)[lang] ?? step.es}</span>
@@ -404,8 +404,8 @@ export default function StatsClient() {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-600">API Key</label>
                 {state.pexelsApiKey
-                  ? <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
-                  : <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
+                  ? <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
+                  : <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
                 }
               </div>
               <div className="flex gap-2">
@@ -414,7 +414,7 @@ export default function StatsClient() {
                   value={pexelsKey}
                   onChange={e => setPexelsKey(e.target.value)}
                   placeholder="pexels.com/api — clave gratuita inmediata"
-                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-400"
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-400 dark:bg-slate-700 dark:text-slate-100"
                 />
                 <button
                   onClick={handleSavePexelsKey}
@@ -435,15 +435,15 @@ export default function StatsClient() {
           </div>}
 
           {/* Language selector */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <label htmlFor="ui-lang" className="block font-bold text-slate-900 mb-3">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <label htmlFor="ui-lang" className="block font-bold text-slate-900 dark:text-slate-100 mb-3">
               {t(lang, 'stats_language')}
             </label>
             <select
               id="ui-lang"
               value={state.lang}
               onChange={e => setLang(e.target.value as Lang)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
+              className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer"
             >
               {(Object.entries(LANG_NAMES) as [Lang, string][]).map(([code, name]) => (
                 <option key={code} value={code}>{name}</option>
@@ -452,30 +452,30 @@ export default function StatsClient() {
           </div>
 
           {/* Backup */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <h3 className="font-bold text-slate-900">{t(lang, 'stats_backup')}</h3>
-            <p className="text-slate-500 text-xs">{t(lang, 'stats_backup_sub')}</p>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <h3 className="font-bold text-slate-900 dark:text-slate-100">{t(lang, 'stats_backup')}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs">{t(lang, 'stats_backup_sub')}</p>
             <div className="flex gap-3">
-              <button onClick={exportJSON} className="flex-1 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-sm transition">
+              <button onClick={exportJSON} className="flex-1 py-2.5 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm transition">
                 {t(lang, 'stats_export')}
               </button>
-              <label className="flex-1 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-sm transition flex items-center justify-center cursor-pointer">
+              <label className="flex-1 py-2.5 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm transition flex items-center justify-center cursor-pointer">
                 {t(lang, 'stats_import')}
                 <input type="file" accept=".json" onChange={importJSON} className="hidden" />
               </label>
             </div>
-            <button onClick={resetAll} className="w-full py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition">
+            <button onClick={resetAll} className="w-full py-2.5 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold rounded-xl text-sm transition">
               {t(lang, 'stats_reset')}
             </button>
           </div>
 
           {/* Tutorial reset */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <h3 className="font-bold text-slate-900">{t(lang, 'stats_tutorials_title')}</h3>
-            <p className="text-slate-500 text-xs">{t(lang, 'stats_tutorials_sub')}</p>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <h3 className="font-bold text-slate-900 dark:text-slate-100">{t(lang, 'stats_tutorials_title')}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs">{t(lang, 'stats_tutorials_sub')}</p>
             <button
               onClick={resetTutorials}
-              className="w-full py-2.5 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-sm transition"
+              className="w-full py-2.5 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl text-sm transition"
             >
               {t(lang, 'stats_tutorials_reset_btn')}
             </button>
@@ -485,20 +485,20 @@ export default function StatsClient() {
 
       {/* ── TAB: Cuenta ────────────────────────────────────────────────────── */}
       {activeTab === 'account' && (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-          <h3 className="font-bold text-slate-900">{t(lang, 'stats_account')}</h3>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+          <h3 className="font-bold text-slate-900 dark:text-slate-100">{t(lang, 'stats_account')}</h3>
           <div className="space-y-3">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span className="text-sm font-bold text-emerald-800">{t(lang, 'stats_sync_active')}</span>
+                <span className="text-sm font-bold text-emerald-800 dark:text-emerald-400">{t(lang, 'stats_sync_active')}</span>
               </div>
-              <p className="text-xs text-emerald-600">{state.user?.email}</p>
-              <p className="text-xs text-emerald-500 mt-1">{t(lang, 'stats_sync_msg')}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">{state.user?.email}</p>
+              <p className="text-xs text-emerald-500 dark:text-emerald-500 mt-1">{t(lang, 'stats_sync_msg')}</p>
             </div>
             {state.syncing && <div className="text-xs text-indigo-500 flex items-center gap-2 animate-pulse"><span>↕</span>{t(lang, 'header_syncing')}</div>}
             <button onClick={() => handleAuth(logout, t(lang, 'stats_logout'))}
-              className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold rounded-xl text-sm transition">
+              className="w-full py-2.5 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl text-sm transition">
               {t(lang, 'stats_logout')}
             </button>
           </div>
