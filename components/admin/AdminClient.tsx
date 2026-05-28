@@ -80,6 +80,8 @@ export default function AdminClient() {
   const [imgReportUrls, setImgReportUrls] = useState<Record<string, string>>({})
   const [imgReportActing, setImgReportActing] = useState<string | null>(null)
   const [imgReportUrlOpen, setImgReportUrlOpen] = useState<string | null>(null)
+  const [imgCandidates, setImgCandidates] = useState<Record<string, string>>({})
+  const [imgCandidateActing, setImgCandidateActing] = useState<string | null>(null)
 
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
@@ -299,25 +301,22 @@ export default function AdminClient() {
     }
   }
 
-  async function handleReportAction(word: string, action: 'remove' | 'retry' | 'set_url') {
+  async function handleReportAction(word: string, action: 'remove' | 'set_url') {
     setImgReportActing(word)
     try {
-      const result = await updateImageReport({
+      await updateImageReport({
         word,
         action,
         url: action === 'set_url' ? imgReportUrls[word] : undefined,
         pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
       })
-      if (action === 'retry' && result.image_url) {
-        showToast('Nueva imagen encontrada', 'success')
-      } else if (action === 'remove') {
+      if (action === 'remove') {
         showToast('Imagen eliminada', 'success')
-      } else if (action === 'set_url') {
-        showToast('URL guardada', 'success')
       } else {
-        showToast('Sin imagen alternativa encontrada', 'info')
+        showToast('URL guardada', 'success')
       }
       setImgReportUrlOpen(null)
+      setImgCandidates(prev => { const n = { ...prev }; delete n[word]; return n })
       await loadImgReports()
       const stats = await fetchImageStats()
       setImgStats(stats)
@@ -326,6 +325,48 @@ export default function AdminClient() {
     } finally {
       setImgReportActing(null)
     }
+  }
+
+  async function handlePreviewSearch(word: string) {
+    setImgCandidateActing(word)
+    try {
+      const result = await updateImageReport({
+        word,
+        action: 'preview',
+        pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
+      })
+      if (result.image_url) {
+        setImgCandidates(prev => ({ ...prev, [word]: result.image_url }))
+      } else {
+        showToast('No se encontró imagen alternativa', 'info')
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setImgCandidateActing(null)
+    }
+  }
+
+  async function handleAcceptCandidate(word: string) {
+    const candidateUrl = imgCandidates[word]
+    if (!candidateUrl) return
+    setImgReportActing(word)
+    try {
+      await updateImageReport({ word, action: 'retry', candidateUrl })
+      showToast('Imagen guardada', 'success')
+      setImgCandidates(prev => { const n = { ...prev }; delete n[word]; return n })
+      await loadImgReports()
+      const stats = await fetchImageStats()
+      setImgStats(stats)
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setImgReportActing(null)
+    }
+  }
+
+  function handleRejectCandidate(word: string) {
+    setImgCandidates(prev => { const n = { ...prev }; delete n[word]; return n })
   }
 
   async function loadUsers() {
@@ -792,7 +833,47 @@ export default function AdminClient() {
               <div className="space-y-3">
                 {imgReports.map(r => {
                   const acting = imgReportActing === r.word
+                  const candidateActing = imgCandidateActing === r.word
+                  const candidate = imgCandidates[r.word]
                   const urlOpen = imgReportUrlOpen === r.word
+
+                  if (candidate) {
+                    return (
+                      <div key={r.word} className="flex flex-col gap-3 p-3 border border-violet-200 rounded-xl bg-violet-50/40">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="kanji-font text-xl font-bold text-slate-800">{r.word}</span>
+                          <span className="text-xs text-slate-400">{r.meaning_es}</span>
+                          <span className="ml-auto text-xs font-semibold text-rose-600">👍 {r.upvotes} · 👎 {r.downvotes}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-xs text-slate-400">Actual</span>
+                            <img src={r.image_url} alt={r.word} className="w-24 h-24 object-cover rounded-lg border border-slate-200" />
+                          </div>
+                          <span className="text-slate-300 text-xl">→</span>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-xs text-violet-600 font-semibold">Candidata</span>
+                            <img src={candidate} alt={r.word} className="w-24 h-24 object-cover rounded-lg border-2 border-violet-400" />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" disabled={acting} onClick={() => handleAcceptCandidate(r.word)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-semibold disabled:opacity-50 transition">
+                            {acting ? '…' : '✅ Aceptar'}
+                          </button>
+                          <button type="button" disabled={acting} onClick={() => handleRejectCandidate(r.word)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold disabled:opacity-50 transition">
+                            ❌ Rechazar
+                          </button>
+                          <button type="button" disabled={acting || candidateActing} onClick={() => handlePreviewSearch(r.word)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-violet-100 hover:bg-violet-200 text-violet-700 font-semibold disabled:opacity-50 transition">
+                            {candidateActing ? '…' : '🔄 Buscar otra'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return (
                     <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 rounded-xl bg-slate-50/60">
                       <img src={r.image_url} alt={r.word}
@@ -808,9 +889,9 @@ export default function AdminClient() {
                             className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold disabled:opacity-50 transition">
                             🗑️ Quitar
                           </button>
-                          <button type="button" disabled={acting} onClick={() => handleReportAction(r.word, 'retry')}
+                          <button type="button" disabled={acting || candidateActing} onClick={() => handlePreviewSearch(r.word)}
                             className="text-xs px-3 py-1.5 rounded-lg bg-violet-100 hover:bg-violet-200 text-violet-700 font-semibold disabled:opacity-50 transition">
-                            {acting ? '…' : '🔄 Buscar otra'}
+                            {candidateActing ? '…' : '🔄 Buscar otra'}
                           </button>
                           <button type="button" onClick={() => setImgReportUrlOpen(urlOpen ? null : r.word)}
                             className="text-xs px-3 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold transition">

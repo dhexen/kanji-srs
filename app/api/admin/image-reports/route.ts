@@ -74,19 +74,34 @@ async function fetchPexelsImage(searchTerm: string, apiKey: string): Promise<str
 }
 
 // PATCH — act on a flagged word's image
-// Body: { word, action: 'remove' | 'retry' | 'set_url', url?: string, pexelsApiKey?: string }
+// Body: { word, action: 'remove' | 'retry' | 'set_url' | 'preview', url?: string, candidateUrl?: string, pexelsApiKey?: string }
 export async function PATCH(request: NextRequest) {
   try {
     const { service } = await requireAdmin(request)
 
     const body = await request.json() as {
       word: string
-      action: 'remove' | 'retry' | 'set_url'
+      action: 'remove' | 'retry' | 'set_url' | 'preview'
       url?: string
+      candidateUrl?: string
       pexelsApiKey?: string
     }
     const { word, action } = body
     if (!word || !action) throw new AdminApiError('word y action son obligatorios', 400)
+
+    // preview: search Pexels and return candidate WITHOUT saving to DB
+    if (action === 'preview') {
+      const pexelsKey = body.pexelsApiKey?.trim() ?? process.env.PEXELS_API_KEY
+      if (!pexelsKey) throw new AdminApiError('Falta la Pexels API Key', 400)
+      const { data: vocabRow } = await service
+        .from('vocabulary')
+        .select('image_search_term')
+        .eq('word', word)
+        .maybeSingle()
+      const searchTerm = (vocabRow?.image_search_term as string) ?? word
+      const found = await fetchPexelsImage(searchTerm, pexelsKey)
+      return NextResponse.json({ ok: true, image_url: found ?? '' })
+    }
 
     let newImageUrl: string
 
@@ -96,19 +111,21 @@ export async function PATCH(request: NextRequest) {
       if (!body.url?.startsWith('http')) throw new AdminApiError('URL inválida', 400)
       newImageUrl = body.url
     } else if (action === 'retry') {
-      const pexelsKey = body.pexelsApiKey?.trim() ?? process.env.PEXELS_API_KEY
-      if (!pexelsKey) throw new AdminApiError('Falta la Pexels API Key', 400)
-
-      // Get stored search term
-      const { data: vocabRow } = await service
-        .from('vocabulary')
-        .select('image_search_term')
-        .eq('word', word)
-        .maybeSingle()
-
-      const searchTerm = (vocabRow?.image_search_term as string) ?? word
-      const found = await fetchPexelsImage(searchTerm, pexelsKey)
-      newImageUrl = found ?? ''
+      if (body.candidateUrl) {
+        // Accept a pre-fetched candidate image
+        newImageUrl = body.candidateUrl
+      } else {
+        const pexelsKey = body.pexelsApiKey?.trim() ?? process.env.PEXELS_API_KEY
+        if (!pexelsKey) throw new AdminApiError('Falta la Pexels API Key', 400)
+        const { data: vocabRow } = await service
+          .from('vocabulary')
+          .select('image_search_term')
+          .eq('word', word)
+          .maybeSingle()
+        const searchTerm = (vocabRow?.image_search_term as string) ?? word
+        const found = await fetchPexelsImage(searchTerm, pexelsKey)
+        newImageUrl = found ?? ''
+      }
     } else {
       throw new AdminApiError('action desconocida', 400)
     }

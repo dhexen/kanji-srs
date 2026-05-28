@@ -166,8 +166,9 @@ export async function fetchImageReports(): Promise<ImageReport[]> {
 
 export async function updateImageReport(opts: {
   word: string
-  action: 'remove' | 'retry' | 'set_url'
+  action: 'remove' | 'retry' | 'set_url' | 'preview'
   url?: string
+  candidateUrl?: string
   pexelsApiKey?: string
 }): Promise<{ image_url: string }> {
   const res = await fetch('/api/admin/image-reports', {
