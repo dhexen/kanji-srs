@@ -165,8 +165,13 @@ export default function StatsClient() {
   function resetTutorials() {
     if (!confirm(t(lang, 'stats_tutorials_sub'))) return
     try {
+      localStorage.removeItem('kanji_tour_v3_done')
+      localStorage.removeItem('kanji_tour_v3_phase')
+      // Also clear old v1/v2 keys and section help seen flags
       localStorage.removeItem('kanji_tutorial_v1_done')
       localStorage.removeItem('kanji_tutorial_v1_step')
+      localStorage.removeItem('kanji_tutorial_v2_done')
+      localStorage.removeItem('kanji_tutorial_v2_step')
       Object.keys(localStorage)
         .filter(k => k.startsWith('sectionhelp_v1_'))
         .forEach(k => localStorage.removeItem(k))

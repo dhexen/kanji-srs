@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { TUTORIAL_DONE_KEY } from '@/components/ui/Tutorial'
+import { TOUR_DONE_KEY } from '@/components/ui/ProductTour'
 
 type ML = Record<string, string>
 
@@ -354,7 +354,7 @@ export default function SectionHelp({ section, lang }: Props) {
   useEffect(() => {
     if (!mounted) return
     try {
-      const tutorialDone = localStorage.getItem(TUTORIAL_DONE_KEY)
+      const tutorialDone = localStorage.getItem(TOUR_DONE_KEY)
       const sectionSeen = localStorage.getItem(getSectionSeenKey(section, content?.version))
       if (tutorialDone && !sectionSeen) {
         const timer = setTimeout(() => setOpen(true), 500)

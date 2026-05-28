@@ -156,7 +156,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         </span>
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{index + 1} / {total}</span>
-          <button onClick={onQuit} className="text-xs text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 font-semibold transition border border-slate-200 dark:border-slate-600 hover:border-rose-200 dark:hover:border-rose-700 px-2.5 py-1 rounded-lg">
+          <button data-tour="quit-btn" onClick={onQuit} className="text-xs text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 font-semibold transition border border-slate-200 dark:border-slate-600 hover:border-rose-200 dark:hover:border-rose-700 px-2.5 py-1 rounded-lg">
             {t(lang, 'review_quit')}
           </button>
         </div>
@@ -168,7 +168,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {/* Question area */}
       <div className="text-center bg-slate-50 dark:bg-slate-900 rounded-2xl relative border border-slate-100 dark:border-slate-700 overflow-hidden">
         {/* Badge — always top-left, overlays image when present */}
-        <span className={`absolute top-3 left-3 z-10 px-2.5 py-1 text-xs font-semibold rounded-md shadow-sm ${badgeColors[mode]}`}>
+        <span data-tour="mode-badge" className={`absolute top-3 left-3 z-10 px-2.5 py-1 text-xs font-semibold rounded-md shadow-sm ${badgeColors[mode]}`}>
           {t(lang, cfg.label_key)} <span className="opacity-60">{getStageName(level, lang)}</span>
         </span>
 
@@ -213,7 +213,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
 
           {/* Badges: tipo de palabra, categoría y curso */}
           {(item.word_type || item.category || item.grade) && (
-            <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+            <div data-tour="category-labels" className="flex flex-wrap justify-center gap-1.5 mt-3">
               {item.word_type && (
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${wordTypeColors[item.word_type]}`}>
                   {t(lang, `wt_${item.word_type}`)}
@@ -238,6 +238,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {answerState === 'waiting' && (
         <div className="flex justify-end">
           <button
+            data-tour="master-btn"
             type="button"
             onClick={async () => {
               await masterVocabItem(item.jp)

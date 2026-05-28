@@ -15,7 +15,7 @@ import { useStore } from '@/lib/store'
 import { SidebarProvider } from '@/lib/sidebar-context'
 import Nav from './Nav'
 import LayoutShell from './LayoutShell'
-import Tutorial from './Tutorial'
+import ProductTour from './ProductTour'
 
 // Páginas de autenticación: sin sidebar, sin AuthGuard
 const AUTH_PAGES = ['/login', '/auth/callback']
@@ -59,7 +59,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
   // ── App completa con sidebar (usuario autenticado o ruta pública) ────────
   return (
     <SidebarProvider>
-      <Tutorial />
+      <ProductTour />
       <Nav />
       <LayoutShell>
         {children}

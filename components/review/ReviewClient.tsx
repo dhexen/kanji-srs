@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
@@ -149,7 +149,15 @@ export default function ReviewClient() {
     setPhase('select')
     setSequence([])
     setIndex(0)
+    window.dispatchEvent(new CustomEvent('tour-action', { detail: { action: 'session-exited' } }))
   }
+
+  // Notify tour when playing phase starts
+  useEffect(() => {
+    if (phase === 'playing') {
+      window.dispatchEvent(new CustomEvent('tour-action', { detail: { action: 'session-started' } }))
+    }
+  }, [phase])
 
   if (phase === 'select') {
     const sectionsLabel = ({ es: 'Secciones', ca: 'Seccions', en: 'Sections', ja: 'セクション' } as Record<string, string>)[lang] ?? 'Secciones'
@@ -193,15 +201,25 @@ export default function ReviewClient() {
       <div className="space-y-4">
 
         {/* ── Hero ──────────────────────────────────────────────────── */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug">
-            Dashboard
-          </h1>
-          <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5 capitalize">{todayStr}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug">
+              Dashboard
+            </h1>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5 capitalize">{todayStr}</p>
+          </div>
+          <button
+            type="button"
+            title={{ es: 'Tour guiado', en: 'Guided tour', ca: 'Tour guiat', ja: 'ガイドツアー' }[lang] ?? 'Tour guiado'}
+            onClick={() => window.dispatchEvent(new Event('restart-tour'))}
+            className="w-7 h-7 rounded-full bg-slate-100 hover:bg-violet-100 text-slate-400 hover:text-violet-600 text-sm font-bold flex items-center justify-center transition shrink-0 dark:bg-slate-700 dark:hover:bg-violet-900/40 dark:text-slate-500 dark:hover:text-violet-400"
+          >
+            ?
+          </button>
         </div>
 
         {/* ── Forecast card ─────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+        <div data-tour="forecast-card" className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
@@ -289,7 +307,7 @@ export default function ReviewClient() {
         </div>
 
         {/* ── Selector de modos (pills en fila) ─────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+        <div data-tour="mode-selector" className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
           <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
             {t(lang, 'review_subtitle')}
           </p>
@@ -325,7 +343,7 @@ export default function ReviewClient() {
         </div>
 
         {/* ── Seccions + Nous Kanjis ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div data-tour="sections-grid" className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
 
           {/* Seccions */}
           <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
