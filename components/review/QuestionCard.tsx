@@ -195,12 +195,25 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         )}
 
         <div className={`pb-6 px-4 ${hasImage ? 'pt-5' : 'pt-12'}`}>
-          <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 dark:text-slate-100 mb-2 tracking-wide">
-            {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
-          </div>
+          {/* Main word display */}
+          {mode === 'meaning' && answerState !== 'waiting' ? (
+            // After answering meaning mode: show furigana above kanji
+            <div className="mb-2">
+              <ruby className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 dark:text-slate-100 tracking-wide">
+                {item.jp}
+                <rt style={{ fontSize: '0.38em' }} className="font-normal tracking-widest text-slate-400 dark:text-slate-500">
+                  {item.reading}
+                </rt>
+              </ruby>
+            </div>
+          ) : (
+            <div className="kanji-font text-5xl md:text-6xl font-bold text-slate-800 dark:text-slate-100 mb-2 tracking-wide">
+              {mode === 'kanji' ? `「${item.reading}」` : mode === 'reverse' ? meaning : item.jp}
+            </div>
+          )}
 
-          {/* Furigana — visible en meaning (lectura del kanji como pista) */}
-          {mode === 'meaning' && item.reading && (
+          {/* Reading hint — visible in meaning mode only while waiting for answer */}
+          {mode === 'meaning' && item.reading && answerState === 'waiting' && (
             <p className="text-slate-400 text-sm font-medium mb-1 tracking-widest">{item.reading}</p>
           )}
 
@@ -298,9 +311,16 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
               {t(lang, 'review_show_answer')}
             </button>
           ) : (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-5 text-center space-y-1">
-              <p className="kanji-font text-4xl font-bold text-slate-800 dark:text-slate-100">{item.jp}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{item.reading} — {meaning}</p>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-5 text-center">
+              <div className="mb-1">
+                <ruby className="kanji-font text-4xl font-bold text-slate-800 dark:text-slate-100">
+                  {item.jp}
+                  <rt style={{ fontSize: '0.45em' }} className="font-normal tracking-widest text-slate-500 dark:text-slate-400">
+                    {item.reading}
+                  </rt>
+                </ruby>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{meaning}</p>
             </div>
           )}
           {showAnswer && (

@@ -12,6 +12,16 @@ import SessionComplete from './SessionComplete'
 export type SessionItem = { item: VocabItem; mode: ReviewMode }
 type Phase = 'select' | 'playing' | 'done'
 
+// Canonical mode order for spaced-repetition learning progression
+const CANONICAL_MODE_ORDER: ReviewMode[] = ['multi', 'meaning', 'reading', 'kanji', 'reverse']
+
+function orderByMode(items: SessionItem[]): SessionItem[] {
+  const groups = new Map<ReviewMode, SessionItem[]>(CANONICAL_MODE_ORDER.map(m => [m, []]))
+  for (const item of items) groups.get(item.mode)?.push(item)
+  for (const group of groups.values()) group.sort(() => Math.random() - 0.5)
+  return CANONICAL_MODE_ORDER.flatMap(m => groups.get(m) ?? [])
+}
+
 function strip(s: string) {
   return s.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[^\w　-鿿]/u, '').trim()
 }
@@ -85,7 +95,7 @@ export default function ReviewClient() {
         }
       })
     })
-    return items.sort(() => Math.random() - 0.5)
+    return orderByMode(items)
   }
 
   async function start(practice: boolean) {
@@ -132,7 +142,7 @@ export default function ReviewClient() {
         modesActive.forEach(mode => seq.push({ item, mode }))
       })
       setIsPractice(false)
-      setSequence(seq.sort(() => Math.random() - 0.5))
+      setSequence(orderByMode(seq))
       setIndex(0)
       setPhase('playing')
     } finally {
