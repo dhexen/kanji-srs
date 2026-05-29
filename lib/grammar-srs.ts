@@ -24,6 +24,8 @@ export interface GrammarSentence {
   grammar_id: string
   sentence_before: string          // kanji/kana text before the blank
   sentence_before_reading: string  // pure kana reading of the before part
+  sentence_before_alts: string[]   // up to 4 alternative before-blank texts (jp)
+  sentence_before_reading_alts: string[] // readings for each alternative
   sentence_after: string           // kanji/kana text after the blank
   sentence_after_reading: string   // pure kana reading of the after part
   answer: string                   // correct grammar pattern
@@ -319,6 +321,10 @@ function generateAllValidForms(text: string, reading: string): string[] {
  * The grammar answer token is always kana and is compared verbatim.
  * All comparisons are performed after normalisation (punctuation stripped,
  * katakana → hiragana, whitespace collapsed).
+ *
+ * `beforeAlts` — alternative before-blank segments (e.g. with/without honorifics,
+ *   different pronouns). Each element is { jp, reading }.
+ * `answerAlts` — alternative acceptable grammar patterns (e.g. だ vs です).
  */
 export function checkFullSentence(
   userInput: string,
@@ -327,25 +333,37 @@ export function checkFullSentence(
   answer: string,
   sentenceAfterReading: string,
   sentenceAfter: string,
+  options?: {
+    beforeAlts?: Array<{ jp: string; reading: string }>
+    answerAlts?: string[]
+  },
 ): boolean {
   const norm = normalizeAnswer(userInput)
   if (!norm) return false
 
-  // Generate all valid forms for the before and after segments.
-  // Each kanji block can independently be kanji or its kana reading.
-  const beforeForms = generateAllValidForms(
-    sentenceBefore,
-    sentenceBeforeReading || sentenceBefore,
-  )
+  // Build all candidate before segments (main + alternatives)
+  const beforeCandidates: Array<{ jp: string; reading: string }> = [
+    { jp: sentenceBefore, reading: sentenceBeforeReading },
+    ...(options?.beforeAlts ?? []).filter(a => a.jp),
+  ]
+
+  // All acceptable answer forms (main + alts)
+  const answerForms = [answer, ...(options?.answerAlts ?? [])].filter(Boolean)
+
+  // Generate all valid forms for the after segment
   const afterForms = generateAllValidForms(
     sentenceAfter,
     sentenceAfterReading || sentenceAfter,
   )
 
-  // The grammar answer is always kana — check every before × after combination.
-  for (const before of beforeForms) {
-    for (const after of afterForms) {
-      if (norm === normalizeAnswer(before + answer + after)) return true
+  for (const { jp, reading } of beforeCandidates) {
+    const beforeForms = generateAllValidForms(jp, reading || jp)
+    for (const bf of beforeForms) {
+      for (const ans of answerForms) {
+        for (const af of afterForms) {
+          if (norm === normalizeAnswer(bf + ans + af)) return true
+        }
+      }
     }
   }
 

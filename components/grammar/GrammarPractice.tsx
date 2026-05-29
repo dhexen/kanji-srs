@@ -248,20 +248,22 @@ export default function GrammarPractice({
   const [schoolVocab, setSchoolVocab]       = useState<SchoolVocabItem[]>([])
 
   // ── Sentence edit state (admin / contributor only) ────────────────────────
-  const [editingId, setEditingId]       = useState<string | null>(null)
-  const [editBefore, setEditBefore]     = useState('')
-  const [editBeforeR, setEditBeforeR]   = useState('')
-  const [editAnswer, setEditAnswer]     = useState('')
-  const [editAfter, setEditAfter]       = useState('')
-  const [editAfterR, setEditAfterR]     = useState('')
-  const [editTransEs, setEditTransEs]   = useState('')
-  const [editTransCa, setEditTransCa]   = useState('')
-  const [editTransEn, setEditTransEn]   = useState('')
-  const [editSaving, setEditSaving]     = useState(false)
-  const [editError, setEditError]       = useState('')
-  const [validating, setValidating]     = useState(false)
-  const [deleting, setDeleting]         = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [editingId, setEditingId]           = useState<string | null>(null)
+  const [editBefore, setEditBefore]         = useState('')
+  const [editBeforeR, setEditBeforeR]       = useState('')
+  const [editBeforeAlts, setEditBeforeAlts] = useState<string[]>(['', '', '', ''])
+  const [editBeforeRAlts, setEditBeforeRAlts] = useState<string[]>(['', '', '', ''])
+  const [editAnswer, setEditAnswer]         = useState('')
+  const [editAfter, setEditAfter]           = useState('')
+  const [editAfterR, setEditAfterR]         = useState('')
+  const [editTransEs, setEditTransEs]       = useState('')
+  const [editTransCa, setEditTransCa]       = useState('')
+  const [editTransEn, setEditTransEn]       = useState('')
+  const [editSaving, setEditSaving]         = useState(false)
+  const [editError, setEditError]           = useState('')
+  const [validating, setValidating]         = useState(false)
+  const [deleting, setDeleting]             = useState(false)
+  const [deleteConfirm, setDeleteConfirm]   = useState(false)
 
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
@@ -412,16 +414,18 @@ Otras reglas:
       const discarded = allRaw.length - passing.length
 
       const newSentences: GrammarSentence[] = passing.slice(0, TARGET_POOL).map(s => ({
-        grammar_id:               grammar.id,
-        sentence_before:          String(s.before_jp          ?? ''),
-        sentence_before_reading:  String(s.before_reading     ?? ''),
-        sentence_after:           String(s.after_jp           ?? ''),
-        sentence_after_reading:   String(s.after_reading      ?? ''),
-        answer:                   String(s.answer             ?? grammar.pattern),
-        answer_alts:              Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
-        translation_es:           String(s.translation_es     ?? ''),
-        translation_ca:           String(s.translation_ca     ?? ''),
-        translation_en:           String(s.translation_en     ?? ''),
+        grammar_id:                     grammar.id,
+        sentence_before:                String(s.before_jp          ?? ''),
+        sentence_before_reading:        String(s.before_reading     ?? ''),
+        sentence_before_alts:           [],
+        sentence_before_reading_alts:   [],
+        sentence_after:                 String(s.after_jp           ?? ''),
+        sentence_after_reading:         String(s.after_reading      ?? ''),
+        answer:                         String(s.answer             ?? grammar.pattern),
+        answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
+        translation_es:                 String(s.translation_es     ?? ''),
+        translation_ca:                 String(s.translation_ca     ?? ''),
+        translation_en:                 String(s.translation_en     ?? ''),
       }))
 
       setLastGenStats({ generated: allRaw.length, kept: newSentences.length })
@@ -453,11 +457,17 @@ Otras reglas:
   }, [grammar.id, generate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sentence editor helpers ───────────────────────────────────────────────
+  function padTo4(arr: string[]): string[] {
+    return [...arr.slice(0, 4), '', '', '', ''].slice(0, 4)
+  }
+
   function openEdit(s: GrammarSentence) {
     if (!s.id) return
     setEditingId(s.id)
     setEditBefore(s.sentence_before)
     setEditBeforeR(s.sentence_before_reading)
+    setEditBeforeAlts(padTo4(s.sentence_before_alts ?? []))
+    setEditBeforeRAlts(padTo4(s.sentence_before_reading_alts ?? []))
     setEditAnswer(s.answer)
     setEditAfter(s.sentence_after)
     setEditAfterR(s.sentence_after_reading)
@@ -469,6 +479,8 @@ Otras reglas:
 
   function closeEdit() {
     setEditingId(null)
+    setEditBeforeAlts(['', '', '', ''])
+    setEditBeforeRAlts(['', '', '', ''])
     setEditError('')
   }
 
@@ -482,9 +494,16 @@ Otras reglas:
     setEditSaving(true)
     setEditError('')
     try {
+      const cleanAlts = editBeforeAlts.map(s => s.trim()).filter(Boolean)
+      const cleanAltRs = editBeforeRAlts.map(s => s.trim())
+      // Align readings with their corresponding alt (pad with '' if missing)
+      const alignedAltRs = cleanAlts.map((_, i) => cleanAltRs[i] ?? '')
+
       const patch = {
         sentence_before: trimBefore,
         sentence_before_reading: editBeforeR.trim(),
+        sentence_before_alts: cleanAlts,
+        sentence_before_reading_alts: alignedAltRs,
         answer: trimAnswer,
         sentence_after: editAfter.trim(),
         sentence_after_reading: editAfterR.trim(),
@@ -493,7 +512,6 @@ Otras reglas:
         translation_en: editTransEn.trim(),
       }
       await updateGrammarSentence(editingId, patch)
-      // Update local state
       setSentences(prev => prev.map(s =>
         s.id === editingId ? { ...s, ...patch } : s
       ))
@@ -579,6 +597,12 @@ Otras reglas:
       sentence.answer,
       sentence.sentence_after_reading,
       sentence.sentence_after,
+      {
+        beforeAlts: (sentence.sentence_before_alts ?? [])
+          .map((jp, i) => ({ jp, reading: (sentence.sentence_before_reading_alts ?? [])[i] ?? '' }))
+          .filter(a => a.jp),
+        answerAlts: sentence.answer_alts,
+      },
     )
     setIsCorrect(correct)
     setSessionResults(prev => [...prev, correct])
@@ -1109,14 +1133,16 @@ Otras reglas:
             editingId === currentSentence.id ? (
               <SentenceEditForm
                 lang={lang}
-                editBefore={editBefore}    setEditBefore={setEditBefore}
-                editBeforeR={editBeforeR}  setEditBeforeR={setEditBeforeR}
-                editAnswer={editAnswer}    setEditAnswer={setEditAnswer}
-                editAfter={editAfter}      setEditAfter={setEditAfter}
-                editAfterR={editAfterR}    setEditAfterR={setEditAfterR}
-                editTransEs={editTransEs}  setEditTransEs={setEditTransEs}
-                editTransCa={editTransCa}  setEditTransCa={setEditTransCa}
-                editTransEn={editTransEn}  setEditTransEn={setEditTransEn}
+                editBefore={editBefore}            setEditBefore={setEditBefore}
+                editBeforeR={editBeforeR}          setEditBeforeR={setEditBeforeR}
+                editBeforeAlts={editBeforeAlts}    setEditBeforeAlts={setEditBeforeAlts}
+                editBeforeRAlts={editBeforeRAlts}  setEditBeforeRAlts={setEditBeforeRAlts}
+                editAnswer={editAnswer}            setEditAnswer={setEditAnswer}
+                editAfter={editAfter}              setEditAfter={setEditAfter}
+                editAfterR={editAfterR}            setEditAfterR={setEditAfterR}
+                editTransEs={editTransEs}          setEditTransEs={setEditTransEs}
+                editTransCa={editTransCa}          setEditTransCa={setEditTransCa}
+                editTransEn={editTransEn}          setEditTransEn={setEditTransEn}
                 saving={editSaving}
                 error={editError}
                 onSave={saveEdit}
@@ -1146,14 +1172,16 @@ Otras reglas:
 
 interface SentenceEditFormProps {
   lang: Lang
-  editBefore: string;    setEditBefore: (v: string) => void
-  editBeforeR: string;   setEditBeforeR: (v: string) => void
-  editAnswer: string;    setEditAnswer: (v: string) => void
-  editAfter: string;     setEditAfter: (v: string) => void
-  editAfterR: string;    setEditAfterR: (v: string) => void
-  editTransEs: string;   setEditTransEs: (v: string) => void
-  editTransCa: string;   setEditTransCa: (v: string) => void
-  editTransEn: string;   setEditTransEn: (v: string) => void
+  editBefore: string;            setEditBefore: (v: string) => void
+  editBeforeR: string;           setEditBeforeR: (v: string) => void
+  editBeforeAlts: string[];      setEditBeforeAlts: (v: string[]) => void
+  editBeforeRAlts: string[];     setEditBeforeRAlts: (v: string[]) => void
+  editAnswer: string;            setEditAnswer: (v: string) => void
+  editAfter: string;             setEditAfter: (v: string) => void
+  editAfterR: string;            setEditAfterR: (v: string) => void
+  editTransEs: string;           setEditTransEs: (v: string) => void
+  editTransCa: string;           setEditTransCa: (v: string) => void
+  editTransEn: string;           setEditTransEn: (v: string) => void
   saving: boolean
   error: string
   onSave: () => void
@@ -1164,6 +1192,8 @@ function SentenceEditForm({
   lang,
   editBefore, setEditBefore,
   editBeforeR, setEditBeforeR,
+  editBeforeAlts, setEditBeforeAlts,
+  editBeforeRAlts, setEditBeforeRAlts,
   editAnswer, setEditAnswer,
   editAfter, setEditAfter,
   editAfterR, setEditAfterR,
@@ -1172,6 +1202,26 @@ function SentenceEditForm({
   editTransEn, setEditTransEn,
   saving, error, onSave, onCancel,
 }: SentenceEditFormProps) {
+  const beforeLabel  = lang === 'en' ? 'Before blank' : lang === 'ca' ? 'Abans del buit' : 'Antes del hueco'
+  const readingLabel = lang === 'en' ? 'Reading before' : lang === 'ca' ? 'Lectura abans' : 'Lectura antes'
+  const altLabel     = lang === 'en' ? 'Alternative' : lang === 'ca' ? 'Alternativa' : 'Alternativa'
+  const altsHint     = lang === 'en'
+    ? 'Alternative phrasings (honorifics, different pronouns…) accepted as correct'
+    : lang === 'ca'
+    ? 'Formes alternatives (honorífics, pronoms…) acceptades com a correctes'
+    : 'Formas alternativas (honoríficos, pronombres…) aceptadas como correctas'
+
+  function setAlt(i: number, val: string) {
+    const next = [...editBeforeAlts]
+    next[i] = val
+    setEditBeforeAlts(next)
+  }
+  function setAltR(i: number, val: string) {
+    const next = [...editBeforeRAlts]
+    next[i] = val
+    setEditBeforeRAlts(next)
+  }
+
   return (
     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2 mb-1">
@@ -1190,64 +1240,73 @@ function SentenceEditForm({
         {editAfter}
       </div>
 
-      {/* Japanese fields */}
+      {/* Main before + reading */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-            {lang === 'en' ? 'Before blank' : lang === 'ca' ? 'Abans del buit' : 'Antes del hueco'}
-          </label>
-          <input
-            value={editBefore}
-            onChange={e => setEditBefore(e.target.value)}
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{beforeLabel}</label>
+          <input value={editBefore} onChange={e => setEditBefore(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
-            lang="ja"
-          />
+            lang="ja" />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-            {lang === 'en' ? 'Reading before' : lang === 'ca' ? 'Lectura abans' : 'Lectura antes'}
-          </label>
-          <input
-            value={editBeforeR}
-            onChange={e => setEditBeforeR(e.target.value)}
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{readingLabel}</label>
+          <input value={editBeforeR} onChange={e => setEditBeforeR(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
-            lang="ja"
-          />
+            lang="ja" />
         </div>
+      </div>
+
+      {/* Alternatives (up to 4) */}
+      <div className="border border-dashed border-amber-300 dark:border-amber-700 rounded-lg p-3 space-y-2">
+        <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+          <span>≈</span> {altLabel}s
+        </p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 -mt-1">{altsHint}</p>
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="grid grid-cols-2 gap-2">
+            <input
+              value={editBeforeAlts[i] ?? ''}
+              onChange={e => setAlt(i, e.target.value)}
+              placeholder={`${altLabel} ${i + 1}`}
+              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 font-medium"
+              lang="ja"
+            />
+            <input
+              value={editBeforeRAlts[i] ?? ''}
+              onChange={e => setAltR(i, e.target.value)}
+              placeholder={`${lang === 'en' ? 'Reading' : lang === 'ca' ? 'Lectura' : 'Lectura'} ${i + 1}`}
+              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+              lang="ja"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Answer + after fields */}
+      <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {lang === 'en' ? 'Answer (grammar)' : lang === 'ca' ? 'Resposta (gramàtica)' : 'Respuesta (gramática)'}
           </label>
-          <input
-            value={editAnswer}
-            onChange={e => setEditAnswer(e.target.value)}
+          <input value={editAnswer} onChange={e => setEditAnswer(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 font-bold text-indigo-700 dark:text-indigo-300"
-            lang="ja"
-          />
+            lang="ja" />
         </div>
-        <div className="col-span-2 grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {lang === 'en' ? 'After blank' : lang === 'ca' ? 'Després del buit' : 'Después del hueco'}
-            </label>
-            <input
-              value={editAfter}
-              onChange={e => setEditAfter(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
-              lang="ja"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {lang === 'en' ? 'Reading after' : lang === 'ca' ? 'Lectura després' : 'Lectura después'}
-            </label>
-            <input
-              value={editAfterR}
-              onChange={e => setEditAfterR(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
-              lang="ja"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            {lang === 'en' ? 'After blank' : lang === 'ca' ? 'Després del buit' : 'Después del hueco'}
+          </label>
+          <input value={editAfter} onChange={e => setEditAfter(e.target.value)}
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
+            lang="ja" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            {lang === 'en' ? 'Reading after' : lang === 'ca' ? 'Lectura després' : 'Lectura después'}
+          </label>
+          <input value={editAfterR} onChange={e => setEditAfterR(e.target.value)}
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+            lang="ja" />
         </div>
       </div>
 

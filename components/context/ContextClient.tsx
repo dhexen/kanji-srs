@@ -197,7 +197,6 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
 function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanjis: Set<string>; onRemove: () => void }) {
   const [showTrans, setShowTrans] = useState<'es' | 'ca' | 'en' | null>(null)
-  const [showFurigana, setShowFurigana] = useState(false)
   const [showOnlyUnknown, setShowOnlyUnknown] = useState(false)
 
   const badge: Record<string, string> = {
@@ -209,11 +208,10 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
   function processJapanese(html: string) {
     if (!html) return ''
     return html.replace(/<ruby>([^<]*)<rt>([^<]*)<\/rt><\/ruby>/g, (_, kanji, reading) => {
-      const shouldShow = showFurigana && (!showOnlyUnknown || !userKanjis.has(kanji.trim()))
-      if (shouldShow) {
-        return `<ruby style="ruby-align:center">${kanji}<rt style="font-size:0.55em;color:#6366f1">${reading}</rt></ruby>`
+      if (showOnlyUnknown && userKanjis.has(kanji.trim())) {
+        return `<ruby style="ruby-align:center">${kanji}<rt style="font-size:0.55em"> </rt></ruby>`
       }
-      return kanji
+      return `<ruby style="ruby-align:center">${kanji}<rt style="font-size:0.55em;color:#818cf8">${reading}</rt></ruby>`
     })
   }
 
@@ -235,22 +233,14 @@ function TextCard({ text, userKanjis, onRemove }: { text: ContextText; userKanji
         <button onClick={onRemove} className="text-slate-300 dark:text-slate-600 hover:text-rose-400 dark:hover:text-rose-400 font-bold transition text-lg">✕</button>
       </div>
 
-      {/* Furigana controls */}
+      {/* Furigana filter */}
       <div className="flex flex-wrap gap-2 mb-4">
         <button
-          onClick={() => setShowFurigana(s => !s)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showFurigana ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700'}`}
+          onClick={() => setShowOnlyUnknown(s => !s)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showOnlyUnknown ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700'}`}
         >
-          {showFurigana ? '🈶 Furigana visible' : '🈚 Furigana oculto'}
+          {showOnlyUnknown ? '👁️ Solo kanjis nuevos' : '👁️ Todos los kanjis'}
         </button>
-        {showFurigana && (
-          <button
-            onClick={() => setShowOnlyUnknown(s => !s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${showOnlyUnknown ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700'}`}
-          >
-            {showOnlyUnknown ? '👁️ Solo kanjis nuevos' : '👁️ Todos los kanjis'}
-          </button>
-        )}
       </div>
 
       {/* Japanese text with furigana */}

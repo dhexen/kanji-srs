@@ -265,7 +265,7 @@ export default function GrammarClient() {
   const [search, setSearch] = useState('')
   const [jlptFilter, setJlptFilter] = useState<JlptFilter>('all')
   const [knownIds, setKnownIds] = useState<Set<string>>(new Set())
-  const [hideKnown, setHideKnown] = useState(false)
+  const [hideKnown, setHideKnown] = useState(true)
   const [view, setView] = useState<View>({ kind: 'list' })
   const [sessionToken, setSessionToken] = useState('')
   const [loadingKnown, setLoadingKnown] = useState(true)
