@@ -26,6 +26,9 @@ import {
   deleteGrammarSentenceById,
 } from '@/lib/supabase'
 import GeminiApiTutorial from './GeminiApiTutorial'
+import { useStore } from '@/lib/store'
+import { grammarXpForSession } from '@/lib/progression'
+import XpToast from '@/components/progression/XpToast'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
@@ -231,6 +234,7 @@ export default function GrammarPractice({
   onBack,
   canEdit,
 }: Props) {
+  const { addXP } = useStore()
   const [phase, setPhase]                   = useState<Phase>('loading')
   const [sentences, setSentences]           = useState<GrammarSentence[]>([])
   const [srsStat, setSrsStat]               = useState<GrammarSrsStat | null>(null)
@@ -242,6 +246,8 @@ export default function GrammarPractice({
   const [sessionResults, setSessionResults] = useState<boolean[]>([])
   const [genError, setGenError]             = useState('')
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
+  const [xpGained, setXpGained]             = useState<number | null>(null)
+  const [xpToastKey, setXpToastKey]         = useState(0)
   // Stats from last generation: how many Gemini produced vs how many passed quality check
   const [lastGenStats, setLastGenStats]     = useState<{ generated: number; kept: number } | null>(null)
   // School vocabulary (primaria + secundaria) used as the vocabulary source for AI prompts
@@ -625,6 +631,14 @@ Otras reglas:
       setNewSrsStat(updated)
       setSrsStat(updated)
       try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
+      // Award grammar XP based on session performance
+      const wrongCount = allResults.length - correctCount
+      const xp = grammarXpForSession(correctCount, wrongCount, sessionPassed)
+      if (xp > 0) {
+        addXP({ grammarXp: xp })
+        setXpGained(xp)
+        setXpToastKey(k => k + 1)
+      }
       setPhase('complete')
     } else {
       setCurrentPos(p => p + 1)
@@ -650,6 +664,10 @@ Otras reglas:
   // ── Render: Loading ───────────────────────────────────────────────────────
   if (phase === 'loading') return <SpinnerScreen msg={t(lang, 'gp_loading')} />
 
+  const xpToastEl = xpGained !== null
+    ? <XpToast key={xpToastKey} xp={xpGained} type="grammar" />
+    : null
+
   // ── Render: Generating ────────────────────────────────────────────────────
   if (phase === 'generating') return <SpinnerScreen msg={t(lang, 'gp_generating')} />
 
@@ -663,6 +681,8 @@ Otras reglas:
     const nr           = newSrsStat?.next_review ?? 0
 
     return (
+      <>
+        {xpToastEl}
       <div className="space-y-5">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
@@ -732,6 +752,7 @@ Otras reglas:
           </button>
         </div>
       </div>
+      </>
     )
   }
 

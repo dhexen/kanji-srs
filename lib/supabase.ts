@@ -1541,3 +1541,36 @@ export async function submitFeedbackReport(payload: {
   })
   if (error) throw new Error(error.message)
 }
+
+// ── Progression (XP / levels) ──────────────────────────────────────────────────
+import type { UserProgression } from './progression'
+
+export async function fetchUserProgression(): Promise<UserProgression | null> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase
+    .from('user_progression')
+    .select('vocab_xp, grammar_xp, total_xp, vocab_level, grammar_level, total_level, updated_at')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (error) { console.error('fetchUserProgression:', error.message); return null }
+  return data as UserProgression | null
+}
+
+export async function upsertUserProgression(prog: UserProgression): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const { error } = await supabase
+    .from('user_progression')
+    .upsert({
+      user_id: user.id,
+      vocab_xp: prog.vocab_xp,
+      grammar_xp: prog.grammar_xp,
+      total_xp: prog.total_xp,
+      vocab_level: prog.vocab_level,
+      grammar_level: prog.grammar_level,
+      total_level: prog.total_level,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+  if (error) console.error('upsertUserProgression:', error.message)
+}

@@ -8,6 +8,7 @@ import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
 import { fetchKnownGrammar } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
+import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
 
 // Total grammar points (MNN1: 73 + MNN2: 48)
 const TOTAL_GRAMMAR_POINTS = 121
@@ -265,6 +266,85 @@ export default function StatsClient() {
               </div>
             ))}
           </div>
+
+          {/* Progression / XP panel */}
+          {(() => {
+            const prog = state.progression
+            const { current, needed, pct } = xpProgressInLevel(prog.total_xp)
+            const masteredVocabCount = state.db.filter(i => i.status === 'active' && (i.srsLevel ?? 0) >= 4).length
+            const jlpt = estimateJlpt(masteredVocabCount, knownGrammarCount < 0 ? 0 : knownGrammarCount)
+            return (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100">Progresión y nivel</h3>
+                  {jlpt && (
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${JLPT_COLORS[jlpt]}`}>
+                      Nivel estimado ~{jlpt}
+                    </span>
+                  )}
+                </div>
+
+                {/* Combined level */}
+                <div className="mb-5">
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-4xl font-black text-violet-700 dark:text-violet-400 tabular-nums leading-none">
+                      {prog.total_level}
+                    </span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 mb-1">Nivel global</span>
+                    <span className="ml-auto text-xs text-slate-400 tabular-nums">{current} / {needed} XP</span>
+                  </div>
+                  <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-levels */}
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { icon: '📚', label: 'Vocabulario', level: prog.vocab_level, xp: prog.vocab_xp },
+                    { icon: '📖', label: 'Gramática',   level: prog.grammar_level, xp: prog.grammar_xp },
+                  ].map(({ icon, label, level, xp }) => {
+                    const sub = xpProgressInLevel(xp)
+                    return (
+                      <div key={label} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-sm">{icon}</span>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</span>
+                          <span className="ml-auto text-xs font-black text-slate-700 dark:text-slate-200">Lv.{level}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-violet-400 rounded-full transition-all duration-700"
+                            style={{ width: `${sub.pct}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1 text-right tabular-nums">{sub.current}/{sub.needed} XP</p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* XP totals */}
+                <div className="mt-4 flex justify-around text-center">
+                  <div>
+                    <p className="text-lg font-black text-slate-700 dark:text-slate-200 tabular-nums">{prog.vocab_xp.toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-400">XP Vocab total</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-black text-slate-700 dark:text-slate-200 tabular-nums">{prog.grammar_xp.toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-400">XP Gram. total</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-black text-violet-600 dark:text-violet-400 tabular-nums">{prog.total_xp.toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-400">XP total</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Vocabulary progress list */}
           <ProgressClient />

@@ -16,11 +16,19 @@ import {
   saveContextTexts,
   saveLanguage,
   fetchSrsIntervalsConfig,
+  fetchUserProgression,
+  upsertUserProgression,
 } from './supabase'
 import type { Lang } from './i18n'
 import { showToast } from '@/components/ui/Toast'
+import { applyXp, DEFAULT_PROGRESSION, type UserProgression, type XpGain } from './progression'
 
 export type { ContextText }
+
+export interface LevelUpEvent {
+  type: 'vocab' | 'grammar' | 'total'
+  level: number
+}
 
 interface State {
   db: VocabItem[]
@@ -33,6 +41,8 @@ interface State {
   pexelsApiKey: string
   contextTexts: ContextText[]
   lang: Lang
+  progression: UserProgression
+  pendingLevelUp: LevelUpEvent | null
 }
 
 type Action =
@@ -50,6 +60,9 @@ type Action =
   | { type: 'ADD_CONTEXT_TEXT'; payload: ContextText }
   | { type: 'REMOVE_CONTEXT_TEXT'; payload: number }
   | { type: 'SET_LANG'; payload: Lang }
+  | { type: 'SET_PROGRESSION'; payload: UserProgression }
+  | { type: 'SET_LEVEL_UP'; payload: LevelUpEvent }
+  | { type: 'CLEAR_LEVEL_UP' }
   | { type: 'RESET' }
 
 function appReducer(state: State, action: Action): State {
@@ -66,6 +79,9 @@ function appReducer(state: State, action: Action): State {
     case 'SET_CONTEXT_TEXTS': return { ...state, contextTexts: action.payload }
     case 'ADD_CONTEXT_TEXT': return { ...state, contextTexts: [action.payload, ...state.contextTexts].slice(0, 10) }
     case 'REMOVE_CONTEXT_TEXT': return { ...state, contextTexts: state.contextTexts.filter(t => t.id !== action.payload) }
+    case 'SET_PROGRESSION': return { ...state, progression: action.payload }
+    case 'SET_LEVEL_UP': return { ...state, pendingLevelUp: action.payload }
+    case 'CLEAR_LEVEL_UP': return { ...state, pendingLevelUp: null }
     case 'ADD_ITEMS': {
       const existing = new Set(state.db.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
@@ -143,6 +159,8 @@ interface StoreContextType {
   signInWithMagicLink: (email: string) => Promise<void>
   logout: () => Promise<void>
   setSimulatedRole: (role: 'admin' | 'contributor' | 'user' | null) => void
+  addXP: (gain: XpGain) => number
+  clearLevelUp: () => void
 }
 
 const StoreContext = createContext<StoreContextType | null>(null)
@@ -151,6 +169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
     geminiApiKey: '', pexelsApiKey: '', contextTexts: [], lang: 'es',
+    progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
   })
 
   const dbRef = useRef<VocabItem[]>([])
@@ -233,6 +252,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
   }, [dispatchPersist])
 
+  const progressionRef = useRef<UserProgression>(DEFAULT_PROGRESSION)
+  useEffect(() => { progressionRef.current = state.progression }, [state.progression])
+
+  const addXP = useCallback((gain: XpGain): number => {
+    const result = applyXp(progressionRef.current, gain)
+    progressionRef.current = result.next
+    dispatch({ type: 'SET_PROGRESSION', payload: result.next })
+    if (result.totalLevelUp) {
+      dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'total', level: result.next.total_level } })
+    } else if (result.vocabLevelUp) {
+      dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'vocab', level: result.next.vocab_level } })
+    } else if (result.grammarLevelUp) {
+      dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'grammar', level: result.next.grammar_level } })
+    }
+    void upsertUserProgression(result.next).catch(() => {})
+    return (gain.vocabXp ?? 0) + (gain.grammarXp ?? 0)
+  }, [])
+
+  const clearLevelUp = useCallback(() => {
+    dispatch({ type: 'CLEAR_LEVEL_UP' })
+  }, [])
+
   /** Sets all SRS levels for a word to 7 (Maestro) across all modes, then persists. */
   const masterVocabItem = useCallback(async (jp: string) => {
     const prevDb = dbRef.current
@@ -260,6 +301,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.pexels_api_key) dispatch({ type: 'SET_PEXELS_KEY', payload: data.pexels_api_key })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
+      }
+      const prog = await fetchUserProgression()
+      if (prog) {
+        progressionRef.current = prog
+        dispatch({ type: 'SET_PROGRESSION', payload: prog })
       }
     } catch (e) {
       console.error('Error descargando progreso:', e)
@@ -463,9 +509,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_GEMINI_KEY', payload: '' })
     dispatch({ type: 'SET_PEXELS_KEY', payload: '' })
     dispatch({ type: 'SET_LANG', payload: 'es' })
+    dispatch({ type: 'SET_PROGRESSION', payload: DEFAULT_PROGRESSION })
+    dispatch({ type: 'CLEAR_LEVEL_UP' })
     dispatch({ type: 'SET_LOADED' })
     userRef.current = null
     dbRef.current = []
+    progressionRef.current = DEFAULT_PROGRESSION
   }, [])
 
   const setSimulatedRole = useCallback((role: 'admin' | 'contributor' | 'user' | null) => {
@@ -494,6 +543,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signInWithMagicLink,
       logout,
       setSimulatedRole,
+      addXP,
+      clearLevelUp,
     }}>
       {children}
     </StoreContext.Provider>

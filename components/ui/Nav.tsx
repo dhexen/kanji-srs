@@ -9,6 +9,8 @@ import { fetchKnownGrammar } from '@/lib/supabase'
 import { useSidebar } from '@/lib/sidebar-context'
 import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
+import LevelWidget from '@/components/progression/LevelWidget'
+import LevelUpOverlay from '@/components/progression/LevelUpOverlay'
 
 const TOTAL_GRAMMAR_POINTS = 121
 
@@ -316,6 +318,7 @@ function NavInner() {
           </div>
         </div>
         <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+        <LevelUpOverlay />
       </>
     )
   }
@@ -361,6 +364,9 @@ function NavInner() {
         </div>
       )}
       <div className="mx-3 mb-2 border-t border-violet-100/80 dark:border-slate-700" />
+
+      {/* Level widget */}
+      {state.user && <LevelWidget />}
 
       {/* Nav links */}
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto custom-scroll">
@@ -480,6 +486,7 @@ function NavInner() {
         </button>
       </div>
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <LevelUpOverlay />
     </>
   )
 

@@ -6,6 +6,8 @@ import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLa
 import { t, getStageName } from '@/lib/i18n'
 import { submitImageVote, submitVocabReport } from '@/lib/supabase'
 import type { SessionItem } from './ReviewClient'
+import { vocabXpForResult } from '@/lib/progression'
+import XpToast from '@/components/progression/XpToast'
 
 interface Props {
   sessionItem: SessionItem
@@ -24,13 +26,15 @@ function normalizeJP(str: string) {
 }
 
 export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onNext, onQuit }: Props) {
-  const { applyReviewResult, masterVocabItem, state } = useStore()
+  const { applyReviewResult, masterVocabItem, addXP, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
   const { level } = getModeLevelAndDue(item, mode)
   const lang = state.lang
 
   const [answerState, setAnswerState] = useState<AnswerState>('waiting')
+  const [xpGained, setXpGained] = useState<number | null>(null)
+  const [xpToastKey, setXpToastKey] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [imgError, setImgError] = useState(false)
@@ -103,6 +107,10 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     setAnswerState(isCorrect ? 'correct' : 'incorrect')
     if (!isPractice) {
       applyReviewResult(item.jp, mode, isCorrect)
+      const xp = vocabXpForResult(level, isCorrect)
+      addXP({ vocabXp: xp })
+      setXpGained(xp)
+      setXpToastKey(k => k + 1)
     }
   }
 
@@ -149,6 +157,10 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   }
 
   return (
+    <>
+      {xpGained !== null && (
+        <XpToast key={xpToastKey} xp={xpGained} type="vocab" />
+      )}
     <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
       <div className="flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -419,5 +431,6 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         </button>
       )}
     </div>
+    </>
   )
 }
