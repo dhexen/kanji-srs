@@ -39,7 +39,8 @@
       "Bash(mkdir -p \"/home/dhexen/Documentos/proyecto/kanji-srs/app/api/admin/vocab/antonyms/[id]\")",
       "Bash(git commit -m 'feat: sección kana con nemotécnica y tests \\(hiragana + katakana\\) *)",
       "Bash(xargs ls -la)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

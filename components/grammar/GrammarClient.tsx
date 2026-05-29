@@ -329,17 +329,23 @@ export default function GrammarClient() {
     )
   }, [filtered])
 
-  // Grammar points with SRS due today
+  // Grammar points with SRS due today — known (mastered) points are excluded
   const dueGrammarPoints = useMemo(() => {
     const now = Date.now()
     return ALL_GRAMMAR_POINTS.filter(g => {
+      if (knownIds.has(g.id)) return false
       const stat = srsStats.get(g.id)
       return stat && stat.next_review <= now
     })
-  }, [srsStats])
+  }, [srsStats, knownIds])
 
-  // Grammar forecast for next 7 days
-  const grammarForecast = useMemo(() => getGrammarForecast(srsStats, lang, 7), [srsStats, lang])
+  // Grammar forecast for next 7 days — exclude mastered points
+  const grammarForecast = useMemo(() => {
+    const filteredStats = new Map(
+      Array.from(srsStats.entries()).filter(([id]) => !knownIds.has(id))
+    )
+    return getGrammarForecast(filteredStats, lang, 7)
+  }, [srsStats, knownIds, lang])
 
   const totalInBook    = bookPoints.length
   const totalKnownInBook = bookPoints.filter(p => knownIds.has(p.id)).length
