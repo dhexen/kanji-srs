@@ -610,24 +610,24 @@ Otras reglas:
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 transition">
+          <button onClick={onBack} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h2 className="text-lg font-bold text-slate-800">{t(lang, 'gp_complete_title')}</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t(lang, 'gp_complete_title')}</h2>
         </div>
 
         {/* Score card */}
         <div className={`rounded-2xl p-6 text-center space-y-4 ${
           sessionPassed
-            ? 'bg-emerald-50 border border-emerald-200'
-            : 'bg-amber-50 border border-amber-200'
+            ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+            : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
         }`}>
           <p className="text-4xl">{sessionPassed ? '🎉' : '📚'}</p>
           <div>
-            <p className="text-3xl font-bold text-slate-800">{correct} / {allResults.length}</p>
-            <p className="text-sm text-slate-500 mt-0.5">{t(lang, 'gp_correct_answers')}</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{correct} / {allResults.length}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t(lang, 'gp_correct_answers')}</p>
           </div>
 
           {/* Result dots */}
@@ -642,19 +642,19 @@ Otras reglas:
           </div>
 
           {/* SRS level change */}
-          <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               {t(lang, 'gp_srs_level')}
             </p>
             <LevelDots level={finalLevel} />
-            <p className={`text-sm font-bold ${sessionPassed ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <p className={`text-sm font-bold ${sessionPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {getSrsLevelLabel(finalLevel, lang)}
               {sessionPassed
                 ? ` ↑ (+1 ${t(lang, 'gp_level')})`
                 : oldLevel > 0 ? ` ↓ (-1 ${t(lang, 'gp_level')})` : ''}
             </p>
             {nr > 0 && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 {t(lang, 'gp_next_review')}: {formatNextReview(nr, lang)}
               </p>
             )}
@@ -671,7 +671,7 @@ Otras reglas:
           </button>
           <button
             onClick={onBack}
-            className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
+            className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition"
           >
             ← {t(lang, 'gp_back')}
           </button>
@@ -691,20 +691,20 @@ Otras reglas:
           <GeminiApiTutorial lang={lang} />
         ) : (
           <>
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center space-y-3">
               <p className="text-4xl">📝</p>
-              <p className="text-base font-semibold text-slate-700">{t(lang, 'gp_no_sentences')}</p>
-              <p className="text-sm text-slate-500">{t(lang, 'gp_generate_hint')}</p>
-              <p className="text-xs text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-200">{t(lang, 'gp_no_sentences')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t(lang, 'gp_generate_hint')}</p>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl px-3 py-2">
                 🌐 {t(lang, 'gp_pool_shared_info')}
               </p>
               {!sessionToken && (
-                <p className="text-xs text-amber-600 font-medium">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                   💡 {t(lang, 'gp_need_login')}
                 </p>
               )}
               {genError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
                   {genError}
                 </div>
               )}
@@ -720,7 +720,7 @@ Otras reglas:
           </>
         )}
 
-        <button onClick={onBack} className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm transition">
+        <button onClick={onBack} className="w-full py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition">
           ← {t(lang, 'gp_back_detail')}
         </button>
       </div>
@@ -734,26 +734,26 @@ Otras reglas:
         <BackHeader onBack={onBack} label={`🏋️ ${t(lang, 'gp_practice')}`} sublabel={grammar.pattern} />
 
         {/* SRS status card */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-600">{t(lang, 'gp_srs_status')}</span>
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{t(lang, 'gp_srs_status')}</span>
             {srsStat ? (
               <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                 isDue
-                  ? 'bg-rose-100 text-rose-700'
-                  : 'bg-emerald-100 text-emerald-700'
+                  ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
+                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
               }`}>
                 {isDue ? `⏰ ${t(lang, 'gp_due')}` : `✓ ${t(lang, 'gp_up_to_date')}`}
               </span>
             ) : (
-              <span className="text-xs text-slate-400">{t(lang, 'gp_not_studied')}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{t(lang, 'gp_not_studied')}</span>
             )}
           </div>
           <LevelDots level={srsStat?.level ?? 0} />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {getSrsLevelLabel(srsStat?.level ?? 0, lang)}
             {srsStat && !isDue && (
-              <span className="ml-2 text-slate-400">
+              <span className="ml-2 text-slate-400 dark:text-slate-500">
                 · {t(lang, 'gp_next_review')}: {formatNextReview(srsStat.next_review, lang)}
               </span>
             )}
@@ -761,20 +761,20 @@ Otras reglas:
         </div>
 
         {/* Pool info */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 space-y-1.5">
+        <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 📦 {t(lang, 'gp_pool_count').replace('{n}', `${sentences.length} / ${MAX_POOL}`)}
               </span>
-              <span className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-full px-2 py-0.5">
+              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 text-indigo-500 dark:text-indigo-400 rounded-full px-2 py-0.5">
                 🌐 {t(lang, 'gp_pool_shared')}
               </span>
             </div>
             {sessionToken && (
               <button
                 onClick={generate}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
                 title={sentences.length >= MAX_POOL ? t(lang, 'gp_gen_more_replace') : undefined}
               >
                 {sentences.length >= MAX_POOL ? '🔄' : '+'} {t(lang, 'gp_gen_more')}
@@ -784,14 +784,14 @@ Otras reglas:
 
           {/* Quality filter badge — shown when the last generation discarded some sentences */}
           {lastGenStats && lastGenStats.kept < lastGenStats.generated && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-full px-2 py-0.5">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {t(lang, 'gp_quality_checked')}
               </span>
-              <span className="text-slate-400">
+              <span className="text-slate-400 dark:text-slate-500">
                 {lastGenStats.kept}/{lastGenStats.generated} {t(lang, 'gp_quality_kept')}
               </span>
             </div>
@@ -799,7 +799,7 @@ Otras reglas:
         </div>
 
         {genError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
             {genError}
           </div>
         )}
@@ -817,7 +817,7 @@ Otras reglas:
           🏋️ {t(lang, 'gp_start_session').replace('{n}', String(Math.min(SESSION_SIZE, sentences.length)))}
         </button>
 
-        <button onClick={onBack} className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm transition">
+        <button onClick={onBack} className="w-full py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition">
           ← {t(lang, 'gp_back_detail')}
         </button>
       </div>
@@ -838,21 +838,21 @@ Otras reglas:
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onBack}
-            className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 transition"
+            className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-slate-700 truncate">{grammar.pattern}</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{grammar.pattern}</span>
         </div>
-        <span className="shrink-0 text-sm font-bold text-indigo-600 ml-2">
+        <span className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 ml-2">
           {currentPos + 1} / {sessionQueue.length}
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+      <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
         <div
           className="bg-indigo-500 h-full rounded-full transition-all duration-500"
           style={{ width: `${progress}%` }}
@@ -863,23 +863,23 @@ Otras reglas:
       {phase === 'asking' && (
         <>
           {/* Prompt card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                 {t(lang, 'gp_translate_prompt')}
               </span>
             </div>
             <div className="px-5 py-5 text-center space-y-3">
               {/* Translation — the "question" */}
               {translation && (
-                <p className="text-lg sm:text-xl font-semibold text-slate-800 leading-relaxed">
+                <p className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
                   {translation}
                 </p>
               )}
               {/* Grammar pattern hint */}
-              <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1">
-                <span className="text-xs text-slate-400">{t(lang, 'gp_pattern_ref')}:</span>
-                <span className="text-sm font-bold text-indigo-700">{grammar.pattern}</span>
+              <div className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-full px-3 py-1">
+                <span className="text-xs text-slate-400 dark:text-slate-500">{t(lang, 'gp_pattern_ref')}:</span>
+                <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{grammar.pattern}</span>
               </div>
             </div>
           </div>
@@ -905,9 +905,9 @@ Otras reglas:
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full px-4 py-3.5 text-center text-lg font-bold border-2 border-slate-200 focus:border-indigo-400 rounded-xl focus:outline-none transition"
+                className="w-full px-4 py-3.5 text-center text-lg font-bold border-2 border-slate-200 dark:border-slate-600 focus:border-indigo-400 dark:focus:border-indigo-500 rounded-xl focus:outline-none transition bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 select-none pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500 select-none pointer-events-none">
                 ローマ字OK
               </span>
             </div>
@@ -927,17 +927,17 @@ Otras reglas:
         <>
           {/* Result card */}
           <div className={`rounded-2xl border overflow-hidden ${
-            isCorrect ? 'border-emerald-200' : 'border-rose-200'
+            isCorrect ? 'border-emerald-200 dark:border-emerald-800' : 'border-rose-200 dark:border-rose-800'
           }`}>
             {/* Card header with furigana toggle */}
             <div className={`flex items-center justify-between px-4 py-2 border-b ${
               isCorrect
-                ? 'bg-emerald-50 border-emerald-100'
-                : 'bg-rose-50 border-rose-100'
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800'
+                : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
             }`}>
               <div className="flex items-center gap-2">
                 <span className="text-base">{isCorrect ? '✅' : '❌'}</span>
-                <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-700'}`}>
+                <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                   {isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong')}
                 </span>
               </div>
@@ -946,8 +946,8 @@ Otras reglas:
                   onClick={() => setShowFurigana(v => !v)}
                   className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
                     showFurigana
-                      ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
-                      : 'border-slate-300 text-slate-500 hover:bg-slate-100'
+                      ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                      : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
@@ -955,13 +955,13 @@ Otras reglas:
               )}
             </div>
 
-            <div className="bg-white px-5 py-4 space-y-4">
+            <div className="bg-white dark:bg-slate-800 px-5 py-4 space-y-4">
               {/* Correct full sentence */}
               <div className="text-center">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
                   {t(lang, 'gp_correct_sentence')}
                 </p>
-                <div className="text-2xl sm:text-3xl font-bold text-slate-800 leading-loose">
+                <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                   {currentSentence.sentence_before && (
                     <span>
                       {showFurigana && hasFurigana
@@ -971,8 +971,8 @@ Otras reglas:
                   )}
                   <span className={`mx-0.5 px-1.5 py-0.5 rounded-lg ${
                     isCorrect
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-rose-100 text-rose-700'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
                   }`}>
                     {currentSentence.answer}
                   </span>
@@ -985,16 +985,16 @@ Otras reglas:
                   )}
                 </div>
                 {translation && (
-                  <p className="mt-2 text-sm italic text-slate-400">{translation}</p>
+                  <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>
                 )}
               </div>
 
               {/* User's answer */}
-              <div className={`pt-3 border-t text-center ${isCorrect ? 'border-emerald-100' : 'border-rose-100'}`}>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+              <div className={`pt-3 border-t text-center ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
+                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
                   {t(lang, 'gp_your_answer')}
                 </p>
-                <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700' : 'text-rose-600'}`}>
+                <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {userInput}
                 </p>
               </div>
@@ -1059,7 +1059,7 @@ Otras reglas:
             ) : (
               <button
                 onClick={() => openEdit(currentSentence)}
-                className="w-full flex items-center justify-center gap-2 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition"
+                className="w-full flex items-center justify-center gap-2 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1107,78 +1107,78 @@ function SentenceEditForm({
   saving, error, onSave, onCancel,
 }: SentenceEditFormProps) {
   return (
-    <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3">
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2 mb-1">
-        <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
         </svg>
-        <span className="text-sm font-bold text-amber-800">
+        <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
           {lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
         </span>
       </div>
 
       {/* Preview */}
-      <div className="bg-white rounded-lg border border-amber-200 px-3 py-2 text-center font-bold text-slate-700 text-lg">
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-amber-200 dark:border-amber-700 px-3 py-2 text-center font-bold text-slate-700 dark:text-slate-200 text-lg">
         {editBefore}
-        <span className="mx-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">{editAnswer || '___'}</span>
+        <span className="mx-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">{editAnswer || '___'}</span>
         {editAfter}
       </div>
 
       {/* Japanese fields */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {lang === 'en' ? 'Before blank' : lang === 'ca' ? 'Abans del buit' : 'Antes del hueco'}
           </label>
           <input
             value={editBefore}
             onChange={e => setEditBefore(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white font-medium"
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
             lang="ja"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {lang === 'en' ? 'Reading before' : lang === 'ca' ? 'Lectura abans' : 'Lectura antes'}
           </label>
           <input
             value={editBeforeR}
             onChange={e => setEditBeforeR(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white"
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
             lang="ja"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {lang === 'en' ? 'Answer (grammar)' : lang === 'ca' ? 'Resposta (gramàtica)' : 'Respuesta (gramática)'}
           </label>
           <input
             value={editAnswer}
             onChange={e => setEditAnswer(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white font-bold text-indigo-700"
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 font-bold text-indigo-700 dark:text-indigo-300"
             lang="ja"
           />
         </div>
         <div className="col-span-2 grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+            <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               {lang === 'en' ? 'After blank' : lang === 'ca' ? 'Després del buit' : 'Después del hueco'}
             </label>
             <input
               value={editAfter}
               onChange={e => setEditAfter(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white font-medium"
+              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-medium"
               lang="ja"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+            <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               {lang === 'en' ? 'Reading after' : lang === 'ca' ? 'Lectura després' : 'Lectura después'}
             </label>
             <input
               value={editAfterR}
               onChange={e => setEditAfterR(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white"
+              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
               lang="ja"
             />
           </div>
@@ -1186,8 +1186,8 @@ function SentenceEditForm({
       </div>
 
       {/* Translation fields */}
-      <div className="border-t border-amber-200 pt-3 space-y-2">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+      <div className="border-t border-amber-200 dark:border-amber-700/50 pt-3 space-y-2">
+        <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           {lang === 'en' ? 'Translations' : lang === 'ca' ? 'Traduccions' : 'Traducciones'}
         </p>
         {[
@@ -1196,23 +1196,23 @@ function SentenceEditForm({
           { code: 'EN', val: editTransEn, set: setEditTransEn },
         ].map(({ code, val, set }) => (
           <div key={code} className="flex items-center gap-2">
-            <span className="w-7 text-[10px] font-bold text-slate-400 shrink-0">{code}</span>
+            <span className="w-7 text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0">{code}</span>
             <input
               value={val}
               onChange={e => set(e.target.value)}
-              className="flex-1 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-indigo-400 focus:outline-none bg-white"
+              className="flex-1 px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
             />
           </div>
         ))}
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="flex items-center gap-2 pt-1">
         <button
           onClick={onSave}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-semibold transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-800 text-white text-xs font-semibold transition"
         >
           {saving && (
             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1225,7 +1225,7 @@ function SentenceEditForm({
         <button
           onClick={onCancel}
           disabled={saving}
-          className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition"
+          className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold transition"
         >
           {lang === 'en' ? 'Cancel' : lang === 'ca' ? 'Cancel·lar' : 'Cancelar'}
         </button>
@@ -1242,15 +1242,15 @@ function BackHeader({ onBack, label, sublabel }: { onBack: () => void; label: st
     <div className="flex items-start gap-3">
       <button
         onClick={onBack}
-        className="mt-0.5 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 transition shrink-0"
+        className="mt-0.5 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
       <div className="min-w-0">
-        <h2 className="text-lg font-bold text-slate-800 leading-tight">{label}</h2>
-        {sublabel && <p className="text-sm text-slate-500 mt-0.5">{sublabel}</p>}
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{label}</h2>
+        {sublabel && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{sublabel}</p>}
       </div>
     </div>
   )

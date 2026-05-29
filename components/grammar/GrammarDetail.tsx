@@ -34,7 +34,7 @@ function TokenChip({ role, text, label, small = false }: {
 
 function StructureDisplay({ parts, lang }: { parts: StructurePart[]; lang: Lang }) {
   return (
-    <div className="flex flex-wrap items-end gap-1.5 py-3 px-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div className="flex flex-wrap items-end gap-1.5 py-3 px-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
       {parts.map((p, i) => {
         const label = p.isSlot
           ? (lang === 'ca' ? p.label_ca : lang === 'en' ? p.label_en : p.label_es)
@@ -64,28 +64,28 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           {t(lang, 'gp_example')}
         </span>
         <button
           onClick={() => setShowFurigana(v => !v)}
-          className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 text-slate-500 hover:bg-slate-100 transition"
+          className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
         >
           {furiganaLabel}
         </button>
         <button
           onClick={() => setShowGloss(v => !v)}
-          className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 text-slate-500 hover:bg-slate-100 transition"
+          className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
         >
           {showGloss ? t(lang, 'gp_hide_gloss') : t(lang, 'gp_show_gloss')}
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
         <div className="flex flex-wrap items-end gap-1.5 mb-3">
           {tokens.map((tk, i) => (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
-              <span className="text-[10px] text-slate-400 min-h-[14px]">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 min-h-[14px]">
                 {showFurigana ? (tk.furigana || '') : ''}
               </span>
               <span className={`${ROLE_COLORS[tk.role].bg} ${ROLE_COLORS[tk.role].text} border ${ROLE_COLORS[tk.role].border} font-bold rounded-md px-2 py-0.5 text-xl whitespace-nowrap`}>
@@ -99,7 +99,7 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-slate-100">
+        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-700">
           {Array.from(new Set(tokens.map(tk => tk.role))).map(role => {
             const c = ROLE_COLORS[role]
             const lbl = getLang3(ROLE_LABELS[role], lang)
@@ -165,7 +165,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
       <div className="flex items-start gap-3">
         <button
           onClick={onBack}
-          className="mt-1 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition shrink-0"
+          className="mt-1 p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 transition shrink-0"
           aria-label={t(lang, 'gp_back')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -175,16 +175,16 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              grammar.jlpt === 'N5' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+              grammar.jlpt === 'N5' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
             }`}>
               {grammar.jlpt}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 dark:text-slate-500">
               {t(lang, 'grammar_lesson').replace('{n}', String(grammar.lesson))} · #{grammar.number}
             </span>
           </div>
-          <h2 className="text-xl font-bold text-slate-800 leading-tight">{name}</h2>
-          <p className="text-base font-semibold text-slate-500 mt-0.5">{grammar.pattern}</p>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">{name}</h2>
+          <p className="text-base font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{grammar.pattern}</p>
         </div>
 
         {/* Practice button */}
@@ -201,29 +201,29 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
       {/* Practice CTA banner */}
       <button
         onClick={() => setPracticeMode(true)}
-        className="w-full flex items-center gap-3 p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition text-left group"
+        className="w-full flex items-center gap-3 p-3.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition text-left group"
       >
         <span className="text-2xl">🏋️</span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-indigo-800">{t(lang, 'gp_cta_title')}</p>
-          <p className="text-xs text-indigo-600 mt-0.5">{t(lang, 'gp_cta_sub')}</p>
+          <p className="text-sm font-bold text-indigo-800 dark:text-indigo-300">{t(lang, 'gp_cta_title')}</p>
+          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">{t(lang, 'gp_cta_sub')}</p>
         </div>
-        <svg className="w-4 h-4 text-indigo-400 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-indigo-400 dark:text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
 
       {/* Structure visualization */}
       <div>
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
           {t(lang, 'gp_structure')}
         </p>
         <StructureDisplay parts={grammar.structure} lang={lang} />
       </div>
 
       {/* Explanation */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-        <p className="text-sm text-slate-700 leading-relaxed">{explanation}</p>
+      <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4">
+        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
       </div>
 
       {/* Built-in example */}
@@ -231,9 +231,9 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
 
       {/* Tip */}
       {tip && (
-        <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
           <span className="text-xl shrink-0">💡</span>
-          <p className="text-sm text-amber-800 leading-relaxed">{tip}</p>
+          <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{tip}</p>
         </div>
       )}
 
