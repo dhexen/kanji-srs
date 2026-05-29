@@ -276,12 +276,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } else if (result.grammarLevelUp) {
       dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'grammar', level: result.next.grammar_level } })
     }
-    // Always save to localStorage as fallback
+    // Always save to localStorage as immediate fallback
     saveProgressionLocal(result.next)
-    // Persist to Supabase; if the migration hasn't been run yet, log a warning
-    void upsertUserProgression(result.next).catch((e: unknown) => {
-      console.warn('[progression] Supabase upsert failed — localStorage is the active cache. Run supabase-progression-migration.sql to enable cloud sync.', e)
-    })
+    // Persist to Supabase (userId passed directly — no extra getUser() network call)
+    const uid = userRef.current?.id
+    if (uid) {
+      void upsertUserProgression(result.next, uid).catch((e: unknown) => {
+        console.error('[progression] Supabase save failed:', e)
+        showToast('No se pudo guardar el progreso en la nube (localStorage activo)', 'error')
+      })
+    }
     return (gain.vocabXp ?? 0) + (gain.grammarXp ?? 0)
   }, [])
 
@@ -317,13 +321,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
       }
-      const prog = await fetchUserProgression()
+      const uid = userRef.current?.id
+      const prog = uid ? await fetchUserProgression(uid) : null
       if (prog) {
         progressionRef.current = prog
         dispatch({ type: 'SET_PROGRESSION', payload: prog })
         saveProgressionLocal(prog)
       } else {
-        // Table might not exist yet — fall back to localStorage
+        // No Supabase data yet — load from localStorage cache
         const local = loadProgressionLocal()
         if (local) {
           progressionRef.current = local
