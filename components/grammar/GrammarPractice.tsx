@@ -22,6 +22,7 @@ import {
   saveGrammarSrsResult,
   fetchSchoolVocabSample,
   updateGrammarSentence,
+  validateGrammarSentence,
 } from '@/lib/supabase'
 import GeminiApiTutorial from './GeminiApiTutorial'
 
@@ -257,6 +258,7 @@ export default function GrammarPractice({
   const [editTransEn, setEditTransEn]   = useState('')
   const [editSaving, setEditSaving]     = useState(false)
   const [editError, setEditError]       = useState('')
+  const [validating, setValidating]     = useState(false)
 
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
@@ -322,11 +324,11 @@ export default function GrammarPractice({
       .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
       .join(', ')
 
-    const prompt = `Eres un profesor de japonés experto. Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
+    const prompt = `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
-El alumno ve la frase con UN HUECO (___) y debe escribir la gramática que falta.
+El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
 
-Vocabulario disponible del currículo escolar japonés (primaria y secundaria — intenta usarlo): ${vocabSample || 'vocabulario básico N5'}
+Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${vocabSample || 'vocabulario básico N5'}
 
 Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 {
@@ -338,37 +340,49 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
       "answer_alts": ["variante hiragana aceptable"],
       "after_jp": "texto después del hueco",
       "after_reading": "lectura completa del after en kana puro, sin kanji",
-      "translation_es": "traducción completa en español",
-      "translation_ca": "traducció completa en català",
-      "translation_en": "complete English translation",
+      "translation_es": "traducción COMPLETA y NATURAL al español",
+      "translation_ca": "traducció COMPLETA i NATURAL al català",
+      "translation_en": "COMPLETE and NATURAL English translation",
       "quality": 5
     }
   ]
 }
 
+⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
+1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
+2. El sujeto debe ser claro. Ejemplos de frases INCORRECTAS: "La manzana es una" (incompleta), "Ayer es mañana" (sin sentido), "El teléfono come" (ilógica).
+3. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
+
 ⚠️ REGLA CRÍTICA sobre el campo "answer":
 - Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
 - NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
 - NUNCA uses kanji en el answer — solo hiragana o katakana
-- Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"
-- Ejemplo INCORRECTO → before:"今月", answer:"は七月です"  ← MAL: incluye vocabulario con kanji
+- Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"  → frase: "私は学生です。" = "Soy estudiante."
+- Ejemplo INCORRECTO → before:"今月", answer:"は七月です" ← MAL: incluye vocabulario con kanji
+- Ejemplo INCORRECTO → before:"りんご", answer:"は", after:"" ← MAL: la frase queda incompleta "りんごは"
 
-Campo "quality" — puntuación de coherencia del 1 al 5 (sé estricto):
-- 5: Frase perfecta — japonés natural, contexto realista y cotidiano, uso ejemplar del patrón
-- 4: Buena — uso correcto, pequeños detalles mejorables
-- 3: Aceptable — uso algo forzado o contexto poco natural
-- 2: Deficiente — contexto irreal, uso incorrecto del patrón o traducción inexacta
-- 1: Incorrecta — errores gramaticales graves o frase sin sentido lógico
-Ejemplos de calidad BAJA que deben puntuar 1-2: "El elefante come el teléfono", "Ayer es mañana", frases con información factualmente errónea, mezcla de registros incompatibles.
-Sé HONESTO y ESTRICTO: no todas las frases pueden ser 4-5. Las que generes de menor calidad deben puntuarse adecuadamente.
+⚠️ REGLAS CRÍTICAS sobre las traducciones:
+- Cada traducción debe ser una oración COMPLETA y NATURAL en el idioma destino
+- NUNCA termines en "es una", "es el", "tiene un", "de la" o cualquier fragmento incompleto
+- La traducción en español, català e inglés debe poder leerse sola y tener pleno sentido
+- Si la frase japonesa dice "私はりんごが好きです", la traducción ES "Me gustan las manzanas" NO "Yo la manzana es una"
+
+Campo "quality" — puntuación de coherencia del 1 al 5 (sé MUY ESTRICTO):
+- 5: Frase perfecta — japonés natural, sentido completo, contexto realista, traducción exacta
+- 4: Buena — uso correcto, algún detalle mejorable pero todo tiene sentido
+- 3: Aceptable — uso algo forzado o contexto poco natural pero gramaticalmente correcta
+- 2: Deficiente — frase incompleta, contexto irreal, traducción inexacta o incompleta
+- 1: Incorrecta — errores gramaticales graves, frase sin sentido lógico o traducción imposible
+SIEMPRE asigna calidad 1 a: frases incompletas, traducciones fragmentadas, mezcla de idiomas, información factualmente errónea.
+Sé HONESTO: no todas las frases pueden ser 4-5.
 
 Otras reglas:
 - Frases naturales y correctas, nivel ${grammar.jlpt}
-- Varía sujetos, contextos y vocabulario; usa el vocabulario disponible
+- Varía sujetos, contextos y vocabulario; usa el vocabulario disponible cuando encaje
 - before_reading y after_reading: solo kana (para mostrar furigana al alumno)
-- ⚠️ REGLA CRÍTICA de lectura: en before_reading y after_reading escribe SIEMPRE las partículas con su forma ortográfica, NO fonética: usa は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" (correcto), NO "わたしわがくせい" (incorrecto)
+- ⚠️ REGLA CRÍTICA de lectura: escribe SIEMPRE las partículas con su forma ORTOGRÁFICA, NO fonética: は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" ✓, NO "わたしわがくせい" ✗
 - answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
-- Genera exactamente ${GENERATE_SIZE} frases distintas`
+- Genera exactamente ${GENERATE_SIZE} frases distintas con sujetos y vocabulario variados`
 
     try {
       const res = await fetch('/api/gemini', {
@@ -488,14 +502,24 @@ Otras reglas:
     }
   }
 
+  async function handleValidate(sentence: GrammarSentence) {
+    if (!sentence.id || validating) return
+    const newVal = !sentence.validated
+    setValidating(true)
+    await validateGrammarSentence(sentence.id, newVal)
+    setSentences(prev => prev.map(s => s.id === sentence.id ? { ...s, validated: newVal } : s))
+    setValidating(false)
+  }
+
   // ── Session start ─────────────────────────────────────────────────────────
   function startSession() {
     if (sentences.length === 0) return
-    const count   = Math.min(SESSION_SIZE, sentences.length)
-    const indices = Array.from({ length: sentences.length }, (_, i) => i)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, count)
-    setSessionQueue(indices)
+    const count = Math.min(SESSION_SIZE, sentences.length)
+    // Prioritize validated sentences — shuffle each group separately then concat
+    const validatedIdx   = sentences.map((s, i) => ({ s, i })).filter(x => x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
+    const unvalidatedIdx = sentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
+    const ordered = [...validatedIdx, ...unvalidatedIdx]
+    setSessionQueue(ordered.slice(0, count))
     setCurrentPos(0)
     setSessionResults([])
     setUserInput('')
@@ -985,6 +1009,34 @@ Otras reglas:
               ? `🏁 ${t(lang, 'gp_see_results')}`
               : `${t(lang, 'gp_next')} →`}
           </button>
+
+          {/* ── Validated badge ─────────────────────────────────────────── */}
+          {currentSentence?.validated && (
+            <div className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t(lang, 'gp_validated_badge')}
+            </div>
+          )}
+
+          {/* ── Validate button (admin / contributor only) ───────────────── */}
+          {canEdit && currentSentence?.id && !editingId && (
+            <button
+              onClick={() => handleValidate(currentSentence)}
+              disabled={validating}
+              className={`w-full flex items-center justify-center gap-2 py-2 border rounded-xl text-xs font-semibold transition ${
+                currentSentence.validated
+                  ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:bg-emerald-900/20'
+                  : 'border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {currentSentence.validated ? t(lang, 'gp_unvalidate_btn') : t(lang, 'gp_validate_btn')}
+            </button>
+          )}
 
           {/* ── Sentence editor (admin / contributor only) ──────────────── */}
           {canEdit && currentSentence?.id && (

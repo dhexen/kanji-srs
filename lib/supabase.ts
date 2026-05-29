@@ -1036,8 +1036,12 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
         translation_es: r.translation_es ?? '',
         translation_ca: r.translation_ca ?? '',
         translation_en: r.translation_en ?? '',
+        validated: r.validated ?? false,
+        validated_by: r.validated_by ?? undefined,
       }))
       .filter(s => !KANJI_RE.test(s.answer))
+      // Validated sentences float to the top
+      .sort((a, b) => (b.validated ? 1 : 0) - (a.validated ? 1 : 0))
   } catch {
     return []
   }
@@ -1408,6 +1412,26 @@ export async function updateGrammarSentence(
     if (error) console.warn('updateGrammarSentence:', error.message)
   } catch (e) {
     console.warn('updateGrammarSentence exception:', e)
+  }
+}
+
+/**
+ * Mark (or unmark) a shared grammar sentence as validated by the current user.
+ * Only admins / contributors should call this — the role check is done in the UI.
+ */
+export async function validateGrammarSentence(id: string, validated: boolean): Promise<void> {
+  try {
+    const user = await requireUser()
+    const patch = validated
+      ? { validated: true, validated_by: user.id }
+      : { validated: false, validated_by: null }
+    const { error } = await supabase
+      .from('grammar_sentences')
+      .update(patch)
+      .eq('id', id)
+    if (error) console.warn('validateGrammarSentence:', error.message)
+  } catch (e) {
+    console.warn('validateGrammarSentence exception:', e)
   }
 }
 

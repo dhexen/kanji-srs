@@ -12,7 +12,7 @@ import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import { t } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
-import type { GrammarSrsStat } from '@/lib/grammar-srs'
+import { type GrammarSrsStat, getGrammarForecast } from '@/lib/grammar-srs'
 
 type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
 type BookFilter = 'all' | BookKey
@@ -67,19 +67,25 @@ function GrammarCard({
   const isDue = srsStat && srsStat.next_review <= Date.now()
   const hasStarted = !!srsStat
 
+  const cardBg = known
+    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 opacity-70 hover:opacity-90'
+    : hasStarted
+      ? 'bg-amber-50 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800/60 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-sm'
+      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm'
+
+  const badgeBg = known
+    ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400'
+    : hasStarted
+      ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+      : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
+
   return (
     <div
-      className={`relative flex items-center gap-3 rounded-xl border p-3.5 cursor-pointer transition-all group ${
-        known
-          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 opacity-70 hover:opacity-90'
-          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm'
-      }`}
+      className={`relative flex items-center gap-3 rounded-xl border p-3.5 cursor-pointer transition-all group ${cardBg}`}
       onClick={() => onSelect(grammar)}
     >
       {/* Number badge */}
-      <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-        known ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-      }`}>
+      <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${badgeBg}`}>
         {grammar.number}
       </div>
 
@@ -101,15 +107,15 @@ function GrammarCard({
           <span className="text-[10px] text-slate-400">
             {t(lang as any, 'grammar_lesson').replace('{n}', String(grammar.lesson))}
           </span>
-          {/* SRS due badge */}
+          {/* SRS state badges */}
           {isDue && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600 animate-pulse">
               ⏰ {t(lang as any, 'gp_due')}
             </span>
           )}
-          {hasStarted && !isDue && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-500">
-              🏋️
+          {hasStarted && !isDue && !known && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+              {t(lang as any, 'grammar_studying')}
             </span>
           )}
         </div>
@@ -283,6 +289,8 @@ export default function GrammarClient() {
       val ? next.add(id) : next.delete(id)
       return next
     })
+    // Auto-hide known items when the user marks one as mastered
+    if (val) setHideKnown(true)
     if (state.user) await setGrammarKnown(id, val)
   }
 
@@ -329,6 +337,9 @@ export default function GrammarClient() {
       return stat && stat.next_review <= now
     })
   }, [srsStats])
+
+  // Grammar forecast for next 7 days
+  const grammarForecast = useMemo(() => getGrammarForecast(srsStats, lang, 7), [srsStats, lang])
 
   const totalInBook    = bookPoints.length
   const totalKnownInBook = bookPoints.filter(p => knownIds.has(p.id)).length
@@ -455,6 +466,36 @@ export default function GrammarClient() {
         </div>
       )}
 
+      {/* Grammar Forecast */}
+      {state.user && srsStats.size > 0 && (
+        <div className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-yellow-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-amber-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+              📅 {t(lang, 'grammar_forecast_title')}
+            </p>
+            <span className="text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-300 leading-none">
+              {grammarForecast[0]?.cumulative ?? 0}
+            </span>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {grammarForecast.slice(1).map(day => {
+              const isEmpty = day.cumulative === 0
+              return (
+                <div key={day.date.toISOString()} className="flex flex-col items-center min-w-[2.5rem]">
+                  <span className="text-slate-400 dark:text-slate-500 text-[10px] font-medium capitalize">{day.dayLabel}</span>
+                  <span className="text-xs font-bold tabular-nums mt-0.5">
+                    {isEmpty
+                      ? <span className="text-slate-300 dark:text-slate-600">—</span>
+                      : <span className="text-amber-600 dark:text-amber-400">+{day.newDue}</span>
+                    }
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Book selector */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs font-semibold text-slate-500 mr-1">📚 {t(lang, 'grammar_book')}:</span>
@@ -538,13 +579,14 @@ export default function GrammarClient() {
 
           <button
             onClick={() => setHideKnown(v => !v)}
+            disabled={knownIds.size === 0}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ml-auto ${
-              hideKnown
+              hideKnown && knownIds.size > 0
                 ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed'
             }`}
           >
-            {hideKnown ? t(lang, 'grammar_hiding_known') : t(lang, 'grammar_hide_known')}
+            {hideKnown && knownIds.size > 0 ? t(lang, 'grammar_hiding_known') : t(lang, 'grammar_hide_known')}
           </button>
         </div>
       </div>

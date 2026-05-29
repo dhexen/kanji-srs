@@ -31,6 +31,68 @@ export interface GrammarSentence {
   translation_es: string
   translation_ca: string
   translation_en: string
+  validated?: boolean              // true when validated by admin/contributor
+  validated_by?: string           // user_id of the validator
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Grammar SRS forecast
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface GrammarDayForecast {
+  date: Date
+  dayLabel: string
+  newDue: number
+  cumulative: number
+  isToday: boolean
+}
+
+/**
+ * Computes a day-by-day grammar SRS review forecast for the next `dayCount` days.
+ * Each grammar point has a single next_review timestamp (unlike vocab which has one per mode).
+ */
+export function getGrammarForecast(
+  stats: Map<string, GrammarSrsStat>,
+  locale: string,
+  dayCount = 7,
+): GrammarDayForecast[] {
+  const now = Date.now()
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayStartMs = todayStart.getTime()
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const localeTag = locale === 'ja' ? 'ja-JP' : locale === 'ca' ? 'ca-ES' : locale === 'en' ? 'en-GB' : 'es-ES'
+
+  const newDue = Array(dayCount).fill(0)
+
+  for (const stat of stats.values()) {
+    const due = stat.next_review
+    if (due <= now) {
+      newDue[0]++
+      continue
+    }
+    for (let d = 0; d < dayCount; d++) {
+      const start = todayStartMs + d * DAY_MS
+      const end = start + DAY_MS
+      if (due >= start && due < end) {
+        newDue[d]++
+        break
+      }
+    }
+  }
+
+  let cumulative = 0
+  return newDue.map((n, d) => {
+    cumulative += n
+    const date = new Date(todayStartMs + d * DAY_MS)
+    return {
+      date,
+      dayLabel: date.toLocaleDateString(localeTag, { weekday: 'short' }),
+      newDue: n,
+      cumulative,
+      isToday: d === 0,
+    }
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
