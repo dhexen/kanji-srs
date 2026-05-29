@@ -387,6 +387,10 @@ function NavInner() {
           href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
           badge={0} progress={null} pathname={pathname}
         />
+        <NavItem
+          href="/grammar-test" icon="🧪" label="Gramática Test"
+          badge={0} progress={null} pathname={pathname} isAdmin
+        />
         <NavSection
           icon="👤" label={stripEmoji(t(lang, 'nav_stats'))}
           basePath="/stats" subItems={profileSubItems}
