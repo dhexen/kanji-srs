@@ -1416,6 +1416,22 @@ export async function updateGrammarSentence(
 }
 
 /**
+ * Delete a single grammar sentence from the shared pool by its UUID.
+ * Used by admins / contributors to permanently remove nonsensical AI sentences.
+ */
+export async function deleteGrammarSentenceById(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('grammar_sentences')
+      .delete()
+      .eq('id', id)
+    if (error) console.warn('deleteGrammarSentenceById:', error.message)
+  } catch (e) {
+    console.warn('deleteGrammarSentenceById exception:', e)
+  }
+}
+
+/**
  * Mark (or unmark) a shared grammar sentence as validated by the current user.
  * Only admins / contributors should call this — the role check is done in the UI.
  */
