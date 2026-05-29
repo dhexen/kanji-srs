@@ -255,6 +255,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const progressionRef = useRef<UserProgression>(DEFAULT_PROGRESSION)
   useEffect(() => { progressionRef.current = state.progression }, [state.progression])
 
+  function saveProgressionLocal(prog: UserProgression) {
+    try { localStorage.setItem('kanji_srs_progression', JSON.stringify(prog)) } catch { /* incognito */ }
+  }
+  function loadProgressionLocal(): UserProgression | null {
+    try {
+      const raw = localStorage.getItem('kanji_srs_progression')
+      return raw ? JSON.parse(raw) as UserProgression : null
+    } catch { return null }
+  }
+
   const addXP = useCallback((gain: XpGain): number => {
     const result = applyXp(progressionRef.current, gain)
     progressionRef.current = result.next
@@ -266,7 +276,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } else if (result.grammarLevelUp) {
       dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'grammar', level: result.next.grammar_level } })
     }
-    void upsertUserProgression(result.next).catch(() => {})
+    // Always save to localStorage as fallback
+    saveProgressionLocal(result.next)
+    // Persist to Supabase; if the migration hasn't been run yet, log a warning
+    void upsertUserProgression(result.next).catch((e: unknown) => {
+      console.warn('[progression] Supabase upsert failed — localStorage is the active cache. Run supabase-progression-migration.sql to enable cloud sync.', e)
+    })
     return (gain.vocabXp ?? 0) + (gain.grammarXp ?? 0)
   }, [])
 
@@ -306,6 +321,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (prog) {
         progressionRef.current = prog
         dispatch({ type: 'SET_PROGRESSION', payload: prog })
+        saveProgressionLocal(prog)
+      } else {
+        // Table might not exist yet — fall back to localStorage
+        const local = loadProgressionLocal()
+        if (local) {
+          progressionRef.current = local
+          dispatch({ type: 'SET_PROGRESSION', payload: local })
+        }
       }
     } catch (e) {
       console.error('Error descargando progreso:', e)
@@ -515,6 +538,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     userRef.current = null
     dbRef.current = []
     progressionRef.current = DEFAULT_PROGRESSION
+    try { localStorage.removeItem('kanji_srs_progression') } catch { /* incognito */ }
   }, [])
 
   const setSimulatedRole = useCallback((role: 'admin' | 'contributor' | 'user' | null) => {
