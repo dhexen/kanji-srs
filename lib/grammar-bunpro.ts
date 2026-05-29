@@ -1339,3 +1339,29 @@ export function getBunproByLevel(level: BunproGrammarPoint['jlpt']) {
 export function getBunproById(id: string) {
   return BUNPRO_GRAMMAR.find(g => g.id === id)
 }
+
+// ── Adapter: BunproGrammarPoint → GrammarPoint ─────────────────────────────
+// Converts a BunPro point to the GrammarPoint shape expected by GrammarPractice
+// and GrammarDetail. Only the fields used by those components are filled.
+import type { GrammarPoint } from './grammar-mnn1'
+
+export function bunproToGrammarPoint(bp: BunproGrammarPoint): GrammarPoint {
+  return {
+    id: bp.id,
+    lesson: 0,
+    number: 0,
+    jlpt: bp.jlpt,
+    pattern: bp.pattern,
+    name_es: bp.name_es,
+    name_ca: bp.name_es,
+    name_en: bp.name_en,
+    explanation_es: bp.meaning_es,
+    explanation_ca: bp.meaning_es,
+    explanation_en: bp.meaning_en,
+    structure: [{ text: bp.structure, role: 'key', isSlot: false }],
+    example: [],
+    tip_es: bp.notes,
+    tip_ca: bp.notes,
+    tip_en: bp.notes,
+  }
+}

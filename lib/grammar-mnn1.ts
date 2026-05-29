@@ -75,7 +75,7 @@ export interface GrammarPoint {
   id: string           // "mnn1-01-1"
   lesson: number       // 1-25
   number: number       // sequential overall
-  jlpt: 'N5' | 'N4' | 'N3' | 'N2'
+  jlpt: 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
   pattern: string      // "N₁ は N₂ です"
   name_es: string
   name_ca: string
