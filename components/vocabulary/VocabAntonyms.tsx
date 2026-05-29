@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '@/lib/store'
 import { fetchAntonymPairs, searchVocabulary, type AntonymPair } from '@/lib/supabase'
-import { addAntonymPair, deleteAntonymPair } from '@/lib/admin-client'
+import { addAntonymPair, deleteAntonymPair, runAutoDetectAntonyms } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -227,6 +227,10 @@ export default function VocabAntonyms() {
   const [pendingDelete, setPendingDelete] = useState<number | null>(null)
   const [deleting,      setDeleting]      = useState(false)
 
+  // Auto-detect antonyms
+  const [autoDetecting,  setAutoDetecting]  = useState(false)
+  const [autoDetectMsg,  setAutoDetectMsg]  = useState('')
+
   useEffect(() => {
     setLoading(true)
     fetchAntonymPairs()
@@ -315,6 +319,26 @@ export default function VocabAntonyms() {
     }
   }
 
+  async function handleAutoDetect() {
+    setAutoDetecting(true)
+    setAutoDetectMsg('')
+    try {
+      const result = await runAutoDetectAntonyms({
+        geminiApiKey: state.geminiApiKey || undefined,
+      })
+      setAutoDetectMsg(result.message)
+      if (result.pairs_added > 0) {
+        const updated = await fetchAntonymPairs()
+        setPairs(updated)
+        showToast(`✓ ${result.pairs_added} nuevos pares detectados`, 'success')
+      }
+    } catch (e: unknown) {
+      setAutoDetectMsg(e instanceof Error ? e.message : 'Error en la detección automática')
+    } finally {
+      setAutoDetecting(false)
+    }
+  }
+
   const tl = (key: string) => t(lang as Parameters<typeof t>[0], key as Parameters<typeof t>[1])
 
   const FILTER_TABS: { key: FilterType; label: string }[] = [
@@ -326,24 +350,54 @@ export default function VocabAntonyms() {
   return (
     <div className="space-y-4">
 
-      {/* Header + add button */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Header + action buttons */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs text-slate-400 mt-0.5">
             {loading ? tl('antonyms_loading') : tl('antonyms_n_pairs').replace('{n}', String(pairs.length))}
           </p>
         </div>
         {canEdit && (
-          <button
-            onClick={() => { setShowAdd(true); setAddError(''); setWordA(''); setWordB('') }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700
-                       text-white text-sm font-semibold rounded-xl transition shadow-sm shrink-0"
-          >
-            <span className="text-base leading-none">＋</span>
-            {tl('antonyms_add_pair')}
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Auto-detect button */}
+            <button
+              onClick={handleAutoDetect}
+              disabled={autoDetecting}
+              title="Detectar automáticamente pares de contrarios con Gemini"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-700
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         text-white text-sm font-semibold rounded-xl transition shadow-sm shrink-0"
+            >
+              {autoDetecting
+                ? <span className="animate-spin text-base leading-none">⟳</span>
+                : <span className="text-base leading-none">🤖</span>
+              }
+              {autoDetecting ? 'Detectando…' : 'Auto-detectar'}
+            </button>
+            {/* Manual add button */}
+            <button
+              onClick={() => { setShowAdd(true); setAddError(''); setWordA(''); setWordB('') }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700
+                         text-white text-sm font-semibold rounded-xl transition shadow-sm shrink-0"
+            >
+              <span className="text-base leading-none">＋</span>
+              {tl('antonyms_add_pair')}
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Auto-detect result message */}
+      {autoDetectMsg && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl text-sm text-violet-700 dark:text-violet-300">
+          <span>🤖</span>
+          <span>{autoDetectMsg}</span>
+          <button
+            onClick={() => setAutoDetectMsg('')}
+            className="ml-auto text-violet-400 hover:text-violet-600 text-lg leading-none"
+          >×</button>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-1.5 flex-wrap">

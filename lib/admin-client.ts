@@ -372,6 +372,29 @@ export async function deleteAntonymPair(id: number): Promise<{ ok: boolean }> {
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
+export interface AutoDetectAntonymsResult {
+  candidates_checked: number
+  pairs_added: number
+  message: string
+}
+
+/**
+ * Auto-detect antonym pairs from already-classified vocabulary using Gemini.
+ * Scans adjectives and verbs in the DB and finds pairs where both words exist.
+ */
+export async function runAutoDetectAntonyms(opts: {
+  wordTypes?:    string[]
+  limit?:        number
+  geminiApiKey?: string
+}): Promise<AutoDetectAntonymsResult> {
+  const res = await fetch('/api/admin/vocab/antonyms/auto-detect', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<AutoDetectAntonymsResult>(res)
+}
+
 export interface ClassifyStats {
   total: number
   with_type: number
