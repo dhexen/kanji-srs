@@ -136,17 +136,14 @@ function buildRubyTokens(text: string, reading: string): RubyToken[] {
       } else {
         const nextCh = text[kanjiEnd]
         const phoneticAlt = RUBY_PARTICLE_PHONETIC[nextCh]
-        // Start at ri+1: a kanji block must consume at least one reading
-        // character, so the anchor can never be at position ri itself.
-        // Starting at ri would cause a false early match when the phonetic
-        // alt (e.g. 'わ') happens to be the very first char of the reading
-        // (e.g. 'わたしわ…'), assigning an empty ruby to the preceding kanji.
+        // Prefer orthographic anchor over phonetic to avoid false early matches
+        // (e.g. 川 reads かわ — the わ must not be mistaken for は's phonetic form).
         let searchPos = ri + 1
-        while (
-          searchPos < reading.length &&
-          reading[searchPos] !== nextCh &&
-          reading[searchPos] !== phoneticAlt
-        ) searchPos++
+        while (searchPos < reading.length && reading[searchPos] !== nextCh) searchPos++
+        if (searchPos >= reading.length && phoneticAlt) {
+          searchPos = ri + 1
+          while (searchPos < reading.length && reading[searchPos] !== phoneticAlt) searchPos++
+        }
         readingEnd = searchPos
       }
 
