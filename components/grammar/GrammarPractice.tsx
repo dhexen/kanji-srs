@@ -892,6 +892,13 @@ Otras reglas:
             ))}
           </div>
 
+          {/* XP earned */}
+          {xpGained !== null && xpGained > 0 && (
+            <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow">
+              +{xpGained} XP 文法
+            </div>
+          )}
+
           {/* SRS level change */}
           <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
