@@ -270,20 +270,40 @@ export default function GrammarPractice({
   const [deleting, setDeleting]             = useState(false)
   const [deleteConfirm, setDeleteConfirm]   = useState(false)
 
-  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isSpeaking, setIsSpeaking]   = useState(false)
+  const [noJaVoice, setNoJaVoice]     = useState(false)
 
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
 
   function speakJapanese(text: string) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utter = new SpeechSynthesisUtterance(text)
-    utter.lang = 'ja-JP'
-    utter.onstart = () => setIsSpeaking(true)
-    utter.onend   = () => setIsSpeaking(false)
-    utter.onerror = () => setIsSpeaking(false)
-    window.speechSynthesis.speak(utter)
+
+    const doSpeak = () => {
+      const voices  = window.speechSynthesis.getVoices()
+      const jaVoice = voices.find(v => v.lang.startsWith('ja'))
+
+      if (voices.length > 0 && !jaVoice) {
+        setNoJaVoice(true)
+        return
+      }
+
+      window.speechSynthesis.cancel()
+      const utter = new SpeechSynthesisUtterance(text)
+      utter.lang  = 'ja-JP'
+      if (jaVoice) utter.voice = jaVoice
+      utter.onstart = () => setIsSpeaking(true)
+      utter.onend   = () => setIsSpeaking(false)
+      utter.onerror = () => setIsSpeaking(false)
+      window.speechSynthesis.speak(utter)
+    }
+
+    const voices = window.speechSynthesis.getVoices()
+    if (voices.length > 0) {
+      doSpeak()
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+    }
   }
 
   // ── Load on mount ─────────────────────────────────────────────────────────
@@ -1063,6 +1083,15 @@ Otras reglas:
             </div>
 
             <div className="bg-white dark:bg-slate-800 px-5 py-4 space-y-4">
+              {noJaVoice && (
+                <p className="text-xs text-center text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-1.5">
+                  {lang === 'en'
+                    ? 'No Japanese voice installed. Add one in System Settings → Language.'
+                    : lang === 'ca'
+                    ? 'No hi ha veu japonesa instal·lada. Afegeix-la a Configuració del sistema → Idioma.'
+                    : 'No hay voz japonesa instalada. Añádela en Configuración del sistema → Idioma.'}
+                </p>
+              )}
               {/* Correct full sentence */}
               <div className="text-center">
                 <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
@@ -1106,6 +1135,16 @@ Otras reglas:
                 </p>
               </div>
             </div>
+
+            {/* ── Validated footer ─────────────────────────────────────────── */}
+            {currentSentence?.validated && (
+              <div className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-t border-emerald-100 dark:border-emerald-800 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t(lang, 'gp_validated_badge')}
+              </div>
+            )}
           </div>
 
           <button
@@ -1116,16 +1155,6 @@ Otras reglas:
               ? `🏁 ${t(lang, 'gp_see_results')}`
               : `${t(lang, 'gp_next')} →`}
           </button>
-
-          {/* ── Validated badge ─────────────────────────────────────────── */}
-          {currentSentence?.validated && (
-            <div className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {t(lang, 'gp_validated_badge')}
-            </div>
-          )}
 
           {/* ── Validate button (admin / contributor only) ───────────────── */}
           {canEdit && currentSentence?.id && !editingId && (
