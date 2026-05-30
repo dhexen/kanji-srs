@@ -14,6 +14,7 @@ import {
   GRAMMAR_SRS_INTERVALS,
 } from '@/lib/grammar-srs'
 import {
+  supabase,
   fetchGrammarSentences,
   saveGrammarSentences,
   deleteGrammarSentences,
@@ -286,15 +287,23 @@ export default function GrammarPractice({
     setTtsError(false)
     setIsSpeaking(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('no session')
+
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ text }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('[TTS] error', res.status, err)
+        throw new Error(err?.error ?? `HTTP ${res.status}`)
+      }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const audio = new Audio(url)
