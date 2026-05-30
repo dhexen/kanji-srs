@@ -16,17 +16,14 @@ CREATE TABLE IF NOT EXISTS public.user_progression (
 -- Row-Level Security
 ALTER TABLE public.user_progression ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own progression"
-  ON public.user_progression FOR SELECT
-  USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can read own progression" ON public.user_progression;
+DROP POLICY IF EXISTS "Users can insert own progression" ON public.user_progression;
+DROP POLICY IF EXISTS "Users can update own progression" ON public.user_progression;
 
-CREATE POLICY "Users can insert own progression"
-  ON public.user_progression FOR INSERT
+CREATE POLICY "Users manage own progression"
+  ON public.user_progression FOR ALL
+  USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own progression"
-  ON public.user_progression FOR UPDATE
-  USING (auth.uid() = user_id);
 
 -- Admins can read all progression (for leaderboards / stats panel)
 CREATE POLICY "Admins can read all progression"
