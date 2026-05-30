@@ -13,6 +13,8 @@ import {
   getUserRole,
   saveGeminiKey,
   savePexelsKey,
+  saveWaniKaniKey,
+  saveShowSharedSentences,
   saveContextTexts,
   saveLanguage,
   fetchSrsIntervalsConfig,
@@ -39,6 +41,8 @@ interface State {
   loaded: boolean
   geminiApiKey: string
   pexelsApiKey: string
+  waniKaniApiKey: string
+  showSharedSentences: boolean
   contextTexts: ContextText[]
   lang: Lang
   progression: UserProgression
@@ -56,6 +60,8 @@ type Action =
   | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; isCorrect: boolean } }
   | { type: 'SET_GEMINI_KEY'; payload: string }
   | { type: 'SET_PEXELS_KEY'; payload: string }
+  | { type: 'SET_WANIKANI_KEY'; payload: string }
+  | { type: 'SET_SHOW_SHARED'; payload: boolean }
   | { type: 'SET_CONTEXT_TEXTS'; payload: ContextText[] }
   | { type: 'ADD_CONTEXT_TEXT'; payload: ContextText }
   | { type: 'REMOVE_CONTEXT_TEXT'; payload: number }
@@ -75,6 +81,8 @@ function appReducer(state: State, action: Action): State {
     case 'SET_LOADED': return { ...state, loaded: true }
     case 'SET_GEMINI_KEY': return { ...state, geminiApiKey: action.payload }
     case 'SET_PEXELS_KEY': return { ...state, pexelsApiKey: action.payload }
+    case 'SET_WANIKANI_KEY': return { ...state, waniKaniApiKey: action.payload }
+    case 'SET_SHOW_SHARED': return { ...state, showSharedSentences: action.payload }
     case 'SET_LANG': return { ...state, lang: action.payload }
     case 'SET_CONTEXT_TEXTS': return { ...state, contextTexts: action.payload }
     case 'ADD_CONTEXT_TEXT': return { ...state, contextTexts: [action.payload, ...state.contextTexts].slice(0, 10) }
@@ -90,7 +98,7 @@ function appReducer(state: State, action: Action): State {
     case 'APPLY_RESULT': {
       return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.isCorrect)) }
     }
-    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', pexelsApiKey: '' }
+    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
     default: return state
   }
 }
@@ -150,6 +158,8 @@ interface StoreContextType {
   resetRemoteProgress: () => Promise<void>
   updateGeminiKey: (key: string) => Promise<void>
   updatePexelsKey: (key: string) => Promise<void>
+  updateWaniKaniKey: (key: string) => Promise<void>
+  updateShowSharedSentences: (show: boolean) => Promise<void>
   addContextText: (text: ContextText) => Promise<void>
   removeContextText: (id: number) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
@@ -168,7 +178,7 @@ const StoreContext = createContext<StoreContextType | null>(null)
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
-    geminiApiKey: '', pexelsApiKey: '', contextTexts: [], lang: 'es',
+    geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
     progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
   })
 
@@ -318,6 +328,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dbRef.current = migrated
         if (data.gemini_api_key) dispatch({ type: 'SET_GEMINI_KEY', payload: data.gemini_api_key })
         if (data.pexels_api_key) dispatch({ type: 'SET_PEXELS_KEY', payload: data.pexels_api_key })
+        if (data.wanikani_api_key) dispatch({ type: 'SET_WANIKANI_KEY', payload: data.wanikani_api_key })
+        dispatch({ type: 'SET_SHOW_SHARED', payload: data.show_shared_sentences ?? true })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
       }
@@ -373,6 +385,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updatePexelsKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_PEXELS_KEY', payload: key })
     try { await savePexelsKey(key) } catch (e) { console.error('Error guardando Pexels API key:', e) }
+  }, [])
+
+  const updateWaniKaniKey = useCallback(async (key: string) => {
+    dispatch({ type: 'SET_WANIKANI_KEY', payload: key })
+    try { await saveWaniKaniKey(key) } catch (e) { console.error('Error guardando WaniKani API key:', e) }
+  }, [])
+
+  const updateShowSharedSentences = useCallback(async (show: boolean) => {
+    dispatch({ type: 'SET_SHOW_SHARED', payload: show })
+    try { await saveShowSharedSentences(show) } catch (e) { console.error('Error guardando show_shared_sentences:', e) }
   }, [])
 
   const addContextText = useCallback(async (text: ContextText) => {
@@ -536,6 +558,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_CONTEXT_TEXTS', payload: [] })
     dispatch({ type: 'SET_GEMINI_KEY', payload: '' })
     dispatch({ type: 'SET_PEXELS_KEY', payload: '' })
+    dispatch({ type: 'SET_WANIKANI_KEY', payload: '' })
+    dispatch({ type: 'SET_SHOW_SHARED', payload: true })
     dispatch({ type: 'SET_LANG', payload: 'es' })
     dispatch({ type: 'SET_PROGRESSION', payload: DEFAULT_PROGRESSION })
     dispatch({ type: 'CLEAR_LEVEL_UP' })
@@ -563,6 +587,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       resetRemoteProgress,
       updateGeminiKey,
       updatePexelsKey,
+      updateWaniKaniKey,
+      updateShowSharedSentences,
       addContextText,
       removeContextText,
       setLang,

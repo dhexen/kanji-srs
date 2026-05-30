@@ -171,6 +171,7 @@ function GrammarSrsQueue({
   geminiKey,
   sessionToken,
   activeVocab,
+  showSharedSentences,
   onBack,
   canEdit,
 }: {
@@ -179,6 +180,7 @@ function GrammarSrsQueue({
   geminiKey: string
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
+  showSharedSentences: boolean
   onBack: () => void
   canEdit?: boolean
 }) {
@@ -246,7 +248,8 @@ function GrammarSrsQueue({
         geminiKey={geminiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
-        onBack={() => setIdx(i => i + 1)}   // "back" in queue mode = advance to next
+        showSharedSentences={showSharedSentences}
+        onBack={() => setIdx(i => i + 1)}
         canEdit={canEdit}
       />
     </div>
@@ -379,6 +382,7 @@ export default function GrammarClient() {
         geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
+        showSharedSentences={state.showSharedSentences}
         onBack={() => setView({ kind: 'list' })}
         canEdit={canEdit}
       />
@@ -393,6 +397,7 @@ export default function GrammarClient() {
         geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
+        showSharedSentences={state.showSharedSentences}
         onBack={() => setView({ kind: 'list' })}
         canEdit={canEdit}
       />

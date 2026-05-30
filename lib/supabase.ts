@@ -289,13 +289,16 @@ export async function countUserVocab(userId?: string): Promise<number> {
 export async function fetchUserSettings(): Promise<{
   gemini_api_key: string
   pexels_api_key: string
+  wanikani_api_key: string
+  wanikani_min_srs_stage: number
+  show_shared_sentences: boolean
   context_texts: ContextText[]
   language: string
 } | null> {
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('gemini_api_key, pexels_api_key, context_texts, language')
+    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -306,6 +309,9 @@ export async function fetchUserSettings(): Promise<{
       return {
         gemini_api_key: legacy.gemini_api_key ?? '',
         pexels_api_key: '',
+        wanikani_api_key: '',
+        wanikani_min_srs_stage: 5,
+        show_shared_sentences: true,
         context_texts: (legacy.context_texts as ContextText[]) ?? [],
         language: legacy.language ?? 'es',
       }
@@ -317,6 +323,9 @@ export async function fetchUserSettings(): Promise<{
   return {
     gemini_api_key: data.gemini_api_key ?? '',
     pexels_api_key: data.pexels_api_key ?? '',
+    wanikani_api_key: data.wanikani_api_key ?? '',
+    wanikani_min_srs_stage: data.wanikani_min_srs_stage ?? 5,
+    show_shared_sentences: data.show_shared_sentences ?? true,
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
   }
@@ -378,11 +387,180 @@ export async function savePexelsKey(key: string) {
     if (error) throw error
   } catch (e) {
     if (isSchemaUnavailable(e as { code?: string; message?: string })) {
-      // Legacy table doesn't have pexels_api_key — ignore silently
       return
     }
     throw e
   }
+}
+
+export async function saveWaniKaniKey(key: string) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, wanikani_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) return
+    throw e
+  }
+}
+
+export async function saveWaniKaniMinSrsStage(stage: number) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, wanikani_min_srs_stage: stage, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) return
+    throw e
+  }
+}
+
+export async function saveShowSharedSentences(show: boolean) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, show_shared_sentences: show, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) return
+    throw e
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WaniKani vocabulary
+// ---------------------------------------------------------------------------
+
+export interface WaniKaniVocabItem {
+  wanikani_id: number
+  word: string
+  reading: string
+  meaning_en: string
+  meaning_es: string | null
+  meaning_ca: string | null
+  level: number
+  srs_stage: number
+}
+
+export async function fetchWaniKaniVocabSample(limit = 40): Promise<WaniKaniVocabItem[]> {
+  const user = await requireUser()
+  const { data, error } = await supabase
+    .from('wanikani_user_vocab')
+    .select('wanikani_id, word, reading, meaning_en, meaning_es, meaning_ca, level, srs_stage')
+    .eq('user_id', user.id)
+    .order('srs_stage', { ascending: false })
+    .limit(limit * 3) // fetch extra to allow random sampling
+
+  if (error) {
+    if (isSchemaUnavailable(error)) return []
+    console.error('fetchWaniKaniVocabSample:', error)
+    return []
+  }
+  if (!data?.length) return []
+  // Random sample
+  return [...data].sort(() => Math.random() - 0.5).slice(0, limit)
+}
+
+export async function upsertWaniKaniVocab(
+  items: Omit<WaniKaniVocabItem, never>[],
+): Promise<void> {
+  const user = await requireUser()
+  const rows = items.map(i => ({ ...i, user_id: user.id, synced_at: new Date().toISOString() }))
+  for (const batch of chunk(rows, 200)) {
+    const { error } = await supabase
+      .from('wanikani_user_vocab')
+      .upsert(batch, { onConflict: 'user_id,wanikani_id' })
+    if (error) throw error
+  }
+}
+
+export async function getWaniKaniSyncStatus(): Promise<{ count: number; synced_at: string | null }> {
+  const user = await requireUser()
+  const { data, error } = await supabase
+    .from('wanikani_user_vocab')
+    .select('wanikani_id, synced_at')
+    .eq('user_id', user.id)
+    .order('synced_at', { ascending: false })
+    .limit(1)
+
+  if (error || !data) return { count: 0, synced_at: null }
+
+  const { count: cnt } = await supabase
+    .from('wanikani_user_vocab')
+    .select('wanikani_id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  return { count: cnt ?? 0, synced_at: data[0]?.synced_at ?? null }
+}
+
+// ---------------------------------------------------------------------------
+// User-shared grammar sentences
+// ---------------------------------------------------------------------------
+
+export interface UserSharedSentence {
+  id: string
+  grammar_id: string
+  sentence_before: string
+  sentence_before_reading: string
+  sentence_before_alts: string[]
+  sentence_before_reading_alts: string[]
+  sentence_after: string
+  sentence_after_reading: string
+  answer: string
+  answer_alts: string[]
+  translation_es: string
+  translation_ca: string
+  translation_en: string
+  grammar_jlpt: string
+  vocab_words: string[]
+  topic: string | null
+  shared_at: string
+}
+
+export async function shareGrammarSentence(params: {
+  grammar_id: string
+  sentence_before: string
+  sentence_before_reading: string
+  sentence_before_alts: string[]
+  sentence_before_reading_alts: string[]
+  sentence_after: string
+  sentence_after_reading: string
+  answer: string
+  answer_alts: string[]
+  translation_es: string
+  translation_ca: string
+  translation_en: string
+  grammar_jlpt: string
+  vocab_words: string[]
+  topic: string | null
+}): Promise<void> {
+  const user = await requireUser()
+  const { error } = await supabase.from('user_shared_sentences').insert({
+    ...params,
+    shared_by: user.id,
+  })
+  if (error) throw error
+}
+
+export async function fetchUserSharedSentences(grammarId: string): Promise<UserSharedSentence[]> {
+  const { data, error } = await supabase
+    .from('user_shared_sentences')
+    .select('id, grammar_id, sentence_before, sentence_before_reading, sentence_before_alts, sentence_before_reading_alts, sentence_after, sentence_after_reading, answer, answer_alts, translation_es, translation_ca, translation_en, grammar_jlpt, vocab_words, topic, shared_at')
+    .eq('grammar_id', grammarId)
+    .order('shared_at', { ascending: false })
+    .limit(50)
+
+  if (error) {
+    if (isSchemaUnavailable(error)) return []
+    console.error('fetchUserSharedSentences:', error)
+    return []
+  }
+  return (data ?? []) as UserSharedSentence[]
 }
 
 export async function saveContextTexts(texts: ContextText[]) {
@@ -540,6 +718,9 @@ export async function downloadAccountData(): Promise<{
   vocab: VocabItem[]
   gemini_api_key: string
   pexels_api_key: string
+  wanikani_api_key: string
+  wanikani_min_srs_stage: number
+  show_shared_sentences: boolean
   context_texts: ContextText[]
   language: string
 } | null> {
@@ -573,6 +754,9 @@ export async function downloadAccountData(): Promise<{
     vocab,
     gemini_api_key: legacy?.gemini_api_key ?? '',
     pexels_api_key: '',
+    wanikani_api_key: '',
+    wanikani_min_srs_stage: 5,
+    show_shared_sentences: true,
     context_texts: (legacy?.context_texts as ContextText[]) ?? [],
     language: legacy?.language ?? 'es',
   }

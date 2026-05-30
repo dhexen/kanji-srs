@@ -33,8 +33,12 @@ export interface GrammarSentence {
   translation_es: string
   translation_ca: string
   translation_en: string
-  validated?: boolean              // true when validated by admin/contributor
-  validated_by?: string           // user_id of the validator
+  validated?: boolean
+  validated_by?: string
+  topic?: string        // detected topic, present on newly-generated sentences
+  vocab_used?: string[] // vocab words that appear in the sentence
+  grammar_jlpt?: string // JLPT level of the grammar point (for shared sentences)
+  is_shared?: boolean   // true when loaded from user_shared_sentences
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -22,12 +22,15 @@ import {
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
   fetchSchoolVocabSample,
+  fetchWaniKaniVocabSample,
+  fetchUserSharedSentences,
+  shareGrammarSentence,
   updateGrammarSentence,
   validateGrammarSentence,
   deleteGrammarSentenceById,
 } from '@/lib/supabase'
-import GeminiApiTutorial from './GeminiApiTutorial'
 import { useStore } from '@/lib/store'
+import GeminiApiTutorial from './GeminiApiTutorial'
 import { grammarXpForSession } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
 
@@ -68,6 +71,7 @@ interface Props {
   geminiKey: string
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
+  showSharedSentences?: boolean
   onBack: () => void
   onSrsUpdate?: (stat: GrammarSrsStat) => void
   canEdit?: boolean
@@ -224,17 +228,36 @@ function SpinnerScreen({ msg }: { msg: string }) {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Detect topic from translation text using keyword mapping
+function detectTopic(translation: string): string {
+  const t = translation.toLowerCase()
+  if (/escuel|colegio|profe|alumno|class|school|teacher|student|estudian/.test(t)) return 'escuela'
+  if (/trabaj|ofici|empres|jefe|colega|work|office|boss|colleague/.test(t)) return 'trabajo'
+  if (/casa|hogar|habitaci|cocin|salon|home|house|kitchen|room/.test(t)) return 'casa'
+  if (/famili|padre|madre|hijo|hermano|abuel|family|father|mother|child|sibling/.test(t)) return 'familia'
+  if (/comer|comid|restaur|plato|bebid|food|drink|eat|restaurant|meal/.test(t)) return 'comida'
+  if (/tiemp|clima|lluvi|sol|frio|calor|weather|rain|sun|cold|hot/.test(t)) return 'clima'
+  if (/viaj|tren|avion|coche|autobús|travel|train|plane|car|bus/.test(t)) return 'transporte'
+  if (/deport|futbol|corr|nada|sport|football|run|swim/.test(t)) return 'deporte'
+  if (/ciudad|tiend|mercad|ciudad|compra|city|shop|market|buy/.test(t)) return 'ciudad'
+  if (/natur|parqu|montañ|bosqu|nature|park|mountain|forest/.test(t)) return 'naturaleza'
+  if (/hospital|medic|enferm|dolor|hospital|doctor|pain|medicine/.test(t)) return 'salud'
+  return 'cotidiano'
+}
+
 export default function GrammarPractice({
   grammar,
   lang,
   geminiKey,
   sessionToken,
   activeVocab,
+  showSharedSentences: showSharedProp = true,
   onBack,
   onSrsUpdate,
   canEdit,
 }: Props) {
-  const { addXP } = useStore()
+  const { addXP, state } = useStore()
+  const hasWaniKani = Boolean(state.waniKaniApiKey)
   const [phase, setPhase]                   = useState<Phase>('loading')
   const [sentences, setSentences]           = useState<GrammarSentence[]>([])
   const [srsStat, setSrsStat]               = useState<GrammarSrsStat | null>(null)
@@ -252,6 +275,17 @@ export default function GrammarPractice({
   const [lastGenStats, setLastGenStats]     = useState<{ generated: number; kept: number } | null>(null)
   // School vocabulary (primaria + secundaria) used as the vocabulary source for AI prompts
   const [schoolVocab, setSchoolVocab]       = useState<SchoolVocabItem[]>([])
+  // WaniKani vocabulary (user's acquired vocab, loaded on mount if key is configured)
+  const [wkVocab, setWkVocab]               = useState<{ jp: string; reading: string; meaning: string }[]>([])
+  const [useWkVocab, setUseWkVocab]         = useState(() => {
+    try { return localStorage.getItem('gp_use_wk_vocab') === 'true' } catch { return false }
+  })
+  // Shared community sentences
+  const [sharedSentences, setSharedSentences] = useState<GrammarSentence[]>([])
+  const [showShared, setShowShared]           = useState(showSharedProp)
+  // Share-button state for the current sentence
+  const [sharing, setSharing]               = useState(false)
+  const [shareSuccess, setShareSuccess]     = useState(false)
 
   // ── Sentence edit state (admin / contributor only) ────────────────────────
   const [editingId, setEditingId]           = useState<string | null>(null)
@@ -327,6 +361,47 @@ export default function GrammarPractice({
     fetchSchoolVocabSample(40).then(setSchoolVocab).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Fetch WaniKani vocabulary sample if enabled ───────────────────────────
+  useEffect(() => {
+    if (!hasWaniKani || !useWkVocab) return
+    fetchWaniKaniVocabSample(40).then(items => {
+      setWkVocab(items.map(w => ({
+        jp: w.word,
+        reading: w.reading,
+        meaning:
+          lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
+          lang === 'en' ? w.meaning_en :
+          (w.meaning_es ?? w.meaning_en),
+      })))
+    }).catch(() => {})
+  }, [hasWaniKani, useWkVocab, lang]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch user-shared sentences for this grammar point ────────────────────
+  useEffect(() => {
+    if (!showShared) return
+    fetchUserSharedSentences(grammar.id).then(rows => {
+      setSharedSentences(rows.map(r => ({
+        id: r.id,
+        grammar_id: r.grammar_id,
+        sentence_before: r.sentence_before,
+        sentence_before_reading: r.sentence_before_reading,
+        sentence_before_alts: r.sentence_before_alts,
+        sentence_before_reading_alts: r.sentence_before_reading_alts,
+        sentence_after: r.sentence_after,
+        sentence_after_reading: r.sentence_after_reading,
+        answer: r.answer,
+        answer_alts: r.answer_alts,
+        translation_es: r.translation_es,
+        translation_ca: r.translation_ca,
+        translation_en: r.translation_en,
+        is_shared: true,
+        grammar_jlpt: r.grammar_jlpt || undefined,
+        topic: r.topic ?? undefined,
+        vocab_used: r.vocab_words,
+      })))
+    }).catch(() => {})
+  }, [grammar.id, showShared]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function load() {
     setPhase('loading')
     try {
@@ -354,9 +429,8 @@ export default function GrammarPractice({
       lang === 'en' ? 'inglés'  :
       'español'
 
-    // Use school vocabulary (primaria + secundaria) as primary source.
-    // Fall back to user's active vocab if school vocab failed to load.
-    const vocabBase: { jp: string; reading: string; meaning: string }[] =
+    // Build school vocabulary base
+    const schoolBase: { jp: string; reading: string; meaning: string }[] =
       schoolVocab.length > 0
         ? schoolVocab.map(w => ({
             jp: w.jp,
@@ -372,17 +446,25 @@ export default function GrammarPractice({
             meaning: getMeaning(w, lang),
           }))
 
-    const vocabSample = [...vocabBase]
+    const schoolSample = [...schoolBase]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 20)
+      .slice(0, useWkVocab && wkVocab.length > 0 ? 15 : 20)
       .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
       .join(', ')
+
+    const wkSample = useWkVocab && wkVocab.length > 0
+      ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 10).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+      : ''
+
+    const vocabSection = wkSample
+      ? `Vocabulario disponible:\n- Del currículo escolar japonés (primaria y secundaria): ${schoolSample}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
+      : `Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${schoolSample || 'vocabulario básico N5'}`
 
     const prompt = `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
 El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
 
-Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${vocabSample || 'vocabulario básico N5'}
+${vocabSection}
 
 Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 {
@@ -397,6 +479,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
       "translation_es": "traducción COMPLETA y NATURAL al español",
       "translation_ca": "traducció COMPLETA i NATURAL al català",
       "translation_en": "COMPLETE and NATURAL English translation",
+      "topic": "uno de: casa, escuela, trabajo, familia, comida, clima, deporte, transporte, ciudad, naturaleza, salud, cotidiano",
+      "vocab_used": ["palabras_del_vocabulario_disponible_que_aparecen_en_la_frase"],
       "quality": 5
     }
   ]
@@ -475,6 +559,8 @@ Otras reglas:
         translation_es:                 String(s.translation_es     ?? ''),
         translation_ca:                 String(s.translation_ca     ?? ''),
         translation_en:                 String(s.translation_en     ?? ''),
+        topic:                          typeof s.topic === 'string' ? s.topic : undefined,
+        vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
       }))
 
       setLastGenStats({ generated: allRaw.length, kept: newSentences.length })
@@ -495,7 +581,7 @@ Otras reglas:
       setGenError(e instanceof Error ? e.message : t(lang, 'gp_gen_error'))
       setPhase('ready')
     }
-  }, [grammar, lang, geminiKey, sessionToken, activeVocab]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab, wkVocab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Delete current pool then generate fresh sentences
   const regenerate = useCallback(async () => {
@@ -609,18 +695,27 @@ Otras reglas:
 
   // ── Session start ─────────────────────────────────────────────────────────
   function startSession() {
-    if (sentences.length === 0) return
-    const count = Math.min(SESSION_SIZE, sentences.length)
-    // Prioritize validated sentences — shuffle each group separately then concat
-    const validatedIdx   = sentences.map((s, i) => ({ s, i })).filter(x => x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
-    const unvalidatedIdx = sentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
-    const ordered = [...validatedIdx, ...unvalidatedIdx]
+    // Merge auto-generated pool with community shared sentences (if enabled)
+    const allSentences: GrammarSentence[] = showShared && sharedSentences.length > 0
+      ? [...sentences, ...sharedSentences.filter(sh => !sentences.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer))]
+      : sentences
+    if (allSentences.length === 0) return
+
+    // Sync merged sentences into state so session indices are valid
+    if (showShared && sharedSentences.length > 0) setSentences(allSentences)
+
+    const count = Math.min(SESSION_SIZE, allSentences.length)
+    const validatedIdx   = allSentences.map((s, i) => ({ s, i })).filter(x => x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
+    const sharedIdx      = allSentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated && x.s.is_shared).map(x => x.i).sort(() => Math.random() - 0.5)
+    const unvalidatedIdx = allSentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated && !x.s.is_shared).map(x => x.i).sort(() => Math.random() - 0.5)
+    const ordered = [...validatedIdx, ...sharedIdx, ...unvalidatedIdx]
     setSessionQueue(ordered.slice(0, count))
     setCurrentPos(0)
     setSessionResults([])
     setUserInput('')
     setNewSrsStat(null)
     setDeleteConfirm(false)
+    setShareSuccess(false)
     setPhase('asking')
     setTimeout(() => inputRef.current?.focus(), 100)
   }
@@ -658,6 +753,42 @@ Otras reglas:
     setPhase('answered')
   }
 
+  // ── Share current sentence with the community ─────────────────────────────
+  async function handleShare() {
+    const sentence = sentences[sessionQueue[currentPos]]
+    if (!sentence || sharing || shareSuccess) return
+    setSharing(true)
+    try {
+      // Extract vocab words that appear in the sentence text
+      const sentenceText = sentence.sentence_before + sentence.answer + sentence.sentence_after
+      const allWords = [...schoolVocab.map(w => w.jp), ...wkVocab.map(w => w.jp)]
+      const vocabWords = allWords.filter(w => sentenceText.includes(w))
+
+      const translation = sentence.translation_es || sentence.translation_en || ''
+      const topic = sentence.topic ?? detectTopic(translation)
+
+      await shareGrammarSentence({
+        grammar_id: sentence.grammar_id,
+        sentence_before: sentence.sentence_before,
+        sentence_before_reading: sentence.sentence_before_reading,
+        sentence_before_alts: sentence.sentence_before_alts ?? [],
+        sentence_before_reading_alts: sentence.sentence_before_reading_alts ?? [],
+        sentence_after: sentence.sentence_after,
+        sentence_after_reading: sentence.sentence_after_reading,
+        answer: sentence.answer,
+        answer_alts: sentence.answer_alts,
+        translation_es: sentence.translation_es,
+        translation_ca: sentence.translation_ca,
+        translation_en: sentence.translation_en,
+        grammar_jlpt: (grammar as any).jlpt ?? '',
+        vocab_words: vocabWords,
+        topic,
+      })
+      setShareSuccess(true)
+    } catch { /* ignore duplicate / errors */ }
+    finally { setSharing(false) }
+  }
+
   // ── Next question / complete ───────────────────────────────────────────────
   async function nextQuestion() {
     const isLast = currentPos + 1 >= sessionQueue.length
@@ -688,6 +819,7 @@ Otras reglas:
       setCurrentPos(p => p + 1)
       setUserInput('')
       setDeleteConfirm(false)
+      setShareSuccess(false)
       setPhase('asking')
       setTimeout(() => inputRef.current?.focus(), 100)
     }
@@ -890,6 +1022,11 @@ Otras reglas:
               <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 text-indigo-500 dark:text-indigo-400 rounded-full px-2 py-0.5">
                 🌐 {t(lang, 'gp_pool_shared')}
               </span>
+              {sharedSentences.length > 0 && showShared && (
+                <span className="text-[10px] bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800 text-violet-600 dark:text-violet-400 rounded-full px-2 py-0.5">
+                  👥 +{sharedSentences.length} {t(lang, 'gp_shared_badge').toLowerCase()}
+                </span>
+              )}
             </div>
             {sessionToken && (
               <button
@@ -901,6 +1038,34 @@ Otras reglas:
               </button>
             )}
           </div>
+
+          {/* WaniKani toggle */}
+          {hasWaniKani && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useWkVocab}
+                onChange={e => {
+                  const v = e.target.checked
+                  setUseWkVocab(v)
+                  try { localStorage.setItem('gp_use_wk_vocab', String(v)) } catch { /* incognito */ }
+                }}
+                className="w-3.5 h-3.5 rounded accent-pink-500"
+              />
+              <span className="text-xs text-slate-600 dark:text-slate-400">{t(lang, 'gp_wk_toggle')}</span>
+            </label>
+          )}
+
+          {/* Shared sentences toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showShared}
+              onChange={e => setShowShared(e.target.checked)}
+              className="w-3.5 h-3.5 rounded accent-violet-500"
+            />
+            <span className="text-xs text-slate-600 dark:text-slate-400">{t(lang, 'gp_show_shared')}</span>
+          </label>
 
           {/* Quality filter badge — shown when the last generation discarded some sentences */}
           {lastGenStats && lastGenStats.kept < lastGenStats.generated && (
@@ -1170,6 +1335,50 @@ Otras reglas:
               ? `🏁 ${t(lang, 'gp_see_results')}`
               : `${t(lang, 'gp_next')} →`}
           </button>
+
+          {/* ── Community shared badge (when sentence is from shared pool) ── */}
+          {currentSentence.is_shared && (
+            <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 text-xs font-semibold text-violet-700 dark:text-violet-400">
+              <span>👥</span>
+              <span>{t(lang, 'gp_shared_badge')}</span>
+              {currentSentence.grammar_jlpt && (
+                <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900 rounded text-[10px]">
+                  {currentSentence.grammar_jlpt}
+                </span>
+              )}
+              {currentSentence.topic && (
+                <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900 rounded text-[10px]">
+                  {currentSentence.topic}
+                </span>
+              )}
+              {currentSentence.vocab_used && currentSentence.vocab_used.length > 0 && (
+                <span className="text-violet-500 dark:text-violet-500 text-[10px] font-normal">
+                  {currentSentence.vocab_used.slice(0, 4).join(', ')}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ── Share button (only for non-shared sentences when logged in) ── */}
+          {!currentSentence.is_shared && sessionToken && (
+            shareSuccess
+              ? (
+                <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 text-xs font-semibold text-violet-700 dark:text-violet-400">
+                  ✓ {t(lang, 'gp_share_success')}
+                </div>
+              ) : (
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="w-full flex items-center justify-center gap-2 py-2 border border-violet-200 dark:border-violet-800 rounded-xl text-xs font-semibold text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 dark:hover:border-violet-700 disabled:opacity-50 transition"
+                >
+                  {sharing
+                    ? <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/></svg> {t(lang, 'gp_sharing')}</>
+                    : <>👥 {t(lang, 'gp_share_btn')}</>
+                  }
+                </button>
+              )
+          )}
 
           {/* ── Validate button (admin / contributor only) ───────────────── */}
           {canEdit && currentSentence?.id && !editingId && (

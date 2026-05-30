@@ -6,7 +6,7 @@ import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
-import { fetchKnownGrammar } from '@/lib/supabase'
+import { fetchKnownGrammar, getWaniKaniSyncStatus } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
 
@@ -58,7 +58,7 @@ function ProgressRing({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey, setSimulatedRole } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey, updateWaniKaniKey, setSimulatedRole } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
   const [activeTab, setActiveTab] = useState<TabKey>(
@@ -73,6 +73,12 @@ export default function StatsClient() {
   const [geminiKey, setGeminiKey] = useState(state.geminiApiKey ?? '')
   const [geminiStepsOpen, setGeminiStepsOpen] = useState(false)
   const [pexelsKey, setPexelsKey] = useState(state.pexelsApiKey ?? '')
+  const [wkKey, setWkKey] = useState(state.waniKaniApiKey ?? '')
+  const [wkStepsOpen, setWkStepsOpen] = useState(false)
+  const [wkMinStage, setWkMinStage] = useState(5)
+  const [wkSyncing, setWkSyncing] = useState(false)
+  const [wkSyncResult, setWkSyncResult] = useState<{ count: number; at: string } | null>(null)
+  const [wkSyncError, setWkSyncError] = useState('')
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1) // -1 = loading
   const lang = state.lang
 
@@ -87,6 +93,14 @@ export default function StatsClient() {
       .then(set => setKnownGrammarCount(set.size))
       .catch(() => setKnownGrammarCount(0))
   }, [state.user])
+
+  // Load WaniKani sync status
+  useEffect(() => {
+    if (!state.user || !state.waniKaniApiKey) return
+    getWaniKaniSyncStatus()
+      .then(s => { if (s.count > 0) setWkSyncResult({ count: s.count, at: s.synced_at ?? '' }) })
+      .catch(() => {})
+  }, [state.user, state.waniKaniApiKey])
 
   // Progress calculations
   const { vocabPct, kanjiPct, grammarPct } = useMemo(() => {
@@ -144,6 +158,38 @@ export default function StatsClient() {
     const key = geminiKey.trim()
     await updateGeminiKey(key)
     showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+  }
+
+  async function handleSaveWkKey() {
+    const key = wkKey.trim()
+    await updateWaniKaniKey(key)
+    showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+  }
+
+  async function handleSyncWaniKani() {
+    if (!state.user) return
+    setWkSyncing(true)
+    setWkSyncError('')
+    try {
+      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('No session')
+      const res = await fetch('/api/wanikani/sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
+      const now = new Date().toISOString()
+      setWkSyncResult({ count: data.count, at: now })
+      showToast(t(lang, 'wk_api_synced').replace('{n}', String(data.count)), 'success')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : t(lang, 'wk_api_sync_error')
+      setWkSyncError(msg)
+      showToast(msg, 'error')
+    } finally {
+      setWkSyncing(false)
+    }
   }
 
   async function handleSavePexelsKey() {
@@ -437,6 +483,142 @@ export default function StatsClient() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* WaniKani API Key */}
+          <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100">{t(lang, 'wk_api_title')}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t(lang, 'wk_api_subtitle')}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs px-2.5 py-1 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 rounded-lg border border-pink-100 dark:border-pink-800 font-medium">
+                {t(lang, 'wk_api_use')}
+              </span>
+            </div>
+
+            {/* Step-by-step guide */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setWkStepsOpen(o => !o)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-pink-600 hover:text-pink-800 transition"
+              >
+                <span className={`transition-transform inline-block ${wkStepsOpen ? 'rotate-90' : ''}`}>▶</span>
+                {t(lang, 'wk_api_steps_title')}
+              </button>
+
+              {wkStepsOpen && (
+                <div className="mt-3 bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                  <ol className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+                    {[
+                      { n: 1, es: <>Ve a <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-medium">wanikani.com/settings/personal_access_tokens</a> e inicia sesión</>, en: <>Go to <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-medium">wanikani.com/settings/personal_access_tokens</a> and sign in</>, ca: <>Ves a <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-medium">wanikani.com/settings/personal_access_tokens</a> i inicia sessió</>, ja: <><a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-medium">wanikani.com/settings/personal_access_tokens</a> にアクセスしてログイン</> },
+                      { n: 2, es: <>Haz clic en <strong>«Generate a new token»</strong></>, en: <>Click <strong>"Generate a new token"</strong></>, ca: <>Fes clic a <strong>«Generate a new token»</strong></>, ja: <><strong>「Generate a new token」</strong>をクリック</> },
+                      { n: 3, es: <>Dale un nombre (ej. «kanji-srs») y activa el permiso <strong>assignments:read</strong> y <strong>subjects:read</strong></>, en: <>Give it a name (e.g. «kanji-srs») and enable <strong>assignments:read</strong> and <strong>subjects:read</strong> permissions</>, ca: <>Dóna-li un nom (p.ex. «kanji-srs») i activa els permisos <strong>assignments:read</strong> i <strong>subjects:read</strong></>, ja: <>名前（例: «kanji-srs»）を付けて <strong>assignments:read</strong> と <strong>subjects:read</strong> 権限を有効化</> },
+                      { n: 4, es: <>Copia el token generado y pégalo en el campo de abajo</>, en: <>Copy the generated token and paste it below</>, ca: <>Copia el token generat i enganxa'l al camp de sota</>, ja: <>生成されたトークンをコピーして下のフィールドに貼り付ける</> },
+                    ].map(step => (
+                      <li key={step.n} className="flex gap-2.5 items-start">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400 font-bold text-[10px] flex items-center justify-center mt-0.5">
+                          {step.n}
+                        </span>
+                        <span>{(step as any)[lang] ?? step.es}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+
+            {/* Input + save */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-600">API Key</label>
+                {state.waniKaniApiKey
+                  ? <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_set')}</span>
+                  : <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded font-medium">{t(lang, 'ctx_key_unset')}</span>
+                }
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={wkKey}
+                  onChange={e => setWkKey(e.target.value)}
+                  placeholder="wanikani.com/settings/personal_access_tokens"
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-pink-400 dark:bg-slate-700 dark:text-slate-100"
+                />
+                <button
+                  onClick={handleSaveWkKey}
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl text-sm transition"
+                >
+                  {t(lang, 'ctx_key_save')}
+                </button>
+              </div>
+              {state.waniKaniApiKey && (
+                <button
+                  onClick={() => { setWkKey(''); updateWaniKaniKey('') }}
+                  className="text-xs text-slate-400 hover:text-rose-500 transition underline"
+                >
+                  {t(lang, 'api_remove')}
+                </button>
+              )}
+            </div>
+
+            {/* Sync section — only shown when API key is configured */}
+            {state.waniKaniApiKey && (
+              <div className="border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
+                {/* Min SRS stage selector */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    {t(lang, 'wk_api_min_stage')}
+                  </label>
+                  <select
+                    value={wkMinStage}
+                    onChange={e => setWkMinStage(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 focus:ring-2 focus:ring-pink-400"
+                  >
+                    <option value={1}>{t(lang, 'wk_api_stage_1')}</option>
+                    <option value={5}>{t(lang, 'wk_api_stage_5')}</option>
+                    <option value={7}>{t(lang, 'wk_api_stage_7')}</option>
+                    <option value={8}>{t(lang, 'wk_api_stage_8')}</option>
+                  </select>
+                </div>
+
+                {/* Sync button + status */}
+                <button
+                  onClick={handleSyncWaniKani}
+                  disabled={wkSyncing}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-pink-600 hover:bg-pink-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition"
+                >
+                  {wkSyncing
+                    ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/></svg> {t(lang, 'wk_api_syncing')}</>
+                    : <>🔄 {t(lang, 'wk_api_sync_btn')}</>
+                  }
+                </button>
+
+                {wkSyncError && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 rounded-lg px-3 py-2">
+                    {wkSyncError}
+                  </p>
+                )}
+
+                {wkSyncResult && !wkSyncing && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      {t(lang, 'wk_api_synced').replace('{n}', String(wkSyncResult.count))}
+                      {wkSyncResult.at && (
+                        <span className="ml-2 text-slate-400">
+                          · {t(lang, 'wk_api_last_sync')} {new Date(wkSyncResult.at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pexels API Key — solo admins */}
