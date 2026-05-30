@@ -244,18 +244,20 @@ function buildKanaTokens(
       } else {
         const nextCh = text[kanjiEnd]
         const phoneticAlt = PARTICLE_PHONETIC[nextCh]  // may be undefined
-        // Start at ri+1: a kanji block must consume at least one reading
-        // character, so the anchor can never be at position ri itself.
-        // This prevents a false match when the phonetic alt (e.g. 'わ')
-        // appears as the very first character of the reading — which would
-        // happen if the AI stored 'わたしわ…' and we searched for は/わ from
-        // position 0, incorrectly assigning an empty reading to the kanji block.
+        // Prefer the orthographic anchor (nextCh) over the phonetic one.
+        // Only fall back to phoneticAlt when nextCh is not found in the
+        // remaining reading — this prevents a false early match when the
+        // kanji's own reading happens to end in the phonetic form of the
+        // next particle (e.g. 川 reads as かわ and the next char is は,
+        // whose phonetic alt is わ — we must NOT stop at the わ inside かわ).
+        // Start at ri+1: a kanji block must consume at least one kana char.
         let s = ri + 1
-        while (
-          s < reading.length &&
-          reading[s] !== nextCh &&
-          reading[s] !== phoneticAlt
-        ) s++
+        while (s < reading.length && reading[s] !== nextCh) s++
+        if (s >= reading.length && phoneticAlt) {
+          // Orthographic form not found — retry with phonetic alternative
+          s = ri + 1
+          while (s < reading.length && reading[s] !== phoneticAlt) s++
+        }
         readingEnd = s
       }
 
