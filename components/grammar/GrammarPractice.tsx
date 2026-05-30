@@ -68,6 +68,7 @@ interface Props {
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
+  onSrsUpdate?: (stat: GrammarSrsStat) => void
   canEdit?: boolean
 }
 
@@ -232,6 +233,7 @@ export default function GrammarPractice({
   sessionToken,
   activeVocab,
   onBack,
+  onSrsUpdate,
   canEdit,
 }: Props) {
   const { addXP } = useStore()
@@ -271,8 +273,21 @@ export default function GrammarPractice({
   const [deleting, setDeleting]             = useState(false)
   const [deleteConfirm, setDeleteConfirm]   = useState(false)
 
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
   const inputRef    = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
+
+  function speakJapanese(text: string) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang = 'ja-JP'
+    utter.onstart = () => setIsSpeaking(true)
+    utter.onend   = () => setIsSpeaking(false)
+    utter.onerror = () => setIsSpeaking(false)
+    window.speechSynthesis.speak(utter)
+  }
 
   // ── Load on mount ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -630,6 +645,7 @@ Otras reglas:
       const updated: GrammarSrsStat = { grammar_id: grammar.id, level: newLevel, next_review: nextReview }
       setNewSrsStat(updated)
       setSrsStat(updated)
+      onSrsUpdate?.(updated)
       try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
       // Award grammar XP based on session performance
       const wrongCount = allResults.length - correctCount
@@ -1017,18 +1033,36 @@ Otras reglas:
                   {isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong')}
                 </span>
               </div>
-              {hasFurigana && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowFurigana(v => !v)}
-                  className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
-                    showFurigana
-                      ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                  onClick={() => speakJapanese(
+                    currentSentence.sentence_before + currentSentence.answer + currentSentence.sentence_after
+                  )}
+                  title="Escuchar frase"
+                  className={`p-1.5 rounded-full border transition ${
+                    isSpeaking
+                      ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400'
                       : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5L6 9H3v6h3l5 4V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072" />
+                  </svg>
                 </button>
-              )}
+                {hasFurigana && (
+                  <button
+                    onClick={() => setShowFurigana(v => !v)}
+                    className={`text-xs px-2.5 py-0.5 rounded-full border transition ${
+                      showFurigana
+                        ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                        : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {showFurigana ? t(lang, 'gp_hide_furigana') : t(lang, 'gp_show_furigana')}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 px-5 py-4 space-y-4">

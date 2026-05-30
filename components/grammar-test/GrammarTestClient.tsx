@@ -257,6 +257,7 @@ function JlptView() {
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         onBack={() => setView({ kind: 'detail', point: view.point })}
+        onSrsUpdate={stat => setSrsStats(prev => { const m = new Map(prev); m.set(stat.grammar_id, stat); return m })}
         canEdit={canEdit}
       />
     )
