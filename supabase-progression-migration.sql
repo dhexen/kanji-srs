@@ -25,16 +25,11 @@ CREATE POLICY "Users manage own progression"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
--- Admins can read all progression (for leaderboards / stats panel)
+-- Admins can read all progression (uses is_admin() SECURITY DEFINER to avoid RLS recursion)
+DROP POLICY IF EXISTS "Admins can read all progression" ON public.user_progression;
 CREATE POLICY "Admins can read all progression"
   ON public.user_progression FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_roles.user_id = auth.uid()
-        AND user_roles.role = 'admin'
-    )
-  );
+  USING (auth.uid() = user_id OR public.is_admin());
 
 -- Index for ordered queries (e.g. future leaderboard)
 CREATE INDEX IF NOT EXISTS idx_user_progression_total_level
