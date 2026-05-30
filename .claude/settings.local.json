@@ -44,7 +44,9 @@
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\" -Force | Select-Object Name, @{Name=\"Type\"; Expression={if \\($_.PSIsContainer\\) { \"Directory\" } else { \"File\" }}} | Format-Table -AutoSize)",
       "Bash(node -e \"const {BUNPRO_GRAMMAR,getBunproByLevel}=require\\('./lib/grammar-bunpro.ts'\\); console.log\\('Error: use tsx'\\)\")",
       "Bash(xargs grep -l \"create table.*vocabulary\")",
-      "Bash(node -e \"require\\('google-auth-library'\\)\")"
+      "Bash(node -e \"require\\('google-auth-library'\\)\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\" -Directory)",
+      "Bash(Select-Object Name)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

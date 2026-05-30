@@ -68,6 +68,13 @@ export default function ReviewClient() {
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
   const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
+  const pendingPerMode = useMemo(() => {
+    const result = {} as Record<ReviewMode, number>
+    for (const mode of Object.keys(MODE_CONFIG) as ReviewMode[]) {
+      result[mode] = getPendingCount(activeWords, [mode])
+    }
+    return result
+  }, [activeWords])
 
   const forecast = useMemo(() => getReviewForecast(state.db, lang, 7), [state.db, lang])
   const hourlyForecast = useMemo(() => getHourlyForecast(state.db), [state.db])
@@ -324,6 +331,7 @@ export default function ReviewClient() {
           <div className="flex flex-wrap gap-2">
             {modes.map(([id, cfg]) => {
               const active = selectedModes.includes(id)
+              const due = pendingPerMode[id] ?? 0
               return (
                 <button
                   key={id}
@@ -331,16 +339,23 @@ export default function ReviewClient() {
                   onClick={() => setSelectedModes(prev =>
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                   )}
-                  className={`px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
+                  className={`relative px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
                     active
                       ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                       : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
                   }`}
                 >
-                  <span className="block text-xs font-semibold leading-tight">{t(lang, cfg.label_key)}</span>
+                  <span className="block text-xs font-semibold leading-tight pr-6">{t(lang, cfg.label_key)}</span>
                   <span className={`block text-[10px] leading-tight mt-0.5 ${active ? 'text-violet-200' : 'text-slate-400 dark:text-slate-500'}`}>
                     {t(lang, cfg.desc_key)}
                   </span>
+                  {due > 0 && (
+                    <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                      active ? 'bg-white/30 text-white' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {due > 99 ? '99+' : due}
+                    </span>
+                  )}
                 </button>
               )
             })}
