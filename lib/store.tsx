@@ -282,8 +282,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const uid = userRef.current?.id
     if (uid) {
       void upsertUserProgression(result.next, uid).catch((e: unknown) => {
-        console.error('[progression] Supabase save failed:', e)
-        showToast('No se pudo guardar el progreso en la nube (localStorage activo)', 'error')
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error('[progression] Supabase save failed:', msg)
+        showToast(`Error al guardar progreso: ${msg}`, 'error')
       })
     }
     return (gain.vocabXp ?? 0) + (gain.grammarXp ?? 0)
