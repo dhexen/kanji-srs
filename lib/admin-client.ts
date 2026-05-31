@@ -403,6 +403,15 @@ export interface FillAdjectivesResult {
   message:       string
 }
 
+export async function resetAllVocabulary(): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch('/api/admin/vocab/reset-all', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ confirm: 'RESET_ALL_VOCABULARY' }),
+  })
+  return parseAdminResponse<{ ok: boolean; message: string }>(res)
+}
+
 export async function runFillAdjectives(opts: {
   grade?:        number
   dry_run?:      boolean

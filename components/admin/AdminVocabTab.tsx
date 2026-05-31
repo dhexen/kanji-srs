@@ -5,6 +5,7 @@ import { searchVocabulary } from '@/lib/supabase'
 import {
   deleteVocabWord,
   deleteVocabByGrade,
+  resetAllVocabulary,
   importVocabBatch,
   fetchVocabReports,
   updateVocabReportStatus,
@@ -91,6 +92,9 @@ export default function AdminVocabTab() {
   const [deleteGrade, setDeleteGrade]     = useState(1)
   const [deletingGrade, setDeletingGrade] = useState(false)
 
+  // ── Reset all vocabulary ──────────────────────────────────────────────────────
+  const [resettingAll, setResettingAll]   = useState(false)
+
   // ── Vocab reports ────────────────────────────────────────────────────────────
   const [vocabReports, setVocabReports]         = useState<VocabReport[] | null>(null)
   const [vocabReportsLoading, setVocabReportsLoading] = useState(false)
@@ -134,6 +138,34 @@ export default function AdminVocabTab() {
       showToast(e instanceof Error ? e.message : 'Error', 'error')
     } finally {
       setDeletingWord(null)
+    }
+  }
+
+  // ── Reset all vocabulary handler ──────────────────────────────────────────────
+  async function handleResetAll() {
+    const confirmed = confirm(
+      '⚠️ RESET COMPLETO DE VOCABULARIO\n\n' +
+      'Esto eliminará:\n' +
+      '• TODO el vocabulario global (todos los grados)\n' +
+      '• Imágenes, categorías y tipos de palabra asociados\n' +
+      '• Votos de imágenes y reportes de vocabulario\n' +
+      '• El progreso SRS de vocabulario de TODOS los usuarios\n' +
+      '• Los pares de contrarios\n' +
+      '• El historial de repasos y snapshots\n' +
+      '• El XP de vocabulario de todos los usuarios\n\n' +
+      'El XP de gramática se conservará.\n\n' +
+      '¿Continuar? Esta acción NO se puede deshacer.'
+    )
+    if (!confirmed) return
+    setResettingAll(true)
+    try {
+      const result = await resetAllVocabulary()
+      showToast(result.message, 'success')
+      setResults([])
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error en el reset', 'error')
+    } finally {
+      setResettingAll(false)
     }
   }
 
@@ -262,6 +294,24 @@ export default function AdminVocabTab() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* ── Reset completo ─────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-rose-200 p-5 md:p-6">
+        <h3 className="font-bold text-rose-700 mb-1">🔴 Reset completo de vocabulario</h3>
+        <p className="text-xs text-slate-500 mb-4">
+          Borra <strong>todo el vocabulario</strong> de todos los grados, el progreso SRS de vocabulario de
+          todos los usuarios, los contrarios y el XP de vocab. El XP de gramática se conserva.
+          Úsalo antes de reimportar los CSVs desde cero.
+        </p>
+        <button
+          type="button"
+          disabled={resettingAll}
+          onClick={handleResetAll}
+          className="px-5 py-2.5 bg-rose-700 hover:bg-rose-800 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition"
+        >
+          {resettingAll ? '⏳ Reseteando…' : '🔴 Resetear todo el vocabulario'}
+        </button>
       </div>
 
       {/* ── Eliminar por grado ─────────────────────────────────────────────────── */}

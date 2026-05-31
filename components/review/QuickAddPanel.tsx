@@ -5,6 +5,7 @@ import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
 import { getRandomKanjis, getVocabularyByKanjis, getVocabWordCountsByKanjis } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+import SkipToGradeModal from './SkipToGradeModal'
 
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
@@ -53,6 +54,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
   const [detecting, setDetecting]         = useState(true)
   const [includeUnofficial, setIncludeUnofficial] = useState(false)
   const [wordCounts, setWordCounts]       = useState<Record<string, number>>({})
+  const [showSkipModal, setShowSkipModal] = useState(false)
   const lang = state.lang
 
   const activeKanjis = useMemo(
@@ -143,7 +145,15 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
   const PACKS = [3, 5, 15]
 
+  const skipLabel: Record<string, string> = {
+    es: '¿Ya sabes algunos cursos? Empieza desde aquí →',
+    ca: "Ja coneixes alguns cursos? Comença des d'aquí →",
+    en: 'Already know some grades? Start from here →',
+    ja: '前の学年を知っている？ここから開始 →',
+  }
+
   return (
+    <>
     <div data-tour="quickadd-panel" className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
 
       {/* Header */}
@@ -245,7 +255,24 @@ export default function QuickAddPanel({ onAdded }: Props) {
             </div>
           </>
         )}
+
+        {/* Skip-to-grade link */}
+        {!detecting && (
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-700 mt-auto">
+            <button
+              type="button"
+              onClick={() => setShowSkipModal(true)}
+              className="w-full text-center text-[11px] text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition py-1.5"
+            >
+              {skipLabel[lang] ?? skipLabel.es}
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
+
+    {showSkipModal && <SkipToGradeModal onClose={() => setShowSkipModal(false)} />}
+    </>
   )
 }

@@ -1156,6 +1156,49 @@ export async function getNextNewVocab(
 }
 
 // ---------------------------------------------------------------------------
+// Skip-to-grade: bulk fetch vocabulary below a given grade
+// ---------------------------------------------------------------------------
+
+export async function getVocabCountBelowGrade(maxGrade: number): Promise<number> {
+  const { count, error } = await supabase
+    .from('vocabulary')
+    .select('*', { count: 'exact', head: true })
+    .lt('grade', maxGrade)
+    .eq('is_official', true)
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function getVocabularyBelowGrade(maxGrade: number): Promise<Array<{
+  kanji: string; word: string; reading: string;
+  meaning_es: string; meaning_ca: string | null; meaning_en: string | null;
+  image_url: string | null; grade: number; category: string | null; word_type: string | null;
+  sort_order: number;
+}>> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('kanji, word, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type, sort_order')
+    .lt('grade', maxGrade)
+    .eq('is_official', true)
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map(v => ({
+    kanji: v.kanji,
+    word: v.word,
+    reading: v.reading,
+    meaning_es: v.meaning_es ?? '',
+    meaning_ca: v.meaning_ca ?? null,
+    meaning_en: v.meaning_en ?? null,
+    image_url: v.image_url ?? null,
+    grade: v.grade ?? 1,
+    category: v.category ?? null,
+    word_type: v.word_type ?? null,
+    sort_order: v.sort_order ?? 0,
+  }))
+}
+
+// ---------------------------------------------------------------------------
 // App config (global settings — e.g. SRS intervals)
 // ---------------------------------------------------------------------------
 
