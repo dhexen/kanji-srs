@@ -13,8 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
-const BATCH_SIZE  = 15
-const RATE_DELAY  = 4000   // ms between Gemini calls (free tier: 20 RPM = 3s min)
+const BATCH_SIZE  = 80     // Gemini 2.5 Flash has 1M token context — 80 kanjis per call is fine
+const RATE_DELAY  = 3500   // ms between Gemini calls (free tier: 20 RPM)
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
