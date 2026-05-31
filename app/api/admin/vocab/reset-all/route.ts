@@ -41,13 +41,13 @@ export async function POST(request: NextRequest) {
 
     // 1. Vocabulary (delete all rows)
     const { error: vocabErr, count: vocabCount } = await service
-      .from('vocabulary').delete().gte('sort_order', 0).select()
+      .from('vocabulary').delete().neq('word', '').select()
     if (vocabErr) throw new AdminApiError(`vocabulary: ${vocabErr.message}`, 500)
     results.vocabulary = vocabCount ?? 0
 
     // 2. User SRS vocab progress
     const { error: uvpErr, count: uvpCount } = await service
-      .from('user_vocab_progress').delete().gte('due', 0).select()
+      .from('user_vocab_progress').delete().neq('jp', '').select()
     if (uvpErr) throw new AdminApiError(`user_vocab_progress: ${uvpErr.message}`, 500)
     results.user_vocab_progress = uvpCount ?? 0
 
