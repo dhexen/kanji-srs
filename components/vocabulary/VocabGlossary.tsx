@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { fetchAllVocabByGrade, fetchAllVocab, FullVocabEntry } from '@/lib/supabase'
-import { deleteVocabWord, updateVocabWord, addVocabWord } from '@/lib/admin-client'
+import { deleteVocabWord, updateVocabWord, addVocabWord, runFillAdjectives } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -66,6 +66,10 @@ export default function VocabGlossary() {
 
   // Promote/demote state
   const [promotingWord, setPromotingWord] = useState<string | null>(null)
+
+  // Fill adjectives state
+  const [fillingAdj, setFillingAdj]     = useState(false)
+  const [fillAdjMsg, setFillAdjMsg]     = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -249,6 +253,27 @@ export default function VocabGlossary() {
 
   const kanjiKeys = Object.keys(grouped)
 
+  async function handleFillAdjectives() {
+    setFillingAdj(true)
+    setFillAdjMsg('')
+    try {
+      const result = await runFillAdjectives({
+        grade: grade > 0 ? grade : undefined,
+        geminiApiKey: state.geminiApiKey || undefined,
+      })
+      setFillAdjMsg(result.message)
+      if (result.added > 0) {
+        const fetch = grade === 0 ? fetchAllVocab() : fetchAllVocabByGrade(grade)
+        fetch.then(setWords).catch(() => {})
+        showToast(`✓ ${result.added} adjetivos añadidos`, 'success')
+      }
+    } catch (e: unknown) {
+      setFillAdjMsg(e instanceof Error ? e.message : 'Error')
+    } finally {
+      setFillingAdj(false)
+    }
+  }
+
   // Kanji chars detected in the add modal input (for the hint preview)
   const detectedKanjiInInput = detectKanji(addWord)
 
@@ -343,6 +368,22 @@ export default function VocabGlossary() {
           {showUnofficial ? t(lang, 'glossary_hide_unofficial') : t(lang, 'glossary_show_unofficial')}
         </button>
 
+        {/* Fill missing adjectives (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={handleFillAdjectives}
+            disabled={fillingAdj}
+            title={grade > 0 ? `Buscar adjetivos faltantes en ${gradeLabel(GRADES[grade - 1])}` : 'Buscar adjetivos faltantes en todo el vocabulario'}
+            className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+          >
+            {fillingAdj
+              ? <span className="animate-spin text-sm leading-none">⟳</span>
+              : <span className="text-sm leading-none">🔤</span>
+            }
+            {fillingAdj ? 'Buscando…' : 'Rellenar adj.'}
+          </button>
+        )}
+
         {/* Add word button (admin + contributor) */}
         {canEdit && (
           <button
@@ -356,6 +397,15 @@ export default function VocabGlossary() {
           </button>
         )}
       </div>
+
+      {/* Fill adjectives result */}
+      {fillAdjMsg && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl text-sm text-violet-700 dark:text-violet-300">
+          <span>🔤</span>
+          <span className="flex-1">{fillAdjMsg}</span>
+          <button onClick={() => setFillAdjMsg('')} className="text-violet-400 hover:text-violet-600 text-lg leading-none">×</button>
+        </div>
+      )}
 
       {/* Summary */}
       {!loading && (

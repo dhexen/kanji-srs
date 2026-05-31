@@ -395,6 +395,27 @@ export async function runAutoDetectAntonyms(opts: {
   return parseAdminResponse<AutoDetectAntonymsResult>(res)
 }
 
+export interface FillAdjectivesResult {
+  kanji_checked: number
+  added:         number
+  dry_run:       boolean
+  details:       string[]
+  message:       string
+}
+
+export async function runFillAdjectives(opts: {
+  grade?:        number
+  dry_run?:      boolean
+  geminiApiKey?: string
+}): Promise<FillAdjectivesResult> {
+  const res = await fetch('/api/admin/vocab/fill-adjectives', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<FillAdjectivesResult>(res)
+}
+
 export interface ClassifyStats {
   total: number
   with_type: number
