@@ -260,7 +260,10 @@ export default function VocabGlossary() {
       const result = await runFillAdjectives({
         grade: grade > 0 ? grade : undefined,
         geminiApiKey: state.geminiApiKey || undefined,
+        debug: true,
       })
+      console.log('[fill-adjectives] result:', result)
+      if ((result as any).debug) console.log('[fill-adjectives] debug:', (result as any).debug)
       setFillAdjMsg(result.message)
       if (result.added > 0) {
         const fetch = grade === 0 ? fetchAllVocab() : fetchAllVocabByGrade(grade)
