@@ -43,8 +43,16 @@ export async function POST(request: NextRequest) {
     // 1. Vocabulary
     await del(service, 'vocabulary', 'word', '')
 
-    // 2. User SRS vocab progress
+    // 2. User SRS vocab progress (normalized table)
     await del(service, 'user_vocab_progress', 'jp', '')
+
+    // 2b. Legacy srs_progress.vocab_db — reset to empty array (keep settings)
+    try {
+      await service
+        .from('srs_progress')
+        .update({ vocab_db: [], updated_at: new Date().toISOString() })
+        .neq('user_id', '00000000-0000-0000-0000-000000000000')
+    } catch (e) { console.warn('srs_progress reset:', e) }
 
     // 3. SRS review log (ignore errors — append-only policy)
     try { await del(service, 'srs_review_log', 'id', 0, 'gte') } catch { /* ok */ }
