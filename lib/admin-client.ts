@@ -406,6 +406,7 @@ export interface FillAdjectivesResult {
 export async function runFillAdjectives(opts: {
   grade?:        number
   dry_run?:      boolean
+  debug?:        boolean
   geminiApiKey?: string
 }): Promise<FillAdjectivesResult> {
   const res = await fetch('/api/admin/vocab/fill-adjectives', {
