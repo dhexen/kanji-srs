@@ -1072,6 +1072,7 @@ export async function getVocabularyByKanjis(
     .select('*')
     .in('kanji', kanjis)
     .eq('grade', grade)
+    .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
 
   if (!includeNonOfficial) {
@@ -1120,6 +1121,7 @@ export async function getNextNewVocab(
     .from('vocabulary')
     .select('kanji, word, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type, sort_order')
     .order('grade', { ascending: true })
+    .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
   if (error) throw error
 
