@@ -1,8 +1,11 @@
 /**
  * POST /api/admin/vocab/fill-adjectives
  *
- * Finds kanji in the vocabulary table that have no adjectives (adj_i / adj_na)
- * and uses Gemini to suggest the missing ones, then inserts them.
+ * Two-phase approach:
+ *  Phase 1 — Direct candidates: for every kanji K, check if K+"い" exists.
+ *             If not, ask Gemini specifically "is K+'い' a real adjective?".
+ *             This catches obvious cases like 長→長い that generic prompts miss.
+ *  Phase 2 — General scan: ask Gemini for any OTHER missing adjectives per kanji.
  *
  * Body params:
  *   grade?:        number   — limit to a specific school grade (default: all)
@@ -12,21 +15,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
-const BATCH_SIZE = 20   // kanji per Gemini call
+const BATCH_SIZE = 20
 
 function normalizeWordType(raw: string): 'adj_i' | 'adj_na' | null {
   const s = (raw ?? '').toLowerCase().replace(/[-_\s]/g, '')
-  if (s === 'adji' || s === 'i' || s === 'iadj' || s === 'iadjective' || s === 'iadjective') return 'adj_i'
-  if (s === 'adjな' || s === 'adjna' || s === 'naadj' || s === 'na' || s === 'naadj' || s === 'nadjective') return 'adj_na'
+  if (['adji', 'i', 'iadj', 'iadjective', 'adjective_i'].includes(s)) return 'adj_i'
+  if (['adjna', 'na', 'naadj', 'nadjective', 'adjective_na', 'adjな'].includes(s)) return 'adj_na'
   return null
 }
 
 interface VocabRow {
-  word:      string
-  kanji:     string
-  grade:     number
-  reading:   string
-  word_type: string | null
+  word:       string
+  kanji:      string
+  grade:      number
+  reading:    string
+  word_type:  string | null
   sort_order: number
 }
 
@@ -36,7 +39,7 @@ interface NewAdjective {
   meaning_es: string
   meaning_ca: string
   meaning_en: string
-  word_type:  'adj_i' | 'adj_na'
+  word_type:  string
 }
 
 interface GeminiKanjiResult {
@@ -44,40 +47,97 @@ interface GeminiKanjiResult {
   adjectives: NewAdjective[]
 }
 
-async function askGeminiForAdjectives(
-  batch: Array<{ kanji: string; grade: number; existing: string[] }>,
+// ── Phase 1: validate explicit [kanji]い candidates ──────────────────────────
+
+interface DirectCandidate {
+  kanji:     string
+  candidate: string   // kanji + "い"
+  grade:     number
+}
+
+interface DirectValidation {
+  word:       string
+  valid:      boolean
+  reading:    string
+  meaning_es: string
+  meaning_ca: string
+  meaning_en: string
+}
+
+async function validateDirectCandidates(
+  candidates: DirectCandidate[],
   apiKey: string,
-): Promise<GeminiKanjiResult[]> {
-  const kanjiLines = batch.map(k =>
-    `${k.kanji} (grado ${k.grade}): ya tiene → [${k.existing.join(', ') || 'ninguna'}]`
-  ).join('\n')
+): Promise<DirectValidation[]> {
+  if (candidates.length === 0) return []
 
-  const prompt = `Eres un experto en vocabulario japonés escolar. Para cada kanji de la lista, indica qué adjetivos comunes (い-adjetivos y な-adjetivos) usan ese kanji y NO están ya en la lista "ya tiene".
+  const lines = candidates.map(c => `${c.candidate} (kanji: ${c.kanji})`).join('\n')
 
-Solo incluye adjetivos que:
-- Formen parte del vocabulario estándar de primaria/secundaria japonesa
-- Contengan el kanji indicado
-- NO estén ya en la lista "ya tiene"
-- Sean adjetivos reales (い-adj o な-adj), no sustantivos ni verbos
+  const prompt = `Eres un experto en japonés. Para cada palabra de la lista, dime si es un adjetivo い (i-adjective) válido y común del vocabulario escolar japonés.
 
 Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 [
   {
-    "kanji": "長",
-    "adjectives": [
-      {
-        "word": "長い",
-        "reading": "ながい",
-        "meaning_es": "largo",
-        "meaning_ca": "llarg",
-        "meaning_en": "long",
-        "word_type": "adj_i"
-      }
-    ]
+    "word": "長い",
+    "valid": true,
+    "reading": "ながい",
+    "meaning_es": "largo",
+    "meaning_ca": "llarg",
+    "meaning_en": "long"
   }
 ]
 
-Si un kanji no tiene adjetivos que falten, devuelve "adjectives": [].
+Si la palabra NO es un adjetivo válido, pon "valid": false y deja reading/meanings vacíos.
+
+Palabras a validar:
+${lines}`
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0 },
+    }),
+  })
+  if (!res.ok) throw new Error(`Gemini ${res.status}`)
+
+  const data = await res.json()
+  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  if (!text) return []
+
+  const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '')
+  try { return JSON.parse(clean) as DirectValidation[] }
+  catch {
+    const m = clean.match(/\[[\s\S]*\]/)
+    return m ? JSON.parse(m[0]) as DirectValidation[] : []
+  }
+}
+
+// ── Phase 2: general missing-adjective scan ──────────────────────────────────
+
+async function askGeminiForAdjectives(
+  batch: Array<{ kanji: string; grade: number; existing: string[] }>,
+  apiKey: string,
+): Promise<GeminiKanjiResult[]> {
+  const kanjiLines = batch.map(k => {
+    // Exclude the bare kanji character itself from "existing" to avoid confusion
+    const existing = k.existing.filter(w => w !== k.kanji)
+    return `${k.kanji} (grado ${k.grade}): ya tiene → [${existing.join(', ') || 'ninguna'}]`
+  }).join('\n')
+
+  const prompt = `Eres un experto en vocabulario japonés escolar. Para cada kanji, sugiere adjetivos (い-adj o な-adj) que NO estén en la lista "ya tiene".
+
+IMPORTANTE:
+- El kanji solo como carácter (ej: 長) es un sustantivo/prefijo, NO un adjetivo. Si aparece en "ya tiene", ignóralo.
+- Busca adjetivos DERIVADOS del kanji: ej. 長→長い (ながい), 大→大きい (おおきい), 新→新しい (あたらしい)
+- Solo vocabulario estándar de primaria/secundaria japonesa
+- La palabra DEBE contener el kanji indicado
+
+Responde ÚNICAMENTE con este JSON:
+[{"kanji":"長","adjectives":[{"word":"長い","reading":"ながい","meaning_es":"largo","meaning_ca":"llarg","meaning_en":"long","word_type":"adj_i"}]}]
+
+Si no hay adjetivos que añadir, devuelve "adjectives": [].
 
 Kanji a revisar:
 ${kanjiLines}`
@@ -91,25 +151,42 @@ ${kanjiLines}`
       generationConfig: { temperature: 0 },
     }),
   })
-
-  if (!res.ok) {
-    const d = await res.json().catch(() => ({}))
-    throw new Error(`Gemini ${res.status}: ${(d as any)?.error?.message ?? res.statusText}`)
-  }
+  if (!res.ok) throw new Error(`Gemini ${res.status}`)
 
   const data = await res.json()
   const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
   if (!text) return []
 
   const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '')
-  try {
-    return JSON.parse(clean) as GeminiKanjiResult[]
-  } catch {
-    const match = clean.match(/\[[\s\S]*\]/)
-    if (match) return JSON.parse(match[0]) as GeminiKanjiResult[]
-    return []
+  try { return JSON.parse(clean) as GeminiKanjiResult[] }
+  catch {
+    const m = clean.match(/\[[\s\S]*\]/)
+    return m ? JSON.parse(m[0]) as GeminiKanjiResult[] : []
   }
 }
+
+// ── Insert helper ─────────────────────────────────────────────────────────────
+
+async function insertAdj(
+  service: ReturnType<typeof import('@supabase/supabase-js').createClient>,
+  word: string, kanji: string, grade: number, reading: string,
+  meaning_es: string, meaning_ca: string | null, meaning_en: string | null,
+  wordType: 'adj_i' | 'adj_na', sortOrder: number,
+  dryRun: boolean,
+): Promise<boolean> {
+  if (dryRun) return true
+  const { error } = await service.from('vocabulary').insert({
+    word, kanji, grade, reading, meaning_es,
+    meaning_ca: meaning_ca || null,
+    meaning_en: meaning_en || null,
+    word_type: wordType,
+    is_official: true,
+    sort_order: sortOrder,
+  })
+  return !error || error.code === '23505'
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -117,20 +194,18 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const gradeFilter = typeof body.grade === 'number' ? body.grade : null
-    const dryRun     = body.dry_run === true
-
+    const dryRun      = body.dry_run === true
     const geminiApiKey = (typeof body.geminiApiKey === 'string' && body.geminiApiKey.trim())
       ? body.geminiApiKey.trim()
       : process.env.GEMINI_API_KEY
     if (!geminiApiKey) throw new AdminApiError('Falta la Gemini API Key.', 400)
 
-    // 1. Fetch all vocabulary rows
+    // 1. Fetch all vocabulary
     let query = service
       .from('vocabulary')
       .select('word, kanji, grade, reading, word_type, sort_order')
       .order('kanji')
       .order('sort_order')
-
     if (gradeFilter) query = query.eq('grade', gradeFilter)
 
     const { data: vocab, error } = await query
@@ -140,90 +215,93 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = vocab as VocabRow[]
+    const existingWords = new Set(rows.map(r => r.word))
 
-    // 2. Group by kanji — collect existing words and whether any adj exists
-    const kanjiMap = new Map<string, {
-      grade:    number
-      existing: string[]
-      maxSort:  number
-    }>()
-
+    // 2. Build kanji map
+    const kanjiMap = new Map<string, { grade: number; existing: string[]; maxSort: number }>()
     for (const row of rows) {
-      const k = row.kanji
-      if (!kanjiMap.has(k)) {
-        kanjiMap.set(k, { grade: row.grade, existing: [], maxSort: 0 })
-      }
-      const entry = kanjiMap.get(k)!
-      entry.existing.push(row.word)
-      if (row.sort_order > entry.maxSort) entry.maxSort = row.sort_order
+      if (!kanjiMap.has(row.kanji)) kanjiMap.set(row.kanji, { grade: row.grade, existing: [], maxSort: 0 })
+      const e = kanjiMap.get(row.kanji)!
+      e.existing.push(row.word)
+      if (row.sort_order > e.maxSort) e.maxSort = row.sort_order
     }
 
-    // 3. All kanji are candidates — existingWords prevents inserting duplicates
-    const candidates = Array.from(kanjiMap.entries())
-      .map(([kanji, v]) => ({ kanji, ...v }))
-
+    const candidates = Array.from(kanjiMap.entries()).map(([kanji, v]) => ({ kanji, ...v }))
     if (candidates.length === 0) {
       return NextResponse.json({ added: 0, message: 'No hay vocabulario para revisar.' })
     }
 
-    // 4. Process in batches
-    const existingWords = new Set(rows.map(r => r.word))
     let totalAdded = 0
     const addedDetails: string[] = []
 
+    // ── PHASE 1: direct [kanji]い candidates ─────────────────────────────────
+    const directCandidates: DirectCandidate[] = candidates
+      .map(c => ({ kanji: c.kanji, candidate: c.kanji + 'い', grade: c.grade }))
+      .filter(c => !existingWords.has(c.candidate))
+
+    for (let i = 0; i < directCandidates.length; i += BATCH_SIZE) {
+      const batch = directCandidates.slice(i, i + BATCH_SIZE)
+      let validations: DirectValidation[]
+      try { validations = await validateDirectCandidates(batch, geminiApiKey) }
+      catch (e) { console.error('Phase 1 Gemini error:', e); continue }
+
+      for (const v of validations) {
+        if (!v.valid || !v.word || !v.reading || !v.meaning_es) continue
+        if (existingWords.has(v.word)) continue
+
+        const kanjiChar = batch.find(c => c.candidate === v.word)?.kanji
+        if (!kanjiChar) continue
+        if (!v.word.includes(kanjiChar)) continue
+
+        const kanjiData = kanjiMap.get(kanjiChar)!
+        kanjiData.maxSort += 10
+
+        const ok = await insertAdj(service, v.word, kanjiChar, kanjiData.grade,
+          v.reading, v.meaning_es, v.meaning_ca, v.meaning_en,
+          'adj_i', kanjiData.maxSort, dryRun)
+
+        if (ok) {
+          existingWords.add(v.word)
+          totalAdded++
+          addedDetails.push(`[P1] ${kanjiChar} → ${v.word} (${v.reading})`)
+        }
+      }
+    }
+
+    // ── PHASE 2: general scan for other adjectives ────────────────────────────
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE)
-
       let results: GeminiKanjiResult[]
       try {
         results = await askGeminiForAdjectives(
           batch.map(c => ({ kanji: c.kanji, grade: c.grade, existing: c.existing })),
           geminiApiKey,
         )
-      } catch (e) {
-        console.error('fill-adjectives Gemini error:', e)
-        continue
-      }
+      } catch (e) { console.error('Phase 2 Gemini error:', e); continue }
 
       for (const result of results) {
         const kanjiData = kanjiMap.get(result.kanji)
         if (!kanjiData) continue
 
-        let sortOrder = kanjiData.maxSort
-
         for (const adj of result.adjectives ?? []) {
           if (!adj.word || !adj.reading || !adj.meaning_es) continue
           if (existingWords.has(adj.word)) continue
-          if (!adj.word.includes(result.kanji)) continue   // safety: must contain the kanji
-          const wordType = normalizeWordType(adj.word_type) ?? (adj.word.endsWith('い') ? 'adj_i' : null)
+          if (!adj.word.includes(result.kanji)) continue
+
+          const wordType = normalizeWordType(adj.word_type)
+            ?? (adj.word.endsWith('い') ? 'adj_i' : null)
           if (!wordType) continue
 
-          sortOrder += 10
+          kanjiData.maxSort += 10
+          const ok = await insertAdj(service, adj.word, result.kanji, kanjiData.grade,
+            adj.reading, adj.meaning_es, adj.meaning_ca, adj.meaning_en,
+            wordType, kanjiData.maxSort, dryRun)
 
-          if (!dryRun) {
-            const { error: insErr } = await service.from('vocabulary').insert({
-              word:       adj.word,
-              kanji:      result.kanji,
-              grade:      kanjiData.grade,
-              reading:    adj.reading,
-              meaning_es: adj.meaning_es,
-              meaning_ca: adj.meaning_ca || null,
-              meaning_en: adj.meaning_en || null,
-              word_type:  wordType,
-              is_official: true,
-              sort_order: sortOrder,
-            })
-
-            if (insErr && insErr.code !== '23505') {
-              console.error(`fill-adjectives insert ${adj.word}:`, insErr.message)
-              continue
-            }
+          if (ok) {
+            existingWords.add(adj.word)
+            totalAdded++
+            addedDetails.push(`[P2] ${result.kanji} → ${adj.word} (${adj.reading})`)
           }
-
-          existingWords.add(adj.word)
-          kanjiData.maxSort = sortOrder
-          totalAdded++
-          addedDetails.push(`${result.kanji} → ${adj.word} (${adj.reading})`)
         }
       }
     }
@@ -235,7 +313,7 @@ export async function POST(request: NextRequest) {
       details: addedDetails,
       message: totalAdded > 0
         ? `${dryRun ? '[DRY RUN] ' : ''}Se añadieron ${totalAdded} adjetivos en ${candidates.length} kanji.`
-        : `Se revisaron ${candidates.length} kanji sin adjetivos pero Gemini no encontró ninguno que añadir.`,
+        : `Se revisaron ${candidates.length} kanji pero no se encontraron nuevos adjetivos.`,
     })
   } catch (e) {
     return adminJsonError(e)
