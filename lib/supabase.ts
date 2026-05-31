@@ -888,6 +888,28 @@ export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntr
   }))
 }
 
+/** Returns word count per kanji for a set of kanjis in a grade. Used by QuickAddPanel. */
+export async function getVocabWordCountsByKanjis(
+  kanjis: string[],
+  grade: number,
+  includeUnofficial = false,
+): Promise<Record<string, number>> {
+  if (kanjis.length === 0) return {}
+  let query = supabase
+    .from('vocabulary')
+    .select('kanji')
+    .in('kanji', kanjis)
+    .eq('grade', grade)
+  if (!includeUnofficial) query = query.eq('is_official', true)
+  const { data, error } = await query
+  if (error) return {}
+  const counts: Record<string, number> = {}
+  for (const row of (data ?? []) as { kanji: string }[]) {
+    counts[row.kanji] = (counts[row.kanji] ?? 0) + 1
+  }
+  return counts
+}
+
 /** Fetch all vocabulary entries across all grades. Used by the Glossary "All" view. */
 export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
   const { data, error } = await supabase

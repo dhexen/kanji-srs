@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { VocabItem, MODE_CONFIG, migrateItem } from '@/lib/srs'
-import { getRandomKanjis, getVocabularyByKanjis } from '@/lib/supabase'
+import { getRandomKanjis, getVocabularyByKanjis, getVocabWordCountsByKanjis } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
@@ -41,20 +41,18 @@ const L = {
   } as Record<number, Record<string, string>>,
 }
 
-// Approximate word count per pack (3 words per kanji on average)
-const WORD_COUNTS: Record<number, number> = { 3: 9, 5: 15, 15: 45 }
-
 interface Props {
   onAdded: (items: VocabItem[]) => void
 }
 
 export default function QuickAddPanel({ onAdded }: Props) {
   const { state, addVocabItems } = useStore()
-  const [loading, setLoading] = useState<number | null>(null)
-  const [nextGrade, setNextGrade] = useState<number | null>(null)
-  const [nextKanjis, setNextKanjis] = useState<string[]>([])
-  const [detecting, setDetecting] = useState(true)
+  const [loading, setLoading]             = useState<number | null>(null)
+  const [nextGrade, setNextGrade]         = useState<number | null>(null)
+  const [nextKanjis, setNextKanjis]       = useState<string[]>([])
+  const [detecting, setDetecting]         = useState(true)
   const [includeUnofficial, setIncludeUnofficial] = useState(false)
+  const [wordCounts, setWordCounts]       = useState<Record<string, number>>({})
   const lang = state.lang
 
   const activeKanjis = useMemo(
@@ -87,6 +85,14 @@ export default function QuickAddPanel({ onAdded }: Props) {
     detect()
     return () => { cancelled = true }
   }, [activeKanjis, state.user, state.loaded])
+
+  // Fetch real word counts for the first 15 kanjis whenever the available list changes
+  useEffect(() => {
+    if (!nextGrade || nextKanjis.length === 0) { setWordCounts({}); return }
+    getVocabWordCountsByKanjis(nextKanjis.slice(0, 15), nextGrade, includeUnofficial)
+      .then(setWordCounts)
+      .catch(() => {})
+  }, [nextGrade, nextKanjis, includeUnofficial])
 
   async function handleAdd(packSize: number) {
     if (!nextGrade || loading !== null) return
@@ -199,8 +205,8 @@ export default function QuickAddPanel({ onAdded }: Props) {
             {/* Pack buttons — vertical list */}
             <div className="flex flex-col gap-2">
               {PACKS.map(count => {
-                const actual = Math.min(count, nextKanjis.length)
-                const wordCount = WORD_COUNTS[count]
+                const actual    = Math.min(count, nextKanjis.length)
+                const wordCount = nextKanjis.slice(0, actual).reduce((s, k) => s + (wordCounts[k] ?? 0), 0)
                 const busy = loading === count
 
                 return (
@@ -222,9 +228,11 @@ export default function QuickAddPanel({ onAdded }: Props) {
                       <>
                         <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 leading-snug">
                           +{actual} kanjis
-                          <span className="font-normal text-indigo-400 dark:text-indigo-500 ml-1.5 text-xs">
-                            ({wordCount} {lx(L.words)})
-                          </span>
+                          {wordCount > 0 && (
+                            <span className="font-normal text-indigo-400 dark:text-indigo-500 ml-1.5 text-xs">
+                              (~{wordCount} {lx(L.words)})
+                            </span>
+                          )}
                         </p>
                         <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                           {lx(L.rhythm[count])}

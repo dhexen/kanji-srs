@@ -13,14 +13,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
 const BATCH_SIZE = 20   // kanji per Gemini call
-const ADJ_TYPES  = new Set(['adj_i', 'adj_na'])
+
+function normalizeWordType(raw: string): 'adj_i' | 'adj_na' | null {
+  const s = (raw ?? '').toLowerCase().replace(/[-_\s]/g, '')
+  if (s === 'adji' || s === 'i' || s === 'iadj' || s === 'iadjective' || s === 'iadjective') return 'adj_i'
+  if (s === 'adjな' || s === 'adjna' || s === 'naadj' || s === 'na' || s === 'naadj' || s === 'nadjective') return 'adj_na'
+  return null
+}
 
 interface VocabRow {
-  word:       string
-  kanji:      string
-  grade:      number
-  reading:    string
-  word_type:  string | null
+  word:      string
+  kanji:     string
+  grade:     number
+  reading:   string
+  word_type: string | null
   sort_order: number
 }
 
@@ -139,28 +145,25 @@ export async function POST(request: NextRequest) {
     const kanjiMap = new Map<string, {
       grade:    number
       existing: string[]
-      hasAdj:   boolean
       maxSort:  number
     }>()
 
     for (const row of rows) {
       const k = row.kanji
       if (!kanjiMap.has(k)) {
-        kanjiMap.set(k, { grade: row.grade, existing: [], hasAdj: false, maxSort: 0 })
+        kanjiMap.set(k, { grade: row.grade, existing: [], maxSort: 0 })
       }
       const entry = kanjiMap.get(k)!
       entry.existing.push(row.word)
-      if (ADJ_TYPES.has(row.word_type ?? '')) entry.hasAdj = true
       if (row.sort_order > entry.maxSort) entry.maxSort = row.sort_order
     }
 
-    // 3. Only process kanji with NO adjectives yet
+    // 3. All kanji are candidates — existingWords prevents inserting duplicates
     const candidates = Array.from(kanjiMap.entries())
-      .filter(([, v]) => !v.hasAdj)
       .map(([kanji, v]) => ({ kanji, ...v }))
 
     if (candidates.length === 0) {
-      return NextResponse.json({ added: 0, message: 'Todos los kanji ya tienen adjetivos registrados.' })
+      return NextResponse.json({ added: 0, message: 'No hay vocabulario para revisar.' })
     }
 
     // 4. Process in batches
@@ -191,8 +194,9 @@ export async function POST(request: NextRequest) {
         for (const adj of result.adjectives ?? []) {
           if (!adj.word || !adj.reading || !adj.meaning_es) continue
           if (existingWords.has(adj.word)) continue
-          if (!['adj_i', 'adj_na'].includes(adj.word_type)) continue
           if (!adj.word.includes(result.kanji)) continue   // safety: must contain the kanji
+          const wordType = normalizeWordType(adj.word_type) ?? (adj.word.endsWith('い') ? 'adj_i' : null)
+          if (!wordType) continue
 
           sortOrder += 10
 
@@ -205,7 +209,7 @@ export async function POST(request: NextRequest) {
               meaning_es: adj.meaning_es,
               meaning_ca: adj.meaning_ca || null,
               meaning_en: adj.meaning_en || null,
-              word_type:  adj.word_type,
+              word_type:  wordType,
               is_official: true,
               sort_order: sortOrder,
             })
