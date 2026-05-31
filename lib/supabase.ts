@@ -888,6 +888,26 @@ export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntr
   }))
 }
 
+/** Fetch all vocabulary entries across all grades. Used by the Glossary "All" view. */
+export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
+    .order('kanji', { ascending: true })
+    .order('sort_order', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map(d => ({
+    word: d.word,
+    kanji: d.kanji,
+    reading: d.reading,
+    meaning_es: d.meaning_es ?? '',
+    meaning_ca: d.meaning_ca ?? null,
+    meaning_en: d.meaning_en ?? null,
+    is_official: d.is_official ?? true,
+    sort_order: d.sort_order ?? 0,
+  }))
+}
+
 /** Returns word+kanji+is_official for all rows of a grade — used for stats.
  *  Falls back to a query without is_official if the column doesn't exist yet. */
 export async function getVocabGradeWords(grade: number): Promise<Array<{ word: string; kanji: string; is_official: boolean }>> {

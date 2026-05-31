@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { fetchAllVocabByGrade, FullVocabEntry } from '@/lib/supabase'
+import { fetchAllVocabByGrade, fetchAllVocab, FullVocabEntry } from '@/lib/supabase'
 import { deleteVocabWord, updateVocabWord, addVocabWord } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
@@ -33,7 +33,7 @@ export default function VocabGlossary() {
   const isAdmin    = state.role === 'admin'
   const canEdit    = state.role === 'admin' || state.role === 'contributor'
 
-  const [grade, setGrade] = useState(1)
+  const [grade, setGrade] = useState(0)  // 0 = all grades
   const [words, setWords] = useState<FullVocabEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
@@ -70,7 +70,8 @@ export default function VocabGlossary() {
   useEffect(() => {
     setLoading(true)
     setFilter('')
-    fetchAllVocabByGrade(grade)
+    const fetch = grade === 0 ? fetchAllVocab() : fetchAllVocabByGrade(grade)
+    fetch
       .then(data => setWords(data))
       .catch(() => { setWords([]); showToast('Error cargando vocabulario', 'error') })
       .finally(() => setLoading(false))
@@ -256,6 +257,18 @@ export default function VocabGlossary() {
 
       {/* Grade tabs — grouped */}
       <div className="space-y-2">
+        {/* All grades button */}
+        <button
+          onClick={() => setGrade(0)}
+          className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+            grade === 0
+              ? 'bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-900 shadow-sm'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-400'
+          }`}
+        >
+          {lang === 'en' ? 'All' : lang === 'ja' ? '全て' : lang === 'ca' ? 'Tot' : 'Todo'}
+        </button>
+
         <div className="flex gap-1.5 flex-wrap">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide self-center pr-1 shrink-0">
             {lang === 'en' ? 'Elem.' : lang === 'ja' ? '小学' : lang === 'ca' ? 'Prim.' : 'Prim.'}
