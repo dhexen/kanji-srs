@@ -19,10 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
-const DEFAULT_LIMIT  = 200
-const BATCH_SIZE     = 60   // words per Gemini call
-
-const DEFAULT_WORD_TYPES = ['adj_i', 'adj_na', 'verb', 'verb_transitive', 'verb_intransitive']
+const DEFAULT_LIMIT = 400
 
 interface GeminiPair {
   word_a: string
@@ -95,8 +92,7 @@ export async function POST(request: NextRequest) {
     const { service } = await requireAdmin(request)
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
-    const limit      = Math.min(Math.max(1, Number(body.limit) || DEFAULT_LIMIT), 500)
-    const wordTypes  = Array.isArray(body.word_types) ? body.word_types as string[] : DEFAULT_WORD_TYPES
+    const limit = Math.min(Math.max(1, Number(body.limit) || DEFAULT_LIMIT), 1000)
 
     const geminiApiKey = (typeof body.geminiApiKey === 'string' && body.geminiApiKey.trim())
       ? body.geminiApiKey.trim()
@@ -104,11 +100,10 @@ export async function POST(request: NextRequest) {
 
     if (!geminiApiKey) throw new AdminApiError('Falta la Gemini API Key.', 400)
 
-    // 1. Fetch candidate words
+    // 1. Fetch candidate words — all types, no filter (antonyms exist across nouns, adj, verbs)
     const { data: vocab, error: fetchErr } = await service
       .from('vocabulary')
       .select('word, reading, meaning_es')
-      .in('word_type', wordTypes)
       .limit(limit)
 
     if (fetchErr) throw new AdminApiError(fetchErr.message, 500)
@@ -143,7 +138,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 3. Process in batches
+    // 3. Send all candidates to Gemini in one call so antonym pairs are never split across batches
     const words = candidates.map(v => ({
       word:    v.word,
       reading: v.reading as string,
@@ -153,33 +148,29 @@ export async function POST(request: NextRequest) {
     let pairsAdded = 0
     const insertedKeys = new Set(existingSet)
 
-    for (let i = 0; i < words.length; i += BATCH_SIZE) {
-      const batch = words.slice(i, i + BATCH_SIZE)
+    let geminipairs: GeminiPair[]
+    try {
+      geminipairs = await detectAntonymsWithGemini(words, geminiApiKey)
+    } catch (e) {
+      console.error('auto-detect antonyms Gemini error:', e)
+      geminipairs = []
+    }
 
-      let geminipairs: GeminiPair[]
-      try {
-        geminipairs = await detectAntonymsWithGemini(batch, geminiApiKey)
-      } catch (e) {
-        console.error('auto-detect antonyms Gemini error:', e)
-        continue
-      }
+    for (const pair of geminipairs) {
+      const key = [pair.word_a, pair.word_b].sort().join('||')
+      if (insertedKeys.has(key)) continue
 
-      for (const pair of geminipairs) {
-        const key = [pair.word_a, pair.word_b].sort().join('||')
-        if (insertedKeys.has(key)) continue
+      const { error: insErr } = await service
+        .from('vocab_antonyms')
+        .insert({ word_a: pair.word_a, word_b: pair.word_b })
 
-        const { error: insErr } = await service
-          .from('vocab_antonyms')
-          .insert({ word_a: pair.word_a, word_b: pair.word_b })
-
-        if (insErr) {
-          if (insErr.code !== '23505') {
-            console.error(`auto-detect insert error ${pair.word_a}↔${pair.word_b}:`, insErr.message)
-          }
-        } else {
-          pairsAdded++
-          insertedKeys.add(key)
+      if (insErr) {
+        if (insErr.code !== '23505') {
+          console.error(`auto-detect insert error ${pair.word_a}↔${pair.word_b}:`, insErr.message)
         }
+      } else {
+        pairsAdded++
+        insertedKeys.add(key)
       }
     }
 
