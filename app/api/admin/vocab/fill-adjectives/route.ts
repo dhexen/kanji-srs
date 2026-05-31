@@ -13,7 +13,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
-const BATCH_SIZE = 15
+const BATCH_SIZE  = 15
+const RATE_DELAY  = 4000   // ms between Gemini calls (free tier: 20 RPM = 3s min)
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 interface VocabRow {
   word:       string
@@ -158,6 +161,8 @@ Si un kanji no tiene adjetivos que añadir, devuelve "adjectives":[].
 
 Kanji a revisar:
 ${kanjiLines}`
+
+      if (i > 0) await sleep(RATE_DELAY)   // respect Gemini free-tier rate limit
 
       let text = ''
       try { text = await callGemini(prompt, geminiApiKey) }

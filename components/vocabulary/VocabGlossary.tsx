@@ -375,9 +375,11 @@ export default function VocabGlossary() {
         {isAdmin && (
           <button
             onClick={handleFillAdjectives}
-            disabled={fillingAdj}
-            title={grade > 0 ? `Buscar adjetivos faltantes en ${gradeLabel(GRADES[grade - 1])}` : 'Buscar adjetivos faltantes en todo el vocabulario'}
-            className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+            disabled={fillingAdj || grade === 0}
+            title={grade === 0
+              ? 'Selecciona un curso específico (el límite de la API no permite procesar todo a la vez)'
+              : `Buscar adjetivos faltantes en ${gradeLabel(GRADES[grade - 1])}`}
+            className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
             {fillingAdj
               ? <span className="animate-spin text-sm leading-none">⟳</span>
