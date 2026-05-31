@@ -81,15 +81,42 @@ export async function POST(request: NextRequest) {
     if (repErr) console.warn('vocab_reports:', repErr.message)
     else results.vocab_reports = repCount ?? 0
 
-    // 8. Reset vocab XP — keep grammar XP
-    //    total_xp = floor(grammar_xp * 1.5) since grammar contributes 1.5x
-    const { error: progErr, count: progCount } = await service
+    // 8. Reset vocab XP — keep grammar XP, recalculate total
+    // Fetch all rows first to compute new total_xp and total_level per user
+    const { data: progressRows, error: fetchProgErr } = await service
       .from('user_progression')
-      .update({ vocab_xp: 0, vocab_level: 1 })
-      .gte('vocab_xp', 0)
-      .select()
-    if (progErr) throw new AdminApiError(`user_progression: ${progErr.message}`, 500)
-    results.user_progression_reset = progCount ?? 0
+      .select('user_id, grammar_xp, grammar_level')
+    if (fetchProgErr) throw new AdminApiError(`user_progression fetch: ${fetchProgErr.message}`, 500)
+
+    // xpForLevel(n) = floor(150 * (n-1)^1.75)
+    // Thresholds: L1=0, L2=150, L3=504, L4=1026, L5=1697, L6=2510, L7=3454, L8=4519
+    function levelFromXp(xp: number): number {
+      const thresholds = [0, 150, 504, 1026, 1697, 2510, 3454, 4519, 5697, 6972]
+      let level = 1
+      for (let i = 1; i < thresholds.length; i++) {
+        if (xp >= thresholds[i]) level = i + 1
+        else break
+      }
+      return level
+    }
+
+    let progCount = 0
+    for (const row of progressRows ?? []) {
+      const newTotalXp = Math.floor((row.grammar_xp ?? 0) * 1.5)
+      const newTotalLevel = levelFromXp(newTotalXp)
+      const { error: updateErr } = await service
+        .from('user_progression')
+        .update({
+          vocab_xp:    0,
+          vocab_level: 1,
+          total_xp:    newTotalXp,
+          total_level: newTotalLevel,
+        })
+        .eq('user_id', row.user_id)
+      if (updateErr) console.warn(`user_progression update ${row.user_id}:`, updateErr.message)
+      else progCount++
+    }
+    results.user_progression_reset = progCount
 
     return NextResponse.json({
       ok: true,
