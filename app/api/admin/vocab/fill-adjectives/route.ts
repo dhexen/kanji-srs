@@ -165,26 +165,6 @@ ${kanjiLines}`
   }
 }
 
-// ── Insert helper ─────────────────────────────────────────────────────────────
-
-async function insertAdj(
-  service: ReturnType<typeof import('@supabase/supabase-js').createClient>,
-  word: string, kanji: string, grade: number, reading: string,
-  meaning_es: string, meaning_ca: string | null, meaning_en: string | null,
-  wordType: 'adj_i' | 'adj_na', sortOrder: number,
-  dryRun: boolean,
-): Promise<boolean> {
-  if (dryRun) return true
-  const { error } = await service.from('vocabulary').insert({
-    word, kanji, grade, reading, meaning_es,
-    meaning_ca: meaning_ca || null,
-    meaning_en: meaning_en || null,
-    word_type: wordType,
-    is_official: true,
-    sort_order: sortOrder,
-  })
-  return !error || error.code === '23505'
-}
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
@@ -256,15 +236,20 @@ export async function POST(request: NextRequest) {
         const kanjiData = kanjiMap.get(kanjiChar)!
         kanjiData.maxSort += 10
 
-        const ok = await insertAdj(service, v.word, kanjiChar, kanjiData.grade,
-          v.reading, v.meaning_es, v.meaning_ca, v.meaning_en,
-          'adj_i', kanjiData.maxSort, dryRun)
-
-        if (ok) {
-          existingWords.add(v.word)
-          totalAdded++
-          addedDetails.push(`[P1] ${kanjiChar} → ${v.word} (${v.reading})`)
+        if (!dryRun) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: insErr } = await (service as any).from('vocabulary').insert({
+            word: v.word, kanji: kanjiChar, grade: kanjiData.grade,
+            reading: v.reading, meaning_es: v.meaning_es,
+            meaning_ca: v.meaning_ca || null, meaning_en: v.meaning_en || null,
+            word_type: 'adj_i', is_official: true, sort_order: kanjiData.maxSort,
+          })
+          if (insErr && insErr.code !== '23505') continue
         }
+
+        existingWords.add(v.word)
+        totalAdded++
+        addedDetails.push(`[P1] ${kanjiChar} → ${v.word} (${v.reading})`)
       }
     }
 
@@ -293,15 +278,21 @@ export async function POST(request: NextRequest) {
           if (!wordType) continue
 
           kanjiData.maxSort += 10
-          const ok = await insertAdj(service, adj.word, result.kanji, kanjiData.grade,
-            adj.reading, adj.meaning_es, adj.meaning_ca, adj.meaning_en,
-            wordType, kanjiData.maxSort, dryRun)
 
-          if (ok) {
-            existingWords.add(adj.word)
-            totalAdded++
-            addedDetails.push(`[P2] ${result.kanji} → ${adj.word} (${adj.reading})`)
+          if (!dryRun) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: insErr } = await (service as any).from('vocabulary').insert({
+              word: adj.word, kanji: result.kanji, grade: kanjiData.grade,
+              reading: adj.reading, meaning_es: adj.meaning_es,
+              meaning_ca: adj.meaning_ca || null, meaning_en: adj.meaning_en || null,
+              word_type: wordType, is_official: true, sort_order: kanjiData.maxSort,
+            })
+            if (insErr && insErr.code !== '23505') continue
           }
+
+          existingWords.add(adj.word)
+          totalAdded++
+          addedDetails.push(`[P2] ${result.kanji} → ${adj.word} (${adj.reading})`)
         }
       }
     }
