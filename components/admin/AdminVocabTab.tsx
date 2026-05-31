@@ -160,8 +160,9 @@ export default function AdminVocabTab() {
     setResettingAll(true)
     try {
       const result = await resetAllVocabulary()
-      showToast(result.message, 'success')
-      setResults([])
+      console.log('[reset-all] result:', result)
+      alert(`✅ Reset completado:\n${JSON.stringify((result as any).results ?? result, null, 2)}\n\nLa página se recargará ahora.`)
+      window.location.reload()
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Error en el reset', 'error')
     } finally {
