@@ -932,6 +932,40 @@ export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
   }))
 }
 
+/**
+ * Server-side vocabulary search — searches across ALL rows regardless of PostgREST row limits.
+ * Matches word, kanji, reading, meaning_es, meaning_ca, meaning_en with case-insensitive ILIKE.
+ * Pass grade=0 to search across all grades.
+ */
+export async function searchVocabGlossary(
+  query: string,
+  grade: number,
+): Promise<FullVocabEntry[]> {
+  const q = query.trim()
+  if (!q) return []
+  const like = `%${q}%`
+  let base = supabase
+    .from('vocabulary')
+    .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
+    .or(`word.ilike.${like},kanji.ilike.${like},reading.ilike.${like},meaning_es.ilike.${like},meaning_ca.ilike.${like},meaning_en.ilike.${like}`)
+    .order('kanji', { ascending: true })
+    .order('sort_order', { ascending: true })
+    .limit(500)
+  if (grade > 0) base = base.eq('grade', grade)
+  const { data, error } = await base
+  if (error) throw error
+  return (data ?? []).map(d => ({
+    word: d.word,
+    kanji: d.kanji,
+    reading: d.reading,
+    meaning_es: d.meaning_es ?? '',
+    meaning_ca: d.meaning_ca ?? null,
+    meaning_en: d.meaning_en ?? null,
+    is_official: d.is_official ?? true,
+    sort_order: d.sort_order ?? 0,
+  }))
+}
+
 /** Returns word+kanji+is_official for all rows of a grade — used for stats.
  *  Falls back to a query without is_official if the column doesn't exist yet. */
 export async function getVocabGradeWords(grade: number): Promise<Array<{ word: string; kanji: string; is_official: boolean }>> {

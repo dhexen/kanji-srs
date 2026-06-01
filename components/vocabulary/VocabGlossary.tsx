@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { fetchAllVocabByGrade, fetchAllVocab, FullVocabEntry } from '@/lib/supabase'
+import { fetchAllVocabByGrade, fetchAllVocab, searchVocabGlossary, FullVocabEntry } from '@/lib/supabase'
 import { deleteVocabWord, updateVocabWord, addVocabWord, runFillAdjectives } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
@@ -35,7 +35,9 @@ export default function VocabGlossary() {
 
   const [grade, setGrade] = useState(0)  // 0 = all grades
   const [words, setWords] = useState<FullVocabEntry[]>([])
+  const [searchResults, setSearchResults] = useState<FullVocabEntry[] | null>(null) // null = not searching
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [filter, setFilter] = useState('')
   const [showUnofficial, setShowUnofficial] = useState(true)
 
@@ -71,9 +73,11 @@ export default function VocabGlossary() {
   const [fillingAdj, setFillingAdj]     = useState(false)
   const [fillAdjMsg, setFillAdjMsg]     = useState('')
 
+  // Load page data when grade changes
   useEffect(() => {
     setLoading(true)
     setFilter('')
+    setSearchResults(null)
     const fetch = grade === 0 ? fetchAllVocab() : fetchAllVocabByGrade(grade)
     fetch
       .then(data => setWords(data))
@@ -81,25 +85,32 @@ export default function VocabGlossary() {
       .finally(() => setLoading(false))
   }, [grade])
 
+  // Server-side search with debounce — runs across ALL rows of the selected grade
+  useEffect(() => {
+    const q = filter.trim()
+    if (!q) { setSearchResults(null); return }
+    setSearching(true)
+    const timer = setTimeout(() => {
+      searchVocabGlossary(q, grade)
+        .then(data => setSearchResults(data))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [filter, grade])
+
   const meaning = (v: FullVocabEntry) =>
     lang === 'ca' && v.meaning_ca ? v.meaning_ca
     : lang === 'en' && v.meaning_en ? v.meaning_en
     : v.meaning_es
 
+  // When searching: use server results filtered by showUnofficial toggle.
+  // When browsing: client-side filter on the loaded page (1000 rows per grade).
   const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase()
-    let list = words
-    if (!showUnofficial) list = list.filter(w => w.is_official)
-    if (!q) return list
-    return list.filter(w =>
-      w.word.includes(filter.trim()) ||
-      w.kanji.includes(filter.trim()) ||
-      w.reading.toLowerCase().includes(q) ||
-      w.meaning_es.toLowerCase().includes(q) ||
-      (w.meaning_en?.toLowerCase().includes(q)) ||
-      (w.meaning_ca?.toLowerCase().includes(q))
-    )
-  }, [words, filter, showUnofficial])
+    const base = searchResults ?? words
+    if (!showUnofficial) return base.filter(w => w.is_official)
+    return base
+  }, [words, searchResults, showUnofficial])
 
   // Group by kanji, preserving sort order from the DB
   const grouped = useMemo(() => {
@@ -413,7 +424,7 @@ export default function VocabGlossary() {
       )}
 
       {/* Summary */}
-      {!loading && (
+      {!loading && !searching && (
         <p className="text-xs text-slate-400 px-1">
           {t(lang, 'glossary_words_n').replace('{n}', String(filtered.length))}
           {' · '}
@@ -427,10 +438,10 @@ export default function VocabGlossary() {
       )}
 
       {/* Content */}
-      {loading ? (
+      {loading || searching ? (
         <div className="text-center text-slate-400 py-16">
           <div className="text-3xl mb-2">⏳</div>
-          <p className="text-sm">{t(lang, 'glossary_loading')}</p>
+          <p className="text-sm">{searching ? '🔍 Buscando…' : t(lang, 'glossary_loading')}</p>
         </div>
       ) : kanjiKeys.length === 0 ? (
         <p className="text-center text-slate-400 py-12 text-sm">
