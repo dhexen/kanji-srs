@@ -23,7 +23,7 @@ import {
 } from './supabase'
 import type { Lang } from './i18n'
 import { showToast } from '@/components/ui/Toast'
-import { applyXp, DEFAULT_PROGRESSION, type UserProgression, type XpGain } from './progression'
+import { applyXp, DEFAULT_PROGRESSION, vocabXpForResult, type UserProgression, type XpGain } from './progression'
 
 export type { ContextText }
 
@@ -315,6 +315,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (canPersist(userRef, hydratingRef)) {
       void upsertVocabItem(mastered, nextDb).catch(reportPersistError)
     }
+    // Award XP equivalent to a correct answer at level 7 (Maestro)
+    const xp = vocabXpForResult(7, true)
+    const result = applyXp(progressionRef.current, { vocabXp: xp })
+    progressionRef.current = result.next
+    dispatch({ type: 'SET_PROGRESSION', payload: result.next })
+    if (result.totalLevelUp) dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'total', level: result.next.total_level } })
+    else if (result.vocabLevelUp) dispatch({ type: 'SET_LEVEL_UP', payload: { type: 'vocab', level: result.next.vocab_level } })
+    saveProgressionLocal(result.next)
+    const uid = userRef.current?.id
+    if (uid) void upsertUserProgression(result.next, uid).catch(() => {})
   }, [])
 
   const syncDown = useCallback(async () => {

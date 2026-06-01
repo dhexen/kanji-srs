@@ -875,6 +875,7 @@ export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntr
     .eq('grade', grade)
     .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
+    .limit(10000)
   if (error) throw error
   return (data ?? []).map(d => ({
     word: d.word,
@@ -917,6 +918,7 @@ export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
     .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
     .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
+    .limit(10000)
   if (error) throw error
   return (data ?? []).map(d => ({
     word: d.word,

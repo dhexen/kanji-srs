@@ -261,7 +261,7 @@ function GrammarSrsQueue({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GrammarClient() {
-  const { state } = useStore()
+  const { state, addXP } = useStore()
   const lang = state.lang
 
   const [bookFilter, setBookFilter] = useState<BookFilter>('mnn1')
@@ -293,7 +293,11 @@ export default function GrammarClient() {
       return next
     })
     // Auto-hide known items when the user marks one as mastered
-    if (val) setHideKnown(true)
+    if (val) {
+      setHideKnown(true)
+      // Award grammar XP for marking a point as mastered (equivalent to a perfect session)
+      addXP({ grammarXp: 50 })
+    }
     if (state.user) await setGrammarKnown(id, val)
   }
 
