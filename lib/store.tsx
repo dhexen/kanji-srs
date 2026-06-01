@@ -394,12 +394,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updatePexelsKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_PEXELS_KEY', payload: key })
-    try { await savePexelsKey(key) } catch (e) { console.error('Error guardando Pexels API key:', e) }
+    await savePexelsKey(key)
   }, [])
 
   const updateWaniKaniKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_WANIKANI_KEY', payload: key })
-    try { await saveWaniKaniKey(key) } catch (e) { console.error('Error guardando WaniKani API key:', e) }
+    await saveWaniKaniKey(key)
   }, [])
 
   const updateShowSharedSentences = useCallback(async (show: boolean) => {

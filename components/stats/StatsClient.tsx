@@ -74,6 +74,10 @@ export default function StatsClient() {
   const [geminiStepsOpen, setGeminiStepsOpen] = useState(false)
   const [pexelsKey, setPexelsKey] = useState(state.pexelsApiKey ?? '')
   const [wkKey, setWkKey] = useState(state.waniKaniApiKey ?? '')
+
+  // Keep input fields in sync when syncDown loads keys from the account
+  useEffect(() => { if (state.pexelsApiKey) setPexelsKey(state.pexelsApiKey) }, [state.pexelsApiKey])
+  useEffect(() => { if (state.waniKaniApiKey) setWkKey(state.waniKaniApiKey) }, [state.waniKaniApiKey])
   const [wkStepsOpen, setWkStepsOpen] = useState(false)
   const [wkMinStage, setWkMinStage] = useState(5)
   const [wkSyncing, setWkSyncing] = useState(false)
@@ -162,8 +166,13 @@ export default function StatsClient() {
 
   async function handleSaveWkKey() {
     const key = wkKey.trim()
-    await updateWaniKaniKey(key)
-    showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+    try {
+      await updateWaniKaniKey(key)
+      showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+    } catch (e) {
+      showToast('Error al guardar la clave WaniKani en la cuenta', 'error')
+      console.error(e)
+    }
   }
 
   async function handleSyncWaniKani() {
@@ -194,8 +203,13 @@ export default function StatsClient() {
 
   async function handleSavePexelsKey() {
     const key = pexelsKey.trim()
-    await updatePexelsKey(key)
-    showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+    try {
+      await updatePexelsKey(key)
+      showToast(key ? t(lang, 'ctx_key_save') + ' ✓' : t(lang, 'api_remove'), 'success')
+    } catch (e) {
+      showToast('Error al guardar la clave Pexels en la cuenta', 'error')
+      console.error(e)
+    }
   }
 
   async function resetAll() {

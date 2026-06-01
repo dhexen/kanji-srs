@@ -379,31 +379,19 @@ export async function saveGeminiKey(key: string) {
 }
 
 export async function savePexelsKey(key: string) {
-  try {
-    const userId = await ensureUserSettingsRow()
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({ user_id: userId, pexels_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-    if (error) throw error
-  } catch (e) {
-    if (isSchemaUnavailable(e as { code?: string; message?: string })) {
-      return
-    }
-    throw e
-  }
+  const userId = await ensureUserSettingsRow()
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, pexels_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (error) throw new Error(error.message)
 }
 
 export async function saveWaniKaniKey(key: string) {
-  try {
-    const userId = await ensureUserSettingsRow()
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({ user_id: userId, wanikani_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-    if (error) throw error
-  } catch (e) {
-    if (isSchemaUnavailable(e as { code?: string; message?: string })) return
-    throw e
-  }
+  const userId = await ensureUserSettingsRow()
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, wanikani_api_key: key, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (error) throw new Error(error.message)
 }
 
 export async function saveWaniKaniMinSrsStage(stage: number) {
