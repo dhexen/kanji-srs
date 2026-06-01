@@ -8,7 +8,11 @@
 
 DO $$
 BEGIN
-  -- Drop word-only unique constraint if it exists (common Supabase auto-name)
+  -- Drop word-only unique constraints (try both common auto-generated names)
+  BEGIN
+    ALTER TABLE public.vocabulary DROP CONSTRAINT vocabulary_word_unique;
+  EXCEPTION WHEN undefined_object THEN NULL;
+  END;
   BEGIN
     ALTER TABLE public.vocabulary DROP CONSTRAINT vocabulary_word_key;
   EXCEPTION WHEN undefined_object THEN NULL;
