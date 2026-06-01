@@ -500,7 +500,7 @@ export default function AdminVocabTab() {
                 {(importResult.skipped_in_file ?? 0) > 0 && (
                   <p className="text-xs text-emerald-700">
                     Duplicadas en el archivo: <strong>{importResult.skipped_in_file}</strong>{' '}
-                    <span className="text-emerald-500">(misma palabra bajo distintos kanjis)</span>
+                    <span className="text-emerald-500">(mismo word + kanji repetido en el CSV)</span>
                   </p>
                 )}
                 {(importResult.skipped_in_db ?? 0) > 0 && (
