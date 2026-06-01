@@ -82,15 +82,16 @@ export async function POST(request: NextRequest) {
     // the same word with a different kanji is a distinct vocabulary entry.
     const dedupedMap = new Map<string, Record<string, unknown>>()
     for (const row of valid) {
-      const key = `${row.word as string}|${row.kanji as string}`
+      const key = `${row.word as string}||${row.kanji as string}`
       if (!dedupedMap.has(key)) dedupedMap.set(key, row)
     }
     const deduped = Array.from(dedupedMap.values())
+    const skipped_in_file = valid.length - deduped.length
 
-    // Check which (word, kanji) pairs already exist in the DB.
-    // Fetch all vocabulary rows matching any of the words, then filter by kanji client-side.
+    // Count rows that already exist in the DB with the same (word, kanji) pair.
+    // We query the candidate words and build a composite-key set, then diff locally.
     const allWords = [...new Set(deduped.map(r => r.word as string))]
-    const existingSet = new Set<string>()  // stores "word|kanji" composites
+    const existingSet = new Set<string>()
     const CHECK_CHUNK = 150
     for (let i = 0; i < allWords.length; i += CHECK_CHUNK) {
       const slice = allWords.slice(i, i + CHECK_CHUNK)
@@ -98,26 +99,30 @@ export async function POST(request: NextRequest) {
         .from('vocabulary')
         .select('word, kanji')
         .in('word', slice)
+        .limit(10000)
       if (checkErr) throw new AdminApiError(checkErr.message, 500)
       for (const row of existing ?? []) {
-        existingSet.add(`${row.word as string}|${row.kanji as string}`)
+        existingSet.add(`${row.word as string}||${row.kanji as string}`)
       }
     }
 
-    const newRows = deduped.filter(r => !existingSet.has(`${r.word as string}|${r.kanji as string}`))
-    const skipped_in_file = valid.length - deduped.length   // same (word, kanji) appeared multiple times in CSV
-    const skipped_in_db   = deduped.length - newRows.length // (word, kanji) already existed in DB
+    const toInsert = deduped.filter(r =>
+      !existingSet.has(`${r.word as string}||${r.kanji as string}`)
+    )
+    const skipped_in_db = deduped.length - toInsert.length
     let inserted = 0
 
-    // Insert new rows in chunks of 100
+    // Upsert in chunks — onConflict:'word,kanji' + ignoreDuplicates lets the DB
+    // constraint be the final arbiter: same (word, kanji) → ignored, different kanji → inserted.
     const INSERT_CHUNK = 100
-    for (let i = 0; i < newRows.length; i += INSERT_CHUNK) {
-      const chunk = newRows.slice(i, i + INSERT_CHUNK)
-      const { error: insertErr } = await service
+    for (let i = 0; i < toInsert.length; i += INSERT_CHUNK) {
+      const chunk = toInsert.slice(i, i + INSERT_CHUNK)
+      const { data: upserted, error: insertErr } = await service
         .from('vocabulary')
-        .insert(chunk)
+        .upsert(chunk, { onConflict: 'word,kanji', ignoreDuplicates: true })
+        .select('word')
       if (insertErr) throw new AdminApiError(insertErr.message, 500)
-      inserted += chunk.length
+      inserted += upserted?.length ?? chunk.length
     }
 
     return NextResponse.json({
