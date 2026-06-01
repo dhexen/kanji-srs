@@ -395,7 +395,7 @@ export default function AdminVocabTab() {
 
           <p className="text-[11px] text-slate-400">
             Codificación: <strong>UTF-8</strong>. Separador: <strong>coma</strong>. Si un valor contiene comas, rodéalo de comillas dobles.
-            Los valores duplicados (mismo <code className="bg-slate-200 px-1 rounded">word</code>) se omiten automáticamente.
+            Los valores duplicados (mismo <code className="bg-slate-200 px-1 rounded">word</code> + <code className="bg-slate-200 px-1 rounded">kanji</code>) se omiten automáticamente. La misma palabra con diferente kanji sí se permite.
           </p>
         </div>
 

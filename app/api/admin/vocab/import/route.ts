@@ -78,28 +78,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, errors }, { status: 422 })
     }
 
-    // Deduplicate within the submitted batch (keep first occurrence of each word)
+    // Deduplicate within the submitted batch by (word, kanji) composite key —
+    // the same word with a different kanji is a distinct vocabulary entry.
     const dedupedMap = new Map<string, Record<string, unknown>>()
-    for (const row of valid) dedupedMap.set(row.word as string, row)
+    for (const row of valid) {
+      const key = `${row.word as string}|${row.kanji as string}`
+      if (!dedupedMap.has(key)) dedupedMap.set(key, row)
+    }
     const deduped = Array.from(dedupedMap.values())
 
-    // Check which words already exist (in chunks of 150 to avoid URL limits)
-    const allWords = deduped.map(r => r.word as string)
-    const existingSet = new Set<string>()
+    // Check which (word, kanji) pairs already exist in the DB.
+    // Fetch all vocabulary rows matching any of the words, then filter by kanji client-side.
+    const allWords = [...new Set(deduped.map(r => r.word as string))]
+    const existingSet = new Set<string>()  // stores "word|kanji" composites
     const CHECK_CHUNK = 150
     for (let i = 0; i < allWords.length; i += CHECK_CHUNK) {
       const slice = allWords.slice(i, i + CHECK_CHUNK)
       const { data: existing, error: checkErr } = await service
         .from('vocabulary')
-        .select('word')
+        .select('word, kanji')
         .in('word', slice)
       if (checkErr) throw new AdminApiError(checkErr.message, 500)
-      for (const row of existing ?? []) existingSet.add(row.word as string)
+      for (const row of existing ?? []) {
+        existingSet.add(`${row.word as string}|${row.kanji as string}`)
+      }
     }
 
-    const newRows = deduped.filter(r => !existingSet.has(r.word as string))
-    const skipped_in_file = valid.length - deduped.length   // same word appeared multiple times in the CSV
-    const skipped_in_db   = deduped.length - newRows.length // word already existed in DB
+    const newRows = deduped.filter(r => !existingSet.has(`${r.word as string}|${r.kanji as string}`))
+    const skipped_in_file = valid.length - deduped.length   // same (word, kanji) appeared multiple times in CSV
+    const skipped_in_db   = deduped.length - newRows.length // (word, kanji) already existed in DB
     let inserted = 0
 
     // Insert new rows in chunks of 100
