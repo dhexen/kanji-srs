@@ -1609,6 +1609,29 @@ export async function saveGrammarSrsResult(
   }
 }
 
+/**
+ * Mark a grammar point as "studying" (level 0, immediately due) if it has
+ * no existing SRS entry. Safe to call multiple times — won't downgrade progress.
+ * Returns the new stat if a row was inserted, null if it already existed.
+ */
+export async function markGrammarAsStudying(grammarId: string): Promise<{ grammar_id: string; level: number; next_review: number } | null> {
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('grammar_srs_progress')
+      .insert({ user_id: user.id, grammar_id: grammarId, level: 0, next_review: 0 })
+    if (error) {
+      // 23505 = unique violation = already has an entry, that's fine
+      if (error.code !== '23505') console.warn('markGrammarAsStudying:', error.message)
+      return null
+    }
+    return { grammar_id: grammarId, level: 0, next_review: 0 }
+  } catch (e) {
+    console.warn('markGrammarAsStudying exception:', e)
+    return null
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // User grammar examples — personal AI example pool (5 generated, 10 max)
 // ─────────────────────────────────────────────────────────────────────────────

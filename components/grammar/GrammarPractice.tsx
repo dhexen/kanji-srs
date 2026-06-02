@@ -21,6 +21,7 @@ import {
   trimGrammarSentencesPool,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
+  markGrammarAsStudying,
   fetchSchoolVocabSample,
   fetchWaniKaniVocabSample,
   fetchUserSharedSentences,
@@ -695,6 +696,16 @@ Otras reglas:
 
   // ── Session start ─────────────────────────────────────────────────────────
   function startSession() {
+    // If first time practicing, mark as studying so it appears in the SRS queue
+    if (!srsStat) {
+      markGrammarAsStudying(grammar.id).then(newStat => {
+        if (newStat) {
+          setSrsStat(newStat)
+          onSrsUpdate?.(newStat)
+        }
+      })
+    }
+
     // Merge auto-generated pool with community shared sentences (if enabled)
     const allSentences: GrammarSentence[] = showShared && sharedSentences.length > 0
       ? [...sentences, ...sharedSentences.filter(sh => !sentences.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer))]

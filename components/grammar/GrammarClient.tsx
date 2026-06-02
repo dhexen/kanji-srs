@@ -173,6 +173,7 @@ function GrammarSrsQueue({
   activeVocab,
   showSharedSentences,
   onBack,
+  onSrsUpdate,
   canEdit,
 }: {
   queue: GrammarPointWithBook[]
@@ -182,6 +183,7 @@ function GrammarSrsQueue({
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   showSharedSentences: boolean
   onBack: () => void
+  onSrsUpdate?: (stat: GrammarSrsStat) => void
   canEdit?: boolean
 }) {
   const [idx, setIdx] = useState(0)
@@ -250,6 +252,7 @@ function GrammarSrsQueue({
         activeVocab={activeVocab}
         showSharedSentences={showSharedSentences}
         onBack={() => setIdx(i => i + 1)}
+        onSrsUpdate={onSrsUpdate}
         canEdit={canEdit}
       />
     </div>
@@ -269,10 +272,15 @@ export default function GrammarClient() {
   const [jlptFilter, setJlptFilter] = useState<JlptFilter>('all')
   const [knownIds, setKnownIds] = useState<Set<string>>(new Set())
   const [hideKnown, setHideKnown] = useState(true)
+  const [showOnlyStudying, setShowOnlyStudying] = useState(false)
   const [view, setView] = useState<View>({ kind: 'list' })
   const [sessionToken, setSessionToken] = useState('')
   const [loadingKnown, setLoadingKnown] = useState(true)
   const [srsStats, setSrsStats] = useState<Map<string, GrammarSrsStat>>(new Map())
+
+  function handleSrsUpdate(stat: GrammarSrsStat) {
+    setSrsStats(prev => new Map([...prev, [stat.grammar_id, stat]]))
+  }
 
   useEffect(() => {
     if (!state.user) { setLoadingKnown(false); return }
@@ -312,6 +320,7 @@ export default function GrammarClient() {
       : ALL_GRAMMAR_POINTS.filter(p => p.book === bookFilter)
     if (jlptFilter !== 'all') list = list.filter(g => g.jlpt === jlptFilter)
     if (hideKnown) list = list.filter(g => !knownIds.has(g.id))
+    if (showOnlyStudying) list = list.filter(g => srsStats.has(g.id) && !knownIds.has(g.id))
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(g =>
@@ -322,7 +331,7 @@ export default function GrammarClient() {
       )
     }
     return list
-  }, [search, jlptFilter, bookFilter, hideKnown, knownIds])
+  }, [search, jlptFilter, bookFilter, hideKnown, showOnlyStudying, knownIds, srsStats])
 
   const byLesson = useMemo(() => {
     const map = new Map<string, { lesson: number; book: BookKey; points: GrammarPointWithBook[] }>()
@@ -388,6 +397,7 @@ export default function GrammarClient() {
         activeVocab={activeVocab}
         showSharedSentences={state.showSharedSentences}
         onBack={() => setView({ kind: 'list' })}
+        onSrsUpdate={handleSrsUpdate}
         canEdit={canEdit}
       />
     )
@@ -403,6 +413,7 @@ export default function GrammarClient() {
         activeVocab={activeVocab}
         showSharedSentences={state.showSharedSentences}
         onBack={() => setView({ kind: 'list' })}
+        onSrsUpdate={handleSrsUpdate}
         canEdit={canEdit}
       />
     )
@@ -591,6 +602,25 @@ export default function GrammarClient() {
               {f === 'all' ? t(lang, 'grammar_filter_all') : f}
             </button>
           ))}
+
+          {/* Studying filter */}
+          {state.user && srsStats.size > 0 && (
+            <button
+              onClick={() => setShowOnlyStudying(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                showOnlyStudying
+                  ? 'bg-amber-500 text-white border-amber-500'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+              }`}
+            >
+              📚 {t(lang, 'grammar_filter_studying')}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                showOnlyStudying ? 'bg-white/20' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+              }`}>
+                {srsStats.size}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={() => setHideKnown(v => !v)}
