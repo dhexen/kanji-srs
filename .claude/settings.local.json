@@ -50,7 +50,8 @@
       "Bash(xargs grep -l \"vocabulary\")",
       "Bash(xargs grep -l \"vocabulary table\\\\|vocab_level\\\\|course\\\\|level_id\")",
       "Bash(grep -n \"vocabItemToRow\\\\|rowToVocabItem\" /c/Users/dhexe/Documents\\\\Proyectos\\\\kanji-srs/lib/progress.ts)",
-      "Read(//c/Users/dhexe/DocumentsProyectoskanji-srs/lib/**)"
+      "Read(//c/Users/dhexe/DocumentsProyectoskanji-srs/lib/**)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

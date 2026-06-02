@@ -10,6 +10,8 @@ export interface ContextText {
   catalan: string
   english: string
   words_used: string[]
+  createdAt?: number
+  promptUsed?: string
 }
 
 export interface VocabProgressRow {
