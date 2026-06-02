@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
@@ -58,6 +58,39 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 }`
 }
 
+function stripRubyHtml(html: string): string {
+  return html
+    .replace(/<ruby>([^<]*)<rt>[^<]*<\/rt><\/ruby>/g, '$1')
+    .replace(/<[^>]*>/g, '')
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5)
+}
+
+// ─── Types for grammar analysis ───────────────────────────────────────────────
+
+interface GrammarPoint {
+  type: string
+  pattern: string
+  name: string
+  color: string
+  explanation: string
+}
+
+interface Segment {
+  text: string
+  type: string | null
+}
+
+interface SentenceAnalysis {
+  text: string
+  segments: Segment[]
+  grammar_points: GrammarPoint[]
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+
 export default function ContextClient() {
   const { state, addContextText, removeContextText } = useStore()
   const lang = state.lang
@@ -87,7 +120,16 @@ export default function ContextClient() {
     setLoading(true)
     setErrorMsg('')
     try {
-      const selected = [...activeWords].sort(() => Math.random() - 0.5).slice(0, 20)
+      // Collect words used in the last 5 texts to avoid repetition
+      const recentlyUsed = new Set(
+        state.contextTexts.slice(0, 5).flatMap(ct => ct.words_used ?? [])
+      )
+
+      // Prioritize words not recently used; fill with used ones if needed
+      const freshWords = activeWords.filter(w => !recentlyUsed.has(w.jp))
+      const usedWords = activeWords.filter(w => recentlyUsed.has(w.jp))
+      const selected = [...shuffleArray(freshWords), ...shuffleArray(usedWords)].slice(0, 20)
+
       const vocab = selected.map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
 
       let prompt: string
@@ -307,6 +349,7 @@ export default function ContextClient() {
             key={tx.id}
             text={tx}
             userVocabSet={userVocabSet}
+            geminiApiKey={state.geminiApiKey}
             onRemove={() => removeContextText(tx.id)}
           />
         ))}
@@ -315,14 +358,14 @@ export default function ContextClient() {
   )
 }
 
+// ─── Constants & helpers for TextCard ─────────────────────────────────────────
+
 type FuriganaMode = 'all' | 'unknown' | 'none'
 
 const LEVEL_BADGE: Record<string, string> = {
-  // legacy values
   simple: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
   normal: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
   complejo: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
-  // JLPT values
   N5: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
   N4: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
   N3: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
@@ -337,10 +380,58 @@ const FURIGANA_OPTIONS: { mode: FuriganaMode; label: string; hint: string }[] = 
   { mode: 'none', label: '🙈 Ninguno', hint: 'Sin furigana' },
 ]
 
-function TextCard({ text, userVocabSet, onRemove }: { text: ContextText; userVocabSet: Set<string>; onRemove: () => void }) {
+function buildAnalysisPrompt(cleanJapanese: string): string {
+  return `Eres un sensei de japonés experto enseñando a alumnos hispanohablantes de nivel principiante e intermedio.
+Analiza gramaticalmente CADA frase del siguiente texto japonés.
+
+Texto:
+${cleanJapanese}
+
+Para cada frase, divide el texto en segmentos individuales (partículas, morfemas verbales, expresiones gramaticales) y clasifica los elementos gramaticales clave.
+Reglas importantes:
+- Usa el mismo "type" para el mismo tipo de elemento (ej. todas las partículas de tema は = "particle_ha").
+- Los segmentos de vocabulario puro sin función gramatical especial llevan type: null.
+- Asigna un color hexadecimal vibrante y único a cada tipo gramatical (no repitas colores entre tipos distintos).
+- Las explicaciones deben ser breves (1-2 frases), pedagógicas y en español, como las daría un sensei paciente.
+- Céntrate en los puntos gramaticales más importantes de cada frase, no es necesario anotar cada partícula trivial.
+
+Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
+{
+  "sentences": [
+    {
+      "text": "frase original completa sin HTML",
+      "segments": [
+        { "text": "segmento", "type": "tipo_o_null" }
+      ],
+      "grammar_points": [
+        {
+          "type": "tipo_identificador",
+          "pattern": "elemento como aparece en la frase",
+          "name": "nombre del punto gramatical en español",
+          "color": "#hexcolor",
+          "explanation": "explicación breve y pedagógica en español"
+        }
+      ]
+    }
+  ]
+}`
+}
+
+// ─── TextCard ─────────────────────────────────────────────────────────────────
+
+function TextCard({ text, userVocabSet, geminiApiKey, onRemove }: {
+  text: ContextText
+  userVocabSet: Set<string>
+  geminiApiKey: string
+  onRemove: () => void
+}) {
   const [showTrans, setShowTrans] = useState<'es' | 'ca' | 'en' | null>(null)
   const [furiganaMode, setFuriganaMode] = useState<FuriganaMode>('all')
   const [promptCopied, setPromptCopied] = useState(false)
+  const [analysisData, setAnalysisData] = useState<SentenceAnalysis[] | null>(null)
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
+  const analysisLoadedRef = useRef(false)
 
   function processJapanese(html: string) {
     if (!html) return ''
@@ -358,6 +449,43 @@ function TextCard({ text, userVocabSet, onRemove }: { text: ContextText; userVoc
     navigator.clipboard.writeText(text.promptUsed)
     setPromptCopied(true)
     setTimeout(() => setPromptCopied(false), 2000)
+  }
+
+  async function loadAnalysis() {
+    if (analysisLoadedRef.current || loadingAnalysis || !geminiApiKey) return
+    analysisLoadedRef.current = true
+    setLoadingAnalysis(true)
+    setAnalysisError('')
+    try {
+      const cleanJapanese = stripRubyHtml(text.japanese)
+      const prompt = buildAnalysisPrompt(cleanJapanese)
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ prompt, userApiKey: geminiApiKey }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || `Error ${res.status}`)
+      }
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+
+      const clean = data.text.replace(/```json|```/g, '').trim()
+      const parsed = JSON.parse(clean)
+      setAnalysisData(parsed.sentences as SentenceAnalysis[])
+    } catch (e: any) {
+      setAnalysisError(e.message || 'Error al analizar')
+      analysisLoadedRef.current = false
+    } finally {
+      setLoadingAnalysis(false)
+    }
   }
 
   const createdDate = text.createdAt
@@ -446,9 +574,44 @@ function TextCard({ text, userVocabSet, onRemove }: { text: ContextText; userVoc
         </div>
       )}
 
+      {/* Grammar analysis */}
+      <details
+        className="mt-3"
+        onToggle={e => {
+          if ((e.target as HTMLDetailsElement).open) loadAnalysis()
+        }}
+      >
+        <summary className="cursor-pointer text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 select-none flex items-center gap-1.5">
+          🎓 Análisis gramatical
+          {!geminiApiKey && <span className="text-amber-500">(requiere API key)</span>}
+        </summary>
+        <div className="mt-3 space-y-4">
+          {loadingAnalysis && (
+            <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 p-3">
+              <span className="animate-spin inline-block">⏳</span>
+              El sensei está analizando la gramática...
+            </div>
+          )}
+          {analysisError && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-xl text-xs text-rose-600 dark:text-rose-400">
+              ❌ {analysisError}
+              <button
+                onClick={() => { analysisLoadedRef.current = false; loadAnalysis() }}
+                className="ml-2 underline"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+          {analysisData?.map((sentence, idx) => (
+            <SentenceBlock key={idx} sentence={sentence} />
+          ))}
+        </div>
+      </details>
+
       {/* Prompt used */}
       {text.promptUsed && (
-        <details className="mt-2">
+        <details className="mt-3">
           <summary className="cursor-pointer text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 select-none">
             🔍 Ver prompt usado
           </summary>
@@ -464,6 +627,62 @@ function TextCard({ text, userVocabSet, onRemove }: { text: ContextText; userVoc
             </button>
           </div>
         </details>
+      )}
+    </div>
+  )
+}
+
+// ─── SentenceBlock ─────────────────────────────────────────────────────────────
+
+function SentenceBlock({ sentence }: { sentence: SentenceAnalysis }) {
+  return (
+    <div className="border border-slate-100 dark:border-slate-700 rounded-xl overflow-hidden">
+      {/* Highlighted sentence */}
+      <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
+        <p className="kanji-font text-lg md:text-xl leading-loose text-slate-800 dark:text-slate-100">
+          {sentence.segments.map((seg, i) => {
+            if (!seg.type) return <span key={i}>{seg.text}</span>
+            const gp = sentence.grammar_points.find(g => g.type === seg.type)
+            if (!gp) return <span key={i}>{seg.text}</span>
+            return (
+              <span
+                key={i}
+                title={gp.name}
+                style={{
+                  backgroundColor: gp.color,
+                  color: 'white',
+                  padding: '1px 5px',
+                  borderRadius: '5px',
+                  margin: '0 1px',
+                  fontWeight: 600,
+                  cursor: 'default',
+                }}
+              >
+                {seg.text}
+              </span>
+            )
+          })}
+        </p>
+      </div>
+
+      {/* Grammar legend */}
+      {sentence.grammar_points.length > 0 && (
+        <div className="px-4 py-3 space-y-2.5">
+          {sentence.grammar_points.map((gp, i) => (
+            <div key={i} className="flex items-start gap-2.5">
+              <span
+                className="shrink-0 mt-1 inline-block w-3 h-3 rounded-full"
+                style={{ backgroundColor: gp.color }}
+              />
+              <div className="text-xs leading-relaxed">
+                <span className="font-bold text-slate-700 dark:text-slate-200 mr-1">{gp.pattern}</span>
+                <span className="text-slate-400 dark:text-slate-500">—</span>
+                <span className="font-semibold text-slate-600 dark:text-slate-300 ml-1">{gp.name}</span>
+                <p className="text-slate-500 dark:text-slate-400 mt-0.5">{gp.explanation}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
