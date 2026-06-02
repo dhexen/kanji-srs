@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     if (fetchErr) throw new AdminApiError(fetchErr.message, 500)
 
-    // Also fetch verbs/adjectives that have no antonym pair yet
+    // Fetch existing antonym pairs (needed to avoid duplicates and find gaps)
     const { data: antonymRows } = await service
       .from('vocab_antonyms')
       .select('word_a, word_b')
@@ -241,22 +241,23 @@ export async function POST(request: NextRequest) {
       ...(antonymRows ?? []).map((p: { word_b: string }) => p.word_b),
     ])
 
+    // Always reserve some slots for antonym detection so it runs in parallel
+    // with classification — not only after all words are classified.
+    const MIN_ANTONYM_SLOTS = Math.min(10, Math.ceil(limit / 3))
     const pendingWords = new Set((pendingVocab ?? []).map((v: { word: string }) => v.word))
-    const antonymGap = limit - pendingWords.size
+    // Use the larger of: leftover slots OR minimum reserved slots
+    const antonymSlots = Math.max(limit - pendingWords.size, MIN_ANTONYM_SLOTS)
 
-    let antonymVocab: typeof pendingVocab = []
-    if (antonymGap > 0) {
-      const { data: verbAdjFull } = await service
-        .from('vocabulary')
-        .select('word, reading, meaning_es, word_type, category, image_url')
-        .in('word_type', [...ANTONYM_WORD_TYPES])
-        .limit(limit * 3) // fetch more so we can filter
-      antonymVocab = (verbAdjFull ?? [])
-        .filter((v: { word: string }) => !antonymParticipants.has(v.word) && !pendingWords.has(v.word))
-        .slice(0, antonymGap)
-    }
+    const { data: verbAdjFull } = await service
+      .from('vocabulary')
+      .select('word, reading, meaning_es, word_type, category, image_url')
+      .in('word_type', [...ANTONYM_WORD_TYPES])
+      .limit(antonymSlots * 4) // fetch extra so we can filter out already-paired words
+    const antonymVocab = (verbAdjFull ?? [])
+      .filter((v: { word: string }) => !antonymParticipants.has(v.word) && !pendingWords.has(v.word))
+      .slice(0, antonymSlots)
 
-    const vocab = [...(pendingVocab ?? []), ...(antonymVocab ?? [])]
+    const vocab = [...(pendingVocab ?? []), ...antonymVocab]
 
     if (vocab.length === 0) {
       return NextResponse.json({
