@@ -363,7 +363,7 @@ export default function VocabAntonyms() {
             <button
               onClick={handleAutoDetect}
               disabled={autoDetecting}
-              title="Detectar automáticamente pares de contrarios con Gemini"
+              title="Detectar automáticamente pares de antónimos con Gemini"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-700
                          disabled:opacity-50 disabled:cursor-not-allowed
                          text-white text-sm font-semibold rounded-xl transition shadow-sm shrink-0"

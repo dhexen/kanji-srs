@@ -735,20 +735,21 @@ export default function AdminClient() {
                 ✨ Clasificación completa — 1 llamada Gemini
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta contrarios. Procesa 35 palabras a la vez.
+                Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta antónimos para verbos y adjetivos. Procesa 35 palabras a la vez.
               </p>
             </div>
 
             {/* Stats grid */}
             {fullStats && (
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
                 {[
-                  { label: 'Total',      value: fullStats.total,         color: 'text-slate-700' },
-                  { label: 'Tipo gram.', value: fullStats.with_type,     color: 'text-emerald-600' },
-                  { label: 'Categoría', value: fullStats.with_category,  color: 'text-indigo-600' },
-                  { label: 'Imagen',    value: fullStats.with_image,     color: 'text-violet-600' },
-                  { label: 'Contrarios', value: fullStats.antonym_pairs, color: 'text-sky-600' },
-                  { label: 'Pendientes', value: fullStats.pending,       color: fullStats.pending > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400' },
+                  { label: 'Total',        value: fullStats.total,         color: 'text-slate-700' },
+                  { label: 'Tipo gram.',   value: fullStats.with_type,     color: 'text-emerald-600' },
+                  { label: 'Categoría',   value: fullStats.with_category,  color: 'text-indigo-600' },
+                  { label: 'Imagen',       value: fullStats.with_image,    color: 'text-violet-600' },
+                  { label: 'Antónimos',   value: fullStats.antonym_pairs,  color: 'text-sky-600' },
+                  { label: 'Sin antón.',   value: fullStats.antonym_todo,  color: fullStats.antonym_todo > 0 ? 'text-orange-500 font-extrabold' : 'text-slate-400' },
+                  { label: 'Pendientes',   value: fullStats.pending,       color: fullStats.pending > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400' },
                 ].map(s => (
                   <div key={s.label} className="bg-white/80 rounded-xl p-2.5 text-center shadow-sm">
                     <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
@@ -766,7 +767,7 @@ export default function AdminClient() {
                   <span>🔠 Procesadas: <strong>{fullLastResult.processed}</strong></span>
                   <span>🏷️ Vocab actualizadas: <strong>{fullLastResult.updated_vocab}</strong></span>
                   <span>🖼️ Imágenes nuevas: <strong>{fullLastResult.new_images}</strong></span>
-                  <span>⇄ Contrarios añadidos: <strong>{fullLastResult.antonym_pairs_added}</strong></span>
+                  <span>⇄ Antónimos añadidos: <strong>{fullLastResult.antonym_pairs_added}</strong></span>
                   <span>🚫 No imaginables: <strong>{fullLastResult.not_imageable}</strong></span>
                   <span>📷 Sin foto: <strong>{fullLastResult.no_source_image}</strong></span>
                 </div>
@@ -786,7 +787,9 @@ export default function AdminClient() {
               {fullProcessing
                 ? '⏳ Clasificando…'
                 : fullStats?.pending === 0
-                ? '✓ Todo clasificado'
+                ? '✓ Todo clasificado y antónimos detectados'
+                : fullStats && fullStats.antonym_todo > 0 && fullStats.pending === fullStats.antonym_todo
+                ? `⇄ Detectar antónimos (${Math.min(35, fullStats.antonym_todo)} verbos/adj.)`
                 : `✨ Clasificar lote (${Math.min(35, fullStats?.pending ?? 0)} palabras)`}
             </button>
           </div>
@@ -836,7 +839,7 @@ export default function AdminClient() {
                 {/* Clasificación solo tipo+categoría */}
                 <div>
                   <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
-                  <p className="text-xs text-slate-400 mb-3">Sin imágenes ni contrarios.</p>
+                  <p className="text-xs text-slate-400 mb-3">Sin imágenes ni antónimos.</p>
                   {clsStats && (
                     <div className="flex gap-4 text-xs text-slate-500 mb-3">
                       <span>Total: <strong>{clsStats.total}</strong></span>

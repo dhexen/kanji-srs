@@ -314,6 +314,7 @@ export interface FullClassifyStats {
   with_category:  number
   with_image:     number
   antonym_pairs:  number
+  antonym_todo:   number
   pending:        number
 }
 

@@ -150,7 +150,7 @@ export default function AdminVocabTab() {
       '• Imágenes, categorías y tipos de palabra asociados\n' +
       '• Votos de imágenes y reportes de vocabulario\n' +
       '• El progreso SRS de vocabulario de TODOS los usuarios\n' +
-      '• Los pares de contrarios\n' +
+      '• Los pares de antónimos\n' +
       '• El historial de repasos y snapshots\n' +
       '• El XP de vocabulario de todos los usuarios\n\n' +
       'El XP de gramática se conservará.\n\n' +
@@ -302,7 +302,7 @@ export default function AdminVocabTab() {
         <h3 className="font-bold text-rose-700 mb-1">🔴 Reset completo de vocabulario</h3>
         <p className="text-xs text-slate-500 mb-4">
           Borra <strong>todo el vocabulario</strong> de todos los grados, el progreso SRS de vocabulario de
-          todos los usuarios, los contrarios y el XP de vocab. El XP de gramática se conserva.
+          todos los usuarios, los antónimos y el XP de vocab. El XP de gramática se conserva.
           Úsalo antes de reimportar los CSVs desde cero.
         </p>
         <button

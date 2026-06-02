@@ -5,8 +5,9 @@ import { useStore } from '@/lib/store'
 import { t } from '@/lib/i18n'
 import VocabGlossary from './VocabGlossary'
 import VocabAntonyms from './VocabAntonyms'
+import VocabTransitivity from './VocabTransitivity'
 
-type VocabTab = 'glossary' | 'antonyms'
+type VocabTab = 'glossary' | 'antonyms' | 'transitivity'
 
 export default function VocabularyClient() {
   const { state } = useStore()
@@ -16,8 +17,9 @@ export default function VocabularyClient() {
   const tl = (key: string) => t(lang as Parameters<typeof t>[0], key as Parameters<typeof t>[1])
 
   const TABS: { key: VocabTab; icon: string; label: string }[] = [
-    { key: 'glossary',  icon: '📖', label: tl('vocab_tab_glossary') },
-    { key: 'antonyms',  icon: '⇄',  label: tl('vocab_tab_antonyms') },
+    { key: 'glossary',     icon: '📖', label: tl('vocab_tab_glossary') },
+    { key: 'antonyms',     icon: '⇄',  label: tl('vocab_tab_antonyms') },
+    { key: 'transitivity', icon: '動',  label: tl('vocab_tab_transitivity') },
   ]
 
   return (
@@ -39,15 +41,16 @@ export default function VocabularyClient() {
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <span className={key === 'antonyms' ? 'text-base' : ''}>{icon}</span>
+            <span className="text-base">{icon}</span>
             {label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      {tab === 'glossary'  && <VocabGlossary />}
-      {tab === 'antonyms'  && <VocabAntonyms />}
+      {tab === 'glossary'     && <VocabGlossary />}
+      {tab === 'antonyms'     && <VocabAntonyms />}
+      {tab === 'transitivity' && <VocabTransitivity />}
     </div>
   )
 }

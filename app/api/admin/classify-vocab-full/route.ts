@@ -38,7 +38,8 @@ export interface FullClassifyStats {
   with_category:   number
   with_image:      number
   antonym_pairs:   number
-  pending:         number   // missing word_type OR category OR image check
+  antonym_todo:    number   // verbs/adjs without any antonym pair yet
+  pending:         number   // missing word_type OR category OR image check OR antonym
 }
 
 export interface FullClassifyResult {
@@ -56,6 +57,11 @@ export interface FullClassifyResult {
 const VALID_WORD_TYPES = new Set([
   'noun', 'verb_transitive', 'verb_intransitive', 'verb',
   'adj_i', 'adj_na', 'adverb', 'particle', 'expression',
+])
+
+// Types that can have antonyms
+const ANTONYM_WORD_TYPES = new Set([
+  'verb_transitive', 'verb_intransitive', 'verb', 'adj_i', 'adj_na',
 ])
 const VALID_CATEGORIES = new Set([
   'animals', 'nature', 'colors', 'weather', 'time', 'food', 'transport',
@@ -152,28 +158,40 @@ export async function GET(request: NextRequest) {
       { count: withType },
       { count: withCategory },
       { count: withImage },
-      { count: antonymPairs },
+      { count: classificationPending },
     ] = await Promise.all([
       service.from('vocabulary').select('*', { count: 'exact', head: true }),
       service.from('vocabulary').select('*', { count: 'exact', head: true }).not('word_type', 'is', null),
       service.from('vocabulary').select('*', { count: 'exact', head: true }).not('category', 'is', null),
       service.from('vocabulary').select('*', { count: 'exact', head: true }).not('image_url', 'is', null),
-      service.from('vocab_antonyms').select('*', { count: 'exact', head: true }),
+      service.from('vocabulary').select('*', { count: 'exact', head: true }).or('word_type.is.null,category.is.null,image_url.is.null'),
     ])
 
-    // Pending = words missing word_type OR category OR image check
-    const { count: pending } = await service
-      .from('vocabulary')
-      .select('*', { count: 'exact', head: true })
-      .or('word_type.is.null,category.is.null,image_url.is.null')
+    // Count antonym pairs and compute verbs/adjs without antonyms
+    const [{ data: antonymRows }, { data: verbAdjRows }] = await Promise.all([
+      service.from('vocab_antonyms').select('word_a, word_b'),
+      service.from('vocabulary').select('word').in('word_type', [...ANTONYM_WORD_TYPES]),
+    ])
+
+    const antonymPairs = (antonymRows ?? []).length
+    const antonymParticipants = new Set([
+      ...(antonymRows ?? []).map((p: { word_a: string }) => p.word_a),
+      ...(antonymRows ?? []).map((p: { word_b: string }) => p.word_b),
+    ])
+    const antonymTodo = (verbAdjRows ?? []).filter(
+      (v: { word: string }) => !antonymParticipants.has(v.word),
+    ).length
+
+    const pending = (classificationPending ?? 0) + antonymTodo
 
     return NextResponse.json({
       total:          total          ?? 0,
       with_type:      withType       ?? 0,
       with_category:  withCategory   ?? 0,
       with_image:     withImage      ?? 0,
-      antonym_pairs:  antonymPairs   ?? 0,
-      pending:        pending        ?? 0,
+      antonym_pairs:  antonymPairs,
+      antonym_todo:   antonymTodo,
+      pending,
     } satisfies FullClassifyStats)
   } catch (e) {
     return adminJsonError(e)
@@ -205,18 +223,46 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch words pending any classification
-    const { data: vocab, error: fetchErr } = await service
+    const { data: pendingVocab, error: fetchErr } = await service
       .from('vocabulary')
       .select('word, reading, meaning_es, word_type, category, image_url')
       .or('word_type.is.null,category.is.null,image_url.is.null')
       .limit(limit)
 
     if (fetchErr) throw new AdminApiError(fetchErr.message, 500)
-    if (!vocab || vocab.length === 0) {
+
+    // Also fetch verbs/adjectives that have no antonym pair yet
+    const { data: antonymRows } = await service
+      .from('vocab_antonyms')
+      .select('word_a, word_b')
+
+    const antonymParticipants = new Set([
+      ...(antonymRows ?? []).map((p: { word_a: string }) => p.word_a),
+      ...(antonymRows ?? []).map((p: { word_b: string }) => p.word_b),
+    ])
+
+    const pendingWords = new Set((pendingVocab ?? []).map((v: { word: string }) => v.word))
+    const antonymGap = limit - pendingWords.size
+
+    let antonymVocab: typeof pendingVocab = []
+    if (antonymGap > 0) {
+      const { data: verbAdjFull } = await service
+        .from('vocabulary')
+        .select('word, reading, meaning_es, word_type, category, image_url')
+        .in('word_type', [...ANTONYM_WORD_TYPES])
+        .limit(limit * 3) // fetch more so we can filter
+      antonymVocab = (verbAdjFull ?? [])
+        .filter((v: { word: string }) => !antonymParticipants.has(v.word) && !pendingWords.has(v.word))
+        .slice(0, antonymGap)
+    }
+
+    const vocab = [...(pendingVocab ?? []), ...(antonymVocab ?? [])]
+
+    if (vocab.length === 0) {
       return NextResponse.json({
         processed: 0, updated_vocab: 0, new_images: 0,
         not_imageable: 0, no_source_image: 0, antonym_pairs_added: 0,
-        message: 'No quedan palabras pendientes de clasificar',
+        message: 'No quedan palabras pendientes de clasificar ni antónimos por detectar',
       } satisfies FullClassifyResult)
     }
 
@@ -265,14 +311,10 @@ export async function POST(request: NextRequest) {
       validAntonymWords = new Set((existingWords ?? []).map((r: { word: string }) => r.word))
     }
 
-    // ── Also check that existing antonym pairs don't get re-inserted ─────────
-    const wordList = words.map(w => w.word)
-    const { data: existingPairs } = await service
-      .from('vocab_antonyms')
-      .select('word_a, word_b')
-      .or(wordList.map(w => `word_a.eq.${w}`).join(',') + ',' + wordList.map(w => `word_b.eq.${w}`).join(','))
+    // ── Build existing pair set to prevent re-insertions ─────────────────────
+    // antonymRows was fetched above; build a pair set from it
     const existingPairSet = new Set(
-      (existingPairs ?? []).map((p: { word_a: string; word_b: string }) =>
+      (antonymRows ?? []).map((p: { word_a: string; word_b: string }) =>
         [p.word_a, p.word_b].sort().join('||')
       )
     )
