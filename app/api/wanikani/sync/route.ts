@@ -202,12 +202,16 @@ export async function POST(req: NextRequest) {
       const { error } = await anonClient
         .from('wanikani_user_vocab')
         .upsert(rows.slice(i, i + BATCH), { onConflict: 'user_id,wanikani_id' })
-      if (error) throw error
+      if (error) throw new Error(error.message || error.code || JSON.stringify(error))
     }
 
     return NextResponse.json({ count: rows.length })
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Error desconocido'
+    const msg = e instanceof Error
+      ? e.message
+      : (e && typeof e === 'object' && 'message' in e)
+        ? String((e as { message: unknown }).message)
+        : JSON.stringify(e) || 'Error desconocido'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
