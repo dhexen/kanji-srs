@@ -286,12 +286,12 @@ export default function ReviewClient() {
                 {t(lang, 'header_today')}
               </p>
               <p className="text-5xl font-bold tabular-nums leading-none mt-1 text-violet-700 dark:text-violet-300">
-                {todayCount}
+                {pendingCount}
               </p>
             </div>
             <button
               onClick={() => start(false)}
-              disabled={activeWords.length === 0 || isStarting}
+              disabled={pendingCount === 0 || activeWords.length === 0 || isStarting}
               className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
             >
               {isStarting
@@ -440,7 +440,7 @@ export default function ReviewClient() {
             {[
               { label: 'Palabras activas', value: activeWords.length, color: 'text-violet-600 dark:text-violet-400' },
               { label: 'Dominadas', value: masteredCount, color: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Pendientes hoy', value: todayCount, color: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Programados hoy', value: todayCount, color: 'text-amber-600 dark:text-amber-400' },
               { label: 'Por aprender', value: activeWords.length - masteredCount, color: 'text-pink-600 dark:text-pink-400' },
             ].map(s => (
               <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm text-center">
