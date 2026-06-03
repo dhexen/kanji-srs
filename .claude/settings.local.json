@@ -51,7 +51,10 @@
       "Bash(xargs grep -l \"vocabulary table\\\\|vocab_level\\\\|course\\\\|level_id\")",
       "Bash(grep -n \"vocabItemToRow\\\\|rowToVocabItem\" /c/Users/dhexe/Documents\\\\Proyectos\\\\kanji-srs/lib/progress.ts)",
       "Read(//c/Users/dhexe/DocumentsProyectoskanji-srs/lib/**)",
-      "Bash(node_modules/.bin/tsc --noEmit)"
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\\\\app\" -Recurse -Filter \"*grammar*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(xargs grep -l \"grammar\")"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

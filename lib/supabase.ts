@@ -1619,13 +1619,13 @@ export async function markGrammarAsStudying(grammarId: string): Promise<{ gramma
     const user = await requireUser()
     const { error } = await supabase
       .from('grammar_srs_progress')
-      .insert({ user_id: user.id, grammar_id: grammarId, level: 0, next_review: 0 })
+      .insert({ user_id: user.id, grammar_id: grammarId, level: 1, next_review: 0 })
     if (error) {
       // 23505 = unique violation = already has an entry, that's fine
       if (error.code !== '23505') console.warn('markGrammarAsStudying:', error.message)
       return null
     }
-    return { grammar_id: grammarId, level: 0, next_review: 0 }
+    return { grammar_id: grammarId, level: 1, next_review: 0 }
   } catch (e) {
     console.warn('markGrammarAsStudying exception:', e)
     return null

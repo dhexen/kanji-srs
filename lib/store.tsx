@@ -303,7 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_LEVEL_UP' })
   }, [])
 
-  /** Sets all SRS levels for a word to 7 (Maestro) across all modes, then persists. */
+  /** "Ya me la sé": sets all SRS levels to 8 (Enlightened), due in 4 months, then persists. */
   const masterVocabItem = useCallback(async (jp: string) => {
     const prevDb = dbRef.current
     const item = prevDb.find(i => i.jp === jp)
@@ -315,8 +315,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (canPersist(userRef, hydratingRef)) {
       void upsertVocabItem(mastered, nextDb).catch(reportPersistError)
     }
-    // Award XP equivalent to a correct answer at level 7 (Maestro)
-    const xp = vocabXpForResult(7, true)
+    // Award XP equivalent to a correct answer at level 8 (Enlightened)
+    const xp = vocabXpForResult(8, true)
     const result = applyXp(progressionRef.current, { vocabXp: xp })
     progressionRef.current = result.next
     dispatch({ type: 'SET_PROGRESSION', payload: result.next })

@@ -11,7 +11,6 @@ import {
   checkFullSentence,
   formatNextReview,
   getSrsLevelLabel,
-  GRAMMAR_SRS_INTERVALS,
 } from '@/lib/grammar-srs'
 import {
   supabase,
@@ -809,16 +808,16 @@ Otras reglas:
       // (sessionResults already has the last answer at this point)
       const allResults     = sessionResults
       const correctCount   = allResults.filter(Boolean).length
+      const wrongCount     = allResults.length - correctCount
       const sessionPassed  = correctCount >= Math.ceil(allResults.length * 0.6)
-      const currentLevel   = srsStat?.level ?? 0
-      const { newLevel, nextReview } = applyGrammarResult(currentLevel, sessionPassed)
+      const currentLevel   = srsStat?.level ?? 1
+      const { newLevel, nextReview } = applyGrammarResult(currentLevel, wrongCount)
       const updated: GrammarSrsStat = { grammar_id: grammar.id, level: newLevel, next_review: nextReview }
       setNewSrsStat(updated)
       setSrsStat(updated)
       onSrsUpdate?.(updated)
       try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
       // Award grammar XP based on session performance
-      const wrongCount = allResults.length - correctCount
       const xp = grammarXpForSession(correctCount, wrongCount, sessionPassed)
       if (xp > 0) {
         addXP({ grammarXp: xp })

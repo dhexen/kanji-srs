@@ -265,15 +265,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     mode_reading_desc: 'Kanji + significado → escribe la lectura en hiragana',
     mode_reverse: 'Reverso',
     mode_reverse_desc: 'Significado → escribe el kanji en papel',
-    // SRS stage names
+    // SRS stage names (WaniKani-style)
     stage_0: 'Sin estudiar',
-    stage_1: 'Aprendiz I',
-    stage_2: 'Aprendiz II',
-    stage_3: 'Intermedio I',
-    stage_4: 'Intermedio II',
-    stage_5: 'Competente',
-    stage_6: 'Gurú',
+    stage_1: 'Aprendiz 1',
+    stage_2: 'Aprendiz 2',
+    stage_3: 'Aprendiz 3',
+    stage_4: 'Aprendiz 4',
+    stage_5: 'Gurú 1',
+    stage_6: 'Gurú 2',
     stage_7: 'Maestro',
+    stage_8: 'Iluminado',
+    stage_9: 'Quemado',
     // Grammar page
     grammar_title: '📖 Gramática',
     grammar_lesson: 'Lección {n}',
@@ -362,6 +364,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     gp_validate_btn: 'Validar frase',
     gp_unvalidate_btn: 'Quitar validación',
     grammar_forecast_title: 'Próximas gramáticas',
+    gp_select_review_title: 'Seleccionar gramática a repasar',
+    gp_start_selected: 'Iniciar repaso ({n})',
+    gp_select_all: 'Todos',
+    gp_select_none: 'Ninguno',
+    gp_review_any: 'Elegir gramática',
     // Vocabulary search
     vocab_search_ph: 'Buscar kanji, palabra, lectura o significado...',
     vocab_searching: 'Buscando...',
@@ -747,15 +754,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     mode_reading_desc: 'Kanji + significat → escriu la lectura en hiragana',
     mode_reverse: 'Invers',
     mode_reverse_desc: 'Significat → escriu el kanji en paper',
-    // SRS stage names
+    // SRS stage names (WaniKani-style)
     stage_0: 'Sense estudiar',
-    stage_1: 'Aprenent I',
-    stage_2: 'Aprenent II',
-    stage_3: 'Intermedi I',
-    stage_4: 'Intermedi II',
-    stage_5: 'Competent',
-    stage_6: 'Gurú',
+    stage_1: 'Aprenent 1',
+    stage_2: 'Aprenent 2',
+    stage_3: 'Aprenent 3',
+    stage_4: 'Aprenent 4',
+    stage_5: 'Gurú 1',
+    stage_6: 'Gurú 2',
     stage_7: 'Mestre',
+    stage_8: 'Il·luminat',
+    stage_9: 'Cremat',
     // Grammar page
     grammar_title: '📖 Gramàtica',
     grammar_lesson: 'Lliçó {n}',
@@ -843,6 +852,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     gp_validate_btn: 'Validar frase',
     gp_unvalidate_btn: 'Treure validació',
     grammar_forecast_title: 'Properes gramàtiques',
+    gp_select_review_title: 'Seleccionar gramàtica a repassar',
+    gp_start_selected: 'Iniciar repàs ({n})',
+    gp_select_all: 'Tots',
+    gp_select_none: 'Cap',
+    gp_review_any: 'Triar gramàtica',
     // Vocabulary search
     vocab_search_ph: 'Cercar kanji, paraula, lectura o significat...',
     vocab_searching: 'Cercant...',
@@ -1224,15 +1238,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     mode_reading_desc: 'Kanji + meaning → write the reading in hiragana',
     mode_reverse: 'Reverse',
     mode_reverse_desc: 'Meaning → write the kanji on paper',
-    // SRS stage names
+    // SRS stage names (WaniKani-style)
     stage_0: 'Not studied',
-    stage_1: 'Apprentice I',
-    stage_2: 'Apprentice II',
-    stage_3: 'Intermediate I',
-    stage_4: 'Intermediate II',
-    stage_5: 'Proficient',
-    stage_6: 'Guru',
+    stage_1: 'Apprentice 1',
+    stage_2: 'Apprentice 2',
+    stage_3: 'Apprentice 3',
+    stage_4: 'Apprentice 4',
+    stage_5: 'Guru 1',
+    stage_6: 'Guru 2',
     stage_7: 'Master',
+    stage_8: 'Enlightened',
+    stage_9: 'Burned',
     // Grammar page
     grammar_title: '📖 Grammar',
     grammar_lesson: 'Lesson {n}',
@@ -1320,6 +1336,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     gp_validate_btn: 'Validate sentence',
     gp_unvalidate_btn: 'Remove validation',
     grammar_forecast_title: 'Upcoming grammar',
+    gp_select_review_title: 'Select grammar to review',
+    gp_start_selected: 'Start review ({n})',
+    gp_select_all: 'All',
+    gp_select_none: 'None',
+    gp_review_any: 'Choose grammar',
     // Vocabulary search
     vocab_search_ph: 'Search kanji, word, reading or meaning...',
     vocab_searching: 'Searching...',
@@ -1701,15 +1722,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     mode_reading_desc: '漢字 + 意味 → ひらがなで読みを書く',
     mode_reverse: 'リバース',
     mode_reverse_desc: '意味 → 紙に漢字を書く',
-    // SRS stage names
+    // SRS stage names (WaniKani-style)
     stage_0: '未学習',
-    stage_1: '修業生 I',
-    stage_2: '修業生 II',
-    stage_3: '中級 I',
-    stage_4: '中級 II',
-    stage_5: '熟練者',
-    stage_6: '玄人',
+    stage_1: '修業生 1',
+    stage_2: '修業生 2',
+    stage_3: '修業生 3',
+    stage_4: '修業生 4',
+    stage_5: '玄人 1',
+    stage_6: '玄人 2',
     stage_7: '師範',
+    stage_8: '悟り',
+    stage_9: '卒業',
     // Grammar page
     grammar_title: '📖 文法',
     grammar_lesson: '第{n}課',
@@ -1797,6 +1820,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     gp_validate_btn: '文章を検証する',
     gp_unvalidate_btn: '検証を削除',
     grammar_forecast_title: '文法の予定',
+    gp_select_review_title: '復習する文法を選ぶ',
+    gp_start_selected: '復習を開始 ({n})',
+    gp_select_all: 'すべて',
+    gp_select_none: 'なし',
+    gp_review_any: '文法を選ぶ',
     // Vocabulary search
     vocab_search_ph: '漢字、単語、読み方、意味で検索...',
     vocab_searching: '検索中...',
@@ -1935,7 +1963,7 @@ export function t(lang: Lang, key: string): string {
 }
 
 export function getStageName(level: number, lang: Lang): string {
-  return t(lang, `stage_${Math.min(level, 7)}`)
+  return t(lang, `stage_${Math.min(Math.max(level, 0), 9)}`)
 }
 
 // Returns the meaning field based on current language

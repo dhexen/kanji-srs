@@ -6,13 +6,13 @@ import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
-import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats } from '@/lib/supabase'
+import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import { t } from '@/lib/i18n'
 import SectionHelp from '@/components/ui/SectionHelp'
-import { type GrammarSrsStat, getGrammarForecast } from '@/lib/grammar-srs'
+import { type GrammarSrsStat, getGrammarForecast, formatNextReview, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
 
 type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
 type BookFilter = 'all' | BookKey
@@ -23,8 +23,9 @@ type GrammarPointWithBook = GrammarPoint & { book: BookKey }
 type View =
   | { kind: 'list' }
   | { kind: 'detail'; grammar: GrammarPointWithBook }
-  | { kind: 'practice'; grammar: GrammarPointWithBook }   // direct SRS review entry
-  | { kind: 'srs_queue'; queue: GrammarPointWithBook[] }  // multi-grammar review queue
+  | { kind: 'practice'; grammar: GrammarPointWithBook }
+  | { kind: 'srs_queue'; queue: GrammarPointWithBook[] }
+  | { kind: 'queue_select'; candidates: GrammarPointWithBook[] }
 
 const BOOKS: { key: BookKey; label: string; subtitle: string }[] = [
   { key: 'mnn1', label: 'MNN 1', subtitle: 'Minna no Nihongo 1' },
@@ -260,6 +261,137 @@ function GrammarSrsQueue({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Queue selection screen
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QueueSelect({
+  candidates,
+  lang,
+  srsStats,
+  onStart,
+  onCancel,
+}: {
+  candidates: GrammarPointWithBook[]
+  lang: string
+  srsStats: Map<string, GrammarSrsStat>
+  onStart: (queue: GrammarPointWithBook[]) => void
+  onCancel: () => void
+}) {
+  const now = Date.now()
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(candidates.filter(g => {
+      const s = srsStats.get(g.id)
+      return s && s.next_review <= now
+    }).map(g => g.id))
+  )
+
+  function toggle(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const queue = candidates.filter(g => selected.has(g.id))
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onCancel}
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        {t(lang as any, 'gp_back')}
+      </button>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
+          {t(lang as any, 'gp_select_review_title')}
+        </h2>
+        <div className="flex gap-2 text-xs">
+          <button
+            onClick={() => setSelected(new Set(candidates.map(g => g.id)))}
+            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            {t(lang as any, 'gp_select_all')}
+          </button>
+          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:underline"
+          >
+            {t(lang as any, 'gp_select_none')}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {candidates.map(g => {
+          const stat = srsStats.get(g.id)
+          const isDue = stat && stat.next_review <= now
+          const isSelected = selected.has(g.id)
+          const name = lang === 'ca' ? g.name_ca : lang === 'en' ? g.name_en : g.name_es
+          return (
+            <div
+              key={g.id}
+              onClick={() => toggle(g.id)}
+              className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                isSelected
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-50'
+              }`}
+            >
+              <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                isSelected
+                  ? 'bg-indigo-600 border-indigo-600'
+                  : 'border-slate-300 dark:border-slate-600'
+              }`}>
+                {isSelected && (
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{g.pattern}</span>
+                  {isDue && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400">
+                      ⏰ {t(lang as any, 'gp_due')}
+                    </span>
+                  )}
+                  {stat && !isDue && (
+                    <span className="text-[10px] text-slate-400">
+                      {formatNextReview(stat.next_review, lang)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 truncate">{name}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <button
+        disabled={queue.length === 0}
+        onClick={() => onStart(queue)}
+        className={`w-full py-3 rounded-xl font-bold text-sm transition ${
+          queue.length > 0
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+            : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
+        }`}
+      >
+        {t(lang as any, 'gp_start_selected').replace('{n}', String(queue.length))}
+      </button>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main GrammarClient
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -300,11 +432,16 @@ export default function GrammarClient() {
       val ? next.add(id) : next.delete(id)
       return next
     })
-    // Auto-hide known items when the user marks one as mastered
     if (val) {
       setHideKnown(true)
-      // Award grammar XP for marking a point as mastered (equivalent to a perfect session)
       addXP({ grammarXp: 50 })
+      // Set SRS to Enlightened (level 8) — item returns for one last check in 4 months
+      const enlightenedDue = Date.now() + GRAMMAR_SRS_INTERVALS[8]
+      const enlightenedStat: GrammarSrsStat = { grammar_id: id, level: 8, next_review: enlightenedDue }
+      setSrsStats(prev => new Map([...prev, [id, enlightenedStat]]))
+      if (state.user) {
+        void saveGrammarSrsResult(id, 8, enlightenedDue)
+      }
     }
     if (state.user) await setGrammarKnown(id, val)
   }
@@ -354,6 +491,11 @@ export default function GrammarClient() {
       return stat && stat.next_review <= now
     })
   }, [srsStats, knownIds])
+
+  // All grammar points being studied (have an SRS entry, not mastered)
+  const studyingGrammarPoints = useMemo(() =>
+    ALL_GRAMMAR_POINTS.filter(g => srsStats.has(g.id) && !knownIds.has(g.id))
+  , [srsStats, knownIds])
 
   // Grammar forecast for next 7 days — exclude mastered points
   const grammarForecast = useMemo(() => {
@@ -419,6 +561,18 @@ export default function GrammarClient() {
     )
   }
 
+  if (view.kind === 'queue_select') {
+    return (
+      <QueueSelect
+        candidates={view.candidates}
+        lang={lang}
+        srsStats={srsStats}
+        onStart={(queue) => setView({ kind: 'srs_queue', queue })}
+        onCancel={() => setView({ kind: 'list' })}
+      />
+    )
+  }
+
   // ── Main list view ────────────────────────────────────────────────────────
 
   const subtitleText = currentBookInfo
@@ -476,19 +630,29 @@ export default function GrammarClient() {
                 : t(lang, 'gp_srs_all_clear')}
             </p>
           </div>
-          <button
-            disabled={dueGrammarPoints.length === 0}
-            onClick={() => setView({ kind: 'srs_queue', queue: dueGrammarPoints })}
-            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition ${
-              dueGrammarPoints.length > 0
-                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
-            }`}
-          >
-            {dueGrammarPoints.length > 0
-              ? `▶ ${t(lang, 'gp_start_review')}`
-              : t(lang, 'gp_up_to_date')}
-          </button>
+          <div className="shrink-0 flex flex-col gap-1.5 items-end">
+            <button
+              disabled={dueGrammarPoints.length === 0}
+              onClick={() => setView({ kind: 'queue_select', candidates: dueGrammarPoints })}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                dueGrammarPoints.length > 0
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {dueGrammarPoints.length > 0
+                ? `▶ ${t(lang, 'gp_start_review')}`
+                : t(lang, 'gp_up_to_date')}
+            </button>
+            {studyingGrammarPoints.length > 0 && (
+              <button
+                onClick={() => setView({ kind: 'queue_select', candidates: studyingGrammarPoints })}
+                className="text-[11px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition underline underline-offset-2"
+              >
+                {t(lang, 'gp_review_any')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -505,7 +669,7 @@ export default function GrammarClient() {
           </div>
           <div className="flex gap-3 flex-wrap">
             {grammarForecast.slice(1).map(day => {
-              const isEmpty = day.cumulative === 0
+              const isEmpty = day.newDue === 0
               return (
                 <div key={day.date.toISOString()} className="flex flex-col items-center min-w-[2.5rem]">
                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-medium capitalize">{day.dayLabel}</span>

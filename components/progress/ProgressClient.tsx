@@ -247,11 +247,12 @@ export default function ProgressClient() {
           {STAGE_NAMES.map((_name, i) => {
             if (i === 0) return null
             const interval = SRS_INTERVALS[i]
-            const hours = Math.round(interval / 3600000)
-            const label = hours < 24 ? `${hours}h` : `${Math.round(hours / 24)}d`
+            const label = interval >= Number.MAX_SAFE_INTEGER / 2
+              ? '∞'
+              : (() => { const h = Math.round(interval / 3_600_000); return h < 24 ? `${h}h` : `${Math.round(h / 24)}d` })()
             return (
-              <div key={i} className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getSrsClass(i, 'active', Date.now() + 999999999)}`}>
-                <span>{i}/7</span>
+              <div key={i} className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${getSrsClass(i, 'active')}`}>
+                <span>{i}/9</span>
                 <span className="opacity-60">{getStageName(i, lang)}</span>
                 <span className="opacity-40">({label})</span>
               </div>

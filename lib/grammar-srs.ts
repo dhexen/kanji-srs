@@ -1,17 +1,20 @@
 // lib/grammar-srs.ts
 // SRS utilities for grammar practice (BunPro-style fill-in-the-blank)
 
-// SRS intervals: level 0=new, 1=4h, 2=12h, 3=1d, 4=3d, 5=1w, 6=2w, 7=1month
+// WaniKani-style 9-level SRS (index = level; index 0 unused; level 9 = Burned = ∞)
 export const GRAMMAR_SRS_INTERVALS = [
-  0,
-  4  * 60 * 60 * 1000,
-  12 * 60 * 60 * 1000,
-  1  * 24 * 60 * 60 * 1000,
-  3  * 24 * 60 * 60 * 1000,
-  7  * 24 * 60 * 60 * 1000,
-  14 * 24 * 60 * 60 * 1000,
-  30 * 24 * 60 * 60 * 1000,
+  0,                              // 0: unused
+  4  * 60 * 60 * 1000,           // 1: Apprentice 1 — 4h
+  8  * 60 * 60 * 1000,           // 2: Apprentice 2 — 8h
+  24 * 60 * 60 * 1000,           // 3: Apprentice 3 — 1d
+  2  * 24 * 60 * 60 * 1000,      // 4: Apprentice 4 — 2d
+  7  * 24 * 60 * 60 * 1000,      // 5: Guru 1 — 1w
+  14 * 24 * 60 * 60 * 1000,      // 6: Guru 2 — 2w
+  30 * 24 * 60 * 60 * 1000,      // 7: Master — 1 month
+  120 * 24 * 60 * 60 * 1000,     // 8: Enlightened — 4 months
 ]
+
+export const GRAMMAR_SRS_MAX_LEVEL = 9  // Burned — no more reviews
 
 export interface GrammarSrsStat {
   grammar_id: string
@@ -72,6 +75,7 @@ export function getGrammarForecast(
   const newDue = Array(dayCount).fill(0)
 
   for (const stat of stats.values()) {
+    if (stat.level >= GRAMMAR_SRS_MAX_LEVEL) continue  // Burned: no more reviews
     const due = stat.next_review
     if (due <= now) {
       newDue[0]++
@@ -106,20 +110,22 @@ export function getGrammarForecast(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Given the current level and whether the session was "passed",
- * returns the new level and next review timestamp.
- *
- * A session is considered "passed" when the caller decides so
- * (e.g. ≥60% correct answers in that session).
+ * WaniKani-style SRS progression.
+ * wrongCount = 0 → advance 1 level (max 9 = Burned).
+ * wrongCount > 0 → subtract wrongCount levels (min 1 = Apprentice 1).
  */
 export function applyGrammarResult(
   level: number,
-  isCorrect: boolean,
+  wrongCount: number,
 ): { newLevel: number; nextReview: number } {
-  const newLevel = isCorrect
-    ? Math.min(level + 1, 7)
-    : Math.max(level - 1, 0)
-  const interval = GRAMMAR_SRS_INTERVALS[newLevel] ?? 0
+  const safeLevel = Math.max(level, 1)
+  const newLevel = wrongCount === 0
+    ? Math.min(safeLevel + 1, GRAMMAR_SRS_MAX_LEVEL)
+    : Math.max(safeLevel - wrongCount, 1)
+  if (newLevel >= GRAMMAR_SRS_MAX_LEVEL) {
+    return { newLevel: GRAMMAR_SRS_MAX_LEVEL, nextReview: Number.MAX_SAFE_INTEGER }
+  }
+  const interval = GRAMMAR_SRS_INTERVALS[newLevel] ?? GRAMMAR_SRS_INTERVALS[1]
   return { newLevel, nextReview: Date.now() + interval }
 }
 
@@ -159,6 +165,7 @@ export function checkAnswer(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function formatNextReview(ms: number, lang = 'es'): string {
+  if (ms >= Number.MAX_SAFE_INTEGER / 2) return lang === 'en' ? '∞ Burned' : lang === 'ca' ? '∞ Cremat' : '∞ Quemado'
   const diff = ms - Date.now()
   if (diff <= 0) return lang === 'en' ? 'now' : lang === 'ca' ? 'ara' : 'ahora'
   const minutes = Math.floor(diff / 60_000)
@@ -378,10 +385,10 @@ export function checkFullSentence(
 
 export function getSrsLevelLabel(level: number, lang = 'es'): string {
   const labels: Record<string, string[]> = {
-    es: ['Nuevo', 'Aprendiz I', 'Aprendiz II', 'Intermedio I', 'Intermedio II', 'Competente', 'Gurú', 'Maestro'],
-    ca: ['Nou',   'Aprenent I', 'Aprenent II', 'Intermedi I',  'Intermedi II',  'Competent',  'Gurú', 'Mestre'],
-    en: ['New',   'Apprentice I', 'Apprentice II', 'Intermediate I', 'Intermediate II', 'Proficient', 'Guru', 'Master'],
-    ja: ['新規',  '修業生 I',   '修業生 II',   '中級 I',       '中級 II',       '熟練者',     '玄人', '師範'],
+    es: ['',          'Aprendiz 1', 'Aprendiz 2', 'Aprendiz 3', 'Aprendiz 4', 'Gurú 1', 'Gurú 2', 'Maestro', 'Iluminado', 'Quemado'],
+    ca: ['',          'Aprenent 1', 'Aprenent 2', 'Aprenent 3', 'Aprenent 4', 'Gurú 1', 'Gurú 2', 'Mestre',  'Il·luminat','Cremat'],
+    en: ['',          'Apprentice 1', 'Apprentice 2', 'Apprentice 3', 'Apprentice 4', 'Guru 1', 'Guru 2', 'Master', 'Enlightened', 'Burned'],
+    ja: ['', '修業生 1', '修業生 2', '修業生 3', '修業生 4', '玄人 1', '玄人 2', '師範', '悟り', '卒業'],
   }
-  return (labels[lang] ?? labels.es)[Math.min(level, 7)]
+  return (labels[lang] ?? labels.es)[Math.min(Math.max(level, 1), GRAMMAR_SRS_MAX_LEVEL)] ?? ''
 }

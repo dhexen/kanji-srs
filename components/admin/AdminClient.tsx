@@ -129,9 +129,14 @@ export default function AdminClient() {
     try {
       const config = await fetchAdminConfig()
       const intervals = config?.srs_intervals as number[] | undefined
-      if (Array.isArray(intervals) && intervals.length === 8) {
+      if (Array.isArray(intervals) && intervals.length === 10) {
         setSrsIntervalsLocal(intervals)
         setSrsIntervals(intervals)
+      } else if (Array.isArray(intervals) && intervals.length === 8) {
+        // Migrate old 8-entry config to new 10-entry format
+        const migrated = [...intervals, DEFAULT_SRS_INTERVALS[8], DEFAULT_SRS_INTERVALS[9]]
+        setSrsIntervalsLocal(migrated)
+        setSrsIntervals(migrated)
       } else {
         setSrsIntervalsLocal([...DEFAULT_SRS_INTERVALS])
       }
@@ -1010,13 +1015,14 @@ export default function AdminClient() {
                       const defaultMs = DEFAULT_SRS_INTERVALS[i]
                       const isModified = ms !== defaultMs
                       return (
-                        <tr key={i} className={`border-b border-slate-100 dark:border-slate-700 ${isModified ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''} ${i === 0 ? 'opacity-50' : ''}`}>
+                        <tr key={i} className={`border-b border-slate-100 dark:border-slate-700 ${isModified ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''} ${i === 0 || i === 9 ? 'opacity-50' : ''}`}>
                           <td className="py-2.5 px-3">
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs">{i}</span>
                           </td>
                           <td className="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">{STAGE_NAMES[i]}</td>
                           <td className="py-2.5 px-3">
                             {i === 0 ? <span className="text-slate-400 text-xs">Siempre 0 (inmediato)</span>
+                              : i === 9 ? <span className="text-slate-400 text-xs">∞ (sin más repasos)</span>
                               : <SrsIntervalInput ms={ms} onChange={(newMs) => handleIntervalChange(i, newMs)} />}
                           </td>
                           <td className="py-2.5 px-3 text-center">

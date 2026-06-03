@@ -1,15 +1,20 @@
 // lib/srs.ts
 
+// WaniKani-style 9-level SRS (index = level; index 0 unused; index 9 = Burned = ∞)
 export const DEFAULT_SRS_INTERVALS = [
-  0,
-  4 * 60 * 60 * 1000,
-  12 * 60 * 60 * 1000,
-  24 * 60 * 60 * 1000,
-  2 * 24 * 60 * 60 * 1000,
-  5 * 24 * 60 * 60 * 1000,
-  12 * 24 * 60 * 60 * 1000,
-  30 * 24 * 60 * 60 * 1000,
+  0,                              // 0: unused
+  4  * 60 * 60 * 1000,           // 1: Apprentice 1 — 4h
+  8  * 60 * 60 * 1000,           // 2: Apprentice 2 — 8h
+  24 * 60 * 60 * 1000,           // 3: Apprentice 3 — 1d
+  2  * 24 * 60 * 60 * 1000,      // 4: Apprentice 4 — 2d
+  7  * 24 * 60 * 60 * 1000,      // 5: Guru 1 — 1w
+  14 * 24 * 60 * 60 * 1000,      // 6: Guru 2 — 2w
+  30 * 24 * 60 * 60 * 1000,      // 7: Master — 1 month
+  120 * 24 * 60 * 60 * 1000,     // 8: Enlightened — 4 months
+  Number.MAX_SAFE_INTEGER,        // 9: Burned — no more reviews
 ]
+
+export const SRS_MAX_LEVEL = 9
 
 /** Runtime SRS intervals — can be overridden by admin config */
 let _srsIntervals = [...DEFAULT_SRS_INTERVALS]
@@ -19,14 +24,19 @@ export function getSrsIntervals(): number[] {
 }
 
 export function setSrsIntervals(intervals: number[]) {
-  if (intervals.length === 8) _srsIntervals = [...intervals]
+  if (intervals.length === 10) {
+    _srsIntervals = [...intervals]
+  } else if (intervals.length === 8) {
+    // Migrate old 8-entry admin config: append Enlightened + Burned defaults
+    _srsIntervals = [...intervals, DEFAULT_SRS_INTERVALS[8], DEFAULT_SRS_INTERVALS[9]]
+  }
 }
 
 /** @deprecated Use getSrsIntervals() — kept for backward compat in imports */
 export const SRS_INTERVALS = new Proxy(DEFAULT_SRS_INTERVALS, {
   get(target, prop) {
     const idx = typeof prop === 'string' ? Number(prop) : NaN
-    if (!isNaN(idx) && idx >= 0 && idx < 8) return _srsIntervals[idx]
+    if (!isNaN(idx) && idx >= 0 && idx < 10) return _srsIntervals[idx]
     if (prop === 'length') return _srsIntervals.length
     if (prop === Symbol.iterator) return () => _srsIntervals[Symbol.iterator]()
     if (prop === 'map') return _srsIntervals.map.bind(_srsIntervals)
@@ -36,8 +46,9 @@ export const SRS_INTERVALS = new Proxy(DEFAULT_SRS_INTERVALS, {
 })
 
 export const STAGE_NAMES = [
-  'Sin estudiar', 'Aprendiz I', 'Aprendiz II',
-  'Intermedio I', 'Intermedio II', 'Competente', 'Gurú', 'Maestro',
+  'Sin estudiar',
+  'Aprendiz 1', 'Aprendiz 2', 'Aprendiz 3', 'Aprendiz 4',
+  'Gurú 1', 'Gurú 2', 'Maestro', 'Iluminado', 'Quemado',
 ]
 
 export type ReviewMode = 'multi' | 'meaning' | 'kanji' | 'reading' | 'reverse'
@@ -168,21 +179,25 @@ export function applyResult(item: VocabItem, mode: ReviewMode, isCorrect: boolea
   const lvlKey = cfg.key + '_level'
   const dueKey = cfg.key + '_due'
   const cur = (item as any)[lvlKey] as number || 1
-  const newLevel = isCorrect ? Math.min(cur + 1, 7) : Math.max(cur - 1, 1)
+  const newLevel = isCorrect ? Math.min(cur + 1, SRS_MAX_LEVEL) : Math.max(cur - 1, 1)
+  const newDue = newLevel >= SRS_MAX_LEVEL
+    ? Number.MAX_SAFE_INTEGER
+    : Date.now() + getSrsIntervals()[newLevel]
   return {
     ...item,
     [lvlKey]: newLevel,
-    [dueKey]: Date.now() + getSrsIntervals()[newLevel],
+    [dueKey]: newDue,
   }
 }
 
-export function getSrsClass(level: number, status: string, due: number) {
+export function getSrsClass(level: number, status: string, _due?: number) {
   if (status === 'locked') return 'bg-slate-100 text-slate-400 border border-slate-200'
-  if (due - Date.now() > 365 * 5 * 24 * 60 * 60 * 1000) return 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-  if (level <= 2) return 'bg-rose-50 text-rose-700 border border-rose-100'
-  if (level <= 4) return 'bg-amber-50 text-amber-700 border border-amber-100'
-  if (level <= 6) return 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-  return 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+  if (level >= SRS_MAX_LEVEL) return 'bg-slate-700 text-slate-200 border border-slate-600'    // Burned
+  if (level >= 8) return 'bg-violet-100 text-violet-800 border border-violet-200'             // Enlightened
+  if (level >= 7) return 'bg-emerald-100 text-emerald-800 border border-emerald-200'          // Master
+  if (level >= 5) return 'bg-indigo-50 text-indigo-700 border border-indigo-100'             // Guru
+  if (level >= 3) return 'bg-amber-50 text-amber-700 border border-amber-100'                // Apprentice 3-4
+  return 'bg-rose-50 text-rose-700 border border-rose-100'                                    // Apprentice 1-2
 }
 
 export const ALL_REVIEW_MODES: ReviewMode[] = ['multi', 'meaning', 'kanji', 'reading', 'reverse']
@@ -220,7 +235,8 @@ export function getReviewForecast(items: VocabItem[], locale: string, dayCount =
 
   items.filter(i => i.status === 'active').forEach(item => {
     ALL_REVIEW_MODES.forEach(mode => {
-      const { due } = getModeLevelAndDue(item, mode)
+      const { level, due } = getModeLevelAndDue(item, mode)
+      if (level >= SRS_MAX_LEVEL) return  // Burned: no more reviews
       if (due <= now) {
         newDue[0]++
         return
@@ -295,13 +311,13 @@ export function getMeaningForLang(item: VocabItem, lang: string): string {
   return item.meaning
 }
 
-/** Sets all mode levels to 7 with due dates 5 years in the future (effectively mastered). */
+/** "Ya me la sé": sets all mode levels to 8 (Enlightened) with due date 4 months from now. */
 export function masterItem(item: VocabItem): VocabItem {
-  const farFuture = Date.now() + 5 * 365 * 24 * 60 * 60 * 1000
-  const result = { ...item, srsLevel: 7, due: farFuture, status: 'active' as const }
+  const enlightenedDue = Date.now() + DEFAULT_SRS_INTERVALS[8]
+  const result = { ...item, srsLevel: 8, due: enlightenedDue, status: 'active' as const }
   Object.values(MODE_CONFIG).forEach(cfg => {
-    ;(result as any)[cfg.key + '_level'] = 7
-    ;(result as any)[cfg.key + '_due'] = farFuture
+    ;(result as any)[cfg.key + '_level'] = 8
+    ;(result as any)[cfg.key + '_due'] = enlightenedDue
   })
   return result
 }
