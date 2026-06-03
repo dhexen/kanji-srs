@@ -167,13 +167,16 @@ export default function ReviewClient() {
   }
 
   // Called by QuestionCard when the user submits an answer.
-  // Handles SRS application and re-queuing of wrong answers.
+  // Handles SRS application, re-queuing, and end-of-session detection.
   function onAnswer(sessionItem: SessionItem, isCorrect: boolean) {
     if (isPractice) {
-      setIndex(i => i + 1)
+      if (index + 1 >= sequence.length) setPhase('done')
+      else setIndex(i => i + 1)
       return
     }
+
     const key = `${sessionItem.item.jp}:${sessionItem.mode}`
+    let didAppend = false
 
     if (isCorrect) {
       if (!completedRef.current.has(key)) {
@@ -187,17 +190,18 @@ export default function ReviewClient() {
       if (!completedRef.current.has(key)) {
         // Append to end of queue so this item comes back before the session ends
         setSequence(seq => [...seq, { item: sessionItem.item, mode: sessionItem.mode }])
+        didAppend = true
       }
     }
-    setIndex(i => i + 1)
-  }
 
-  // End-of-session detection (runs after both sequence and index are updated)
-  useEffect(() => {
-    if (phase === 'playing' && sequence.length > 0 && index >= sequence.length) {
+    // End the session only when nothing was appended and there are no more items.
+    // (wrong answer on an already-completed item also needs to end if it was the last)
+    if (!didAppend && index + 1 >= sequence.length) {
       setPhase('done')
+    } else {
+      setIndex(i => i + 1)
     }
-  }, [index, sequence.length, phase])
+  }
 
   function onQuit() {
     setPhase('select')
