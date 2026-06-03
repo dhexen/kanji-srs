@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
@@ -167,7 +167,7 @@ function GrammarCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function GrammarSrsQueue({
-  queue,
+  queue: initialQueue,
   lang,
   geminiKey,
   sessionToken,
@@ -187,9 +187,33 @@ function GrammarSrsQueue({
   onSrsUpdate?: (stat: GrammarSrsStat) => void
   canEdit?: boolean
 }) {
+  const [localQueue, setLocalQueue] = useState<GrammarPointWithBook[]>([...initialQueue])
   const [idx, setIdx] = useState(0)
+  // Grammar points that had wrong answers — pending re-queue at end of current pass
+  const pendingRequeueRef = useRef<string[]>([])
+  const uniqueTotal = useRef(initialQueue.length)
 
-  if (queue.length === 0) {
+  // Called by GrammarPractice when a 5-sentence session finishes
+  function handleSessionEnd(grammarId: string, hadWrongs: boolean) {
+    if (hadWrongs) pendingRequeueRef.current.push(grammarId)
+  }
+
+  // Called when user clicks "Volver" (or "Salir") from GrammarPractice
+  function handleGrammarBack() {
+    const nextIdx = idx + 1
+    // If we've finished the current pass and there are failed items, extend the queue
+    if (nextIdx >= localQueue.length && pendingRequeueRef.current.length > 0) {
+      const grammarMap = new Map(initialQueue.map(g => [g.id, g]))
+      const requeueItems = pendingRequeueRef.current
+        .map((id: string) => grammarMap.get(id))
+        .filter((g): g is GrammarPointWithBook => !!g)
+      setLocalQueue(prev => [...prev, ...requeueItems])
+      pendingRequeueRef.current = []
+    }
+    setIdx(nextIdx)
+  }
+
+  if (initialQueue.length === 0) {
     return (
       <div className="space-y-4">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition">
@@ -207,14 +231,14 @@ function GrammarSrsQueue({
     )
   }
 
-  if (idx >= queue.length) {
+  if (idx >= localQueue.length) {
     return (
       <div className="space-y-5">
         <div className="text-center py-10 space-y-3">
           <p className="text-5xl">🎉</p>
           <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{t(lang as any, 'gp_srs_queue_done')}</p>
           <p className="text-sm text-slate-500">
-            {t(lang as any, 'gp_srs_queue_reviewed').replace('{n}', String(queue.length))}
+            {t(lang as any, 'gp_srs_queue_reviewed').replace('{n}', String(uniqueTotal.current))}
           </p>
         </div>
         <button
@@ -232,7 +256,7 @@ function GrammarSrsQueue({
       {/* Queue progress */}
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span className="font-semibold">
-          {t(lang as any, 'gp_reviewing_queue').replace('{i}', String(idx + 1)).replace('{n}', String(queue.length))}
+          {t(lang as any, 'gp_reviewing_queue').replace('{i}', String(idx + 1)).replace('{n}', String(localQueue.length))}
         </span>
         <button onClick={onBack} className="text-slate-400 hover:text-slate-600 transition">
           {t(lang as any, 'gp_quit')} ✕
@@ -241,19 +265,20 @@ function GrammarSrsQueue({
       <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
         <div
           className="bg-indigo-500 h-full rounded-full transition-all"
-          style={{ width: `${(idx / queue.length) * 100}%` }}
+          style={{ width: `${(idx / localQueue.length) * 100}%` }}
         />
       </div>
 
       <GrammarPractice
-        grammar={queue[idx]}
+        grammar={localQueue[idx]}
         lang={lang as any}
         geminiKey={geminiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         showSharedSentences={showSharedSentences}
-        onBack={() => setIdx(i => i + 1)}
+        onBack={handleGrammarBack}
         onSrsUpdate={onSrsUpdate}
+        onSessionEnd={handleSessionEnd}
         canEdit={canEdit}
       />
     </div>

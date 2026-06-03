@@ -57,7 +57,7 @@ type Action =
   | { type: 'SET_SYNCING'; payload: boolean }
   | { type: 'SET_LOADED' }
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
-  | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; isCorrect: boolean } }
+  | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; wrongCount: number } }
   | { type: 'SET_GEMINI_KEY'; payload: string }
   | { type: 'SET_PEXELS_KEY'; payload: string }
   | { type: 'SET_WANIKANI_KEY'; payload: string }
@@ -96,7 +96,7 @@ function appReducer(state: State, action: Action): State {
       return { ...state, db: [...state.db, ...newItems] }
     }
     case 'APPLY_RESULT': {
-      return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.isCorrect)) }
+      return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.wrongCount)) }
     }
     case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
     default: return state
@@ -118,7 +118,7 @@ async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: Voc
       await saveReviewResult(item, {
         jp: action.payload.jp,
         mode: action.payload.mode,
-        isCorrect: action.payload.isCorrect,
+        wrongCount: action.payload.wrongCount,
         levelBefore,
         levelAfter,
         dueAfter,
@@ -151,7 +151,7 @@ interface StoreContextType {
   dispatch: React.Dispatch<Action>
   addVocabItems: (items: VocabItem[]) => Promise<void>
   saveVocabDb: (db: VocabItem[]) => Promise<void>
-  applyReviewResult: (jp: string, mode: ReviewMode, isCorrect: boolean) => void
+  applyReviewResult: (jp: string, mode: ReviewMode, wrongCount: number) => void
   masterVocabItem: (jp: string) => Promise<void>
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
@@ -203,7 +203,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     if (action.type === 'APPLY_RESULT') {
       const nextDb = prevDb.map(i =>
-        i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.isCorrect),
+        i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.wrongCount),
       )
       dbRef.current = nextDb
       dispatch({ type: 'SET_DB', payload: nextDb })
@@ -258,8 +258,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const applyReviewResult = useCallback((jp: string, mode: ReviewMode, isCorrect: boolean) => {
-    dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, isCorrect } })
+  const applyReviewResult = useCallback((jp: string, mode: ReviewMode, wrongCount: number) => {
+    dispatchPersist({ type: 'APPLY_RESULT', payload: { jp, mode, wrongCount } })
   }, [dispatchPersist])
 
   const progressionRef = useRef<UserProgression>(DEFAULT_PROGRESSION)

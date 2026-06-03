@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
@@ -56,7 +56,7 @@ function IconContext() {
 }
 
 export default function ReviewClient() {
-  const { state } = useStore()
+  const { state, applyReviewResult } = useStore()
   const lang = state.lang
   const [selectedModes, setSelectedModes] = useState<ReviewMode[]>(['multi', 'meaning', 'kanji', 'reading', 'reverse'])
   const [phase, setPhase] = useState<Phase>('select')
@@ -64,6 +64,11 @@ export default function ReviewClient() {
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+
+  // Per-session wrong-count tracking (key = "jp:mode")
+  const wrongCountsRef = useRef(new Map<string, number>())
+  // Items that have been answered correctly at least once this session
+  const completedRef = useRef(new Set<string>())
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
 
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
@@ -130,6 +135,8 @@ export default function ReviewClient() {
         }
       }
 
+      wrongCountsRef.current.clear()
+      completedRef.current.clear()
       setIsPractice(practice)
       setSequence(finalSeq)
       setIndex(0)
@@ -148,6 +155,8 @@ export default function ReviewClient() {
       newItems.forEach(item => {
         modesActive.forEach(mode => seq.push({ item, mode }))
       })
+      wrongCountsRef.current.clear()
+      completedRef.current.clear()
       setIsPractice(false)
       setSequence(orderByMode(seq))
       setIndex(0)
@@ -157,15 +166,45 @@ export default function ReviewClient() {
     }
   }
 
-  function onNext() {
-    if (index + 1 >= sequence.length) setPhase('done')
-    else setIndex(i => i + 1)
+  // Called by QuestionCard when the user submits an answer.
+  // Handles SRS application and re-queuing of wrong answers.
+  function onAnswer(sessionItem: SessionItem, isCorrect: boolean) {
+    if (isPractice) {
+      setIndex(i => i + 1)
+      return
+    }
+    const key = `${sessionItem.item.jp}:${sessionItem.mode}`
+
+    if (isCorrect) {
+      if (!completedRef.current.has(key)) {
+        completedRef.current.add(key)
+        const wc = wrongCountsRef.current.get(key) ?? 0
+        applyReviewResult(sessionItem.item.jp, sessionItem.mode, wc)
+      }
+    } else {
+      const cur = wrongCountsRef.current.get(key) ?? 0
+      wrongCountsRef.current.set(key, cur + 1)
+      if (!completedRef.current.has(key)) {
+        // Append to end of queue so this item comes back before the session ends
+        setSequence(seq => [...seq, { item: sessionItem.item, mode: sessionItem.mode }])
+      }
+    }
+    setIndex(i => i + 1)
   }
+
+  // End-of-session detection (runs after both sequence and index are updated)
+  useEffect(() => {
+    if (phase === 'playing' && sequence.length > 0 && index >= sequence.length) {
+      setPhase('done')
+    }
+  }, [index, sequence.length, phase])
 
   function onQuit() {
     setPhase('select')
     setSequence([])
     setIndex(0)
+    wrongCountsRef.current.clear()
+    completedRef.current.clear()
     window.dispatchEvent(new CustomEvent('tour-action', { detail: { action: 'session-exited' } }))
   }
 
@@ -417,15 +456,16 @@ export default function ReviewClient() {
   }
 
   const current = sequence[index]
+  const uniqueTotal = new Set(sequence.map(s => `${s.item.jp}:${s.mode}`)).size
   return (
     <QuestionCard
       key={`${current.item.jp}-${current.mode}-${index}`}
       sessionItem={current}
       allItems={state.db}
-      index={index}
-      total={sequence.length}
+      index={completedRef.current.size}
+      total={uniqueTotal}
       isPractice={isPractice}
-      onNext={onNext}
+      onAnswer={onAnswer}
       onQuit={onQuit}
     />
   )

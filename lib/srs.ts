@@ -174,12 +174,16 @@ export function getModeLevelAndDue(item: VocabItem, mode: ReviewMode) {
   }
 }
 
-export function applyResult(item: VocabItem, mode: ReviewMode, isCorrect: boolean): VocabItem {
+// wrongCount=0 → correct first try → +1 level
+// wrongCount>0 → failed N times → −N levels (min Apprentice 1)
+export function applyResult(item: VocabItem, mode: ReviewMode, wrongCount: number): VocabItem {
   const cfg = MODE_CONFIG[mode]
   const lvlKey = cfg.key + '_level'
   const dueKey = cfg.key + '_due'
   const cur = (item as any)[lvlKey] as number || 1
-  const newLevel = isCorrect ? Math.min(cur + 1, SRS_MAX_LEVEL) : Math.max(cur - 1, 1)
+  const newLevel = wrongCount === 0
+    ? Math.min(cur + 1, SRS_MAX_LEVEL)
+    : Math.max(cur - wrongCount, 1)
   const newDue = newLevel >= SRS_MAX_LEVEL
     ? Number.MAX_SAFE_INTEGER
     : Date.now() + getSrsIntervals()[newLevel]

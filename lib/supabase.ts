@@ -589,7 +589,7 @@ export async function saveLanguage(lang: string) {
 
 export async function saveReviewResult(
   item: VocabItem,
-  meta: { jp: string; mode: ReviewMode; isCorrect: boolean; levelBefore: number; levelAfter: number; dueAfter: number },
+  meta: { jp: string; mode: ReviewMode; wrongCount: number; levelBefore: number; levelAfter: number; dueAfter: number },
   fullDb: VocabItem[],
 ): Promise<void> {
   const user = await requireUser()
@@ -600,7 +600,7 @@ export async function saveReviewResult(
       user_id: user.id,
       jp: meta.jp,
       mode: meta.mode,
-      is_correct: meta.isCorrect,
+      is_correct: meta.wrongCount === 0,
       level_before: meta.levelBefore,
       level_after: meta.levelAfter,
       due_after: meta.dueAfter,

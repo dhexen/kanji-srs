@@ -15,7 +15,7 @@ interface Props {
   index: number
   total: number
   isPractice: boolean
-  onNext: () => void
+  onAnswer: (sessionItem: SessionItem, isCorrect: boolean) => void
   onQuit: () => void
 }
 
@@ -25,8 +25,8 @@ function normalizeJP(str: string) {
   return str.trim().replace(/\s/g, '').replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
 }
 
-export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onNext, onQuit }: Props) {
-  const { applyReviewResult, masterVocabItem, addXP, state } = useStore()
+export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onAnswer, onQuit }: Props) {
+  const { masterVocabItem, addXP, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
   const { level } = getModeLevelAndDue(item, mode)
@@ -78,6 +78,10 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     if (isTypingMode) setTimeout(() => inputRef.current?.focus(), 100)
   }, [isTypingMode])
 
+  const goNext = useCallback(() => {
+    onAnswer(sessionItem, answerState === 'correct')
+  }, [onAnswer, sessionItem, answerState])
+
   // Enter para pasar al siguiente cuando ya hay respuesta.
   // El guard de 400 ms evita que el mismo Enter que comprueba la respuesta
   // salte también el feedback antes de que el usuario lo vea.
@@ -85,12 +89,12 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     if (answerState === 'waiting') return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && Date.now() - submittedAtRef.current > 400) {
-        onNext()
+        goNext()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [answerState, onNext])
+  }, [answerState, goNext])
 
   const buildOptions = (field: 'reading' | 'meaning', count: number) => {
     const correct = field === 'meaning' ? meaning : item[field]
@@ -105,8 +109,8 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const handleResult = (isCorrect: boolean) => {
     submittedAtRef.current = Date.now()
     setAnswerState(isCorrect ? 'correct' : 'incorrect')
+    // XP feedback is immediate (for UX); SRS application is delegated to ReviewClient via onAnswer
     if (!isPractice) {
-      applyReviewResult(item.jp, mode, isCorrect)
       const xp = vocabXpForResult(level, isCorrect)
       addXP({ vocabXp: xp })
       setXpGained(xp)
@@ -267,7 +271,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
             type="button"
             onClick={async () => {
               await masterVocabItem(item.jp)
-              onNext()
+              goNext()
             }}
             className="text-xs font-semibold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded-lg transition"
           >
@@ -426,7 +430,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       )}
 
       {answerState !== 'waiting' && (
-        <button onClick={onNext} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-md">
+        <button onClick={goNext} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-md">
           {t(lang, 'review_next')} <span className="opacity-60 text-sm font-normal ml-1">↵</span>
         </button>
       )}

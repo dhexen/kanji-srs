@@ -74,6 +74,7 @@ interface Props {
   showSharedSentences?: boolean
   onBack: () => void
   onSrsUpdate?: (stat: GrammarSrsStat) => void
+  onSessionEnd?: (grammarId: string, hadWrongs: boolean) => void
   canEdit?: boolean
 }
 
@@ -254,6 +255,7 @@ export default function GrammarPractice({
   showSharedSentences: showSharedProp = true,
   onBack,
   onSrsUpdate,
+  onSessionEnd,
   canEdit,
 }: Props) {
   const { addXP, state } = useStore()
@@ -816,6 +818,7 @@ Otras reglas:
       setNewSrsStat(updated)
       setSrsStat(updated)
       onSrsUpdate?.(updated)
+      onSessionEnd?.(grammar.id, wrongCount > 0)
       try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
       // Award grammar XP based on session performance
       const xp = grammarXpForSession(correctCount, wrongCount, sessionPassed)
