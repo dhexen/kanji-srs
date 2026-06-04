@@ -2,7 +2,6 @@
 import { useStore } from '@/lib/store'
 import { MODE_CONFIG, ReviewMode } from '@/lib/srs'
 import { t } from '@/lib/i18n'
-import SectionHelp from '@/components/ui/SectionHelp'
 
 interface Props {
   selectedModes: ReviewMode[]
@@ -47,7 +46,6 @@ export default function ModeSelector({
             <h3 className="font-bold text-violet-700 dark:text-violet-300 text-base">
               {t(lang, 'review_title')}
             </h3>
-            <SectionHelp section="review" lang={lang} />
           </div>
 
           {/* Pending count + Start */}

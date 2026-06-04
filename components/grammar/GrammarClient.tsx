@@ -11,7 +11,6 @@ import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import { t } from '@/lib/i18n'
-import SectionHelp from '@/components/ui/SectionHelp'
 import { type GrammarSrsStat, getGrammarForecast, formatNextReview, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
 
 type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
@@ -630,7 +629,6 @@ export default function GrammarClient() {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'grammar_title')}</h1>
-          <SectionHelp section="grammar" lang={lang} />
         </div>
         <p className="text-sm text-slate-500 mt-0.5">{subtitleText}</p>
       </div>

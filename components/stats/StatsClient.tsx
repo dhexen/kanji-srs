@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
-import SectionHelp from '@/components/ui/SectionHelp'
 import { fetchKnownGrammar, getWaniKaniSyncStatus } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
@@ -260,7 +259,6 @@ export default function StatsClient() {
       {/* Page header */}
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'nav_stats')}</h1>
-        <SectionHelp section="profile" lang={lang} />
       </div>
 
       {/* Tab bar — visible on mobile only (desktop uses the sidebar submenu) */}

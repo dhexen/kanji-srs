@@ -5,7 +5,6 @@ import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
-import SectionHelp from '@/components/ui/SectionHelp'
 import { supabase, fetchKnownGrammar, fetchAllGrammarSrsStats } from '@/lib/supabase'
 import { BUNPRO_GRAMMAR } from '@/lib/grammar-bunpro'
 
@@ -216,7 +215,6 @@ export default function ContextClient() {
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-2 mb-1">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">📖 Lecturas IA</h2>
-          <SectionHelp section="context" lang={lang} />
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-sm mb-5">
           Genera textos narrativos en japonés con tu vocabulario activo. Se guardan las últimas 10 lecturas.

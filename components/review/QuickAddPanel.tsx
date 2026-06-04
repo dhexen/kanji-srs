@@ -128,7 +128,6 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
       await addVocabItems(newItems)
       showToast(`${newItems.length} ${t(lang, 'vocab_added_srs')}`, 'success')
-      window.dispatchEvent(new CustomEvent('tour-action', { detail: { action: 'quickadd-added' } }))
       onAdded(newItems)
     } catch {
       showToast('Error cargando kanjis', 'error')
@@ -154,7 +153,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
   return (
     <>
-    <div data-tour="quickadd-panel" className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
+    <div className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
 
       {/* Header */}
       <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-3">
@@ -224,7 +223,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
                     key={count}
                     onClick={() => handleAdd(count)}
                     disabled={loading !== null}
-                    {...(count === 3 ? { 'data-tour': 'pack-3' } : {})}
+                    
                     className="w-full px-3.5 py-2.5 rounded-xl text-left transition-all active:scale-[0.98] border-2 border-indigo-100 dark:border-indigo-800/50 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:border-indigo-200 dark:hover:border-indigo-700 disabled:opacity-40"
                   >
                     {busy ? (

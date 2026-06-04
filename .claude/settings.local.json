@@ -54,7 +54,11 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dhexe\\\\Documents\\\\Proyectos\\\\kanji-srs\\\\app\" -Recurse -Filter \"*grammar*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(xargs grep -l \"grammar\")"
+      "Bash(xargs grep -l \"grammar\")",
+      "Bash(grep -n \"const { state, applyReviewResult }\\\\|const lang = state.lang\\\\|export default function ReviewClient\" /home/dhexen/Documentos/proyecto/kanji-srs/components/review/ReviewClient.tsx)",
+      "Bash(sed -i 's/ data-tour=\"forecast-card\"//; s/ data-tour=\"mode-selector\"//; s/ data-tour=\"sections-grid\"//' components/review/ReviewClient.tsx)",
+      "Bash(sed -i 's/ data-tour=\"quickadd-panel\"//; s/{\\\\.\\\\.\\\\.\\(count === 3 ? { '\"'\"'data-tour'\"'\"': '\"'\"'pack-3'\"'\"' } : {}\\)}//' components/review/QuickAddPanel.tsx)",
+      "Bash(sed -i 's/ data-tour=\"quit-btn\"//; s/ data-tour=\"mode-badge\"//; s/ data-tour=\"category-labels\"//; s/\\\\n *data-tour=\"master-btn\"//' components/review/QuestionCard.tsx)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useSidebar } from '@/lib/sidebar-context'
+import { useHelp } from '@/lib/help-context'
 import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
 import { useState } from 'react'
@@ -14,18 +15,10 @@ function HamburgerIcon() {
   )
 }
 
-function NetworkDot({ isOnline }: { isOnline: boolean }) {
-  return (
-    <span
-      title={isOnline ? 'Online' : 'Sin conexión'}
-      className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}
-    />
-  )
-}
-
 export default function Header() {
   const { state } = useStore()
   const { toggle } = useSidebar()
+  const help = useHelp()
   const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   const user = state.user
@@ -96,6 +89,17 @@ export default function Header() {
               Iniciar sesión
             </Link>
           )}
+
+          {/* Help */}
+          <button
+            type="button"
+            onClick={help.toggle}
+            title="Ayuda de esta sección"
+            aria-label="Ayuda"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold text-slate-400 dark:text-slate-500 hover:bg-violet-100 dark:hover:bg-violet-900/40 hover:text-violet-600 dark:hover:text-violet-400 transition-all shrink-0 border border-slate-200 dark:border-slate-700"
+          >
+            ?
+          </button>
 
           {/* Feedback */}
           <button
