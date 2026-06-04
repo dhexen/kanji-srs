@@ -18,7 +18,7 @@ import LayoutShell from './LayoutShell'
 import ProductTour from './ProductTour'
 
 // Páginas de autenticación: sin sidebar, sin AuthGuard
-const AUTH_PAGES = ['/login', '/auth/callback']
+const AUTH_PAGES = ['/login', '/auth/callback', '/guia-usuario']
 // Páginas accesibles sin login (con sidebar si hay sesión, sin sidebar si no)
 const PUBLIC_PAGES = ['/stats']
 

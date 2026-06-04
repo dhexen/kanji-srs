@@ -783,6 +783,18 @@ export default function StatsClient() {
               <p className="text-xs text-emerald-500 dark:text-emerald-500 mt-1">{t(lang, 'stats_sync_msg')}</p>
             </div>
             {state.syncing && <div className="text-xs text-indigo-500 flex items-center gap-2 animate-pulse"><span>↕</span>{t(lang, 'header_syncing')}</div>}
+
+            {/* User Guide PDF Download */}
+            <a
+              href="/guia-usuario"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold rounded-xl text-sm transition"
+            >
+              <span>📄</span>
+              <span>Descargar guía de usuario (PDF)</span>
+            </a>
+
             <button onClick={() => handleAuth(logout, t(lang, 'stats_logout'))}
               className="w-full py-2.5 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl text-sm transition">
               {t(lang, 'stats_logout')}
