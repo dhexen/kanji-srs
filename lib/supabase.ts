@@ -260,6 +260,35 @@ export async function deleteAllUserVocab(): Promise<void> {
   }, { onConflict: 'user_id' })
 }
 
+/**
+ * Remove specific words from the user's review pool (NOT the global dictionary).
+ * In normal mode this deletes rows from user_vocab_progress. In legacy mode it
+ * rewrites the vocab_db JSON without those words (the caller passes the new db).
+ */
+export async function deleteUserVocabItems(jpWords: string[], nextDb: VocabItem[]): Promise<void> {
+  if (jpWords.length === 0) return
+  const user = await requireUser()
+  if (!legacyVocabMode) {
+    const { error } = await supabase
+      .from('user_vocab_progress')
+      .delete()
+      .eq('user_id', user.id)
+      .in('jp', jpWords)
+    if (error && !isSchemaUnavailable(error)) throw error
+    if (!error) return
+  }
+  // Legacy fallback: persist the filtered db
+  const legacy = await fetchLegacyProgress()
+  await supabase.from('srs_progress').upsert({
+    user_id: user.id,
+    vocab_db: nextDb,
+    gemini_api_key: legacy?.gemini_api_key ?? null,
+    context_texts: legacy?.context_texts ?? [],
+    language: legacy?.language ?? 'es',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
+}
+
 export async function countUserVocab(userId?: string): Promise<number> {
   if (legacyVocabMode) {
     const legacy = await fetchLegacyProgress()

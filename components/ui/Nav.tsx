@@ -84,7 +84,7 @@ function ProfileMenu() {
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({
-  href, icon, label, badge, tutorialId, progress, isAdmin, pathname,
+  href, icon, label, badge, tutorialId, progress, isAdmin, pathname, onNavigate,
 }: {
   href: string
   icon: string
@@ -94,12 +94,14 @@ function NavItem({
   progress: number | null
   isAdmin?: boolean
   pathname: string
+  onNavigate?: () => void
 }) {
   const active = pathname === href
   return (
     <div>
       <Link
         href={href}
+        onClick={active ? onNavigate : undefined}
         {...(tutorialId ? { 'data-tutorial-id': tutorialId } : {})}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
           active
@@ -230,7 +232,7 @@ function NavInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab')
-  const { state, setSimulatedRole } = useStore()
+  const { state, setSimulatedRole, refreshData } = useStore()
   const { collapsed, toggle, close } = useSidebar()
   const isRealAdmin = state.role === 'admin'
   const effectiveRole = state.simulatedRole ?? state.role
@@ -243,25 +245,28 @@ function NavInner() {
   // Close sidebar when navigating
   useEffect(() => { close() }, [pathname, currentTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Lock scroll when sidebar open on mobile
+  // Refresh the user's data when navigating to a new section, so counts (pending
+  // reviews, etc.) reflect the latest state without needing a manual F5.
   useEffect(() => {
-    document.body.style.overflow = !collapsed ? 'hidden lg:auto' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [collapsed])
+    if (state.user) void refreshData()
+  }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close sidebar on click outside (desktop)
+  // Close sidebar on click/tap outside.
+  // We match against [data-sidebar-panel] (present on BOTH the desktop aside and
+  // the mobile slide-over) instead of a single ref, so a tap on a link inside
+  // the mobile menu is NOT treated as "outside" — otherwise the menu would close
+  // before the link could navigate.
   useEffect(() => {
     if (collapsed) return
     function handleClick(e: MouseEvent) {
       const target = e.target as Element
-      // Don't close if clicking the hamburger toggle button in the header
-      if (target.closest('[data-sidebar-toggle]')) return
-      if (sidebarRef.current && !sidebarRef.current.contains(target)) {
-        close()
-      }
+      if (target.closest('[data-sidebar-toggle]')) return  // hamburger handles its own toggle
+      if (target.closest('[data-sidebar-panel]')) return   // click inside the menu → let it act
+      close()
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    // Use a click listener (not mousedown) so a link's navigation fires first
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
   }, [collapsed, close])
 
   useEffect(() => {
@@ -364,25 +369,25 @@ function NavInner() {
         <NavItem
           href="/review" icon="📝" label={stripEmoji(t(lang, 'nav_review'))}
           badge={pendingReview} tutorialId="nav-review"
-          progress={null} pathname={pathname}
+          progress={null} pathname={pathname} onNavigate={refreshData}
         />
         <NavItem
           href="/vocabulary" icon="📚" label={stripEmoji(t(lang, 'nav_vocabulary'))}
           badge={0} tutorialId="nav-vocabulary"
           progress={hasActiveVocab ? vocabPct : null}
-          pathname={pathname}
+          pathname={pathname} onNavigate={refreshData}
         />
         <NavItem
           href="/grammar" icon="📖" label={stripEmoji(t(lang, 'nav_grammar'))}
-          badge={0} progress={grammarPct} pathname={pathname}
+          badge={0} progress={grammarPct} pathname={pathname} onNavigate={refreshData}
         />
         <NavItem
           href="/kana" icon="🔤" label={stripEmoji(t(lang, 'nav_kana'))}
-          badge={0} progress={null} pathname={pathname}
+          badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
         />
         <NavItem
           href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
-          badge={0} progress={null} pathname={pathname}
+          badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
         />
         {isAdmin && (
           <NavItem
@@ -479,6 +484,7 @@ function NavInner() {
       {/* Desktop sidebar */}
       <aside
         ref={sidebarRef}
+        data-sidebar-panel
         className={[
           'hidden lg:flex fixed inset-y-0 left-0 z-40 w-56 flex-col',
           'bg-white dark:bg-slate-900 border-r border-violet-100 dark:border-slate-800',
@@ -494,7 +500,7 @@ function NavInner() {
       {!collapsed && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={close} />
-          <div className="relative w-64 max-w-[80vw] flex flex-col bg-white dark:bg-slate-900 shadow-2xl animate-slide-in">
+          <div data-sidebar-panel className="relative w-64 max-w-[80vw] flex flex-col bg-white dark:bg-slate-900 shadow-2xl animate-slide-in">
             <button
               type="button"
               onClick={close}

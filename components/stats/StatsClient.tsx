@@ -54,6 +54,129 @@ function ProgressRing({
   )
 }
 
+// ─── Vocab pool manager — remove words from the user's review pool ────────────
+function VocabPoolManager({ lang }: { lang: Lang }) {
+  const { state, removeVocabItems } = useStore()
+  const [search, setSearch] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [confirmLevel1, setConfirmLevel1] = useState(false)
+
+  const active = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
+  const level1 = useMemo(() => active.filter(i => (i.srsLevel ?? 1) <= 1), [active])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const list = q
+      ? active.filter(i =>
+          i.jp.includes(search.trim()) ||
+          i.kanji.includes(search.trim()) ||
+          i.reading.toLowerCase().includes(q) ||
+          (i.meaning ?? '').toLowerCase().includes(q))
+      : active
+    return [...list].sort((a, b) => (a.srsLevel ?? 0) - (b.srsLevel ?? 0)).slice(0, 100)
+  }, [active, search])
+
+  const labels: Record<string, Record<Lang, string>> = {
+    title:    { es: '🗑️ Quitar palabras de tus repasos', ca: '🗑️ Treure paraules dels teus repassos', en: '🗑️ Remove words from your reviews', ja: '🗑️ 復習から単語を削除' },
+    desc:     { es: 'Quita palabras de tu pool de repaso (no se borran del diccionario). Si te equivocaste al añadirlas, podrás volver a recibirlas más adelante en su orden normal.', ca: 'Treu paraules del teu pool de repàs (no s\'esborren del diccionari). Si et vas equivocar afegint-les, podràs tornar a rebre-les més endavant.', en: 'Remove words from your review pool (they stay in the dictionary). If you added them by mistake, they\'ll be offered again later in their normal order.', ja: '復習プールから単語を削除します（辞書からは消えません）。' },
+    delLevel1:{ es: 'Eliminar todas las de nivel 1', ca: 'Eliminar totes les de nivell 1', en: 'Remove all level 1', ja: 'レベル1をすべて削除' },
+    confirm:  { es: '¿Seguro? Se quitarán {n} palabras de nivel 1 de tus repasos.', ca: 'Segur? Es trauran {n} paraules de nivell 1.', en: 'Sure? {n} level-1 words will be removed from your reviews.', ja: '本当に？レベル1の{n}語が削除されます。' },
+    yes:      { es: 'Sí, eliminar', ca: 'Sí, eliminar', en: 'Yes, remove', ja: 'はい' },
+    cancel:   { es: 'Cancelar', ca: 'Cancel·lar', en: 'Cancel', ja: 'キャンセル' },
+    searchPh: { es: 'Buscar palabra a eliminar…', ca: 'Cercar paraula…', en: 'Search word to remove…', ja: '単語を検索…' },
+    none:     { es: 'No hay palabras activas en tu pool.', ca: 'No hi ha paraules actives.', en: 'No active words in your pool.', ja: 'アクティブな単語がありません。' },
+    removed:  { es: 'palabra(s) quitada(s) de tus repasos', ca: 'paraula(es) tretes', en: 'word(s) removed from your reviews', ja: '語を削除しました' },
+    showing:  { es: 'Mostrando {n} (ordenadas por nivel). Usa la búsqueda para acotar.', ca: 'Mostrant {n}. Usa la cerca.', en: 'Showing {n} (sorted by level). Use search to narrow.', ja: '{n}件表示中。' },
+  }
+  const lx = (k: keyof typeof labels) => labels[k][lang] ?? labels[k].es
+
+  async function handleDelete(jp: string[]) {
+    setBusy(true)
+    try {
+      await removeVocabItems(jp)
+      showToast(`${jp.length} ${lx('removed')}`, 'success')
+    } finally {
+      setBusy(false)
+      setConfirmLevel1(false)
+    }
+  }
+
+  if (active.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{lx('title')}</h3>
+        <p className="text-sm text-slate-400">{lx('none')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-4">
+      <div>
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{lx('title')}</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">{lx('desc')}</p>
+      </div>
+
+      {/* Bulk: remove all level 1 */}
+      <div className="rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 p-4">
+        {!confirmLevel1 ? (
+          <button
+            type="button"
+            disabled={busy || level1.length === 0}
+            onClick={() => setConfirmLevel1(true)}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-sm font-semibold transition"
+          >
+            {lx('delLevel1')} ({level1.length})
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300">{lx('confirm').replace('{n}', String(level1.length))}</p>
+            <div className="flex gap-2">
+              <button type="button" disabled={busy} onClick={() => handleDelete(level1.map(i => i.jp))}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white text-sm font-semibold transition">
+                {busy ? '…' : lx('yes')}
+              </button>
+              <button type="button" onClick={() => setConfirmLevel1(false)}
+                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-medium transition">
+                {lx('cancel')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Search + individual list */}
+      <div className="space-y-2">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={lx('searchPh')}
+          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-violet-300"
+        />
+        <p className="text-[11px] text-slate-400">{lx('showing').replace('{n}', String(filtered.length))}</p>
+        <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+          {filtered.map(item => (
+            <div key={item.jp} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+              <span className="kanji-font text-lg text-slate-800 dark:text-slate-100 shrink-0">{item.jp}</span>
+              <span className="text-xs text-slate-400 shrink-0">{item.reading}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate flex-1">{item.meaning}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">Lv.{item.srsLevel ?? 1}</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => handleDelete([item.jp])}
+                title="Quitar de mis repasos"
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-rose-400 hover:text-white hover:bg-rose-500 disabled:opacity-40 transition text-sm"
+              >🗑️</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
@@ -403,6 +526,9 @@ export default function StatsClient() {
               </div>
             )
           })()}
+
+          {/* Manage review pool (remove words) */}
+          <VocabPoolManager lang={lang} />
 
           {/* Vocabulary progress list */}
           <ProgressClient />

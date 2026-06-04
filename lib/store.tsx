@@ -5,8 +5,10 @@ import type { ContextText } from './progress'
 import {
   supabase,
   downloadAccountData,
+  fetchUserVocab,
   upsertVocabItem,
   upsertVocabItems,
+  deleteUserVocabItems,
   saveReviewResult,
   deleteAllUserVocab,
   createManualSnapshot,
@@ -189,6 +191,8 @@ interface StoreContextType {
   dispatch: React.Dispatch<Action>
   addVocabItems: (items: VocabItem[]) => Promise<void>
   saveVocabDb: (db: VocabItem[]) => Promise<void>
+  removeVocabItems: (jpWords: string[]) => Promise<void>
+  refreshData: () => Promise<void>
   applyReviewResult: (jp: string, mode: ReviewMode, wrongCount: number) => void
   masterVocabItem: (jp: string) => Promise<void>
   syncUp: () => Promise<void>
@@ -333,6 +337,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       reportPersistError(e)
       throw e
+    }
+  }, [])
+
+  /** Remove words from the user's review pool (NOT from the global dictionary). */
+  const removeVocabItems = useCallback(async (jpWords: string[]) => {
+    if (jpWords.length === 0) return
+    const toRemove = new Set(jpWords)
+    const nextDb = dbRef.current.filter(i => !toRemove.has(i.jp))
+    dbRef.current = nextDb
+    dispatch({ type: 'SET_DB', payload: nextDb })
+    if (canPersist(userRef, hydratingRef)) {
+      try {
+        await deleteUserVocabItems(jpWords, nextDb)
+      } catch (e) {
+        reportPersistError(e)
+      }
+    }
+  }, [])
+
+  /** Lightweight re-fetch of the user's vocab + progression (no full sync/migration). */
+  const refreshData = useCallback(async () => {
+    if (!userRef.current) return
+    hydratingRef.current = true
+    try {
+      const vocab = await fetchUserVocab()
+      const migrated = vocab.map(migrateItem)
+      dbRef.current = migrated
+      dispatch({ type: 'SET_DB', payload: migrated })
+      const prog = await fetchUserProgression(userRef.current.id)
+      if (prog) {
+        progressionRef.current = prog
+        dispatch({ type: 'SET_PROGRESSION', payload: prog })
+      }
+    } catch {
+      // Silent — keep current data if the refresh fails
+    } finally {
+      hydratingRef.current = false
     }
   }, [])
 
@@ -677,6 +718,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dispatch: dispatchPersist,
       addVocabItems,
       saveVocabDb,
+      removeVocabItems,
+      refreshData,
       applyReviewResult,
       masterVocabItem,
       syncUp,
