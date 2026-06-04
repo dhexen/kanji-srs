@@ -184,3 +184,122 @@ Restauración:
 6. Para antónimos detectados: se insertan en vocab_antonyms
 7. Lote procesado. Repetir hasta pending=0.
 ```
+
+---
+
+## Flujo 10: Reporte y moderación de imágenes
+
+```
+Usuario durante un repaso:
+  1. Ve la imagen de una palabra
+  2. La imagen es incorrecta o confusa → pulsa 👎
+  3. submitImageVote(word, -1) → guardado en vocab_image_votes
+
+Admin en panel Admin → Clasificación → "Cargar reportes":
+  1. Ve la lista de palabras con más votos negativos que positivos
+  2. Para cada imagen reportada:
+     ├── Opción A: "Buscar nueva imagen" → introduce URL de Pexels → actualiza vocabulary.image_url
+     └── Opción B: "Aceptar imagen" → la marca como correcta (no vuelve a aparecer en reportes)
+```
+
+---
+
+## Flujo 11: Validación de oraciones de gramática (admin/contributor)
+
+```
+Admin o Contributor durante una sesión de práctica de gramática:
+  1. Ve una oración generada por IA
+  2. En el panel de editor (visible solo para admin/contributor):
+     ├── Lee la oración y comprueba que es correcta gramaticalmente
+     ├── Si correcta: pulsa "✓ Validar" → validated=true en grammar_sentences
+     └── Si incorrecta o mejorable:
+           ├── "Editar" → modifica texto, respuesta o traducción
+           └── "Eliminar" → la borra del pool compartido
+
+Las oraciones validadas:
+  - Aparecen en las sesiones con prioridad (antes que las no validadas)
+  - Se muestran con un badge verde en el panel de editor
+  - Son más "seguras" para los usuarios porque han sido revisadas por un profesor
+```
+
+---
+
+## Flujo 12: El pool compartido de oraciones
+
+```
+Usuario A (con API Key de Gemini):
+  1. Accede a gramática, punto "〜ています"
+  2. No hay oraciones → Gemini genera 25 nuevas
+  3. Las oraciones se guardan en grammar_sentences (pool compartido)
+
+Usuario B (sin API Key de Gemini):
+  1. Accede al mismo punto gramatical
+  2. Encuentra las 25 oraciones que generó el Usuario A
+  3. Puede practicar inmediatamente sin necesitar su propia API Key
+  4. Sus respuestas no borran las oraciones del pool
+
+Admin/Contributor:
+  5. Revisa y valida las oraciones del pool
+  6. Las validadas tienen prioridad en futuras sesiones de todos los usuarios
+
+Límite del pool: máximo 100 oraciones por punto gramatical.
+Cuando se supera: las más antiguas se eliminan automáticamente.
+```
+
+---
+
+## Flujo 13: Compartir una oración con la comunidad
+
+```
+Usuario durante una sesión de gramática:
+  1. Responde correctamente una oración
+  2. En la pantalla de feedback aparece el botón "🌐 Compartir con la comunidad"
+  3. Click → shareGrammarSentence() → guardado en user_shared_sentences
+
+Otros usuarios:
+  4. Ven la oración compartida en sus sesiones de práctica
+     (si tienen activado "Mostrar oraciones compartidas" en Configuración)
+  5. Las oraciones compartidas aparecen con una etiqueta "🌐" identificativa
+  6. Prioridad en sesión: validadas > compartidas > generadas por IA
+```
+
+---
+
+## Flujo 14: Reporte de errores de vocabulario
+
+```
+Usuario durante un repaso:
+  1. Ve que la lectura o significado de una palabra es incorrecto
+  2. Pulsa el icono de reporte (bandera) en la tarjeta de pregunta
+  3. Selecciona qué está mal: Lectura / Significado / Kanji / General
+  4. Escribe una descripción opcional y pulsa "Enviar"
+  5. submitVocabReport() → guardado en vocab_reports con status='open'
+
+Admin en panel Admin → Vocabulario → "Cargar reportes":
+  6. Ve los reportes agrupados por palabra
+  7. Lee la descripción del error
+  8. En el panel de edición:
+     ├── Corrige la lectura y/o el significado directamente
+     ├── Pulsa "💾 Guardar y resolver"
+     └── Todos los reportes abiertos de esa palabra se marcan como 'resolved'
+  O bien:
+     └── Marca el reporte como "✓ Resolver" sin editar (si considera que era incorrecto)
+```
+
+---
+
+## Flujo 15: Reporte de bugs y mejoras
+
+```
+Cualquier usuario:
+  1. Pulsa el botón "🐛 Reportar" en la barra superior
+  2. Se abre FeedbackModal
+  3. Describe el problema o sugerencia (campo de texto libre)
+  4. La URL actual se adjunta automáticamente al reporte
+  5. submitFeedbackReport() → guardado en feedback_reports
+
+Admin en panel Admin → Feedback:
+  6. Ve todos los reportes con su descripción y URL
+  7. Puede marcar como "Resuelto" o "Cerrado"
+  8. Los reportes agrupados por página ayudan a identificar problemas recurrentes
+```

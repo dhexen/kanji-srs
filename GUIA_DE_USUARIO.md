@@ -177,6 +177,50 @@ Puedes especificar el tema del texto y la longitud. Los textos generados se guar
 
 ---
 
+### Votar imágenes de vocabulario
+
+Durante los repasos, algunas palabras muestran una imagen ilustrativa. Puedes opinar sobre la calidad de esa imagen pulsando los botones que aparecen en la esquina inferior derecha de la imagen:
+
+- **👍 Buena imagen** — La imagen representa bien la palabra
+- **👎 Imagen incorrecta** — La imagen no corresponde o es confusa
+
+¿Para qué sirve votar? Los administradores revisan periódicamente las imágenes que reciben más votos negativos y las sustituyen por imágenes mejores. Así entre todos mejoramos la calidad del diccionario visual.
+
+---
+
+### Reportar errores en una palabra
+
+Si durante un repaso ves que la lectura, el significado o el kanji de una palabra está mal escrito, puedes reportarlo. Busca el icono de **reporte** (una bandera) en la tarjeta de la palabra.
+
+Al pulsar, podrás indicar qué está mal:
+- **Lectura** — La lectura en hiragana es incorrecta
+- **Significado** — El significado en español está mal
+- **Kanji** — El kanji es incorrecto
+- **General** — Otro problema (con descripción)
+
+Un administrador revisará el reporte y corregirá la palabra para todos los usuarios.
+
+---
+
+### Las frases de gramática son de todos
+
+Cuando practicas gramática, la aplicación genera frases de ejercicio con inteligencia artificial. Estas frases **se comparten con todos los usuarios** que estudian el mismo punto gramatical.
+
+Esto significa que:
+- Si otro usuario generó frases antes, tú puedes usarlas aunque no tengas API Key de Gemini
+- Las frases que tú generas también ayudan a los demás
+- Las frases tienen un límite de 100 por punto gramatical (las más antiguas se eliminan automáticamente cuando se supera)
+
+#### Frases validadas por profesores ✓
+
+Los administradores y colaboradores (que actúan como revisores) pueden marcar las frases como **validadas** (revisadas y correctas). Las frases validadas tienen prioridad y aparecen primero en tus ejercicios. Son las más fiables porque han sido comprobadas por un experto.
+
+#### Compartir tus propias frases
+
+Si completas correctamente una frase durante la práctica, verás un botón **"🌐 Compartir con la comunidad"**. Al pulsarlo, esa frase se guarda para que otros usuarios también puedan practicar con ella. Puedes activar o desactivar ver las frases de la comunidad en **Mi Perfil → Configuración**.
+
+---
+
 ### Mi Perfil
 
 **Cómo acceder:** En la barra lateral, haz clic en **"Mi Perfil"** o en tu avatar en la parte superior
@@ -293,6 +337,36 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 
 ---
 
+### Cómo reportar una imagen incorrecta
+
+1. Durante un repaso, cuando veas una imagen en una tarjeta de vocabulario
+2. Pulsa el botón **👎** en la esquina inferior derecha de la imagen
+3. Listo — el voto se registra automáticamente
+
+Un administrador revisará la imagen y la sustituirá si es necesario.
+
+---
+
+### Cómo reportar un error en una palabra
+
+1. Durante un repaso, busca el icono de **bandera (🚩)** en la tarjeta de la palabra
+2. Pulsa el icono
+3. Elige qué está mal: Lectura, Significado, Kanji o General
+4. Opcionalmente, escribe una descripción del error
+5. Pulsa **"Enviar"**
+
+---
+
+### Cómo reportar un bug o sugerir una mejora
+
+1. Pulsa el botón **"🐛 Reportar"** en la barra superior (esquina derecha)
+2. Escribe una descripción del problema o de tu sugerencia
+3. Pulsa **"Enviar"**
+
+La información sobre en qué página estabas se adjunta automáticamente para ayudar a los administradores a reproducir el problema.
+
+---
+
 ### Cómo hacer una copia de seguridad de tu progreso
 
 1. Ve a **Mi Perfil → Cuenta**
@@ -323,6 +397,18 @@ La app también crea copias automáticas cada 25 repasos.
 ---
 
 ## Preguntas frecuentes (FAQ)
+
+**¿Para qué sirve votar las imágenes?**  
+Tu voto ayuda a los administradores a detectar imágenes incorrectas o confusas y sustituirlas por otras mejores. Cuantos más usuarios voten, más rápido mejora la calidad de las imágenes para todos.
+
+**¿Por qué algunas frases de gramática tienen una marca verde?**  
+Las frases marcadas con ✓ han sido revisadas y validadas por un administrador o colaborador (que actúa como profesor). Son las más fiables y tienen prioridad en tus sesiones de práctica.
+
+**¿Por qué puedo practicar gramática aunque no tenga API Key de Gemini?**  
+Las frases generadas por otros usuarios se comparten en un banco común. Si alguien ya generó frases para ese punto gramatical, tú puedes usarlas directamente sin necesitar tu propia clave.
+
+**¿Qué pasa si no me gusta una frase que alguien ha compartido?**  
+Los administradores pueden revisar y eliminar frases inadecuadas del banco compartido. Si crees que hay una frase incorrecta, puedes reportarla usando el botón 🐛 Reportar.
 
 **¿Con qué frecuencia debo usar la app?**  
 Idealmente todos los días. La repetición espaciada funciona mejor con sesiones cortas y frecuentes (15-30 minutos diarios) que con sesiones largas y esporádicas.

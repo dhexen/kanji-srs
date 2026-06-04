@@ -131,6 +131,27 @@ function GuideContent() {
         directamente como Iluminado (nivel 8) y que no aparezca hasta dentro de 4 meses.
       </p>
 
+      <h3>Votar imágenes</h3>
+      <p>
+        Cada palabra con imagen muestra botones <strong>👍 / 👎</strong> en la esquina de la imagen.
+        Vota si la imagen es correcta o no. Los administradores revisan las imágenes con más votos
+        negativos y las sustituyen. Entre todos mejoramos el diccionario visual.
+      </p>
+
+      <h3>Reportar errores en palabras</h3>
+      <p>
+        Si una lectura, significado o kanji está incorrecto, pulsa el icono de
+        <strong>bandera (🚩)</strong> en la tarjeta de la palabra. Elige qué está mal
+        (Lectura / Significado / Kanji / General) y envía el reporte.
+        Un administrador corregirá la palabra para todos los usuarios.
+      </p>
+
+      <h3>Reportar un bug o sugerencia</h3>
+      <p>
+        Pulsa el botón <strong>"🐛 Reportar"</strong> en la barra superior para enviar cualquier
+        incidencia o mejora. La URL de la página donde estás se adjunta automáticamente.
+      </p>
+
       <h3>Vocabulario</h3>
       <p>Tres pestañas disponibles:</p>
       <ul>
@@ -206,6 +227,18 @@ function GuideContent() {
       <p>La app también crea copias automáticas cada 25 repasos.</p>
 
       <h2>Preguntas frecuentes</h2>
+
+      <h3>¿Para qué sirve votar las imágenes?</h3>
+      <p>Tu voto ayuda a detectar imágenes incorrectas. Los administradores las revisan y sustituyen. Cuantos más usuarios voten, mejor es el diccionario visual para todos.</p>
+
+      <h3>¿Por qué algunas frases de gramática tienen una marca verde?</h3>
+      <p>Las frases con ✓ han sido revisadas por un administrador o colaborador (que actúa como profesor). Son las más fiables y aparecen primero en tus sesiones.</p>
+
+      <h3>¿Por qué puedo practicar gramática sin API Key de Gemini?</h3>
+      <p>Las frases generadas por otros usuarios se comparten en un banco común. Si alguien ya generó frases para ese punto gramatical, tú puedes usarlas directamente.</p>
+
+      <h3>¿Cómo reporto un bug?</h3>
+      <p>Pulsa el botón <strong>"🐛 Reportar"</strong> en la barra superior. Escribe una descripción y envía. La URL de la página se adjunta automáticamente para ayudar a los administradores.</p>
 
       <h3>¿Con qué frecuencia debo usar la app?</h3>
       <p>Idealmente todos los días. Sesiones cortas de 15-30 minutos son más efectivas que sesiones largas esporádicas.</p>

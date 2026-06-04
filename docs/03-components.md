@@ -213,9 +213,86 @@ Tarjeta de repaso individual. Maneja los 5 modos de respuesta:
 - **Papel** (kanji, reverse): el usuario escribe en papel y confirma manualmente
 
 Incluye:
-- Imagen de vocabulario (con votos 👍/👎)
-- Botón de audio TTS
+- Imagen de vocabulario con botones de **votos de imagen** 👍/👎
+- Botón de audio TTS (pronunciación en japonés)
 - "Ya me lo sé" — marca como Enlightened (nivel 8) y elimina de la cola actual
-- Feedback visual al responder (correcto/incorrecto)
+- Feedback visual al responder (correcto/incorrecto + respuesta correcta)
 - XP toast al responder
 - Toast de cambio de nivel (↑ Aprendiz 3 o ↓ Gurú 1) al responder
+- **Reporte de errores de vocabulario** (lectura, significado, kanji o general)
+
+---
+
+### Sistema de votos de imagen (`vocab_image_votes`)
+
+Cada palabra con imagen muestra dos botones superpuestos: **👍 Buena imagen** y **👎 Imagen incorrecta**. Cada usuario puede votar una vez por palabra. Los votos se registran en la tabla `vocab_image_votes`.
+
+El admin puede ver en **Admin → Clasificación → Imágenes reportadas** las palabras con más votos negativos. Desde ahí puede:
+- **Rechazar** la imagen actual y buscar una nueva en Pexels
+- **Aceptar** la imagen como correcta (resuelve el reporte)
+
+El umbral para aparecer en "Imágenes reportadas" es cuando los votos 👎 superan a los 👍.
+
+---
+
+### Reporte de errores de vocabulario
+
+Durante un repaso, el usuario puede pulsar el botón de reporte (icono de bandera) en la tarjeta de pregunta para indicar que hay un error en:
+- **Lectura** — la lectura en hiragana es incorrecta
+- **Significado** — el significado en español es incorrecto
+- **Kanji** — el kanji mostrado es incorrecto
+- **General** — otro tipo de error (con descripción libre)
+
+Los reportes se almacenan en `vocab_reports` con estado `open` (pendiente) o `resolved` (resuelto). El admin los gestiona desde **Admin → Vocabulario → Errores reportados**, donde puede:
+- Ver la descripción del error
+- Editar directamente la lectura o el significado de la palabra
+- Marcar el reporte como resuelto (o reabrirlo)
+- Al guardar una corrección, todos los reportes abiertos de esa palabra se marcan automáticamente como resueltos
+
+---
+
+### Pool compartido de oraciones de gramática (`grammar_sentences`)
+
+Las oraciones de fill-in-the-blank generadas por IA **se comparten entre todos los usuarios**. Cuando un usuario genera oraciones para un punto gramatical, estas se guardan en el pool compartido y están disponibles para todos los demás usuarios de ese mismo punto.
+
+**Características del pool:**
+- **Tamaño máximo:** 100 oraciones por punto gramatical (las más antiguas se eliminan automáticamente al superar el límite)
+- **Prioridad en sesión:** Las oraciones **validadas** por admin/contributor se usan primero; después las **compartidas** por usuarios; por último las generadas automáticamente por IA
+- **Persistencia:** Las oraciones del pool NO se borran cuando un nuevo usuario genera sus propias. Se acumulan (hasta el límite)
+- **Regeneración:** Un usuario con API Key propia puede regenerar el pool desde cero con el botón "Regenerar oraciones"
+
+---
+
+### Validación de oraciones por admin/contributor
+
+Los usuarios con rol `admin` o `contributor` (que actúan como profesores/revisores) pueden validar las oraciones del pool desde la vista de práctica.
+
+**Acciones disponibles para admin/contributor:**
+- **✓ Validar** / **✗ Invalidar** — Marca la oración como revisada y correcta (o la devuelve a estado no validado)
+- **Editar** — Modifica el texto antes/después, la respuesta, las variantes aceptadas y la traducción
+- **Eliminar** — Borra la oración del pool
+- **Añadir alternativas** — Amplía las respuestas aceptadas (ej: añadir variantes honoríficas)
+
+Las oraciones validadas tienen un **badge verde** visible en el panel de edición y se priorizan en las sesiones de repaso.
+
+---
+
+### Oraciones compartidas por usuarios (`user_shared_sentences`)
+
+Cualquier usuario puede compartir una oración de su sesión de práctica con la comunidad pulsando el botón **"🌐 Compartir con la comunidad"**. Estas oraciones se guardan en `user_shared_sentences` (tabla separada, sin límite de tamaño) y aparecen en las sesiones de otros usuarios junto al pool principal.
+
+A diferencia del pool de IA (`grammar_sentences`), las oraciones de usuario son **permanentes** y no se borran automáticamente.
+
+---
+
+### Reporte de bugs y mejoras (`FeedbackModal`)
+
+El botón **🐛 Reportar** en la barra superior abre un modal donde cualquier usuario puede enviar un reporte de incidencia o sugerencia de mejora. El reporte incluye:
+- Tipo (bug, mejora, pregunta)
+- Descripción libre
+- URL de la página actual (se adjunta automáticamente)
+
+Los reportes se guardan en la base de datos y el admin los gestiona desde **Admin → Feedback**, donde puede:
+- Leer la descripción
+- Ver la URL donde ocurrió el problema
+- Marcar como resuelto o cerrado
