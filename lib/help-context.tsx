@@ -1,8 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-
-const SEEN_PREFIX = 'help_seen_v1_'
+import { useStore } from '@/lib/store'
 
 function getSectionFromPath(pathname: string): string {
   if (pathname.startsWith('/review'))    return 'review'
@@ -31,21 +30,23 @@ const HelpContext = createContext<HelpCtx>({
 
 export function HelpProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const { state, markHelpSeen } = useStore()
   const [isOpen, setIsOpen] = useState(false)
   const section = getSectionFromPath(pathname)
 
-  // Auto-open once per section on first visit
+  // Auto-open once per section per account. We wait for `state.loaded` so that
+  // helpSeen has been hydrated from the DB before deciding — this prevents the
+  // drawer from re-opening on a fresh browser where the section was already
+  // seen on the user's account.
   useEffect(() => {
     if (!section) return
-    try {
-      const key = SEEN_PREFIX + section
-      if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, '1')
-        const timer = setTimeout(() => setIsOpen(true), 600)
-        return () => clearTimeout(timer)
-      }
-    } catch { /* ignore */ }
-  }, [section])
+    if (!state.loaded) return        // wait until account data (helpSeen) is loaded
+    if (state.helpSeen.includes(section)) return  // already seen on this account
+
+    markHelpSeen(section)            // record locally + persist to DB
+    const timer = setTimeout(() => setIsOpen(true), 600)
+    return () => clearTimeout(timer)
+  }, [section, state.loaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close when navigating away
   useEffect(() => { setIsOpen(false) }, [pathname])

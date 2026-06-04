@@ -20,6 +20,7 @@ import {
   fetchSrsIntervalsConfig,
   fetchUserProgression,
   upsertUserProgression,
+  markHelpSeen as markHelpSeenRemote,
 } from './supabase'
 import type { Lang } from './i18n'
 import { showToast } from '@/components/ui/Toast'
@@ -49,6 +50,7 @@ interface State {
   pendingLevelUp: LevelUpEvent | null
   isOnline: boolean      // browser network status
   pendingWrites: number  // count of vocab items waiting to be synced
+  helpSeen: string[]     // help sections the user has already seen (per-account)
 }
 
 type Action =
@@ -73,6 +75,8 @@ type Action =
   | { type: 'CLEAR_LEVEL_UP' }
   | { type: 'SET_ONLINE'; payload: boolean }
   | { type: 'SET_PENDING_WRITES'; payload: number }
+  | { type: 'SET_HELP_SEEN'; payload: string[] }
+  | { type: 'ADD_HELP_SEEN'; payload: string }
   | { type: 'RESET' }
 
 function appReducer(state: State, action: Action): State {
@@ -96,6 +100,11 @@ function appReducer(state: State, action: Action): State {
     case 'CLEAR_LEVEL_UP': return { ...state, pendingLevelUp: null }
     case 'SET_ONLINE': return { ...state, isOnline: action.payload }
     case 'SET_PENDING_WRITES': return { ...state, pendingWrites: action.payload }
+    case 'SET_HELP_SEEN': return { ...state, helpSeen: action.payload }
+    case 'ADD_HELP_SEEN':
+      return state.helpSeen.includes(action.payload)
+        ? state
+        : { ...state, helpSeen: [...state.helpSeen, action.payload] }
     case 'ADD_ITEMS': {
       const existing = new Set(state.db.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
@@ -200,6 +209,7 @@ interface StoreContextType {
   setSimulatedRole: (role: 'admin' | 'contributor' | 'user' | null) => void
   addXP: (gain: XpGain) => number
   clearLevelUp: () => void
+  markHelpSeen: (section: string) => void
 }
 
 const StoreContext = createContext<StoreContextType | null>(null)
@@ -211,6 +221,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     pendingWrites: 0,
+    helpSeen: [],
   })
 
   const dbRef = useRef<VocabItem[]>([])
@@ -370,6 +381,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_LEVEL_UP' })
   }, [])
 
+  /** Mark a help section as seen: update local state + persist to DB (per-account). */
+  const markHelpSeen = useCallback((section: string) => {
+    dispatch({ type: 'ADD_HELP_SEEN', payload: section })
+    if (canPersist(userRef, hydratingRef)) {
+      void markHelpSeenRemote(section).catch(() => {})
+    }
+  }, [])
+
   /** "Ya me la sé": sets all SRS levels to 8 (Enlightened), due in 4 months, then persists. */
   const masterVocabItem = useCallback(async (jp: string) => {
     const prevDb = dbRef.current
@@ -409,6 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_SHOW_SHARED', payload: data.show_shared_sentences ?? true })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
+        dispatch({ type: 'SET_HELP_SEEN', payload: data.help_seen ?? [] })
       }
       const uid = userRef.current?.id
       const prog = uid ? await fetchUserProgression(uid) : null
@@ -677,6 +697,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setSimulatedRole,
       addXP,
       clearLevelUp,
+      markHelpSeen,
     }}>
       {children}
     </StoreContext.Provider>

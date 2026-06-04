@@ -295,11 +295,12 @@ export async function fetchUserSettings(): Promise<{
   context_texts: ContextText[]
   language: string
   tour_v3_done: boolean
+  help_seen: string[]
 } | null> {
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done')
+    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done, help_seen')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -316,6 +317,7 @@ export async function fetchUserSettings(): Promise<{
         context_texts: (legacy.context_texts as ContextText[]) ?? [],
         language: legacy.language ?? 'es',
         tour_v3_done: false,
+        help_seen: [],
       }
     }
     console.error('fetchUserSettings:', error)
@@ -331,6 +333,7 @@ export async function fetchUserSettings(): Promise<{
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
     tour_v3_done: data.tour_v3_done ?? false,
+    help_seen: Array.isArray(data.help_seen) ? data.help_seen as string[] : [],
   }
 }
 
@@ -340,6 +343,29 @@ export async function saveTourDone(): Promise<void> {
     await supabase
       .from('user_settings')
       .upsert({ user_id: userId, tour_v3_done: true }, { onConflict: 'user_id' })
+  } catch {
+    // Non-critical — localStorage backup still works
+  }
+}
+
+/**
+ * Mark a help section as seen for the current user (persisted in the DB so it
+ * doesn't re-trigger on other browsers). Reads the current array, appends the
+ * section if missing, and writes it back.
+ */
+export async function markHelpSeen(section: string): Promise<void> {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { data } = await supabase
+      .from('user_settings')
+      .select('help_seen')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const current: string[] = Array.isArray(data?.help_seen) ? data!.help_seen as string[] : []
+    if (current.includes(section)) return
+    await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, help_seen: [...current, section] }, { onConflict: 'user_id' })
   } catch {
     // Non-critical — localStorage backup still works
   }
@@ -725,6 +751,8 @@ export async function downloadAccountData(): Promise<{
   show_shared_sentences: boolean
   context_texts: ContextText[]
   language: string
+  tour_v3_done?: boolean
+  help_seen?: string[]
 } | null> {
   // Usar getSession() (caché) en lugar de getUser() (red) — mucho más rápido
   const { data: { session } } = await supabase.auth.getSession()
@@ -761,6 +789,7 @@ export async function downloadAccountData(): Promise<{
     show_shared_sentences: true,
     context_texts: (legacy?.context_texts as ContextText[]) ?? [],
     language: legacy?.language ?? 'es',
+    help_seen: [],
   }
 }
 
