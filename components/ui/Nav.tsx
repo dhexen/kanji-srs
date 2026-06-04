@@ -384,7 +384,7 @@ function NavInner() {
           href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
           badge={0} progress={null} pathname={pathname}
         />
-        {isRealAdmin && (
+        {isAdmin && (
           <NavItem
             href="/grammar-test" icon="🧪" label="Gramática Test"
             badge={0} progress={null} pathname={pathname} isAdmin
@@ -395,7 +395,7 @@ function NavInner() {
           basePath="/stats" subItems={profileSubItems}
           pathname={pathname} currentTab={currentTab}
         />
-        {isRealAdmin && (
+        {isAdmin && (
           <NavSection
             icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
             basePath="/admin"

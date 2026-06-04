@@ -101,7 +101,8 @@ export default function AdminClient() {
   const [srsIntervalsSaving, setSrsIntervalsSaving] = useState(false)
   const [srsIntervalsChanged, setSrsIntervalsChanged] = useState(false)
 
-  const isAdmin = state.role === 'admin'
+  // Use effective role so an admin "simulating" a user is also blocked here
+  const isAdmin = (state.simulatedRole ?? state.role) === 'admin'
   const [aal, setAal] = useState<'aal1' | 'aal2' | 'checking'>('checking')
 
   useEffect(() => {
