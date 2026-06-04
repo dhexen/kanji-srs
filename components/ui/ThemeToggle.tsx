@@ -3,9 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Theme, getStoredTheme, setStoredTheme, applyTheme } from '@/lib/theme'
 
 const OPTIONS: { value: Theme; icon: string; label: string }[] = [
-  { value: 'light',  icon: '☀️', label: 'Claro' },
-  { value: 'dark',   icon: '🌙', label: 'Oscuro' },
-  { value: 'system', icon: '💻', label: 'Sistema' },
+  { value: 'light', icon: '☀️', label: 'Claro' },
+  { value: 'dark',  icon: '🌙', label: 'Oscuro' },
 ]
 
 export default function ThemeToggle() {

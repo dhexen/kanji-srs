@@ -4,17 +4,20 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 interface SidebarCtx {
   collapsed: boolean
   toggle: () => void
+  close: () => void
 }
 
-const SidebarContext = createContext<SidebarCtx>({ collapsed: false, toggle: () => {} })
+const SidebarContext = createContext<SidebarCtx>({ collapsed: true, toggle: () => {}, close: () => {} })
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false)
+  // Start closed — user opens with hamburger
+  const [collapsed, setCollapsed] = useState(true)
 
-  // Read persisted state after mount (avoids SSR mismatch)
   useEffect(() => {
     try {
-      if (localStorage.getItem('sidebar-collapsed') === 'true') setCollapsed(true)
+      const stored = localStorage.getItem('sidebar-collapsed')
+      // Only restore if user explicitly set it; default is collapsed
+      if (stored !== null) setCollapsed(stored === 'true')
     } catch { /* ignore */ }
   }, [])
 
@@ -25,8 +28,15 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       return next
     })
 
+  const close = () =>
+    setCollapsed(prev => {
+      if (prev) return prev
+      try { localStorage.setItem('sidebar-collapsed', 'true') } catch { /* ignore */ }
+      return true
+    })
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle }}>
+    <SidebarContext.Provider value={{ collapsed, toggle, close }}>
       {children}
     </SidebarContext.Provider>
   )

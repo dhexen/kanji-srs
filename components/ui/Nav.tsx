@@ -7,7 +7,6 @@ import { getPendingCount, ALL_REVIEW_MODES } from '@/lib/srs'
 import { t } from '@/lib/i18n'
 import { fetchKnownGrammar } from '@/lib/supabase'
 import { useSidebar } from '@/lib/sidebar-context'
-import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
 import LevelWidget from '@/components/progression/LevelWidget'
 import LevelUpOverlay from '@/components/progression/LevelUpOverlay'
@@ -232,20 +231,38 @@ function NavInner() {
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab')
   const { state, setSimulatedRole } = useStore()
-  const { collapsed, toggle } = useSidebar()
+  const { collapsed, toggle, close } = useSidebar()
   const isRealAdmin = state.role === 'admin'
   const effectiveRole = state.simulatedRole ?? state.role
   const isAdmin = effectiveRole === 'admin'
   const lang = state.lang
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
+  const sidebarRef = useRef<HTMLElement>(null)
 
-  useEffect(() => { setMobileOpen(false) }, [pathname, currentTab])
+  // Close sidebar when navigating
+  useEffect(() => { close() }, [pathname, currentTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Lock scroll when sidebar open on mobile
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    document.body.style.overflow = !collapsed ? 'hidden lg:auto' : ''
     return () => { document.body.style.overflow = '' }
-  }, [mobileOpen])
+  }, [collapsed])
+
+  // Close sidebar on click outside (desktop)
+  useEffect(() => {
+    if (collapsed) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Element
+      // Don't close if clicking the hamburger toggle button in the header
+      if (target.closest('[data-sidebar-toggle]')) return
+      if (sidebarRef.current && !sidebarRef.current.contains(target)) {
+        close()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [collapsed, close])
 
   useEffect(() => {
     if (!state.user) { setKnownGrammarCount(0); return }
@@ -270,60 +287,7 @@ function NavInner() {
   const pendingReview = getPendingCount(state.db, ALL_REVIEW_MODES)
   const hasActiveVocab = state.db.some(i => i.status === 'active')
 
-  // ── Non-admin: simple sticky top bar ─────────────────────────────────────
-  if (!isAdmin) {
-    return (
-      <>
-        {/* Simulation banner — only shown to real admin simulating a non-admin role */}
-        {isRealAdmin && state.simulatedRole && (
-          <div className="sticky top-0 z-50 flex items-center justify-between gap-2 px-4 py-1.5 bg-amber-500 text-white text-xs font-semibold">
-            <span>
-              👁 Simulando como: <strong className="font-bold capitalize">
-                {state.simulatedRole === 'user' ? 'Usuario' : state.simulatedRole === 'contributor' ? 'Contributor' : 'Admin'}
-              </strong>
-            </span>
-            <button
-              type="button"
-              onClick={() => setSimulatedRole(null)}
-              className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-            >
-              ✕ Salir
-            </button>
-          </div>
-        )}
-        <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-2.5">
-          <Link href="/review" className="font-bold text-xl text-violet-700 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 transition-colors select-none">
-            栞
-          </Link>
-          {pendingReview > 0 && (
-            <span className="text-[10px] font-bold text-white bg-rose-400 px-1.5 py-0.5 rounded-full tabular-nums">
-              {pendingReview}
-            </span>
-          )}
-          <div className="ml-auto flex items-center gap-2">
-            {state.syncing && (
-              <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">{t(lang, 'header_syncing')}</span>
-            )}
-            <button
-              type="button"
-              onClick={() => setFeedbackOpen(true)}
-              title="Reportar incidencia o mejora"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition-all"
-            >
-              <span>🐛</span>
-              <span className="hidden sm:inline">Reportar</span>
-            </button>
-            <ProfileMenu />
-            <ThemeToggle />
-          </div>
-        </div>
-        <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-        <LevelUpOverlay />
-      </>
-    )
-  }
-
-  // ── Admin: full sidebar ───────────────────────────────────────────────────
+  // ── Sidebar (all users) ───────────────────────────────────────────────────
   const profileSubItems: SubItem[] = [
     { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
     { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
@@ -475,52 +439,40 @@ function NavInner() {
         </div>
       )}
 
-      {/* CTA */}
+      {/* (CTA "Iniciar repaso" removed — accessible via nav) */}
       {state.user && hasActiveVocab && (
-        <div className="shrink-0 mx-3 mb-3">
-          <Link
-            href="/review"
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-semibold rounded-xl text-sm transition shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            {stripEmoji(t(lang, 'review_start'))}
-          </Link>
+        <div className="shrink-0 mx-3 mb-3 hidden">
+          {/* placeholder to avoid layout shift */}
         </div>
       )}
 
-      {/* Bottom: feedback + collapse */}
-      <div className="shrink-0 p-2 border-t border-violet-100/80 dark:border-slate-700 flex items-center justify-between px-3">
-        <button
-          type="button"
-          onClick={() => setFeedbackOpen(true)}
-          title="Reportar incidencia o mejora"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition-all"
-        >
-          <span>🐛</span>
-          <span>Reportar</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggle}
-          title="Ocultar menú"
-          className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-500 dark:hover:text-violet-400 transition-all"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      </div>
-      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <LevelUpOverlay />
     </>
   )
 
   return (
     <>
+      {/* Simulation banner — only shown to real admin simulating a non-admin role */}
+      {isRealAdmin && state.simulatedRole && (
+        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 px-4 py-1.5 bg-amber-500 text-white text-xs font-semibold">
+          <span>
+            👁 Simulando como: <strong className="font-bold capitalize">
+              {state.simulatedRole === 'user' ? 'Usuario' : state.simulatedRole === 'contributor' ? 'Contributor' : 'Admin'}
+            </strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setSimulatedRole(null)}
+            className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+          >
+            ✕ Salir
+          </button>
+        </div>
+      )}
+
       {/* Desktop sidebar */}
       <aside
+        ref={sidebarRef}
         className={[
           'hidden lg:flex fixed inset-y-0 left-0 z-40 w-56 flex-col',
           'bg-white dark:bg-slate-900 border-r border-violet-100 dark:border-slate-800',
@@ -532,57 +484,14 @@ function NavInner() {
         {sidebarContent}
       </aside>
 
-      {/* Re-show tab */}
-      <button
-        type="button"
-        onClick={toggle}
-        title="Mostrar menú"
-        className={[
-          'hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-30',
-          'flex-col items-center justify-center',
-          'w-5 h-14 rounded-r-xl',
-          'bg-white dark:bg-slate-900 border border-l-0 border-violet-100 dark:border-slate-800',
-          'shadow-[2px_0_8px_rgba(139,92,246,0.1)]',
-          'text-violet-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-slate-800',
-          'transition-all duration-300',
-          collapsed ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
-        ].join(' ')}
-        aria-label="Mostrar menú"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      {/* Mobile top bar (admin) */}
-      <div className="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-violet-100 dark:border-slate-800 shadow-sm flex items-center gap-3 px-4 py-3">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="p-1.5 -ml-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition"
-          aria-label="Abrir menú"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        <Link href="/review" className="font-bold text-lg text-violet-700 dark:text-violet-400">栞</Link>
-        <div className="ml-auto flex items-center gap-2">
-          {state.syncing && (
-            <span className="text-violet-400 animate-pulse text-xs">{t(lang, 'header_syncing')}</span>
-          )}
-          <ThemeToggle />
-        </div>
-      </div>
-
-      {/* Mobile slide-over */}
-      {mobileOpen && (
+      {/* Mobile slide-over (all users) */}
+      {!collapsed && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={close} />
           <div className="relative w-64 max-w-[80vw] flex flex-col bg-white dark:bg-slate-900 shadow-2xl animate-slide-in">
             <button
               type="button"
-              onClick={() => setMobileOpen(false)}
+              onClick={close}
               className="absolute top-3 right-3 p-1.5 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-800 transition"
               aria-label="Cerrar menú"
             >
