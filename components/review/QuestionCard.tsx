@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
-import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType } from '@/lib/srs'
+import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType, SRS_MAX_LEVEL } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
 import { submitImageVote, submitVocabReport } from '@/lib/supabase'
 import type { SessionItem } from './ReviewClient'
@@ -16,6 +16,7 @@ interface Props {
   total: number
   isPractice: boolean
   onAnswer: (sessionItem: SessionItem, isCorrect: boolean) => void
+  onMaster: (sessionItem: SessionItem) => void
   onQuit: () => void
 }
 
@@ -25,7 +26,28 @@ function normalizeJP(str: string) {
   return str.trim().replace(/\s/g, '').replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
 }
 
-export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onAnswer, onQuit }: Props) {
+function LevelChangeToast({ dir, newLevel, lang }: { dir: 'up' | 'down'; newLevel: number; lang: string }) {
+  const [visible, setVisible] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 1400)
+    return () => clearTimeout(t)
+  }, [])
+  if (!visible) return null
+  return (
+    <div className={[
+      'pointer-events-none select-none',
+      'fixed top-24 left-4 z-50',
+      'flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg',
+      'text-sm font-bold animate-xp-float',
+      dir === 'up' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white',
+    ].join(' ')}>
+      <span>{dir === 'up' ? '↑' : '↓'}</span>
+      <span>{getStageName(newLevel, lang as Parameters<typeof getStageName>[1])}</span>
+    </div>
+  )
+}
+
+export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onAnswer, onMaster, onQuit }: Props) {
   const { masterVocabItem, addXP, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
@@ -35,6 +57,8 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
   const [answerState, setAnswerState] = useState<AnswerState>('waiting')
   const [xpGained, setXpGained] = useState<number | null>(null)
   const [xpToastKey, setXpToastKey] = useState(0)
+  const [levelChange, setLevelChange] = useState<{ newLevel: number; dir: 'up' | 'down' } | null>(null)
+  const [levelChangeKey, setLevelChangeKey] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [imgError, setImgError] = useState(false)
@@ -115,6 +139,14 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       addXP({ vocabXp: xp })
       setXpGained(xp)
       setXpToastKey(k => k + 1)
+      // Level change indicator (approximate: assumes first attempt)
+      const newLevel = isCorrect
+        ? Math.min(level + 1, SRS_MAX_LEVEL)
+        : Math.max(level - 1, 1)
+      if (newLevel !== level) {
+        setLevelChange({ newLevel, dir: isCorrect ? 'up' : 'down' })
+        setLevelChangeKey(k => k + 1)
+      }
     }
   }
 
@@ -164,6 +196,9 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     <>
       {xpGained !== null && (
         <XpToast key={xpToastKey} xp={xpGained} type="vocab" />
+      )}
+      {levelChange !== null && (
+        <LevelChangeToast key={levelChangeKey} dir={levelChange.dir} newLevel={levelChange.newLevel} lang={lang} />
       )}
     <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
       <div className="flex justify-between items-center">
@@ -271,7 +306,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
             type="button"
             onClick={async () => {
               await masterVocabItem(item.jp)
-              goNext()
+              onMaster(sessionItem)
             }}
             className="text-xs font-semibold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded-lg transition"
           >

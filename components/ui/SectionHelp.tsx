@@ -356,7 +356,9 @@ export default function SectionHelp({ section, lang }: Props) {
     try {
       const tutorialDone = localStorage.getItem(TOUR_DONE_KEY)
       const sectionSeen = localStorage.getItem(getSectionSeenKey(section, content?.version))
-      if (tutorialDone && !sectionSeen) {
+      // Don't show if ProductTour is still in progress (phase key present = not done yet)
+      const tourInProgress = localStorage.getItem('kanji_tour_v3_phase') !== null
+      if (tutorialDone && !sectionSeen && !tourInProgress) {
         const timer = setTimeout(() => setOpen(true), 500)
         return () => clearTimeout(timer)
       }

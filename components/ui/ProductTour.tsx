@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '@/lib/store'
 import { driver as createDriver } from 'driver.js'
+import { fetchUserSettings, saveTourDone } from '@/lib/supabase'
 import 'driver.js/dist/driver.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -248,8 +249,16 @@ export default function ProductTour() {
     return L[key]?.[l] ?? L[key]?.['es'] ?? ''
   }
 
+  function markTourDone() {
+    try {
+      localStorage.setItem(TOUR_DONE_KEY, '1')
+      localStorage.removeItem(TOUR_PHASE_KEY)
+    } catch { /* */ }
+    void saveTourDone()
+  }
+
   function skipTour() {
-    try { localStorage.setItem(TOUR_DONE_KEY, '1') } catch { /* */ }
+    markTourDone()
     setCursorActive(false)
     driverRef.current?.destroy()
     driverRef.current = null
@@ -257,10 +266,7 @@ export default function ProductTour() {
 
   function advancePhase(next: Phase | 'done') {
     if (next === 'done') {
-      try {
-        localStorage.setItem(TOUR_DONE_KEY, '1')
-        localStorage.removeItem(TOUR_PHASE_KEY)
-      } catch { /* */ }
+      markTourDone()
     } else {
       try { localStorage.setItem(TOUR_PHASE_KEY, next) } catch { /* */ }
       phaseRef.current = next
@@ -478,16 +484,32 @@ export default function ProductTour() {
     if (initializedRef.current) return
     initializedRef.current = true
 
-    try { if (localStorage.getItem(TOUR_DONE_KEY)) return } catch { return }
+    // Fast path: localStorage already says done
+    try { if (localStorage.getItem(TOUR_DONE_KEY)) return } catch { /* */ }
 
-    const saved = localStorage.getItem(TOUR_PHASE_KEY) as Phase | null
-    phaseRef.current = saved || 'dashboard-init'
+    // Sync from DB: if user completed tour on another browser, respect it
+    fetchUserSettings().then(settings => {
+      if (settings?.tour_v3_done) {
+        try { localStorage.setItem(TOUR_DONE_KEY, '1') } catch { /* */ }
+        return  // Tour already done for this user
+      }
 
-    if (phaseRef.current === 'dashboard-init') {
-      setTimeout(startDashboardInitTour, 900)
-    } else if (phaseRef.current === 'dashboard-full') {
-      setTimeout(startDashboardFullTour, 900)
-    }
+      const saved = localStorage.getItem(TOUR_PHASE_KEY) as Phase | null
+      phaseRef.current = saved || 'dashboard-init'
+
+      if (phaseRef.current === 'dashboard-init') {
+        setTimeout(startDashboardInitTour, 900)
+      } else if (phaseRef.current === 'dashboard-full') {
+        setTimeout(startDashboardFullTour, 900)
+      }
+    }).catch(() => {
+      // If DB check fails, fall back to localStorage-only behavior
+      const saved = localStorage.getItem(TOUR_PHASE_KEY) as Phase | null
+      phaseRef.current = saved || 'dashboard-init'
+      if (phaseRef.current === 'dashboard-init') setTimeout(startDashboardInitTour, 900)
+      else if (phaseRef.current === 'dashboard-full') setTimeout(startDashboardFullTour, 900)
+    })
+
     // 'await-study' and 'study-intro' are handled by event listeners below
   }, [mounted, state.loaded, state.user]) // eslint-disable-line react-hooks/exhaustive-deps
 

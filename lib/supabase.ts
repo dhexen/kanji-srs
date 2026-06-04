@@ -294,11 +294,12 @@ export async function fetchUserSettings(): Promise<{
   show_shared_sentences: boolean
   context_texts: ContextText[]
   language: string
+  tour_v3_done: boolean
 } | null> {
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language')
+    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -314,6 +315,7 @@ export async function fetchUserSettings(): Promise<{
         show_shared_sentences: true,
         context_texts: (legacy.context_texts as ContextText[]) ?? [],
         language: legacy.language ?? 'es',
+        tour_v3_done: false,
       }
     }
     console.error('fetchUserSettings:', error)
@@ -328,6 +330,18 @@ export async function fetchUserSettings(): Promise<{
     show_shared_sentences: data.show_shared_sentences ?? true,
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
+    tour_v3_done: data.tour_v3_done ?? false,
+  }
+}
+
+export async function saveTourDone(): Promise<void> {
+  try {
+    const userId = await ensureUserSettingsRow()
+    await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, tour_v3_done: true }, { onConflict: 'user_id' })
+  } catch {
+    // Non-critical — localStorage backup still works
   }
 }
 
@@ -1590,23 +1604,33 @@ export async function fetchAntonymPairs(): Promise<AntonymPair[]> {
 /**
  * Upsert the SRS result for a grammar point after a practice session.
  */
+const GRAMMAR_RETRY_DELAYS = [2_000, 6_000, 18_000]
+
 export async function saveGrammarSrsResult(
   grammarId: string,
   newLevel: number,
   nextReview: number,
 ): Promise<void> {
-  try {
-    const user = await requireUser()
-    const { error } = await supabase
-      .from('grammar_srs_progress')
-      .upsert(
-        { user_id: user.id, grammar_id: grammarId, level: newLevel, next_review: nextReview },
-        { onConflict: 'user_id,grammar_id' },
-      )
-    if (error) console.error('saveGrammarSrsResult:', error.message)
-  } catch (e) {
-    console.error('saveGrammarSrsResult exception:', e)
+  let lastErr: unknown
+  for (let i = 0; i <= GRAMMAR_RETRY_DELAYS.length; i++) {
+    try {
+      const user = await requireUser()
+      const { error } = await supabase
+        .from('grammar_srs_progress')
+        .upsert(
+          { user_id: user.id, grammar_id: grammarId, level: newLevel, next_review: nextReview },
+          { onConflict: 'user_id,grammar_id' },
+        )
+      if (error) throw new Error(error.message)
+      return
+    } catch (e) {
+      lastErr = e
+      if (i < GRAMMAR_RETRY_DELAYS.length) {
+        await new Promise(r => setTimeout(r, GRAMMAR_RETRY_DELAYS[i]))
+      }
+    }
   }
+  console.error('saveGrammarSrsResult failed after retries:', lastErr)
 }
 
 /**

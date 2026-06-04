@@ -47,6 +47,8 @@ interface State {
   lang: Lang
   progression: UserProgression
   pendingLevelUp: LevelUpEvent | null
+  isOnline: boolean      // browser network status
+  pendingWrites: number  // count of vocab items waiting to be synced
 }
 
 type Action =
@@ -69,6 +71,8 @@ type Action =
   | { type: 'SET_PROGRESSION'; payload: UserProgression }
   | { type: 'SET_LEVEL_UP'; payload: LevelUpEvent }
   | { type: 'CLEAR_LEVEL_UP' }
+  | { type: 'SET_ONLINE'; payload: boolean }
+  | { type: 'SET_PENDING_WRITES'; payload: number }
   | { type: 'RESET' }
 
 function appReducer(state: State, action: Action): State {
@@ -90,6 +94,8 @@ function appReducer(state: State, action: Action): State {
     case 'SET_PROGRESSION': return { ...state, progression: action.payload }
     case 'SET_LEVEL_UP': return { ...state, pendingLevelUp: action.payload }
     case 'CLEAR_LEVEL_UP': return { ...state, pendingLevelUp: null }
+    case 'SET_ONLINE': return { ...state, isOnline: action.payload }
+    case 'SET_PENDING_WRITES': return { ...state, pendingWrites: action.payload }
     case 'ADD_ITEMS': {
       const existing = new Set(state.db.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
@@ -143,7 +149,30 @@ async function persistForAction(action: Action, prevDb: VocabItem[], nextDb: Voc
 function reportPersistError(e: unknown) {
   console.error('Persist failed:', e)
   const msg = e instanceof Error ? e.message : 'Error guardando en la nube'
-  showToast(msg.includes('autenticado') ? 'Inicia sesión para guardar' : `No se pudo guardar: ${msg}`, 'error')
+  // Auth errors → show toast immediately (user needs to act)
+  // Network errors → the Nav banner already communicates pending writes, no toast needed
+  if (msg.includes('autenticado') || msg.includes('sesión') || msg.includes('session')) {
+    showToast('Inicia sesión para guardar', 'error')
+  }
+  // Otherwise: silent — the pending-writes counter in the sidebar shows the state
+}
+
+// Retry delays: 2s, 6s, 18s (exponential ×3)
+const RETRY_DELAYS = [2_000, 6_000, 18_000]
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown
+  for (let i = 0; i <= RETRY_DELAYS.length; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastErr = e
+      if (i < RETRY_DELAYS.length) {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[i]))
+      }
+    }
+  }
+  throw lastErr
 }
 
 interface StoreContextType {
@@ -180,6 +209,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
     geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
     progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    pendingWrites: 0,
   })
 
   const dbRef = useRef<VocabItem[]>([])
@@ -187,6 +218,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const loadedRef = useRef(false)
   const hydratingRef = useRef(false)
   const contextTextsRef = useRef<ContextText[]>([])
+  const pendingSyncRef = useRef(false)    // true when writes failed and need a full sync on reconnect
+  const pendingWritesRef = useRef(0)      // mirrors state.pendingWrites for use inside callbacks
 
   useEffect(() => { dbRef.current = state.db }, [state.db])
   useEffect(() => { userRef.current = state.user }, [state.user])
@@ -195,7 +228,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const runPersist = useCallback((action: Action, prevDb: VocabItem[], nextDb: VocabItem[]) => {
     if (!canPersist(userRef, hydratingRef)) return
-    void persistForAction(action, prevDb, nextDb).catch(reportPersistError)
+    void withRetry(() => persistForAction(action, prevDb, nextDb)).catch(e => {
+      pendingSyncRef.current = true
+      dispatch({ type: 'SET_PENDING_WRITES', payload: pendingWritesRef.current + 1 })
+      pendingWritesRef.current += 1
+      reportPersistError(e)
+    })
+  }, [])
+
+  // online/offline events → update isOnline in state
+  useEffect(() => {
+    function handleOnline() {
+      dispatch({ type: 'SET_ONLINE', payload: true })
+      // Flush any pending failed writes by syncing the full DB
+      if (!pendingSyncRef.current) return
+      if (!canPersist(userRef, hydratingRef)) return
+      const db = dbRef.current
+      if (db.length === 0) return
+      void withRetry(() => upsertVocabItems(db, db)).then(() => {
+        pendingSyncRef.current = false
+        pendingWritesRef.current = 0
+        dispatch({ type: 'SET_PENDING_WRITES', payload: 0 })
+        showToast('✓ Datos sincronizados con la nube', 'success')
+      }).catch(() => {
+        // Still offline or server error — keep pending flag
+      })
+    }
+    function handleOffline() {
+      dispatch({ type: 'SET_ONLINE', payload: false })
+    }
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
   }, [])
 
   const dispatchPersist = useCallback((action: Action) => {

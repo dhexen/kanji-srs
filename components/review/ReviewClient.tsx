@@ -203,6 +203,26 @@ export default function ReviewClient() {
     }
   }
 
+  // Called when "Ya me lo sé" is clicked. Marks all modes for this word as
+  // done and removes future appearances from the queue without re-queuing.
+  function onMaster(sessionItem: SessionItem) {
+    // Mark every mode for this word as completed so none can be re-queued
+    CANONICAL_MODE_ORDER.forEach(mode => {
+      completedRef.current.add(`${sessionItem.item.jp}:${mode}`)
+    })
+
+    // Build the new sequence without future copies of this word
+    const newSeq = sequence.filter((si, i) => i <= index || si.item.jp !== sessionItem.item.jp)
+    setSequence(newSeq)
+
+    // End the session if there's nothing left after the current position
+    if (index + 1 >= newSeq.length) {
+      setPhase('done')
+    } else {
+      setIndex(i => i + 1)
+    }
+  }
+
   function onQuit() {
     setPhase('select')
     setSequence([])
@@ -470,6 +490,7 @@ export default function ReviewClient() {
       total={uniqueTotal}
       isPractice={isPractice}
       onAnswer={onAnswer}
+      onMaster={onMaster}
       onQuit={onQuit}
     />
   )

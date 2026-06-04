@@ -341,18 +341,45 @@ function NavInner() {
         </Link>
       </div>
 
-      {/* User info */}
+      {/* User info + network status */}
       {state.user && (
-        <div className="mx-3 mb-2 px-3 py-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100/80 dark:border-violet-800/40">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-sm shrink-0 select-none">
-              {(state.user.email?.[0] ?? '?').toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-700 dark:text-slate-200 font-semibold truncate leading-tight">{state.user.email}</p>
-              <p className="text-[10px] text-violet-500 dark:text-violet-400 mt-0.5">栞</p>
+        <div className="mx-3 mb-2 space-y-1.5">
+          <div className={`px-3 py-3 rounded-xl border ${
+            state.isOnline
+              ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-100/80 dark:border-violet-800/40'
+              : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200/80 dark:border-rose-800/40'
+          }`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Avatar with network dot */}
+              <div className="relative shrink-0">
+                <div className="w-9 h-9 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-sm select-none">
+                  {(state.user.email?.[0] ?? '?').toUpperCase()}
+                </div>
+                <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                  state.isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'
+                }`} title={state.isOnline ? 'Online' : 'Sin conexión'} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-slate-700 dark:text-slate-200 font-semibold truncate leading-tight">{state.user.email}</p>
+                <p className={`text-[10px] mt-0.5 font-medium ${state.isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                  {state.isOnline ? '● Online' : '● Sin conexión'}
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Pending writes banner */}
+          {state.pendingWrites > 0 && (
+            <div className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 flex items-start gap-2">
+              <span className="text-amber-500 shrink-0 mt-0.5">⏳</span>
+              <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-tight">
+                {state.pendingWrites === 1
+                  ? '1 cambio pendiente de sincronizar'
+                  : `${state.pendingWrites} cambios pendientes de sincronizar`}
+                {!state.isOnline && ' · esperando conexión'}
+              </p>
+            </div>
+          )}
         </div>
       )}
       {!state.user && state.loaded && (
