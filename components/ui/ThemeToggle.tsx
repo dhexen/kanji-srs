@@ -7,20 +7,21 @@ const OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'dark',  icon: '🌙', label: 'Oscuro' },
 ]
 
+// 'system' was previously an option — map it to 'light' on load
+function normalizeTheme(t: Theme): Theme {
+  return t === 'system' ? 'light' : t
+}
+
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('system')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { setTheme(getStoredTheme()) }, [])
-
   useEffect(() => {
-    if (theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => applyTheme('system')
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [theme])
+    const stored = normalizeTheme(getStoredTheme())
+    setTheme(stored)
+    applyTheme(stored)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -38,7 +39,7 @@ export default function ThemeToggle() {
     setOpen(false)
   }
 
-  const current = OPTIONS.find(o => o.value === theme) ?? OPTIONS[2]
+  const current = OPTIONS.find(o => o.value === theme) ?? OPTIONS[0]
 
   return (
     <div ref={ref} className="relative">
