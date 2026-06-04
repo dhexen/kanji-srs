@@ -597,3 +597,61 @@ export const DAKUTEN_ORDER: Array<{ group: KanaGroup; label: string }> = [
   { group: 'b', label: 'ば行' },
   { group: 'p', label: 'ぱ行' },
 ]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stroke-order animation (Wikimedia Commons, public domain)
+// Uses Special:FilePath which redirects to the actual file without needing the
+// internal MD5 hash path. If the file doesn't exist, the <img> onError hides it.
+// ─────────────────────────────────────────────────────────────────────────────
+export function strokeOrderUrl(kana: KanaChar): string {
+  const prefix = kana.script === 'hiragana' ? 'Hiragana' : 'Katakana'
+  // Wikimedia has no separate stroke animation for dakuten/handakuten, but the
+  // stroke order is the base kana (か for が) plus the diacritic marks.
+  // Unicode trick: dakuten = base + 1, handakuten = base + 2.
+  let glyph = kana.kana
+  if (DAKUTEN_GROUPS.includes(kana.group)) {
+    const offset = kana.group === 'p' ? 2 : 1
+    glyph = String.fromCharCode(kana.kana.charCodeAt(0) - offset)
+  }
+  const file = `${prefix}_${glyph}_stroke_order_animation.gif`
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Romaji normalisation — used to compare answers tolerantly.
+// Collapses long-vowel marks (ō→oo, ī→ii…) and strips spaces/case so that
+// コーヒー (koohii) and コオヒイ (koohii) compare equal.
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeRomaji(s: string): string {
+  return s.trim().toLowerCase()
+    .replace(/ā/g, 'aa').replace(/ī/g, 'ii').replace(/ū/g, 'uu')
+    .replace(/ē/g, 'ee').replace(/ō/g, 'oo')
+    .replace(/\s+/g, '')
+    // common alias normalisation so "si"/"shi" etc. compare equal
+    .replace(/shi/g, 'si').replace(/chi/g, 'ti').replace(/tsu/g, 'tu')
+    .replace(/fu/g, 'hu')
+    .replace(/sha/g, 'sya').replace(/shu/g, 'syu').replace(/sho/g, 'syo')
+    .replace(/cha/g, 'tya').replace(/chu/g, 'tyu').replace(/cho/g, 'tyo')
+    .replace(/ja/g, 'zya').replace(/ju/g, 'zyu').replace(/jo/g, 'zyo')
+    .replace(/ji/g, 'zi').replace(/zu/g, 'du')  // note: applied after tsu→tu
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test items: a unified pool of "syllables" + "words" used by the kana tests.
+// Each item has a Japanese form (kana) and its romaji reading.
+// ─────────────────────────────────────────────────────────────────────────────
+export type KanaTestItem = {
+  kana: string      // Japanese form (e.g. が, つくえ, コーヒー)
+  romaji: string    // reading (e.g. ga, tsukue, koohii)
+  kind: 'syllable' | 'word'
+}
+
+/** Build the syllable pool for a script (includes dakuten/handakuten). */
+export function getSyllableItems(script: KanaScript): KanaTestItem[] {
+  return getAllKana(script).map(k => ({ kana: k.kana, romaji: k.romaji, kind: 'syllable' as const }))
+}
+
+/** Build the word pool for a script. */
+export function getWordItems(script: KanaScript): KanaTestItem[] {
+  return getWords(script).map(w => ({ kana: w.word, romaji: w.reading, kind: 'word' as const }))
+}
