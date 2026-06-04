@@ -34,16 +34,28 @@ export function HelpProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const section = getSectionFromPath(pathname)
 
-  // Auto-open once per section per account. We wait for `state.loaded` so that
-  // helpSeen has been hydrated from the DB before deciding — this prevents the
-  // drawer from re-opening on a fresh browser where the section was already
-  // seen on the user's account.
+  // Auto-open once per section. We check two sources:
+  //   1. state.helpSeen — persisted in the DB → works across browsers (per-account)
+  //   2. localStorage    — immediate fallback → avoids repeats in the SAME browser
+  //      even if the DB column (migration 018) isn't applied yet.
+  // We wait for state.loaded so helpSeen has been hydrated before deciding.
   useEffect(() => {
     if (!section) return
-    if (!state.loaded) return        // wait until account data (helpSeen) is loaded
-    if (state.helpSeen.includes(section)) return  // already seen on this account
+    if (!state.loaded) return
 
-    markHelpSeen(section)            // record locally + persist to DB
+    let localSeen: string[] = []
+    try { localSeen = JSON.parse(localStorage.getItem('help_seen_v1') || '[]') } catch { /* ignore */ }
+
+    if (state.helpSeen.includes(section) || localSeen.includes(section)) return
+
+    // Mark as seen in both the DB (cross-browser) and localStorage (same-browser)
+    markHelpSeen(section)
+    try {
+      if (!localSeen.includes(section)) {
+        localStorage.setItem('help_seen_v1', JSON.stringify([...localSeen, section]))
+      }
+    } catch { /* ignore */ }
+
     const timer = setTimeout(() => setIsOpen(true), 600)
     return () => clearTimeout(timer)
   }, [section, state.loaded]) // eslint-disable-line react-hooks/exhaustive-deps

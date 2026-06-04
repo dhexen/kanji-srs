@@ -5,7 +5,8 @@ import { useSidebar } from '@/lib/sidebar-context'
 import { useHelp } from '@/lib/help-context'
 import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { fetchPendingReportsCount } from '@/lib/admin-client'
 
 function HamburgerIcon() {
   return (
@@ -20,9 +21,23 @@ export default function Header() {
   const { toggle } = useSidebar()
   const help = useHelp()
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [pendingReports, setPendingReports] = useState(0)
 
   const user = state.user
   const initial = (user?.email?.[0] ?? '?').toUpperCase()
+  const isRealAdmin = state.role === 'admin'
+
+  // Poll the count of open reports for the admin badge
+  useEffect(() => {
+    if (!isRealAdmin) { setPendingReports(0); return }
+    let cancelled = false
+    const load = () => fetchPendingReportsCount()
+      .then(c => { if (!cancelled) setPendingReports(c.total) })
+      .catch(() => {})
+    load()
+    const id = setInterval(load, 60_000)  // refresh every minute
+    return () => { cancelled = true; clearInterval(id) }
+  }, [isRealAdmin])
 
   return (
     <>
@@ -76,6 +91,14 @@ export default function Header() {
                   title={state.isOnline ? 'Online' : 'Sin conexión'}
                   className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${state.isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}
                 />
+                {isRealAdmin && pendingReports > 0 && (
+                  <span
+                    title={`${pendingReports} reporte(s) pendiente(s)`}
+                    className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold border-2 border-white dark:border-slate-900 tabular-nums"
+                  >
+                    {pendingReports > 9 ? '9+' : pendingReports}
+                  </span>
+                )}
               </div>
               <span className="hidden sm:block text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[140px] truncate">
                 {user.email}

@@ -499,6 +499,18 @@ export async function fetchFeedbackReports(): Promise<FeedbackReport[]> {
   return parseAdminResponse<FeedbackReport[]>(res)
 }
 
+export interface PendingReportsCount {
+  feedback: number
+  vocab: number
+  total: number
+}
+
+/** Lightweight count of open reports (feedback + vocab) for the admin badge. */
+export async function fetchPendingReportsCount(): Promise<PendingReportsCount> {
+  const res = await fetch('/api/admin/pending-count', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<PendingReportsCount>(res)
+}
+
 export async function updateFeedbackStatus(id: string, status: 'open' | 'resolved'): Promise<void> {
   const headers = await adminAuthHeaders()
   const res = await fetch('/api/admin/feedback', {

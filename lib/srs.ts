@@ -315,7 +315,22 @@ export function getMeaningForLang(item: VocabItem, lang: string): string {
   return item.meaning
 }
 
-/** "Ya me la sé": sets all mode levels to 8 (Enlightened) with due date 4 months from now. */
+/**
+ * Overall level of a word = the highest level reached across any mode.
+ * A freshly-added word (all modes at 1) → 1. As soon as the user answers any
+ * mode correctly, it rises. Used to decide what is "new / level 1".
+ * (srsLevel is NOT reliable: applyResult only updates the per-mode levels.)
+ */
+export function getOverallLevel(item: VocabItem): number {
+  let max = 0
+  for (const mode of ALL_REVIEW_MODES) {
+    const lvl = getModeLevelAndDue(item, mode).level
+    if (lvl > max) max = lvl
+  }
+  return max || (item.srsLevel ?? 1)
+}
+
+/** "Ya me la sé" (full): sets ALL mode levels to 8 (Enlightened). Used when skipping a whole grade. */
 export function masterItem(item: VocabItem): VocabItem {
   const enlightenedDue = Date.now() + DEFAULT_SRS_INTERVALS[8]
   const result = { ...item, srsLevel: 8, due: enlightenedDue, status: 'active' as const }
@@ -324,4 +339,16 @@ export function masterItem(item: VocabItem): VocabItem {
     ;(result as any)[cfg.key + '_due'] = enlightenedDue
   })
   return result
+}
+
+/** "Ya me la sé" for a single mode: sets only that mode to level 8 (Enlightened). */
+export function masterItemMode(item: VocabItem, mode: ReviewMode): VocabItem {
+  const cfg = MODE_CONFIG[mode]
+  const enlightenedDue = Date.now() + DEFAULT_SRS_INTERVALS[8]
+  return {
+    ...item,
+    status: 'active' as const,
+    [cfg.key + '_level']: 8,
+    [cfg.key + '_due']: enlightenedDue,
+  }
 }

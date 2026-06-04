@@ -205,19 +205,19 @@ export default function ReviewClient() {
     }
   }
 
-  // Called when "Ya me lo sé" is clicked. Marks all modes for this word as
-  // done and removes future appearances from the queue without re-queuing.
+  // Called when "Ya me lo sé" is clicked. Masters ONLY the current mode of this
+  // word (level 8) and removes future appearances of that same word+mode from
+  // the queue. Other modes of the word stay in the pool.
   function onMaster(sessionItem: SessionItem) {
-    // Mark every mode for this word as completed so none can be re-queued
-    CANONICAL_MODE_ORDER.forEach(mode => {
-      completedRef.current.add(`${sessionItem.item.jp}:${mode}`)
-    })
+    const key = `${sessionItem.item.jp}:${sessionItem.mode}`
+    completedRef.current.add(key)
 
-    // Build the new sequence without future copies of this word
-    const newSeq = sequence.filter((si, i) => i <= index || si.item.jp !== sessionItem.item.jp)
+    // Drop future copies of this exact word+mode (keep other modes)
+    const newSeq = sequence.filter((si, i) =>
+      i <= index || !(si.item.jp === sessionItem.item.jp && si.mode === sessionItem.mode)
+    )
     setSequence(newSeq)
 
-    // End the session if there's nothing left after the current position
     if (index + 1 >= newSeq.length) {
       setPhase('done')
     } else {

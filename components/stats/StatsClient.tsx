@@ -8,6 +8,7 @@ import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import { fetchKnownGrammar, getWaniKaniSyncStatus } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
+import { getOverallLevel } from '@/lib/srs'
 
 // Total grammar points (MNN1: 73 + MNN2: 48)
 const TOTAL_GRAMMAR_POINTS = 121
@@ -62,7 +63,8 @@ function VocabPoolManager({ lang }: { lang: Lang }) {
   const [confirmLevel1, setConfirmLevel1] = useState(false)
 
   const active = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
-  const level1 = useMemo(() => active.filter(i => (i.srsLevel ?? 1) <= 1), [active])
+  // "Level 1" = never progressed in any mode (freshly added, likely by mistake)
+  const level1 = useMemo(() => active.filter(i => getOverallLevel(i) <= 1), [active])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -73,7 +75,7 @@ function VocabPoolManager({ lang }: { lang: Lang }) {
           i.reading.toLowerCase().includes(q) ||
           (i.meaning ?? '').toLowerCase().includes(q))
       : active
-    return [...list].sort((a, b) => (a.srsLevel ?? 0) - (b.srsLevel ?? 0)).slice(0, 100)
+    return [...list].sort((a, b) => getOverallLevel(a) - getOverallLevel(b)).slice(0, 100)
   }, [active, search])
 
   const labels: Record<string, Record<Lang, string>> = {
@@ -161,7 +163,7 @@ function VocabPoolManager({ lang }: { lang: Lang }) {
               <span className="kanji-font text-lg text-slate-800 dark:text-slate-100 shrink-0">{item.jp}</span>
               <span className="text-xs text-slate-400 shrink-0">{item.reading}</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 truncate flex-1">{item.meaning}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">Lv.{item.srsLevel ?? 1}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">Lv.{getOverallLevel(item)}</span>
               <button
                 type="button"
                 disabled={busy}

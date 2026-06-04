@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react'
-import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals, masterItem } from './srs'
+import { VocabItem, migrateItem, ReviewMode, applyResult, getModeLevelAndDue, setSrsIntervals, masterItemMode } from './srs'
 import type { ContextText } from './progress'
 import {
   supabase,
@@ -22,6 +22,7 @@ import {
   fetchSrsIntervalsConfig,
   fetchUserProgression,
   upsertUserProgression,
+  fetchHelpSeen,
   markHelpSeen as markHelpSeenRemote,
 } from './supabase'
 import type { Lang } from './i18n'
@@ -194,7 +195,7 @@ interface StoreContextType {
   removeVocabItems: (jpWords: string[]) => Promise<void>
   refreshData: () => Promise<void>
   applyReviewResult: (jp: string, mode: ReviewMode, wrongCount: number) => void
-  masterVocabItem: (jp: string) => Promise<void>
+  masterVocabItem: (jp: string, mode: ReviewMode) => Promise<void>
   syncUp: () => Promise<void>
   syncDown: () => Promise<void>
   resetRemoteProgress: () => Promise<void>
@@ -431,11 +432,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /** "Ya me la sé": sets all SRS levels to 8 (Enlightened), due in 4 months, then persists. */
-  const masterVocabItem = useCallback(async (jp: string) => {
+  const masterVocabItem = useCallback(async (jp: string, mode: ReviewMode) => {
     const prevDb = dbRef.current
     const item = prevDb.find(i => i.jp === jp)
     if (!item) return
-    const mastered = masterItem(item)
+    const mastered = masterItemMode(item, mode)
     const nextDb = prevDb.map(i => i.jp === jp ? mastered : i)
     dbRef.current = nextDb
     dispatch({ type: 'SET_DB', payload: nextDb })
@@ -469,8 +470,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_SHOW_SHARED', payload: data.show_shared_sentences ?? true })
         if (data.context_texts?.length > 0) dispatch({ type: 'SET_CONTEXT_TEXTS', payload: data.context_texts })
         if (data.language) dispatch({ type: 'SET_LANG', payload: data.language as Lang })
-        dispatch({ type: 'SET_HELP_SEEN', payload: data.help_seen ?? [] })
       }
+      // help_seen is fetched separately so a missing column never breaks settings
+      const seen = await fetchHelpSeen()
+      dispatch({ type: 'SET_HELP_SEEN', payload: seen })
       const uid = userRef.current?.id
       const prog = uid ? await fetchUserProgression(uid) : null
       if (prog) {

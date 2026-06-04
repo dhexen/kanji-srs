@@ -304,7 +304,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           <button
             type="button"
             onClick={async () => {
-              await masterVocabItem(item.jp)
+              await masterVocabItem(item.jp, mode)
               onMaster(sessionItem)
             }}
             className="text-xs font-semibold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded-lg transition"

@@ -324,12 +324,11 @@ export async function fetchUserSettings(): Promise<{
   context_texts: ContextText[]
   language: string
   tour_v3_done: boolean
-  help_seen: string[]
 } | null> {
   const user = await requireUser()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done, help_seen')
+    .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -346,7 +345,6 @@ export async function fetchUserSettings(): Promise<{
         context_texts: (legacy.context_texts as ContextText[]) ?? [],
         language: legacy.language ?? 'es',
         tour_v3_done: false,
-        help_seen: [],
       }
     }
     console.error('fetchUserSettings:', error)
@@ -362,7 +360,26 @@ export async function fetchUserSettings(): Promise<{
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
     tour_v3_done: data.tour_v3_done ?? false,
-    help_seen: Array.isArray(data.help_seen) ? data.help_seen as string[] : [],
+  }
+}
+
+/**
+ * Read the user's seen help sections. Kept SEPARATE from fetchUserSettings so
+ * that a missing `help_seen` column (migration 018 not applied) never breaks the
+ * loading of critical settings like API keys. Returns [] on any error.
+ */
+export async function fetchHelpSeen(): Promise<string[]> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('help_seen')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (error || !data) return []
+    return Array.isArray(data.help_seen) ? data.help_seen as string[] : []
+  } catch {
+    return []
   }
 }
 
@@ -781,7 +798,6 @@ export async function downloadAccountData(): Promise<{
   context_texts: ContextText[]
   language: string
   tour_v3_done?: boolean
-  help_seen?: string[]
 } | null> {
   // Usar getSession() (caché) en lugar de getUser() (red) — mucho más rápido
   const { data: { session } } = await supabase.auth.getSession()
@@ -818,7 +834,6 @@ export async function downloadAccountData(): Promise<{
     show_shared_sentences: true,
     context_texts: (legacy?.context_texts as ContextText[]) ?? [],
     language: legacy?.language ?? 'es',
-    help_seen: [],
   }
 }
 
