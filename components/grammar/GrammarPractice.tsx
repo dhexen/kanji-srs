@@ -18,7 +18,6 @@ import {
   deleteGrammarSentences,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
-  markGrammarAsStudying,
   fetchSchoolVocabSample,
   fetchWaniKaniVocabSample,
   fetchUserSharedSentences,
@@ -456,15 +455,8 @@ export default function GrammarPractice({
 
   // ── Session start ─────────────────────────────────────────────────────────
   function startSession() {
-    // If first time practicing, mark as studying so it appears in the SRS queue
-    if (!srsStat) {
-      markGrammarAsStudying(grammar.id).then(newStat => {
-        if (newStat) {
-          setSrsStat(newStat)
-          onSrsUpdate?.(newStat)
-        }
-      })
-    }
+    // Note: practising a grammar does NOT add it to the SRS queue — that's done
+    // explicitly via the "📚 Añadir a repasos" button. Practice here is pure drill.
 
     // Merge auto-generated pool with community shared sentences (if enabled)
     const allSentences: GrammarSentence[] = showShared && sharedSentences.length > 0
@@ -558,15 +550,23 @@ export default function GrammarPractice({
       const correctCount   = allResults.filter(Boolean).length
       const wrongCount     = allResults.length - correctCount
       const sessionPassed  = correctCount >= Math.ceil(allResults.length * 0.6)
-      const currentLevel   = srsStat?.level ?? 1
-      const { newLevel, nextReview } = applyGrammarResult(currentLevel, wrongCount)
-      const updated: GrammarSrsStat = { grammar_id: grammar.id, level: newLevel, next_review: nextReview }
-      setNewSrsStat(updated)
-      setSrsStat(updated)
-      onSrsUpdate?.(updated)
-      onSessionEnd?.(grammar.id, wrongCount > 0)
-      try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
-      // Award grammar XP based on session performance
+
+      // Only advance the SRS schedule when this grammar is part of the SRS AND
+      // is actually due. Practising a not-yet-due grammar (or one not in the
+      // SRS queue) is allowed for drilling but must NOT level it up early.
+      const dueNow = !!srsStat && srsStat.next_review <= Date.now()
+      if (dueNow) {
+        const currentLevel = srsStat!.level
+        const { newLevel, nextReview } = applyGrammarResult(currentLevel, wrongCount)
+        const updated: GrammarSrsStat = { grammar_id: grammar.id, level: newLevel, next_review: nextReview }
+        setNewSrsStat(updated)
+        setSrsStat(updated)
+        onSrsUpdate?.(updated)
+        onSessionEnd?.(grammar.id, wrongCount > 0)
+        try { await saveGrammarSrsResult(grammar.id, newLevel, nextReview) } catch { /* offline */ }
+      }
+
+      // Award grammar XP for practising regardless of SRS state
       const xp = grammarXpForSession(correctCount, wrongCount, sessionPassed)
       if (xp > 0) {
         addXP({ grammarXp: xp })
@@ -662,24 +662,37 @@ export default function GrammarPractice({
             </div>
           )}
 
-          {/* SRS level change */}
-          <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {t(lang, 'gp_srs_level')}
-            </p>
-            <LevelDots level={finalLevel} />
-            <p className={`text-sm font-bold ${sessionPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {getSrsLevelLabel(finalLevel, lang)}
-              {sessionPassed
-                ? ` ↑ (+1 ${t(lang, 'gp_level')})`
-                : oldLevel > 0 ? ` ↓ (-1 ${t(lang, 'gp_level')})` : ''}
-            </p>
-            {nr > 0 && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                {t(lang, 'gp_next_review')}: {formatNextReview(nr, lang)}
+          {/* SRS level change — only when this session actually advanced the SRS
+              (i.e. the grammar was due). Otherwise it's drill-only practice. */}
+          {newSrsStat ? (
+            <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                {t(lang, 'gp_srs_level')}
               </p>
-            )}
-          </div>
+              <LevelDots level={finalLevel} />
+              <p className={`text-sm font-bold ${sessionPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {getSrsLevelLabel(finalLevel, lang)}
+                {sessionPassed
+                  ? ` ↑ (+1 ${t(lang, 'gp_level')})`
+                  : oldLevel > 0 ? ` ↓ (-1 ${t(lang, 'gp_level')})` : ''}
+              </p>
+              {nr > 0 && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {t(lang, 'gp_next_review')}: {formatNextReview(nr, lang)}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {lang === 'en'
+                  ? 'Practice only — the SRS level is unchanged (review when it is due).'
+                  : lang === 'ca'
+                    ? 'Només pràctica — el nivell SRS no canvia (es repassa quan toqui).'
+                    : 'Solo práctica — el nivel SRS no cambia (se repasa cuando toque).'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Action buttons */}

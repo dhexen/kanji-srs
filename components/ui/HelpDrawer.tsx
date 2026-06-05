@@ -133,6 +133,9 @@ function HelpGrammar() {
           <Step n={3}>La traducción está oculta por defecto; pulsa <strong>"Ver traducción"</strong> si la necesitas</Step>
           <Step n={4}>Al fallar verás la respuesta correcta y una nota con la explicación del patrón</Step>
         </ol>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          Practicar desde la ficha es solo para entrenar: <strong>no sube de nivel</strong> salvo que la gramática ya esté vencida. El nivel avanza con el <strong>repaso</strong> (solo gramáticas vencidas).
+        </p>
       </div>
 
       <div>
