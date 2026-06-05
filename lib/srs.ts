@@ -301,9 +301,8 @@ export function getHourlyForecast(items: VocabItem[]): HourForecast[] {
   items.filter(i => i.status === 'active').forEach(item => {
     ALL_REVIEW_MODES.forEach(mode => {
       const { due } = getModeLevelAndDue(item, mode)
-      if (due <= nowMs) {
-        hourCounts[currentHour]++
-      } else if (due <= todayEndMs) {
+      // Only count truly upcoming items — already-due items are shown in pendingCount
+      if (due > nowMs && due <= todayEndMs) {
         hourCounts[new Date(due).getHours()]++
       }
     })
