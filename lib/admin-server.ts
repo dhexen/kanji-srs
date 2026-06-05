@@ -145,7 +145,7 @@ export async function listAdminUsers(
   const { data: listData, error: listError } = await service.auth.admin.listUsers({ perPage: 1000 })
   if (listError) throw new AdminApiError(listError.message, 500)
 
-  const { data: roles, error: rolesError } = await service.from('user_roles').select('user_id, role, created_at')
+  const { data: roles, error: rolesError } = await service.from('user_roles').select('user_id, role, created_at, last_seen_at')
   if (rolesError) throw new AdminApiError(rolesError.message, 500)
 
   const roleMap = new Map((roles || []).map(r => [r.user_id, r]))
@@ -202,7 +202,7 @@ export async function listAdminUsers(
       role: (roleRow?.role as 'admin' | 'contributor' | 'user') ?? 'user',
       created_at: roleRow?.created_at ?? u.created_at,
       wordCount: wordCounts[u.id] ?? 0,
-      last_sign_in: u.last_sign_in_at ?? null,
+      last_seen_at: (roleRow as any)?.last_seen_at ?? u.last_sign_in_at ?? null,
       login_count: loginCounts[u.id] ?? null,
     }
   }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

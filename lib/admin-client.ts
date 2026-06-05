@@ -21,7 +21,7 @@ export interface AdminUserRow {
   role: 'admin' | 'contributor' | 'user'
   created_at: string
   wordCount: number
-  last_sign_in?: string | null
+  last_seen_at?: string | null
   login_count?: number | null
 }
 

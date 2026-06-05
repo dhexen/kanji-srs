@@ -686,7 +686,7 @@ export default function AdminClient() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.created_at ? formatDate(user.created_at) : '—'}</td>
-                            <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.last_sign_in ? formatDate(user.last_sign_in) : '—'}</td>
+                            <td className="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{user.last_seen_at ? formatDate(user.last_seen_at) : '—'}</td>
                             <td className="py-3 px-4 text-center">
                               {user.login_count != null
                                 ? <span className="font-semibold text-slate-700">{user.login_count}</span>
