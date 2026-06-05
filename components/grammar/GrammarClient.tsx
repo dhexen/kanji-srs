@@ -6,10 +6,13 @@ import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
-import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs } from '@/lib/supabase'
+import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
+import { generateGrammarSentences } from '@/lib/grammar-generate'
+import { showToast } from '@/components/ui/Toast'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
+import GrammarReviewSession from './GrammarReviewSession'
 import { t } from '@/lib/i18n'
 import { type GrammarSrsStat, getGrammarForecast, formatNextReview, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
 
@@ -23,7 +26,7 @@ type View =
   | { kind: 'list' }
   | { kind: 'detail'; grammar: GrammarPointWithBook }
   | { kind: 'practice'; grammar: GrammarPointWithBook }
-  | { kind: 'srs_queue'; queue: GrammarPointWithBook[] }
+  | { kind: 'srs_queue'; queue: GrammarPointWithBook[]; showShared: boolean }
   | { kind: 'queue_select'; candidates: GrammarPointWithBook[] }
 
 const BOOKS: { key: BookKey; label: string; subtitle: string }[] = [
@@ -162,130 +165,6 @@ function GrammarCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SRS Queue: one sentence per grammar point, loops through the due list
-// ─────────────────────────────────────────────────────────────────────────────
-
-function GrammarSrsQueue({
-  queue: initialQueue,
-  lang,
-  geminiKey,
-  sessionToken,
-  activeVocab,
-  showSharedSentences,
-  onBack,
-  onSrsUpdate,
-  canEdit,
-}: {
-  queue: GrammarPointWithBook[]
-  lang: string
-  geminiKey: string
-  sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
-  showSharedSentences: boolean
-  onBack: () => void
-  onSrsUpdate?: (stat: GrammarSrsStat) => void
-  canEdit?: boolean
-}) {
-  const [localQueue, setLocalQueue] = useState<GrammarPointWithBook[]>([...initialQueue])
-  const [idx, setIdx] = useState(0)
-  // Grammar points that had wrong answers — pending re-queue at end of current pass
-  const pendingRequeueRef = useRef<string[]>([])
-  const uniqueTotal = useRef(initialQueue.length)
-
-  // Called by GrammarPractice when a 5-sentence session finishes
-  function handleSessionEnd(grammarId: string, hadWrongs: boolean) {
-    if (hadWrongs) pendingRequeueRef.current.push(grammarId)
-  }
-
-  // Called when user clicks "Volver" (or "Salir") from GrammarPractice
-  function handleGrammarBack() {
-    const nextIdx = idx + 1
-    // If we've finished the current pass and there are failed items, extend the queue
-    if (nextIdx >= localQueue.length && pendingRequeueRef.current.length > 0) {
-      const grammarMap = new Map(initialQueue.map(g => [g.id, g]))
-      const requeueItems = pendingRequeueRef.current
-        .map((id: string) => grammarMap.get(id))
-        .filter((g): g is GrammarPointWithBook => !!g)
-      setLocalQueue(prev => [...prev, ...requeueItems])
-      pendingRequeueRef.current = []
-    }
-    setIdx(nextIdx)
-  }
-
-  if (initialQueue.length === 0) {
-    return (
-      <div className="space-y-4">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          {t(lang as any, 'gp_back')}
-        </button>
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">✅</p>
-          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{t(lang as any, 'gp_no_due')}</p>
-          <p className="text-sm text-slate-500 mt-1">{t(lang as any, 'gp_no_due_sub')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (idx >= localQueue.length) {
-    return (
-      <div className="space-y-5">
-        <div className="text-center py-10 space-y-3">
-          <p className="text-5xl">🎉</p>
-          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{t(lang as any, 'gp_srs_queue_done')}</p>
-          <p className="text-sm text-slate-500">
-            {t(lang as any, 'gp_srs_queue_reviewed').replace('{n}', String(uniqueTotal.current))}
-          </p>
-        </div>
-        <button
-          onClick={onBack}
-          className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition"
-        >
-          ← {t(lang as any, 'gp_back')}
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {/* Queue progress */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span className="font-semibold">
-          {t(lang as any, 'gp_reviewing_queue').replace('{i}', String(idx + 1)).replace('{n}', String(localQueue.length))}
-        </span>
-        <button onClick={onBack} className="text-slate-400 hover:text-slate-600 transition">
-          {t(lang as any, 'gp_quit')} ✕
-        </button>
-      </div>
-      <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-        <div
-          className="bg-indigo-500 h-full rounded-full transition-all"
-          style={{ width: `${(idx / localQueue.length) * 100}%` }}
-        />
-      </div>
-
-      <GrammarPractice
-        grammar={localQueue[idx]}
-        lang={lang as any}
-        geminiKey={geminiKey}
-        sessionToken={sessionToken}
-        activeVocab={activeVocab}
-        showSharedSentences={showSharedSentences}
-        sessionSize={1}
-        onBack={handleGrammarBack}
-        onSrsUpdate={onSrsUpdate}
-        onSessionEnd={handleSessionEnd}
-        canEdit={canEdit}
-      />
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Queue selection screen
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -293,22 +172,39 @@ function QueueSelect({
   candidates,
   lang,
   srsStats,
+  geminiKey,
+  sessionToken,
+  activeVocab,
+  hasWaniKani,
   onStart,
   onCancel,
 }: {
   candidates: GrammarPointWithBook[]
   lang: string
   srsStats: Map<string, GrammarSrsStat>
-  onStart: (queue: GrammarPointWithBook[]) => void
+  geminiKey: string
+  sessionToken: string
+  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
+  hasWaniKani: boolean
+  onStart: (queue: GrammarPointWithBook[], opts: { showShared: boolean }) => void
   onCancel: () => void
 }) {
   const now = Date.now()
-  const [selected, setSelected] = useState<Set<string>>(
-    new Set(candidates.filter(g => {
-      const s = srsStats.get(g.id)
-      return s && s.next_review <= now
-    }).map(g => g.id))
-  )
+  // All candidates selected by default
+  const [selected, setSelected] = useState<Set<string>>(new Set(candidates.map(g => g.id)))
+  const [useWk, setUseWk] = useState(() => {
+    try { return localStorage.getItem('gp_use_wk_vocab') === 'true' } catch { return false }
+  })
+  const [showShared, setShowShared] = useState(true)
+  const [counts, setCounts] = useState<Map<string, number>>(new Map())
+  const [countsLoading, setCountsLoading] = useState(true)
+  const [generatingId, setGeneratingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchGrammarSentenceCounts(candidates.map(g => g.id))
+      .then(setCounts)
+      .finally(() => setCountsLoading(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggle(id: string) {
     setSelected(prev => {
@@ -316,6 +212,25 @@ function QueueSelect({
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  async function handleGenerate(g: GrammarPointWithBook) {
+    if (!sessionToken) { showToast(t(lang as any, 'gp_need_login'), 'error'); return }
+    setGeneratingId(g.id)
+    try {
+      const { kept } = await generateGrammarSentences({
+        grammar: g, lang: lang as any, geminiKey, sessionToken, activeVocab,
+        useWkVocab: useWk && hasWaniKani,
+      })
+      // Refresh this grammar's count
+      const fresh = await fetchGrammarSentenceCounts([g.id])
+      setCounts(prev => new Map(prev).set(g.id, fresh.get(g.id) ?? 0))
+      showToast(`✓ ${kept} ${lang === 'en' ? 'sentences generated' : lang === 'ca' ? 'frases generades' : 'frases generadas'}`, 'success')
+    } catch (e: any) {
+      showToast(e?.message || 'Error', 'error')
+    } finally {
+      setGeneratingId(null)
+    }
   }
 
   const queue = candidates.filter(g => selected.has(g.id))
@@ -332,25 +247,42 @@ function QueueSelect({
         {t(lang as any, 'gp_back')}
       </button>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
           {t(lang as any, 'gp_select_review_title')}
         </h2>
-        <div className="flex gap-2 text-xs">
-          <button
-            onClick={() => setSelected(new Set(candidates.map(g => g.id)))}
-            className="text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
+        <div className="flex gap-2 text-xs shrink-0">
+          <button onClick={() => setSelected(new Set(candidates.map(g => g.id)))} className="text-indigo-600 dark:text-indigo-400 hover:underline">
             {t(lang as any, 'gp_select_all')}
           </button>
           <span className="text-slate-300 dark:text-slate-600">·</span>
-          <button
-            onClick={() => setSelected(new Set())}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:underline"
-          >
+          <button onClick={() => setSelected(new Set())} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:underline">
             {t(lang as any, 'gp_select_none')}
           </button>
         </div>
+      </div>
+
+      {/* Global generation/review options */}
+      <div className="flex flex-wrap gap-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
+        {hasWaniKani && (
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={useWk}
+              onChange={e => { setUseWk(e.target.checked); try { localStorage.setItem('gp_use_wk_vocab', String(e.target.checked)) } catch { /* incognito */ } }}
+              className="w-3.5 h-3.5 rounded accent-pink-500"
+            />
+            <span className="text-xs text-slate-600 dark:text-slate-400">
+              {lang === 'en' ? 'Use WaniKani vocabulary (when generating)' : lang === 'ca' ? 'Usar vocabulari WaniKani (en generar)' : 'Usar vocabulario WaniKani (al generar)'}
+            </span>
+          </label>
+        )}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={showShared} onChange={e => setShowShared(e.target.checked)} className="w-3.5 h-3.5 rounded accent-violet-500" />
+          <span className="text-xs text-slate-600 dark:text-slate-400">
+            {lang === 'en' ? 'Include community sentences' : lang === 'ca' ? 'Incloure frases de la comunitat' : 'Incluir frases de la comunidad'}
+          </span>
+        </label>
       </div>
 
       <div className="space-y-2">
@@ -359,42 +291,67 @@ function QueueSelect({
           const isDue = stat && stat.next_review <= now
           const isSelected = selected.has(g.id)
           const name = lang === 'ca' ? g.name_ca : lang === 'en' ? g.name_en : g.name_es
+          const count = counts.get(g.id) ?? 0
+          const isGenerating = generatingId === g.id
           return (
             <div
               key={g.id}
-              onClick={() => toggle(g.id)}
-              className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+              className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
                 isSelected
                   ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
-                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-50'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60'
               }`}
             >
-              <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                isSelected
-                  ? 'bg-indigo-600 border-indigo-600'
-                  : 'border-slate-300 dark:border-slate-600'
-              }`}>
-                {isSelected && (
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{g.pattern}</span>
-                  {isDue && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400">
-                      ⏰ {t(lang as any, 'gp_due')}
-                    </span>
-                  )}
-                  {stat && !isDue && (
-                    <span className="text-[10px] text-slate-400">
-                      {formatNextReview(stat.next_review, lang)}
-                    </span>
+              {/* Left: checkbox + info (clickable to toggle) */}
+              <div onClick={() => toggle(g.id)} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                  isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'
+                }`}>
+                  {isSelected && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 truncate">{name}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{g.pattern}</span>
+                    {isDue && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400">
+                        ⏰ {t(lang as any, 'gp_due')}
+                      </span>
+                    )}
+                    {stat && !isDue && (
+                      <span className="text-[10px] text-slate-400">{formatNextReview(stat.next_review, lang)}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">{name}</p>
+                </div>
+              </div>
+
+              {/* Right: sentence count + generate */}
+              <div className="shrink-0 flex items-center gap-2">
+                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-full ${
+                  count === 0
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                }`}>
+                  {countsLoading ? '…' : `${count} ${lang === 'en' ? 'sent.' : 'fr.'}`}
+                </span>
+                <button
+                  onClick={() => handleGenerate(g)}
+                  disabled={isGenerating || !sessionToken}
+                  title={lang === 'en' ? 'Generate more sentences' : lang === 'ca' ? 'Generar més frases' : 'Generar más frases'}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-40 transition"
+                >
+                  {isGenerating ? (
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+                    </svg>
+                  ) : '✨'}
+                  <span className="hidden sm:inline">{lang === 'en' ? 'Generate' : lang === 'ca' ? 'Generar' : 'Generar'}</span>
+                </button>
               </div>
             </div>
           )
@@ -403,7 +360,7 @@ function QueueSelect({
 
       <button
         disabled={queue.length === 0}
-        onClick={() => onStart(queue)}
+        onClick={() => onStart(queue, { showShared })}
         className={`w-full py-3 rounded-xl font-bold text-sm transition ${
           queue.length > 0
             ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
@@ -591,16 +548,14 @@ export default function GrammarClient() {
 
   if (view.kind === 'srs_queue') {
     return (
-      <GrammarSrsQueue
+      <GrammarReviewSession
         queue={view.queue}
         lang={lang}
-        geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
-        activeVocab={activeVocab}
-        showSharedSentences={state.showSharedSentences}
+        srsStats={srsStats}
+        showSharedSentences={view.showShared}
         onBack={() => setView({ kind: 'list' })}
         onSrsUpdate={handleSrsUpdate}
-        canEdit={canEdit}
       />
     )
   }
@@ -611,7 +566,11 @@ export default function GrammarClient() {
         candidates={view.candidates}
         lang={lang}
         srsStats={srsStats}
-        onStart={(queue) => setView({ kind: 'srs_queue', queue })}
+        geminiKey={state.geminiApiKey}
+        sessionToken={sessionToken}
+        activeVocab={activeVocab}
+        hasWaniKani={Boolean(state.waniKaniApiKey)}
+        onStart={(queue, opts) => setView({ kind: 'srs_queue', queue, showShared: opts.showShared })}
         onCancel={() => setView({ kind: 'list' })}
       />
     )
@@ -675,26 +634,18 @@ export default function GrammarClient() {
           </div>
           <div className="shrink-0 flex flex-col gap-1.5 items-end">
             <button
-              disabled={dueGrammarPoints.length === 0}
-              onClick={() => setView({ kind: 'queue_select', candidates: dueGrammarPoints })}
+              disabled={studyingGrammarPoints.length === 0}
+              onClick={() => setView({ kind: 'queue_select', candidates: studyingGrammarPoints })}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                dueGrammarPoints.length > 0
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
+                studyingGrammarPoints.length > 0
+                  ? (dueGrammarPoints.length > 0 ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700') + ' text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {dueGrammarPoints.length > 0
+              {studyingGrammarPoints.length > 0
                 ? `▶ ${t(lang, 'gp_start_review')}`
                 : t(lang, 'gp_up_to_date')}
             </button>
-            {studyingGrammarPoints.length > 0 && (
-              <button
-                onClick={() => setView({ kind: 'queue_select', candidates: studyingGrammarPoints })}
-                className="text-[11px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition underline underline-offset-2"
-              >
-                {t(lang, 'gp_review_any')}
-              </button>
-            )}
           </div>
         </div>
       )}

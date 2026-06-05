@@ -1,0 +1,199 @@
+// Reusable grammar-sentence generation. Extracted from GrammarPractice so both
+// the single-grammar practice view and the SRS review selection screen can
+// generate sentences without duplicating the (large) prompt.
+
+import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import type { Lang } from '@/lib/i18n'
+import { getMeaning } from '@/lib/i18n'
+import type { GrammarSentence } from '@/lib/grammar-srs'
+import {
+  supabase,
+  saveGrammarSentences,
+  trimGrammarSentencesPool,
+  fetchSchoolVocabSample,
+  fetchWaniKaniVocabSample,
+} from '@/lib/supabase'
+
+// Target pool size to save after filtering
+export const TARGET_POOL = 25
+// How many to ask Gemini for (extra buffer so filtering still leaves us with TARGET_POOL)
+export const GENERATE_SIZE = 38
+// Minimum quality score (1–5) to keep a sentence — Gemini self-rates each sentence
+export const QUALITY_THRESHOLD = 4
+// Maximum number of sentences in the shared pool per grammar point.
+export const MAX_POOL = 100
+
+type SimpleVocab = { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }
+
+export interface GenerateGrammarOptions {
+  grammar: GrammarPoint
+  lang: Lang
+  geminiKey: string
+  sessionToken: string
+  /** Fallback vocabulary (the user's active words) if the school sample is empty. */
+  activeVocab: SimpleVocab[]
+  /** Include the student's WaniKani vocabulary in the prompt (sentences become private). */
+  useWkVocab: boolean
+}
+
+export interface GenerateGrammarResult {
+  generated: number
+  kept: number
+}
+
+/**
+ * Generate practice sentences for a grammar point with Gemini, quality-filter
+ * them, and persist to the pool. Sentences generated with WaniKani vocab are
+ * stored as private (only visible to their owner). Throws on API/parse errors.
+ */
+export async function generateGrammarSentences(opts: GenerateGrammarOptions): Promise<GenerateGrammarResult> {
+  const { grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab } = opts
+
+  // Fetch vocabulary samples internally
+  const [schoolSampleRaw, wkSampleRaw] = await Promise.all([
+    fetchSchoolVocabSample(40).catch(() => []),
+    useWkVocab ? fetchWaniKaniVocabSample(40).catch(() => []) : Promise.resolve([]),
+  ])
+
+  const schoolBase: { jp: string; reading: string; meaning: string }[] =
+    schoolSampleRaw.length > 0
+      ? schoolSampleRaw.map(w => ({
+          jp: w.jp,
+          reading: w.reading,
+          meaning:
+            lang === 'ca' ? (w.meaning_ca ?? w.meaning_es) :
+            lang === 'en' ? (w.meaning_en ?? w.meaning_es) :
+            w.meaning_es,
+        }))
+      : activeVocab.map(w => ({ jp: w.jp, reading: w.reading, meaning: getMeaning(w, lang) }))
+
+  const wkVocab = wkSampleRaw.map(w => ({
+    jp: w.word,
+    reading: w.reading,
+    meaning:
+      lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
+      lang === 'en' ? w.meaning_en :
+      (w.meaning_es ?? w.meaning_en),
+  }))
+
+  const schoolSample = [...schoolBase]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, useWkVocab && wkVocab.length > 0 ? 15 : 20)
+    .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
+    .join(', ')
+
+  const wkSample = useWkVocab && wkVocab.length > 0
+    ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 10).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+    : ''
+
+  const vocabSection = wkSample
+    ? `Vocabulario disponible:\n- Del currículo escolar japonés (primaria y secundaria): ${schoolSample}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
+    : `Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${schoolSample || 'vocabulario básico N5'}`
+
+  const prompt = `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
+
+El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
+
+${vocabSection}
+
+Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
+{
+  "sentences": [
+    {
+      "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
+      "before_reading": "lectura completa del before en kana puro, sin kanji",
+      "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
+      "answer_alts": ["variante hiragana aceptable"],
+      "after_jp": "texto después del hueco",
+      "after_reading": "lectura completa del after en kana puro, sin kanji",
+      "translation_es": "traducción COMPLETA y NATURAL al español",
+      "translation_ca": "traducció COMPLETA i NATURAL al català",
+      "translation_en": "COMPLETE and NATURAL English translation",
+      "topic": "uno de: casa, escuela, trabajo, familia, comida, clima, deporte, transporte, ciudad, naturaleza, salud, cotidiano",
+      "vocab_used": ["palabras_del_vocabulario_disponible_que_aparecen_en_la_frase"],
+      "quality": 5
+    }
+  ]
+}
+
+⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
+1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
+2. El sujeto debe ser claro. Ejemplos de frases INCORRECTAS: "La manzana es una" (incompleta), "Ayer es mañana" (sin sentido), "El teléfono come" (ilógica).
+3. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
+
+⚠️ REGLA CRÍTICA sobre el campo "answer":
+- Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
+- NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
+- NUNCA uses kanji en el answer — solo hiragana o katakana
+- Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"  → frase: "私は学生です。" = "Soy estudiante."
+- Ejemplo INCORRECTO → before:"今月", answer:"は七月です" ← MAL: incluye vocabulario con kanji
+- Ejemplo INCORRECTO → before:"りんご", answer:"は", after:"" ← MAL: la frase queda incompleta "りんごは"
+
+⚠️ REGLAS CRÍTICAS sobre las traducciones:
+- Cada traducción debe ser una oración COMPLETA y NATURAL en el idioma destino
+- NUNCA termines en "es una", "es el", "tiene un", "de la" o cualquier fragmento incompleto
+- La traducción en español, català e inglés debe poder leerse sola y tener pleno sentido
+- Si la frase japonesa dice "私はりんごが好きです", la traducción ES "Me gustan las manzanas" NO "Yo la manzana es una"
+
+Campo "quality" — puntuación de coherencia del 1 al 5 (sé MUY ESTRICTO):
+- 5: Frase perfecta — japonés natural, sentido completo, contexto realista, traducción exacta
+- 4: Buena — uso correcto, algún detalle mejorable pero todo tiene sentido
+- 3: Aceptable — uso algo forzado o contexto poco natural pero gramaticalmente correcta
+- 2: Deficiente — frase incompleta, contexto irreal, traducción inexacta o incompleta
+- 1: Incorrecta — errores gramaticales graves, frase sin sentido lógico o traducción imposible
+SIEMPRE asigna calidad 1 a: frases incompletas, traducciones fragmentadas, mezcla de idiomas, información factualmente errónea.
+Sé HONESTO: no todas las frases pueden ser 4-5.
+
+Otras reglas:
+- Frases naturales y correctas, nivel ${grammar.jlpt}
+- Varía sujetos, contextos y vocabulario; usa el vocabulario disponible cuando encaje
+- before_reading y after_reading: solo kana (para mostrar furigana al alumno)
+- ⚠️ REGLA CRÍTICA de lectura: escribe SIEMPRE las partículas con su forma ORTOGRÁFICA, NO fonética: は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" ✓, NO "わたしわがくせい" ✗
+- answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
+- Genera exactamente ${GENERATE_SIZE} frases distintas con sujetos y vocabulario variados`
+
+  const res = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    body: JSON.stringify({ prompt, userApiKey: geminiKey }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Error ${res.status}`)
+  }
+  const data  = await res.json()
+  const clean = data.text.replace(/```json|```/g, '').trim()
+  const parsed = JSON.parse(clean)
+  if (!parsed.sentences?.length) throw new Error('no_sentences')
+
+  const allRaw  = parsed.sentences as any[]
+  const passing = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
+
+  const newSentences: Omit<GrammarSentence, 'id'>[] = passing.slice(0, TARGET_POOL).map(s => ({
+    grammar_id:                     grammar.id,
+    sentence_before:                String(s.before_jp          ?? ''),
+    sentence_before_reading:        String(s.before_reading     ?? ''),
+    sentence_before_alts:           [],
+    sentence_before_reading_alts:   [],
+    sentence_after:                 String(s.after_jp           ?? ''),
+    sentence_after_reading:         String(s.after_reading      ?? ''),
+    answer:                         String(s.answer             ?? grammar.pattern),
+    answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
+    translation_es:                 String(s.translation_es     ?? ''),
+    translation_ca:                 String(s.translation_ca     ?? ''),
+    translation_en:                 String(s.translation_en     ?? ''),
+    topic:                          typeof s.topic === 'string' ? s.topic : undefined,
+    vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
+  }))
+
+  // Sentences generated with WaniKani vocab are private — not visible in the community pool
+  const isPrivate = useWkVocab && wkVocab.length > 0
+  const userId = isPrivate ? (await supabase.auth.getUser()).data.user?.id : undefined
+  await saveGrammarSentences(grammar.id, newSentences, isPrivate ? { isPrivate: true, userId } : undefined)
+  await trimGrammarSentencesPool(grammar.id, MAX_POOL)
+
+  return { generated: allRaw.length, kept: newSentences.length }
+}

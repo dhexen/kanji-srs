@@ -138,7 +138,7 @@ Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 
 
 #### Añadir gramática a tus repasos
 
-En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**. Al pulsarlo, ese punto entra en tu cola SRS y aparecerá en los repasos periódicos. Si ya lo tienes en repasos, verás su nivel actual y un botón **✕** para quitarlo de la cola (sin borrar tu progreso permanentemente).
+En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**. Al pulsarlo, ese punto entra en tu cola SRS y aparecerá en los repasos periódicos. Si ya lo tienes en repasos, verás su nivel actual en la parte superior. Para quitarlo, al final de la ficha hay una opción **"Quitar de repasos"** que te pedirá confirmación antes de hacerlo (así evitas quitarlo sin querer). En los repasos te saldrá **una sola frase por punto gramatical**; si fallas, ese punto volverá a aparecer al final de la sesión.
 
 #### Cómo practicar gramática
 
@@ -152,7 +152,15 @@ En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**.
 
 #### El sistema de repaso de gramática
 
-Al igual que el vocabulario, la gramática tiene su propio sistema de niveles. Cuando practicas un punto gramatical, la app lo añade a tu "cola de repaso de gramática". El banner **"⏰ N puntos de gramática vencidos hoy"** te avisará cuando toca repasar.
+Al igual que el vocabulario, la gramática tiene su propio sistema de niveles. El banner **"⏰ N puntos de gramática vencidos hoy"** te avisará cuando toca repasar.
+
+Al pulsar **"▶ Empezar repaso"** verás una pantalla de selección:
+
+- A la **izquierda**, una casilla por cada gramática que estás estudiando (todas marcadas por defecto). Desmarca las que no quieras repasar.
+- A la **derecha** de cada una, el número de frases disponibles y un botón **"✨ Generar"** para crear más frases de esa gramática.
+- Arriba, dos opciones globales: **"Usar vocabulario WaniKani"** (si tienes la API Key configurada; las frases generadas con WaniKani son privadas) e **"Incluir frases de la comunidad"**.
+
+El repaso es **continuo**: te sale **una sola frase por gramática**, sin pantallas intermedias. Si fallas una, esa gramática vuelve a aparecer al final. Cuando terminas todas, ves un **resumen único** con cuántas acertaste a la primera, cuántas con fallos, y el nivel final de cada gramática con una flecha que indica si subió (↑), bajó (↓) o se mantuvo (=).
 
 #### Reportar una frase incorrecta
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
-import { t, getMeaning } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 import {
   type GrammarSentence,
   type GrammarSrsStat,
@@ -15,9 +15,7 @@ import {
 import {
   supabase,
   fetchGrammarSentences,
-  saveGrammarSentences,
   deleteGrammarSentences,
-  trimGrammarSentencesPool,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
   markGrammarAsStudying,
@@ -34,6 +32,8 @@ import { useStore } from '@/lib/store'
 import GeminiApiTutorial from './GeminiApiTutorial'
 import { grammarXpForSession } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
+import { RubyText } from './RubyText'
+import { generateGrammarSentences, TARGET_POOL, MAX_POOL } from '@/lib/grammar-generate'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
@@ -48,15 +48,7 @@ type SchoolVocabItem = {
 }
 // Minimum sentences needed to start; generate more if below this
 const MIN_POOL = 5
-// Target pool size to save after filtering
-const TARGET_POOL = 25
-// How many to ask Gemini for (extra buffer so filtering still leaves us with TARGET_POOL)
-const GENERATE_SIZE = 38
-// Minimum quality score (1–5) to keep a sentence — Gemini self-rates each sentence
-const QUALITY_THRESHOLD = 4
-// Maximum number of sentences in the shared pool per grammar point.
-// When this is exceeded, the oldest sentences are automatically removed.
-const MAX_POOL = 100
+// TARGET_POOL and MAX_POOL are imported from lib/grammar-generate (single source of truth)
 
 type Phase =
   | 'loading'      // fetching from DB
@@ -79,112 +71,6 @@ interface Props {
   onSrsUpdate?: (stat: GrammarSrsStat) => void
   onSessionEnd?: (grammarId: string, hadWrongs: boolean) => void
   canEdit?: boolean
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Furigana helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-type RubyToken = { base: string; ruby?: string }
-
-/** Returns true for kanji (CJK unified ideographs). */
-function isKanjiChar(ch: string): boolean {
-  const cp = ch.codePointAt(0) ?? 0
-  return (cp >= 0x4e00 && cp <= 0x9fff)   // CJK unified
-      || (cp >= 0x3400 && cp <= 0x4dbf)   // CJK extension A
-}
-
-/**
- * Grammatical particles whose orthographic writing differs from their phonetic
- * reading. AI-generated reading fields sometimes use the phonetic form
- * (e.g. "わ" for は). Accepting both prevents the entire remaining reading
- * from being wrongly assigned to the preceding kanji block.
- */
-const RUBY_PARTICLE_PHONETIC: Record<string, string> = { 'は': 'わ', 'を': 'お', 'へ': 'え' }
-
-/**
- * Splits `text` (kanji/kana mixed) into tokens, each carrying a ruby reading
- * extracted from the flat `reading` string.
- *
- * Algorithm: walk through `text`; when encountering a kana character it must
- * match the same position in `reading` (advance both). Kanji sequences are
- * assigned the reading characters up to the position of the next kana anchor.
- * For grammatical particles (は/を/へ) the phonetic alternative is also
- * accepted as anchor (は→わ, を→お, へ→え) in case the AI stored the
- * phonetic form in the reading field.
- */
-function buildRubyTokens(text: string, reading: string): RubyToken[] {
-  if (!text) return []
-  if (!reading) return [{ base: text }]
-
-  const tokens: RubyToken[] = []
-  let ti = 0  // index into text
-  let ri = 0  // index into reading
-
-  while (ti < text.length) {
-    const ch = text[ti]
-
-    if (!isKanjiChar(ch)) {
-      // Kana / punctuation / ASCII — output as plain span, advance reading by 1
-      tokens.push({ base: ch })
-      ri++
-      ti++
-    } else {
-      // Kanji sequence: collect consecutive kanji
-      let kanjiEnd = ti + 1
-      while (kanjiEnd < text.length && isKanjiChar(text[kanjiEnd])) kanjiEnd++
-
-      // Find the reading for this kanji block:
-      // the reading ends where the next text character (after the kanji block)
-      // appears in the reading string. Also accept the phonetic alternative
-      // for particles (は/わ, を/お, へ/え) to handle AI-generated readings.
-      let readingEnd: number
-      if (kanjiEnd >= text.length) {
-        // Last group — consume the rest of reading
-        readingEnd = reading.length
-      } else {
-        const nextCh = text[kanjiEnd]
-        const phoneticAlt = RUBY_PARTICLE_PHONETIC[nextCh]
-        // Prefer orthographic anchor over phonetic to avoid false early matches
-        // (e.g. 川 reads かわ — the わ must not be mistaken for は's phonetic form).
-        let searchPos = ri + 1
-        while (searchPos < reading.length && reading[searchPos] !== nextCh) searchPos++
-        if (searchPos >= reading.length && phoneticAlt) {
-          searchPos = ri + 1
-          while (searchPos < reading.length && reading[searchPos] !== phoneticAlt) searchPos++
-        }
-        readingEnd = searchPos
-      }
-
-      tokens.push({
-        base: text.slice(ti, kanjiEnd),
-        ruby: reading.slice(ri, readingEnd) || undefined,
-      })
-      ti = kanjiEnd
-      ri = readingEnd
-    }
-  }
-
-  return tokens
-}
-
-/** Renders a Japanese string with ruby furigana above kanji. */
-function RubyText({ text, reading }: { text: string; reading: string }) {
-  const tokens = buildRubyTokens(text, reading)
-  return (
-    <>
-      {tokens.map((tok, i) =>
-        tok.ruby ? (
-          <ruby key={i}>
-            {tok.base}
-            <rt className="text-xs font-normal text-slate-400 tracking-tight">{tok.ruby}</rt>
-          </ruby>
-        ) : (
-          <span key={i}>{tok.base}</span>
-        )
-      )}
-    </>
-  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -432,173 +318,28 @@ export default function GrammarPractice({
     setPhase('ready')
   }
 
-  // ── Sentence generation ───────────────────────────────────────────────────
+  // ── Sentence generation (delegated to lib/grammar-generate) ────────────────
   const generate = useCallback(async () => {
     if (!sessionToken) { setGenError(t(lang, 'gp_need_login')); return }
 
     setPhase('generating')
     setGenError('')
-
-    const targetLang =
-      lang === 'ca' ? 'catalán' :
-      lang === 'en' ? 'inglés'  :
-      'español'
-
-    // Build school vocabulary base
-    const schoolBase: { jp: string; reading: string; meaning: string }[] =
-      schoolVocab.length > 0
-        ? schoolVocab.map(w => ({
-            jp: w.jp,
-            reading: w.reading,
-            meaning:
-              lang === 'ca' ? (w.meaning_ca ?? w.meaning_es) :
-              lang === 'en' ? (w.meaning_en ?? w.meaning_es) :
-              w.meaning_es,
-          }))
-        : activeVocab.map(w => ({
-            jp: w.jp,
-            reading: w.reading,
-            meaning: getMeaning(w, lang),
-          }))
-
-    const schoolSample = [...schoolBase]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, useWkVocab && wkVocab.length > 0 ? 15 : 20)
-      .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
-      .join(', ')
-
-    const wkSample = useWkVocab && wkVocab.length > 0
-      ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 10).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
-      : ''
-
-    const vocabSection = wkSample
-      ? `Vocabulario disponible:\n- Del currículo escolar japonés (primaria y secundaria): ${schoolSample}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
-      : `Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${schoolSample || 'vocabulario básico N5'}`
-
-    const prompt = `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
-
-El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
-
-${vocabSection}
-
-Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
-{
-  "sentences": [
-    {
-      "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
-      "before_reading": "lectura completa del before en kana puro, sin kanji",
-      "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
-      "answer_alts": ["variante hiragana aceptable"],
-      "after_jp": "texto después del hueco",
-      "after_reading": "lectura completa del after en kana puro, sin kanji",
-      "translation_es": "traducción COMPLETA y NATURAL al español",
-      "translation_ca": "traducció COMPLETA i NATURAL al català",
-      "translation_en": "COMPLETE and NATURAL English translation",
-      "topic": "uno de: casa, escuela, trabajo, familia, comida, clima, deporte, transporte, ciudad, naturaleza, salud, cotidiano",
-      "vocab_used": ["palabras_del_vocabulario_disponible_que_aparecen_en_la_frase"],
-      "quality": 5
-    }
-  ]
-}
-
-⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
-2. El sujeto debe ser claro. Ejemplos de frases INCORRECTAS: "La manzana es una" (incompleta), "Ayer es mañana" (sin sentido), "El teléfono come" (ilógica).
-3. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
-
-⚠️ REGLA CRÍTICA sobre el campo "answer":
-- Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
-- NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
-- NUNCA uses kanji en el answer — solo hiragana o katakana
-- Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"  → frase: "私は学生です。" = "Soy estudiante."
-- Ejemplo INCORRECTO → before:"今月", answer:"は七月です" ← MAL: incluye vocabulario con kanji
-- Ejemplo INCORRECTO → before:"りんご", answer:"は", after:"" ← MAL: la frase queda incompleta "りんごは"
-
-⚠️ REGLAS CRÍTICAS sobre las traducciones:
-- Cada traducción debe ser una oración COMPLETA y NATURAL en el idioma destino
-- NUNCA termines en "es una", "es el", "tiene un", "de la" o cualquier fragmento incompleto
-- La traducción en español, català e inglés debe poder leerse sola y tener pleno sentido
-- Si la frase japonesa dice "私はりんごが好きです", la traducción ES "Me gustan las manzanas" NO "Yo la manzana es una"
-
-Campo "quality" — puntuación de coherencia del 1 al 5 (sé MUY ESTRICTO):
-- 5: Frase perfecta — japonés natural, sentido completo, contexto realista, traducción exacta
-- 4: Buena — uso correcto, algún detalle mejorable pero todo tiene sentido
-- 3: Aceptable — uso algo forzado o contexto poco natural pero gramaticalmente correcta
-- 2: Deficiente — frase incompleta, contexto irreal, traducción inexacta o incompleta
-- 1: Incorrecta — errores gramaticales graves, frase sin sentido lógico o traducción imposible
-SIEMPRE asigna calidad 1 a: frases incompletas, traducciones fragmentadas, mezcla de idiomas, información factualmente errónea.
-Sé HONESTO: no todas las frases pueden ser 4-5.
-
-Otras reglas:
-- Frases naturales y correctas, nivel ${grammar.jlpt}
-- Varía sujetos, contextos y vocabulario; usa el vocabulario disponible cuando encaje
-- before_reading y after_reading: solo kana (para mostrar furigana al alumno)
-- ⚠️ REGLA CRÍTICA de lectura: escribe SIEMPRE las partículas con su forma ORTOGRÁFICA, NO fonética: は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" ✓, NO "わたしわがくせい" ✗
-- answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
-- Genera exactamente ${GENERATE_SIZE} frases distintas con sujetos y vocabulario variados`
-
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify({ prompt, userApiKey: geminiKey }),
+      const { generated, kept } = await generateGrammarSentences({
+        grammar,
+        lang,
+        geminiKey,
+        sessionToken,
+        activeVocab,
+        useWkVocab: useWkVocab && wkVocab.length > 0,
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || `Error ${res.status}`)
-      }
-      const data  = await res.json()
-      const clean = data.text.replace(/```json|```/g, '').trim()
-      const parsed = JSON.parse(clean)
-
-      if (!parsed.sentences?.length) throw new Error(t(lang, 'gp_no_sentences'))
-
-      // ── Quality filter ────────────────────────────────────────────────────
-      const allRaw   = parsed.sentences as any[]
-      const passing  = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
-      const discarded = allRaw.length - passing.length
-
-      const newSentences: GrammarSentence[] = passing.slice(0, TARGET_POOL).map(s => ({
-        grammar_id:                     grammar.id,
-        sentence_before:                String(s.before_jp          ?? ''),
-        sentence_before_reading:        String(s.before_reading     ?? ''),
-        sentence_before_alts:           [],
-        sentence_before_reading_alts:   [],
-        sentence_after:                 String(s.after_jp           ?? ''),
-        sentence_after_reading:         String(s.after_reading      ?? ''),
-        answer:                         String(s.answer             ?? grammar.pattern),
-        answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
-        translation_es:                 String(s.translation_es     ?? ''),
-        translation_ca:                 String(s.translation_ca     ?? ''),
-        translation_en:                 String(s.translation_en     ?? ''),
-        topic:                          typeof s.topic === 'string' ? s.topic : undefined,
-        vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
-      }))
-
-      setLastGenStats({ generated: allRaw.length, kept: newSentences.length })
-      if (discarded > 0) {
-        console.info(`[GrammarPractice] Quality filter: ${newSentences.length} kept, ${discarded} discarded (score < ${QUALITY_THRESHOLD})`)
-      }
-
-      // Sentences generated with WaniKani vocab are private — not visible in the community pool
-      const isPrivate = useWkVocab && wkVocab.length > 0
-      await saveGrammarSentences(grammar.id, newSentences, isPrivate
-        ? { isPrivate: true, userId: supabase.auth.getUser ? (await supabase.auth.getUser()).data.user?.id : undefined }
-        : undefined
-      )
-
-      // Trim pool to MAX_POOL, removing the oldest sentences if necessary,
-      // then reload from DB so local state matches the actual shared pool.
-      await trimGrammarSentencesPool(grammar.id, MAX_POOL)
+      setLastGenStats({ generated, kept })
       const updatedPool = await fetchGrammarSentences(grammar.id)
       setSentences(updatedPool)
-
       setPhase('ready')
     } catch (e: unknown) {
-      setGenError(e instanceof Error ? e.message : t(lang, 'gp_gen_error'))
+      const msg = e instanceof Error ? e.message : ''
+      setGenError(msg === 'no_sentences' ? t(lang, 'gp_no_sentences') : (msg || t(lang, 'gp_gen_error')))
       setPhase('ready')
     }
   }, [grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab, wkVocab]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -133,6 +133,7 @@ interface Props {
 
 export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit, srsStat, onAddToSrs, onRemoveFromSrs }: Props) {
   const [practiceMode, setPracticeMode] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   // ── Practice mode: render GrammarPractice in place of the detail ──────────
   if (practiceMode) {
@@ -193,21 +194,12 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
           <p className="text-base font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{grammar.pattern}</p>
         </div>
 
-        {/* SRS status + add/remove button */}
+        {/* SRS status badge (add button only — remove is at the bottom of the page) */}
         {onAddToSrs && onRemoveFromSrs && (
           srsStat ? (
-            <div className="shrink-0 flex items-center gap-1.5">
-              <span className="hidden sm:flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-lg">
-                📚 {getSrsLevelLabel(srsStat.level, lang)}
-              </span>
-              <button
-                onClick={onRemoveFromSrs}
-                title={lang === 'en' ? 'Remove from reviews' : lang === 'ca' ? 'Treure dels repassos' : 'Quitar de repasos'}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"
-              >
-                ✕
-              </button>
-            </div>
+            <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-lg">
+              📚 {getSrsLevelLabel(srsStat.level, lang)}
+            </span>
           ) : (
             <button
               onClick={onAddToSrs}
@@ -278,6 +270,47 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         activeVocab={activeVocab}
         canEdit={canEdit}
       />
+
+      {/* Remove from SRS — shown only when in SRS, at the bottom to avoid accidental taps */}
+      {srsStat && onRemoveFromSrs && (
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+          {confirmRemove ? (
+            <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4 space-y-3">
+              <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">
+                {lang === 'en' ? '⚠️ Remove from reviews?' : lang === 'ca' ? '⚠️ Treure dels repassos?' : '⚠️ ¿Quitar de repasos?'}
+              </p>
+              <p className="text-xs text-rose-700 dark:text-rose-400 leading-relaxed">
+                {lang === 'en'
+                  ? `This will remove "${grammar.pattern}" from your review queue and reset its level. It won't appear in reviews again until you add it back.`
+                  : lang === 'ca'
+                    ? `Això traurà "${grammar.pattern}" de la teva cua de repassos i en reiniciarà el nivell. No tornarà a aparèixer als repassos fins que el tornis a afegir.`
+                    : `Esto eliminará "${grammar.pattern}" de tu cola de repasos y reiniciará su nivel. No volverá a aparecer en repasos hasta que lo vuelvas a añadir.`}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { onRemoveFromSrs(); setConfirmRemove(false) }}
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition"
+                >
+                  {lang === 'en' ? 'Yes, remove' : lang === 'ca' ? 'Sí, treure' : 'Sí, quitar'}
+                </button>
+                <button
+                  onClick={() => setConfirmRemove(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold transition"
+                >
+                  {lang === 'en' ? 'Cancel' : lang === 'ca' ? 'Cancel·lar' : 'Cancelar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmRemove(true)}
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition"
+            >
+              {lang === 'en' ? 'Remove from reviews' : lang === 'ca' ? 'Treure dels repassos' : 'Quitar de repasos'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

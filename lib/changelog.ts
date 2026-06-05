@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Repaso de gramática continuo con resumen final',
+        description: 'El repaso SRS de gramática ahora es una sola sesión continua: una frase por gramática, sin pantallas intermedias. Al terminar ves un único resumen con aciertos a la primera, fallos y el nivel final de cada gramática (con flecha de subida/bajada). La pantalla de inicio se simplifica: una sola lista con casillas (todas marcadas por defecto), un botón "generar más" por gramática y dos opciones globales (vocabulario WaniKani y frases de la comunidad).',
+      },
+      {
         type: 'new',
         title: 'Práctica de gramática estilo Bunpro',
         description: 'La práctica de gramática ahora muestra la frase completa en japonés con un hueco para rellenar solo la parte gramatical, en lugar de tener que escribir la frase entera. Al fallar se muestra la respuesta correcta y una nota gramatical con la explicación del patrón.',
@@ -27,7 +32,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       {
         type: 'new',
         title: 'Botón "Añadir a repasos" en fichas de gramática',
-        description: 'Cada ficha de gramática tiene ahora un botón "📚 Añadir a repasos" para incluirla en el SRS. También aparece el nivel actual y un botón ✕ para quitarla de los repasos en cualquier momento.',
+        description: 'Cada ficha de gramática tiene ahora un botón "📚 Añadir a repasos" para incluirla en el SRS, y muestra su nivel actual. Para quitarla, al final de la ficha hay una opción "Quitar de repasos" que pide confirmación antes de hacerlo. En los repasos sale una sola frase por punto gramatical.',
       },
       {
         type: 'new',

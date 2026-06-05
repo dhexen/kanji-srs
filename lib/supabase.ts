@@ -1433,6 +1433,29 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
 }
 
 /**
+ * Count how many sentences each grammar point has in the pool, in a single query.
+ * Respects RLS (the user's own private sentences are counted; others' are not).
+ */
+export async function fetchGrammarSentenceCounts(ids: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  if (ids.length === 0) return counts
+  try {
+    const { data, error } = await supabase
+      .from('grammar_sentences')
+      .select('grammar_id')
+      .in('grammar_id', ids)
+    if (error) { console.warn('fetchGrammarSentenceCounts:', error.message); return counts }
+    for (const row of data ?? []) {
+      const id = String((row as { grammar_id: string }).grammar_id)
+      counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+  } catch {
+    // table might not exist yet
+  }
+  return counts
+}
+
+/**
  * Batch-insert new sentences into the pool.
  * Pass isPrivate=true + userId to keep sentences private (e.g. when generated with WaniKani vocab).
  */

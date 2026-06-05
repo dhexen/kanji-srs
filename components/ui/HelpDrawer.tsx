@@ -121,7 +121,7 @@ function HelpGrammar() {
       <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Añadir a repasos</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          En la ficha de cada punto gramatical pulsa <strong>"📚 Añadir a repasos"</strong> para incluirlo en tu SRS. Verás su nivel SRS actual y podrás quitarlo con el botón <strong>✕</strong> en cualquier momento.
+          En la ficha de cada punto gramatical pulsa <strong>"📚 Añadir a repasos"</strong> para incluirlo en tu SRS y verás su nivel actual. Para quitarlo, al final de la ficha hay un enlace <strong>"Quitar de repasos"</strong> que pide confirmación antes de hacerlo.
         </p>
       </div>
 
@@ -150,10 +150,12 @@ function HelpGrammar() {
       </div>
 
       <div>
-        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">El sistema SRS de gramática</h3>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">El repaso SRS de gramática</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          La gramática tiene su propio SRS de <strong>8 niveles</strong> (de 4h a 1 mes).
-          Si aciertas ≥60% de la sesión, subes nivel. Si no, bajas.
+          Pulsa <strong>"▶ Empezar repaso"</strong> y verás una lista con casillas (todas marcadas por defecto) para elegir qué gramáticas repasar, con un botón <strong>"✨ Generar"</strong> por fila y dos opciones globales (WaniKani y frases de la comunidad).
+        </p>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-2">
+          El repaso es continuo: <strong>una frase por gramática</strong>, sin pantallas intermedias. Al final ves un resumen con aciertos, fallos y el nivel de cada gramática (↑/↓). Si fallas una, vuelve a salir al final.
         </p>
       </div>
 
