@@ -295,6 +295,7 @@ function NavInner() {
   // ── Sidebar (all users) ───────────────────────────────────────────────────
   const profileSubItems: SubItem[] = [
     { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
+    { href: '/stats?tab=reports',  icon: '🎫', label: 'Mis reportes',                            tabKey: 'reports',  isDefault: false, badge: false },
     { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
     { href: '/stats?tab=account',  icon: '👤', label: stripEmoji(t(lang, 'stats_tab_account')),  tabKey: 'account',  isDefault: false, badge: !state.user },
   ]

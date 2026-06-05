@@ -1932,6 +1932,80 @@ export async function submitFeedbackReport(payload: {
   if (error) throw new Error(error.message)
 }
 
+// ── My reports (ticketing view for the user's own profile) ─────────────────────
+
+export interface MyFeedbackTicket {
+  id: string
+  kind: 'feedback'
+  type: 'bug' | 'mejora'
+  section: string
+  description: string
+  status: 'open' | 'resolved'
+  admin_response: string | null
+  created_at: string
+  resolved_at: string | null
+}
+
+export interface MyVocabTicket {
+  id: string
+  kind: 'vocab'
+  word: string
+  field: 'reading' | 'meaning' | 'kanji' | 'general'
+  description: string | null
+  status: 'open' | 'resolved'
+  created_at: string
+  resolved_at: string | null
+}
+
+export type MyTicket = MyFeedbackTicket | MyVocabTicket
+
+/**
+ * Fetch the current user's own reports (feedback + vocab) so they can track
+ * their status in their profile. Returns [] for a table on any error
+ * (e.g. migration 019 not applied yet).
+ */
+export async function fetchMyReports(): Promise<MyTicket[]> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  const [fb, vr] = await Promise.all([
+    supabase.from('feedback_reports')
+      .select('id, type, section, description, status, admin_response, created_at, resolved_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase.from('vocab_reports')
+      .select('id, word, field, description, status, created_at, resolved_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const feedback: MyTicket[] = (fb.error ? [] : (fb.data ?? [])).map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    kind: 'feedback' as const,
+    type: r.type as 'bug' | 'mejora',
+    section: String(r.section ?? ''),
+    description: String(r.description ?? ''),
+    status: (r.status as 'open' | 'resolved') ?? 'open',
+    admin_response: r.admin_response ? String(r.admin_response) : null,
+    created_at: String(r.created_at),
+    resolved_at: r.resolved_at ? String(r.resolved_at) : null,
+  }))
+
+  const vocab: MyTicket[] = (vr.error ? [] : (vr.data ?? [])).map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    kind: 'vocab' as const,
+    word: String(r.word ?? ''),
+    field: (r.field as 'reading' | 'meaning' | 'kanji' | 'general') ?? 'general',
+    description: r.description ? String(r.description) : null,
+    status: (r.status as 'open' | 'resolved') ?? 'open',
+    created_at: String(r.created_at),
+    resolved_at: r.resolved_at ? String(r.resolved_at) : null,
+  }))
+
+  return [...feedback, ...vocab].sort((a, b) => b.created_at.localeCompare(a.created_at))
+}
+
 // ── Progression (XP / levels) ──────────────────────────────────────────────────
 import type { UserProgression } from './progression'
 

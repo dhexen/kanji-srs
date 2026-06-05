@@ -490,6 +490,7 @@ export interface FeedbackReport {
   section: string
   description: string
   status: 'open' | 'resolved'
+  admin_response?: string | null
   created_at: string
 }
 
@@ -511,12 +512,12 @@ export async function fetchPendingReportsCount(): Promise<PendingReportsCount> {
   return parseAdminResponse<PendingReportsCount>(res)
 }
 
-export async function updateFeedbackStatus(id: string, status: 'open' | 'resolved'): Promise<void> {
+export async function updateFeedbackStatus(id: string, status: 'open' | 'resolved', adminResponse?: string): Promise<void> {
   const headers = await adminAuthHeaders()
   const res = await fetch('/api/admin/feedback', {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({ id, status }),
+    body: JSON.stringify({ id, status, admin_response: adminResponse }),
   })
   await parseAdminResponse<{ ok: boolean }>(res)
 }

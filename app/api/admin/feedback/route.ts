@@ -18,11 +18,16 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const { service } = await requireAdmin(request)
-    const { id, status } = await request.json()
+    const { id, status, admin_response } = await request.json()
     if (!id || !status) throw new AdminApiError('Faltan campos', 400)
+
+    const patch: Record<string, unknown> = { status }
+    if (typeof admin_response === 'string') patch.admin_response = admin_response.trim() || null
+    patch.resolved_at = status === 'resolved' ? new Date().toISOString() : null
+
     const { error } = await service
       .from('feedback_reports')
-      .update({ status })
+      .update(patch)
       .eq('id', id)
     if (error) throw new AdminApiError(error.message, 500)
     return NextResponse.json({ ok: true })

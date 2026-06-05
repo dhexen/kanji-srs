@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest) {
     if (!id || !status) throw new AdminApiError('Faltan campos', 400)
     const { error } = await service
       .from('vocab_reports')
-      .update({ status })
+      .update({ status, resolved_at: status === 'resolved' ? new Date().toISOString() : null })
       .eq('id', id)
     if (error) throw new AdminApiError(error.message, 500)
     return NextResponse.json({ ok: true })

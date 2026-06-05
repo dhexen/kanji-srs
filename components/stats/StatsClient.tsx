@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
-import { fetchKnownGrammar, getWaniKaniSyncStatus } from '@/lib/supabase'
+import { fetchKnownGrammar, getWaniKaniSyncStatus, fetchMyReports, type MyTicket } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
 import { getOverallLevel } from '@/lib/srs'
@@ -13,7 +13,7 @@ import { getOverallLevel } from '@/lib/srs'
 // Total grammar points (MNN1: 73 + MNN2: 48)
 const TOTAL_GRAMMAR_POINTS = 121
 
-type TabKey = 'stats' | 'settings' | 'account'
+type TabKey = 'stats' | 'settings' | 'account' | 'reports'
 
 // ─── Mini circular progress ring ─────────────────────────────────────────────
 function ProgressRing({
@@ -179,19 +179,111 @@ function VocabPoolManager({ lang }: { lang: Lang }) {
   )
 }
 
+// ─── My reports — ticketing view for the user ─────────────────────────────────
+function MyReportsTab({ lang }: { lang: Lang }) {
+  const [tickets, setTickets] = useState<MyTicket[] | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchMyReports()
+      .then(setTickets)
+      .catch(() => setTickets([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const FIELD_LABEL: Record<string, string> = {
+    reading: 'Lectura', meaning: 'Significado', kanji: 'Kanji', general: 'General',
+  }
+
+  function fmtDate(s: string) {
+    return new Date(s).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-4">
+      <div>
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">🎫 Mis reportes</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+          Aquí ves el estado de los errores y sugerencias que has enviado. Cuando un administrador
+          los resuelve, aparecen como «Resuelto» (con su respuesta si la hay).
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="text-center text-slate-400 py-10">
+          <div className="text-2xl mb-2">⏳</div>
+          <p className="text-sm">Cargando tus reportes…</p>
+        </div>
+      ) : !tickets || tickets.length === 0 ? (
+        <div className="text-center text-slate-400 py-10">
+          <div className="text-3xl mb-2">🎫</div>
+          <p className="text-sm">Todavía no has enviado ningún reporte.</p>
+          <p className="text-xs mt-1">Usa el botón «🐛 Reportar» de la barra superior o el icono de bandera en los repasos.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map(tk => {
+            const isFeedback = tk.kind === 'feedback'
+            const typeBadge = isFeedback
+              ? (tk.type === 'bug'
+                  ? { label: '🐛 Bug', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' }
+                  : { label: '✨ Mejora', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' })
+              : { label: `🚩 ${FIELD_LABEL[tk.field] ?? 'Error'}`, color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' }
+
+            return (
+              <div key={`${tk.kind}-${tk.id}`} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeBadge.color}`}>{typeBadge.label}</span>
+                  {isFeedback
+                    ? <span className="text-[11px] text-sky-600 dark:text-sky-400">{tk.section}</span>
+                    : <span className="text-[11px] text-slate-500 kanji-font">{tk.word}</span>}
+                  <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    tk.status === 'resolved'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                  }`}>
+                    {tk.status === 'resolved' ? '✓ Resuelto' : '⏳ Abierto'}
+                  </span>
+                </div>
+
+                {tk.description && (
+                  <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-snug">{tk.description}</p>
+                )}
+
+                {/* Admin response (the "message" to the user) */}
+                {isFeedback && tk.admin_response && (
+                  <div className="rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 p-3">
+                    <p className="text-[10px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wide mb-1">💬 Respuesta del equipo</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{tk.admin_response}</p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                  <span>Enviado: {fmtDate(tk.created_at)}</span>
+                  {tk.resolved_at && <span>· Resuelto: {fmtDate(tk.resolved_at)}</span>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
   const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey, updateWaniKaniKey, setSimulatedRole } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
-  const [activeTab, setActiveTab] = useState<TabKey>(
-    tabParam === 'settings' ? 'settings' : tabParam === 'account' ? 'account' : 'stats'
-  )
+  const resolveTab = (p: TabKey | null): TabKey =>
+    p === 'settings' ? 'settings' : p === 'account' ? 'account' : p === 'reports' ? 'reports' : 'stats'
+  const [activeTab, setActiveTab] = useState<TabKey>(resolveTab(tabParam))
 
   // Sync tab with URL param changes (when nav link is clicked)
   useEffect(() => {
-    setActiveTab(tabParam === 'settings' ? 'settings' : tabParam === 'account' ? 'account' : 'stats')
+    setActiveTab(resolveTab(tabParam))
   }, [tabParam])
   const [authLoading, setAuthLoading] = useState(false)
   const [geminiKey, setGeminiKey] = useState(state.geminiApiKey ?? '')
@@ -370,6 +462,7 @@ export default function StatsClient() {
   // ── Tab definitions ────────────────────────────────────────────────────────
   const tabs: { key: TabKey; label: string; badge?: boolean }[] = [
     { key: 'stats',    label: t(lang, 'stats_tab_stats') },
+    { key: 'reports',  label: '🎫 Mis reportes' },
     { key: 'settings', label: t(lang, 'stats_tab_settings') },
     { key: 'account',  label: t(lang, 'stats_tab_account'), badge: !state.user },
   ]
@@ -536,6 +629,9 @@ export default function StatsClient() {
           <ProgressClient />
         </div>
       )}
+
+      {/* ── TAB: Mis reportes ─────────────────────────────────────────────── */}
+      {activeTab === 'reports' && <MyReportsTab lang={lang} />}
 
       {/* ── TAB: Ajustes ──────────────────────────────────────────────────── */}
       {activeTab === 'settings' && (
