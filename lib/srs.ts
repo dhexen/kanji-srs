@@ -315,7 +315,7 @@ export function getHourlyForecast(items: VocabItem[]): HourForecast[] {
       due,
       isCurrent: hour === currentHour,
     }))
-    .filter(h => h.due > 0)
+    .filter(h => h.due > 0 && h.hour > currentHour)
 }
 
 // Returns meaning in the correct language for display
