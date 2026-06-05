@@ -181,6 +181,10 @@ Si durante la práctica encuentras una frase que parece incorrecta o mal constru
 - **Ocultar dominadas**: esconde los puntos que ya marcaste como "me la sé"
 - **📚 Estudiando**: muestra solo los puntos que estás practicando activamente
 
+#### Generación de frases y reintentos
+
+Cuando generas frases de práctica con IA y la API de Gemini está saturada (da timeouts), la app **reintenta automáticamente** hasta 5 veces, así no tienes que estar pulsando "Generar" una y otra vez. Verás el número de intento mientras lo hace. Si el problema es que te has **quedado sin cuota** de la API, aparece un aviso que puedes cerrar con la **✕** (y que se mantiene hasta que lo cierres).
+
 #### Ejemplos con IA y vocabulario WaniKani
 
 En la ficha de cada punto gramatical hay una sección **"Ejemplos con IA"** que genera frases de ejemplo usando tu vocabulario activo. Si tienes configurada tu API Key de WaniKani, aparecerá un checkbox **"Usar vocabulario WaniKani"** que permite que la IA incluya también palabras de tu progreso en WaniKani al generar los ejemplos. Esta opción está disponible tanto en los ejemplos del detalle como en la práctica de frases.

@@ -8,7 +8,7 @@ import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
 import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
-import { generateGrammarSentences } from '@/lib/grammar-generate'
+import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS } from '@/lib/grammar-generate'
 import { showToast } from '@/components/ui/Toast'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
@@ -199,6 +199,9 @@ function QueueSelect({
   const [counts, setCounts] = useState<Map<string, number>>(new Map())
   const [countsLoading, setCountsLoading] = useState(true)
   const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [genAttempt, setGenAttempt] = useState<{ n: number; max: number } | null>(null)
+  // Persistent dismissable error (e.g. out of quota) shown at the top of the screen
+  const [genErrorMsg, setGenErrorMsg] = useState('')
 
   useEffect(() => {
     fetchGrammarSentenceCounts(candidates.map(g => g.id))
@@ -217,19 +220,36 @@ function QueueSelect({
   async function handleGenerate(g: GrammarPointWithBook) {
     if (!sessionToken) { showToast(t(lang as any, 'gp_need_login'), 'error'); return }
     setGeneratingId(g.id)
+    setGenAttempt({ n: 1, max: DEFAULT_GEN_MAX_ATTEMPTS })
     try {
       const { kept } = await generateGrammarSentences({
         grammar: g, lang: lang as any, geminiKey, sessionToken, activeVocab,
         useWkVocab: useWk && hasWaniKani,
+        onAttempt: (n, max) => setGenAttempt({ n, max }),
       })
-      // Refresh this grammar's count
       const fresh = await fetchGrammarSentenceCounts([g.id])
       setCounts(prev => new Map(prev).set(g.id, fresh.get(g.id) ?? 0))
       showToast(`✓ ${kept} ${lang === 'en' ? 'sentences generated' : lang === 'ca' ? 'frases generades' : 'frases generadas'}`, 'success')
     } catch (e: any) {
-      showToast(e?.message || 'Error', 'error')
+      const kind = e instanceof GrammarGenerateError ? e.kind : 'transient'
+      if (kind === 'quota') {
+        setGenErrorMsg(lang === 'en'
+          ? 'No Gemini quota left. Add your own API key in your profile, or try again later.'
+          : lang === 'ca'
+            ? 'Sense quota de Gemini. Afegeix la teva pròpia API key al perfil, o prova-ho més tard.'
+            : 'Sin cuota de Gemini disponible. Añade tu propia API key en tu perfil, o inténtalo más tarde.')
+      } else if (kind === 'no_sentences') {
+        showToast(t(lang as any, 'gp_no_sentences'), 'error')
+      } else { // exhausted / auth / transient
+        setGenErrorMsg(lang === 'en'
+          ? `"${g.pattern}": the API is saturated and did not respond after ${DEFAULT_GEN_MAX_ATTEMPTS} attempts. Try again in a moment.`
+          : lang === 'ca'
+            ? `"${g.pattern}": l'API està saturada i no ha respost després de ${DEFAULT_GEN_MAX_ATTEMPTS} intents. Torna-ho a provar d'aquí una estona.`
+            : `"${g.pattern}": la API está saturada y no respondió tras ${DEFAULT_GEN_MAX_ATTEMPTS} intentos. Inténtalo de nuevo en un momento.`)
+      }
     } finally {
       setGeneratingId(null)
+      setGenAttempt(null)
     }
   }
 
@@ -246,6 +266,14 @@ function QueueSelect({
         </svg>
         {t(lang as any, 'gp_back')}
       </button>
+
+      {/* Persistent dismissable generation error (quota / saturated API) */}
+      {genErrorMsg && (
+        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
+          <span className="flex-1 leading-relaxed">{genErrorMsg}</span>
+          <button onClick={() => setGenErrorMsg('')} aria-label="Cerrar" className="shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 font-bold leading-none text-base">✕</button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
@@ -350,7 +378,11 @@ function QueueSelect({
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
                     </svg>
                   ) : '✨'}
-                  <span className="hidden sm:inline">{lang === 'en' ? 'Generate' : lang === 'ca' ? 'Generar' : 'Generar'}</span>
+                  <span className="hidden sm:inline">
+                    {isGenerating && genAttempt && genAttempt.n > 1
+                      ? `${genAttempt.n}/${genAttempt.max}`
+                      : (lang === 'en' ? 'Generate' : lang === 'ca' ? 'Generar' : 'Generar')}
+                  </span>
                 </button>
               </div>
             </div>

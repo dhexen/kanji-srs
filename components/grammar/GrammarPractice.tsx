@@ -32,7 +32,7 @@ import GeminiApiTutorial from './GeminiApiTutorial'
 import { grammarXpForSession } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
 import { RubyText } from './RubyText'
-import { generateGrammarSentences, TARGET_POOL, MAX_POOL } from '@/lib/grammar-generate'
+import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS, TARGET_POOL, MAX_POOL } from '@/lib/grammar-generate'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
@@ -99,6 +99,22 @@ function LevelDots({ level, max = 7 }: { level: number; max?: number }) {
   )
 }
 
+/** Dismissable error banner (persists until the user closes it with the ✕). */
+function GenErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
+      <span className="flex-1 leading-relaxed">{message}</span>
+      <button
+        onClick={onDismiss}
+        aria-label="Cerrar"
+        className="shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 font-bold leading-none text-base"
+      >
+        ✕
+      </button>
+    </div>
+  )
+}
+
 function SpinnerScreen({ msg }: { msg: string }) {
   return (
     <div className="flex items-center justify-center py-16">
@@ -159,6 +175,8 @@ export default function GrammarPractice({
   const [showFurigana, setShowFurigana]     = useState(false)
   const [sessionResults, setSessionResults] = useState<boolean[]>([])
   const [genError, setGenError]             = useState('')
+  // Generation retry progress: { n, max } while attempting, null otherwise
+  const [genAttempt, setGenAttempt]         = useState<{ n: number; max: number } | null>(null)
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
   const [xpGained, setXpGained]             = useState<number | null>(null)
   const [xpToastKey, setXpToastKey]         = useState(0)
@@ -323,6 +341,7 @@ export default function GrammarPractice({
 
     setPhase('generating')
     setGenError('')
+    setGenAttempt({ n: 1, max: DEFAULT_GEN_MAX_ATTEMPTS })
     try {
       const { generated, kept } = await generateGrammarSentences({
         grammar,
@@ -331,15 +350,37 @@ export default function GrammarPractice({
         sessionToken,
         activeVocab,
         useWkVocab: useWkVocab && wkVocab.length > 0,
+        onAttempt: (n, max) => setGenAttempt({ n, max }),
       })
       setLastGenStats({ generated, kept })
       const updatedPool = await fetchGrammarSentences(grammar.id)
       setSentences(updatedPool)
       setPhase('ready')
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : ''
-      setGenError(msg === 'no_sentences' ? t(lang, 'gp_no_sentences') : (msg || t(lang, 'gp_gen_error')))
+      const kind = e instanceof GrammarGenerateError ? e.kind : 'transient'
+      const msg  = e instanceof Error ? e.message : ''
+      let display: string
+      if (kind === 'quota') {
+        display = lang === 'en'
+          ? 'No Gemini quota left. Add your own API key in your profile, or try again later.'
+          : lang === 'ca'
+            ? 'Sense quota de Gemini. Afegeix la teva pròpia API key al perfil, o prova-ho més tard.'
+            : 'Sin cuota de Gemini disponible. Añade tu propia API key en tu perfil, o inténtalo más tarde.'
+      } else if (kind === 'auth') {
+        display = msg || t(lang, 'gp_gen_error')
+      } else if (kind === 'no_sentences') {
+        display = t(lang, 'gp_no_sentences')
+      } else { // exhausted / transient
+        display = lang === 'en'
+          ? `The API is saturated and did not respond after ${DEFAULT_GEN_MAX_ATTEMPTS} attempts. Try again in a moment.`
+          : lang === 'ca'
+            ? `L'API està saturada i no ha respost després de ${DEFAULT_GEN_MAX_ATTEMPTS} intents. Torna-ho a provar d'aquí una estona.`
+            : `La API está saturada y no respondió tras ${DEFAULT_GEN_MAX_ATTEMPTS} intentos. Inténtalo de nuevo en un momento.`
+      }
+      setGenError(display)
       setPhase('ready')
+    } finally {
+      setGenAttempt(null)
     }
   }, [grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab, wkVocab]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -608,7 +649,14 @@ export default function GrammarPractice({
     : null
 
   // ── Render: Generating ────────────────────────────────────────────────────
-  if (phase === 'generating') return <SpinnerScreen msg={t(lang, 'gp_generating')} />
+  if (phase === 'generating') {
+    const attemptMsg = genAttempt && genAttempt.n > 1
+      ? (lang === 'en' ? `The API is busy — retrying (${genAttempt.n}/${genAttempt.max})…`
+         : lang === 'ca' ? `L'API està ocupada — reintentant (${genAttempt.n}/${genAttempt.max})…`
+         : `La API está ocupada — reintentando (${genAttempt.n}/${genAttempt.max})…`)
+      : t(lang, 'gp_generating')
+    return <SpinnerScreen msg={attemptMsg} />
+  }
 
   // ── Render: Session Complete ──────────────────────────────────────────────
   if (phase === 'complete') {
@@ -739,9 +787,7 @@ export default function GrammarPractice({
                 </p>
               )}
               {genError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
-                  {genError}
-                </div>
+                <GenErrorBanner message={genError} onDismiss={() => setGenError('')} />
               )}
             </div>
 
@@ -867,9 +913,7 @@ export default function GrammarPractice({
         </div>
 
         {genError && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
-            {genError}
-          </div>
+          <GenErrorBanner message={genError} onDismiss={() => setGenError('')} />
         )}
 
         {/* API Key tutorial — shown when the user has no key but there are already sentences in the pool */}

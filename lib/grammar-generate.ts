@@ -25,6 +25,38 @@ export const MAX_POOL = 100
 
 type SimpleVocab = { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }
 
+// Default number of attempts when the API is temporarily unavailable/overloaded.
+export const DEFAULT_GEN_MAX_ATTEMPTS = 5
+
+/** Why a generation failed. Drives retry behaviour and the UI message. */
+export type GenerateErrorKind =
+  | 'transient'  // timeout / overload / 5xx / network → retryable
+  | 'quota'      // out of quota / rate limited → permanent for now (don't retry)
+  | 'auth'       // bad key / forbidden / bad request → permanent
+  | 'exhausted'  // retried the max number of times and still failing
+  | 'no_sentences' // API replied but produced nothing usable
+
+export class GrammarGenerateError extends Error {
+  kind: GenerateErrorKind
+  constructor(message: string, kind: GenerateErrorKind) {
+    super(message)
+    this.name = 'GrammarGenerateError'
+    this.kind = kind
+  }
+}
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** Classify an /api/gemini error response into transient vs permanent. */
+function classifyGeminiError(status: number, message: string): GrammarGenerateError {
+  const m = (message || '').toLowerCase()
+  const isQuota = m.includes('quota') || m.includes('resource_exhausted') || m.includes('exceeded') || m.includes('límite de solicitudes') || m.includes('limit')
+  if (status === 429) return new GrammarGenerateError(message || 'Límite de la API alcanzado', isQuota ? 'quota' : 'transient')
+  if (status === 401 || status === 403 || status === 400) return new GrammarGenerateError(message || 'Error de autenticación con la API', 'auth')
+  if (status >= 500 || status === 408) return new GrammarGenerateError(message || `La API está saturada (${status})`, 'transient')
+  return new GrammarGenerateError(message || `Error ${status}`, 'transient')
+}
+
 export interface GenerateGrammarOptions {
   grammar: GrammarPoint
   lang: Lang
@@ -34,11 +66,16 @@ export interface GenerateGrammarOptions {
   activeVocab: SimpleVocab[]
   /** Include the student's WaniKani vocabulary in the prompt (sentences become private). */
   useWkVocab: boolean
+  /** Max attempts for transient failures (timeouts/overload). Defaults to DEFAULT_GEN_MAX_ATTEMPTS. */
+  maxAttempts?: number
+  /** Called before each attempt so the UI can show progress (e.g. "attempt 2/5"). */
+  onAttempt?: (attempt: number, maxAttempts: number) => void
 }
 
 export interface GenerateGrammarResult {
   generated: number
   kept: number
+  attempts: number
 }
 
 /**
@@ -152,48 +189,70 @@ Otras reglas:
 - answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
 - Genera exactamente ${GENERATE_SIZE} frases distintas con sujetos y vocabulario variados`
 
-  const res = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionToken}`,
-    },
-    body: JSON.stringify({ prompt, userApiKey: geminiKey }),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `Error ${res.status}`)
+  // ── Retry loop: transient failures (timeouts / overload / 5xx) are retried
+  // with exponential-ish backoff; permanent failures (quota, auth) stop immediately.
+  const maxAttempts = Math.max(1, opts.maxAttempts ?? DEFAULT_GEN_MAX_ATTEMPTS)
+  let lastTransient: GrammarGenerateError | null = null
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    opts.onAttempt?.(attempt, maxAttempts)
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({ prompt, userApiKey: geminiKey }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw classifyGeminiError(res.status, err?.error ?? '')
+      }
+      const data  = await res.json()
+      const clean = String(data.text ?? '').replace(/```json|```/g, '').trim()
+      let parsed: any
+      try { parsed = JSON.parse(clean) } catch { throw new GrammarGenerateError('La API devolvió una respuesta inválida', 'transient') }
+      if (!parsed.sentences?.length) throw new GrammarGenerateError('no_sentences', 'no_sentences')
+
+      const allRaw  = parsed.sentences as any[]
+      const passing = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
+
+      const newSentences: Omit<GrammarSentence, 'id'>[] = passing.slice(0, TARGET_POOL).map(s => ({
+        grammar_id:                     grammar.id,
+        sentence_before:                String(s.before_jp          ?? ''),
+        sentence_before_reading:        String(s.before_reading     ?? ''),
+        sentence_before_alts:           [],
+        sentence_before_reading_alts:   [],
+        sentence_after:                 String(s.after_jp           ?? ''),
+        sentence_after_reading:         String(s.after_reading      ?? ''),
+        answer:                         String(s.answer             ?? grammar.pattern),
+        answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
+        translation_es:                 String(s.translation_es     ?? ''),
+        translation_ca:                 String(s.translation_ca     ?? ''),
+        translation_en:                 String(s.translation_en     ?? ''),
+        topic:                          typeof s.topic === 'string' ? s.topic : undefined,
+        vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
+      }))
+
+      // Sentences generated with WaniKani vocab are private — not visible in the community pool
+      const isPrivate = useWkVocab && wkVocab.length > 0
+      const userId = isPrivate ? (await supabase.auth.getUser()).data.user?.id : undefined
+      await saveGrammarSentences(grammar.id, newSentences, isPrivate ? { isPrivate: true, userId } : undefined)
+      await trimGrammarSentencesPool(grammar.id, MAX_POOL)
+
+      return { generated: allRaw.length, kept: newSentences.length, attempts: attempt }
+    } catch (e) {
+      const ge = e instanceof GrammarGenerateError
+        ? e
+        : new GrammarGenerateError(e instanceof Error ? e.message : 'Error de red', 'transient')
+      // Permanent errors stop the loop immediately.
+      if (ge.kind === 'quota' || ge.kind === 'auth' || ge.kind === 'no_sentences') throw ge
+      // Transient: back off and retry if attempts remain.
+      lastTransient = ge
+      if (attempt < maxAttempts) {
+        await sleep(Math.min(3000 * attempt, 15000))
+        continue
+      }
+    }
   }
-  const data  = await res.json()
-  const clean = data.text.replace(/```json|```/g, '').trim()
-  const parsed = JSON.parse(clean)
-  if (!parsed.sentences?.length) throw new Error('no_sentences')
 
-  const allRaw  = parsed.sentences as any[]
-  const passing = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
-
-  const newSentences: Omit<GrammarSentence, 'id'>[] = passing.slice(0, TARGET_POOL).map(s => ({
-    grammar_id:                     grammar.id,
-    sentence_before:                String(s.before_jp          ?? ''),
-    sentence_before_reading:        String(s.before_reading     ?? ''),
-    sentence_before_alts:           [],
-    sentence_before_reading_alts:   [],
-    sentence_after:                 String(s.after_jp           ?? ''),
-    sentence_after_reading:         String(s.after_reading      ?? ''),
-    answer:                         String(s.answer             ?? grammar.pattern),
-    answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
-    translation_es:                 String(s.translation_es     ?? ''),
-    translation_ca:                 String(s.translation_ca     ?? ''),
-    translation_en:                 String(s.translation_en     ?? ''),
-    topic:                          typeof s.topic === 'string' ? s.topic : undefined,
-    vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
-  }))
-
-  // Sentences generated with WaniKani vocab are private — not visible in the community pool
-  const isPrivate = useWkVocab && wkVocab.length > 0
-  const userId = isPrivate ? (await supabase.auth.getUser()).data.user?.id : undefined
-  await saveGrammarSentences(grammar.id, newSentences, isPrivate ? { isPrivate: true, userId } : undefined)
-  await trimGrammarSentencesPool(grammar.id, MAX_POOL)
-
-  return { generated: allRaw.length, kept: newSentences.length }
+  throw new GrammarGenerateError(lastTransient?.message || 'La API está saturada', 'exhausted')
 }

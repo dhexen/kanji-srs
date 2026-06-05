@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'Generación de frases con reintentos automáticos',
+        description: 'Al generar frases de gramática con IA, si la API está saturada (timeouts) la app reintenta automáticamente hasta 5 veces sin que tengas que pulsar otra vez. Si te has quedado sin cuota de la API, se muestra un aviso que puedes cerrar con la ✕.',
+      },
+      {
+        type: 'improvement',
         title: 'Repaso de gramática continuo con resumen final',
         description: 'El repaso SRS de gramática ahora es una sola sesión continua: una frase por gramática, sin pantallas intermedias. Solo se repasan las gramáticas vencidas (las que toca según su nivel); si ninguna lo está, no se puede iniciar el repaso. Practicar un punto desde su ficha es solo para entrenar y no sube de nivel salvo que ya estuviera vencido. Al terminar ves un único resumen con aciertos a la primera, fallos y el nivel final de cada gramática (con flecha de subida/bajada). La pantalla de inicio se simplifica: una sola lista con casillas (todas marcadas por defecto), un botón "generar más" por gramática y dos opciones globales (vocabulario WaniKani y frases de la comunidad).',
       },
