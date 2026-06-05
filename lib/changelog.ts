@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Vocabulario WaniKani en ejemplos de gramática',
+        description: 'La sección de ejemplos con IA en gramática ahora tiene un checkbox "Usar vocabulario WaniKani" (visible si tienes configurada la API Key de WaniKani). Al activarlo, la IA incluye palabras de tu progreso en WaniKani al generar las frases de ejemplo.',
+      },
+      {
+        type: 'new',
         title: 'Sesión de estudio antes del repaso',
         description: 'Al añadir palabras nuevas (+3/+5/+15) primero se abre una sesión de estudio donde puedes ver el kanji, la lectura y la imagen de cada palabra antes de que aparezca en el repaso. Así nunca te llegará una pregunta sobre algo que no has visto aún.',
       },

@@ -5,10 +5,12 @@ import { ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
 import GeminiApiTutorial from './GeminiApiTutorial'
+import { useStore } from '@/lib/store'
 import {
   fetchUserGrammarExamples,
   saveUserGrammarExamples,
   updateUserGrammarExample,
+  fetchWaniKaniVocabSample,
 } from '@/lib/supabase'
 
 const MAX_POOL = 10
@@ -280,11 +282,18 @@ function castSentences(rows: { id?: string; jp: unknown[]; translation: unknown[
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken, activeVocab, canEdit }: Props) {
+  const { state } = useStore()
+  const hasWaniKani = Boolean(state.waniKaniApiKey)
+
   const [sentences, setSentences]   = useState<AiSentence[]>([])
   const [dbLoading, setDbLoading]   = useState(true)   // initial DB fetch
   const [genLoading, setGenLoading] = useState(false)  // AI generation
   const [saving, setSaving]         = useState(false)  // saving to DB
   const [error, setError]           = useState('')
+  const [useWkVocab, setUseWkVocab] = useState(() => {
+    try { return localStorage.getItem('ge_use_wk_vocab') === 'true' } catch { return false }
+  })
+  const [wkVocab, setWkVocab] = useState<{ jp: string; reading: string; meaning: string }[]>([])
 
   const hasSaved = sentences.length > 0
 
@@ -294,6 +303,21 @@ export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken
       .then(rows => setSentences(castSentences(rows)))
       .finally(() => setDbLoading(false))
   }, [grammar.id])
+
+  // ── Fetch WaniKani vocabulary when toggle is on ───────────────────────────
+  useEffect(() => {
+    if (!hasWaniKani || !useWkVocab) return
+    fetchWaniKaniVocabSample(40).then(items => {
+      setWkVocab(items.map(w => ({
+        jp: w.word,
+        reading: w.reading,
+        meaning:
+          lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
+          lang === 'en' ? w.meaning_en :
+          (w.meaning_es ?? w.meaning_en),
+      })))
+    }).catch(() => {})
+  }, [hasWaniKani, useWkVocab, lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Generate ──────────────────────────────────────────────────────────────
   const targetLang =
@@ -310,16 +334,24 @@ export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken
     setGenLoading(true)
     setError('')
 
-    // Use the student's studied vocabulary (falls back to basic vocab)
-    const vocabSample = [...activeVocab]
+    // Base vocabulary from the student's active words
+    const schoolSample = [...activeVocab]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 15)
+      .slice(0, useWkVocab && wkVocab.length > 0 ? 10 : 15)
       .map(w => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
       .join(', ')
 
+    const wkSample = useWkVocab && wkVocab.length > 0
+      ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 10).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+      : ''
+
+    const vocabSection = wkSample
+      ? `Vocabulario disponible:\n- Del currículo escolar japonés: ${schoolSample || 'palabras básicas N5'}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
+      : `Vocabulario disponible (usa el mayor número posible): ${schoolSample || 'palabras básicas N5'}`
+
     const prompt = `Eres un profesor de japonés experto. Genera EXACTAMENTE 5 frases cortas en japonés que usen el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
-Vocabulario disponible (usa el mayor número posible): ${vocabSample || 'palabras básicas N5'}
+${vocabSection}
 
 Reglas:
 - Cada frase debe ilustrar claramente el patrón "${grammar.pattern}"
@@ -411,23 +443,46 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-700">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
             ✨{' '}
             {lang === 'en' ? 'AI Examples' : lang === 'ca' ? 'Exemples amb IA' : 'Ejemplos con IA'}
-            <span className="ml-2 text-xs text-slate-400 font-normal">
+            <span className="ml-2 text-xs text-slate-400 dark:text-slate-500 font-normal">
               {lang === 'en' ? 'using your vocabulary' : lang === 'ca' ? 'amb el teu vocabulari' : 'usando tu vocabulario'}
             </span>
           </h3>
           {hasSaved && (
-            <p className="text-[10px] text-slate-400 mt-0.5">{poolLabel}</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{poolLabel}</p>
+          )}
+          {/* WaniKani toggle */}
+          {hasWaniKani && (
+            <label className="flex items-center gap-1.5 mt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useWkVocab}
+                onChange={e => {
+                  const v = e.target.checked
+                  setUseWkVocab(v)
+                  try { localStorage.setItem('ge_use_wk_vocab', String(v)) } catch { /* incognito */ }
+                }}
+                className="w-3 h-3 rounded accent-pink-500"
+              />
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {lang === 'en' ? 'Use WaniKani vocabulary' : lang === 'ca' ? 'Usar vocabulari WaniKani' : 'Usar vocabulario WaniKani'}
+              </span>
+              {useWkVocab && wkVocab.length > 0 && (
+                <span className="text-[10px] bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-full px-1.5 py-0.5">
+                  {wkVocab.length} palabras
+                </span>
+              )}
+            </label>
           )}
         </div>
         <button
           onClick={generate}
           disabled={genLoading || saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-medium transition"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-medium transition"
         >
           {(genLoading || saving) && (
             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">

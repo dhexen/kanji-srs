@@ -164,6 +164,10 @@ Si durante la práctica encuentras una frase que parece incorrecta o mal constru
 - **Ocultar dominadas**: esconde los puntos que ya marcaste como "me la sé"
 - **📚 Estudiando**: muestra solo los puntos que estás practicando activamente
 
+#### Ejemplos con IA y vocabulario WaniKani
+
+En la ficha de cada punto gramatical hay una sección **"Ejemplos con IA"** que genera frases de ejemplo usando tu vocabulario activo. Si tienes configurada tu API Key de WaniKani, aparecerá un checkbox **"Usar vocabulario WaniKani"** que permite que la IA incluya también palabras de tu progreso en WaniKani al generar los ejemplos. Esta opción está disponible tanto en los ejemplos del detalle como en la práctica de frases.
+
 #### ¿Cómo necesito la API Key de Gemini?
 
 Para generar las frases de práctica, la app necesita conectarse a Google Gemini. Si no tienes una API Key configurada, la app usará la del servidor (con un límite de 10 consultas por hora). Para un uso sin límites, configura tu propia API Key en **Mi Perfil → Configuración**.

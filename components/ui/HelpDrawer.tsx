@@ -151,6 +151,13 @@ function HelpGrammar() {
       </div>
 
       <div>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Vocabulario WaniKani en los ejemplos</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Si tienes configurada tu API Key de WaniKani, aparece el checkbox <strong>"Usar vocabulario WaniKani"</strong> en los ejemplos del detalle y en la práctica. La IA usará también palabras de tu progreso en WaniKani al generar las frases.
+        </p>
+      </div>
+
+      <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Reportar una frase incorrecta</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           Si crees que una frase está mal construida, pulsa el enlace <strong>🚩 Reportar error en esta frase</strong> que aparece debajo de la respuesta. El administrador recibirá el reporte y podrá revisarla.
