@@ -152,7 +152,7 @@ function HelpGrammar() {
       <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">El repaso SRS de gramática</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          Pulsa <strong>"▶ Empezar repaso"</strong> y verás una lista con casillas (todas marcadas por defecto) para elegir qué gramáticas repasar, con un botón <strong>"✨ Generar"</strong> por fila y dos opciones globales (WaniKani y frases de la comunidad).
+          Solo se repasan las gramáticas <strong>vencidas</strong> (las que toca según su nivel). Si ninguna está vencida, no podrás empezar el repaso todavía. Al pulsar <strong>"▶ Empezar repaso"</strong> verás una lista con casillas (todas marcadas) para elegir cuáles, con un botón <strong>"✨ Generar"</strong> por fila y dos opciones globales (WaniKani y frases de la comunidad).
         </p>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-2">
           El repaso es continuo: <strong>una frase por gramática</strong>, sin pantallas intermedias. Al final ves un resumen con aciertos, fallos y el nivel de cada gramática (↑/↓). Si fallas una, vuelve a salir al final.

@@ -22,7 +22,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       {
         type: 'improvement',
         title: 'Repaso de gramática continuo con resumen final',
-        description: 'El repaso SRS de gramática ahora es una sola sesión continua: una frase por gramática, sin pantallas intermedias. Al terminar ves un único resumen con aciertos a la primera, fallos y el nivel final de cada gramática (con flecha de subida/bajada). La pantalla de inicio se simplifica: una sola lista con casillas (todas marcadas por defecto), un botón "generar más" por gramática y dos opciones globales (vocabulario WaniKani y frases de la comunidad).',
+        description: 'El repaso SRS de gramática ahora es una sola sesión continua: una frase por gramática, sin pantallas intermedias. Solo se repasan las gramáticas vencidas (las que toca según su nivel); si ninguna lo está, no se puede iniciar el repaso. Al terminar ves un único resumen con aciertos a la primera, fallos y el nivel final de cada gramática (con flecha de subida/bajada). La pantalla de inicio se simplifica: una sola lista con casillas (todas marcadas por defecto), un botón "generar más" por gramática y dos opciones globales (vocabulario WaniKani y frases de la comunidad).',
       },
       {
         type: 'new',

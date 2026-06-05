@@ -490,10 +490,6 @@ export default function GrammarClient() {
     })
   }, [srsStats, knownIds])
 
-  // All grammar points being studied (have an SRS entry, not mastered)
-  const studyingGrammarPoints = useMemo(() =>
-    ALL_GRAMMAR_POINTS.filter(g => srsStats.has(g.id) && !knownIds.has(g.id))
-  , [srsStats, knownIds])
 
   // Grammar forecast for next 7 days — exclude mastered points
   const grammarForecast = useMemo(() => {
@@ -634,15 +630,15 @@ export default function GrammarClient() {
           </div>
           <div className="shrink-0 flex flex-col gap-1.5 items-end">
             <button
-              disabled={studyingGrammarPoints.length === 0}
-              onClick={() => setView({ kind: 'queue_select', candidates: studyingGrammarPoints })}
+              disabled={dueGrammarPoints.length === 0}
+              onClick={() => setView({ kind: 'queue_select', candidates: dueGrammarPoints })}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                studyingGrammarPoints.length > 0
-                  ? (dueGrammarPoints.length > 0 ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700') + ' text-white shadow-sm'
+                dueGrammarPoints.length > 0
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {studyingGrammarPoints.length > 0
+              {dueGrammarPoints.length > 0
                 ? `▶ ${t(lang, 'gp_start_review')}`
                 : t(lang, 'gp_up_to_date')}
             </button>

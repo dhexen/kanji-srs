@@ -154,9 +154,11 @@ En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**.
 
 Al igual que el vocabulario, la gramática tiene su propio sistema de niveles. El banner **"⏰ N puntos de gramática vencidos hoy"** te avisará cuando toca repasar.
 
+Solo puedes repasar las gramáticas que **toca repasar** (vencidas según su nivel SRS). Si ninguna está vencida, el botón **"▶ Empezar repaso"** estará deshabilitado hasta que llegue su momento. Esto evita subir de nivel una gramática antes de tiempo.
+
 Al pulsar **"▶ Empezar repaso"** verás una pantalla de selección:
 
-- A la **izquierda**, una casilla por cada gramática que estás estudiando (todas marcadas por defecto). Desmarca las que no quieras repasar.
+- A la **izquierda**, una casilla por cada gramática vencida (todas marcadas por defecto). Desmarca las que no quieras repasar ahora.
 - A la **derecha** de cada una, el número de frases disponibles y un botón **"✨ Generar"** para crear más frases de esa gramática.
 - Arriba, dos opciones globales: **"Usar vocabulario WaniKani"** (si tienes la API Key configurada; las frases generadas con WaniKani son privadas) e **"Incluir frases de la comunidad"**.
 
