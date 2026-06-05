@@ -75,18 +75,25 @@ export default function ReviewClient() {
   const completedRef = useRef(new Set<string>())
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
 
+  // Ticker that updates every 60 s so due-count memos recompute when new items become due
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const activeWords = useMemo(() => state.db.filter(i => i.status === 'active'), [state.db])
-  const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes])
+  const pendingCount = useMemo(() => getPendingCount(activeWords, selectedModes), [activeWords, selectedModes, tick])
   const pendingPerMode = useMemo(() => {
     const result = {} as Record<ReviewMode, number>
     for (const mode of Object.keys(MODE_CONFIG) as ReviewMode[]) {
       result[mode] = getPendingCount(activeWords, [mode])
     }
     return result
-  }, [activeWords])
+  }, [activeWords, tick])
 
-  const forecast = useMemo(() => getReviewForecast(state.db, lang, 7), [state.db, lang])
-  const hourlyForecast = useMemo(() => getHourlyForecast(state.db), [state.db])
+  const forecast = useMemo(() => getReviewForecast(state.db, lang, 7), [state.db, lang, tick])
+  const hourlyForecast = useMemo(() => getHourlyForecast(state.db), [state.db, tick])
   const todayCount = forecast[0]?.newDue ?? 0
   const futureDays = forecast.slice(1)
 
