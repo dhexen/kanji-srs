@@ -84,6 +84,9 @@ export default function GrammarReviewSession({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposing = useRef(false)
+  // Timestamp of the last answer submission — guards against the same Enter
+  // keypress (or its key-repeat) immediately advancing past the feedback.
+  const submittedAtRef = useRef(0)
 
   const currentGrammar = grammarById.get(queueRef.current[idx])
 
@@ -159,8 +162,17 @@ export default function GrammarReviewSession({
       poolsRef.current = pools
       for (const g of queue) oldLevelsRef.current.set(g.id, srsStats.get(g.id)?.level ?? 0)
 
-      const validIds = queue.filter(g => pools.has(g.id)).map(g => g.id)
-      const empties  = queue.filter(g => !pools.has(g.id)).map(g => g.id)
+      // Build the queue with one entry per grammar id (dedupe in case the
+      // candidate list contains the same grammar twice).
+      const seenIds = new Set<string>()
+      const validIds: string[] = []
+      const empties:  string[] = []
+      for (const g of queue) {
+        if (seenIds.has(g.id)) continue
+        seenIds.add(g.id)
+        if (pools.has(g.id)) validIds.push(g.id)
+        else empties.push(g.id)
+      }
       setEmptyGrammars(empties)
       queueRef.current = validIds
       setQueueLen(validIds.length)
@@ -180,6 +192,7 @@ export default function GrammarReviewSession({
 
   function submitAnswer() {
     if (!userInput.trim() || phase !== 'asking' || !currentSentence) return
+    submittedAtRef.current = Date.now()
     setIsCorrect(checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts))
     setPhase('answered')
   }
@@ -223,10 +236,13 @@ export default function GrammarReviewSession({
     else advanceTo(idx + 1)
   }
 
-  // Enter to advance once answered
+  // Enter to advance once answered — but ignore the Enter (or its key-repeat)
+  // that submitted the answer, so the feedback stays visible for a moment.
   useEffect(() => {
     if (phase !== 'answered') return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Enter') next() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && Date.now() - submittedAtRef.current > 400) next()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, idx, isCorrect]) // eslint-disable-line react-hooks/exhaustive-deps
