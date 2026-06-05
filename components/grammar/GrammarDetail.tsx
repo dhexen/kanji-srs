@@ -1,9 +1,12 @@
 'use client'
+'use client'
 import { useState } from 'react'
 import type { GrammarPoint, ExampleToken, StructurePart } from '@/lib/grammar-mnn1'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
+import type { GrammarSrsStat } from '@/lib/grammar-srs'
+import { getSrsLevelLabel } from '@/lib/grammar-srs'
 import GrammarExamples from './GrammarExamples'
 import GrammarPractice from './GrammarPractice'
 
@@ -123,9 +126,12 @@ interface Props {
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
   canEdit?: boolean
+  srsStat?: GrammarSrsStat | null
+  onAddToSrs?: () => void
+  onRemoveFromSrs?: () => void
 }
 
-export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit }: Props) {
+export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit, srsStat, onAddToSrs, onRemoveFromSrs }: Props) {
   const [practiceMode, setPracticeMode] = useState(false)
 
   // ── Practice mode: render GrammarPractice in place of the detail ──────────
@@ -186,6 +192,32 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">{name}</h2>
           <p className="text-base font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{grammar.pattern}</p>
         </div>
+
+        {/* SRS status + add/remove button */}
+        {onAddToSrs && onRemoveFromSrs && (
+          srsStat ? (
+            <div className="shrink-0 flex items-center gap-1.5">
+              <span className="hidden sm:flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-lg">
+                📚 {getSrsLevelLabel(srsStat.level, lang)}
+              </span>
+              <button
+                onClick={onRemoveFromSrs}
+                title={lang === 'en' ? 'Remove from reviews' : lang === 'ca' ? 'Treure dels repassos' : 'Quitar de repasos'}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onAddToSrs}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            >
+              <span>📚</span>
+              <span className="hidden sm:inline">{lang === 'en' ? 'Add to reviews' : lang === 'ca' ? 'Afegir als repassos' : 'Añadir a repasos'}</span>
+            </button>
+          )
+        )}
 
         {/* Practice button */}
         <button

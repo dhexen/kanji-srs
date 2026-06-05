@@ -1422,6 +1422,7 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
         translation_en: r.translation_en ?? '',
         validated: r.validated ?? false,
         validated_by: r.validated_by ?? undefined,
+        is_private: r.is_private ?? false,
       }))
       .filter(s => !KANJI_RE.test(s.answer))
       // Validated sentences float to the top
@@ -1432,12 +1433,13 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
 }
 
 /**
- * Batch-insert new sentences into the shared pool.
- * Silently ignores errors if the table doesn't exist yet.
+ * Batch-insert new sentences into the pool.
+ * Pass isPrivate=true + userId to keep sentences private (e.g. when generated with WaniKani vocab).
  */
 export async function saveGrammarSentences(
   grammarId: string,
   sentences: Omit<GrammarSentence, 'id'>[],
+  opts?: { isPrivate?: boolean; userId?: string },
 ): Promise<void> {
   if (sentences.length === 0) return
   try {
@@ -1454,6 +1456,8 @@ export async function saveGrammarSentences(
       translation_es: s.translation_es,
       translation_ca: s.translation_ca,
       translation_en: s.translation_en,
+      is_private: opts?.isPrivate ?? false,
+      private_user_id: opts?.isPrivate ? (opts.userId ?? null) : null,
     }))
     const { error } = await supabase.from('grammar_sentences').insert(rows)
     if (error) console.warn('saveGrammarSentences:', error.message)
@@ -1716,16 +1720,30 @@ export async function markGrammarAsStudying(grammarId: string): Promise<{ gramma
     const user = await requireUser()
     const { error } = await supabase
       .from('grammar_srs_progress')
-      .insert({ user_id: user.id, grammar_id: grammarId, level: 1, next_review: 0 })
+      .insert({ user_id: user.id, grammar_id: grammarId, level: 0, next_review: 0 })
     if (error) {
       // 23505 = unique violation = already has an entry, that's fine
       if (error.code !== '23505') console.warn('markGrammarAsStudying:', error.message)
       return null
     }
-    return { grammar_id: grammarId, level: 1, next_review: 0 }
+    return { grammar_id: grammarId, level: 0, next_review: 0 }
   } catch (e) {
     console.warn('markGrammarAsStudying exception:', e)
     return null
+  }
+}
+
+/** Remove a grammar point from SRS entirely (resets level, removes from review queue). */
+export async function removeGrammarFromSrs(grammarId: string): Promise<void> {
+  try {
+    const user = await requireUser()
+    await supabase
+      .from('grammar_srs_progress')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+  } catch (e) {
+    console.warn('removeGrammarFromSrs exception:', e)
   }
 }
 

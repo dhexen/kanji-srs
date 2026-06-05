@@ -136,14 +136,19 @@ Lista de verbos clasificados por si son transitivos (tienen objeto directo, como
 
 Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 y Chūkyū I), organizados por lecciones y nivel JLPT.
 
+#### Añadir gramática a tus repasos
+
+En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**. Al pulsarlo, ese punto entra en tu cola SRS y aparecerá en los repasos periódicos. Si ya lo tienes en repasos, verás su nivel actual y un botón **✕** para quitarlo de la cola (sin borrar tu progreso permanentemente).
+
 #### Cómo practicar gramática
 
 1. Elige un punto gramatical de la lista (por ejemplo, "は — Partícula de tema")
 2. Lee la explicación y los ejemplos
 3. Pulsa **"Practicar"**
-4. La aplicación te presentará frases con un hueco que tienes que rellenar
-5. Escribe la respuesta en el hueco (en hiragana si es necesario)
-6. La app acepta tanto kanji como hiragana en la mayoría de casos
+4. Verás una frase japonesa con un **hueco (\_\_\_)** — solo tienes que escribir la gramática que falta
+5. No se muestra la traducción por defecto (para no dar pistas). Pulsa **"Ver traducción"** si necesitas ayuda
+6. Al responder verás la frase completa correcta. Si fallas, también verás una nota con la explicación gramatical
+7. Puedes activar el furigana con el botón **ふ** en la tarjeta
 
 #### El sistema de repaso de gramática
 

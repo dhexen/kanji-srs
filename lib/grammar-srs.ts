@@ -111,6 +111,7 @@ export function getGrammarForecast(
 
 /**
  * WaniKani-style SRS progression.
+ * level 0 = never reviewed → first correct practice (any wrongCount) → level 1.
  * wrongCount = 0 → advance 1 level (max 9 = Burned).
  * wrongCount > 0 → subtract wrongCount levels (min 1 = Apprentice 1).
  */
@@ -118,6 +119,10 @@ export function applyGrammarResult(
   level: number,
   wrongCount: number,
 ): { newLevel: number; nextReview: number } {
+  if (level === 0) {
+    // First ever completed practice → Apprentice 1 regardless of failures
+    return { newLevel: 1, nextReview: Date.now() + GRAMMAR_SRS_INTERVALS[1] }
+  }
   const safeLevel = Math.max(level, 1)
   const newLevel = wrongCount === 0
     ? Math.min(safeLevel + 1, GRAMMAR_SRS_MAX_LEVEL)

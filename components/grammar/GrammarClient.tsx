@@ -6,7 +6,7 @@ import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
-import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult } from '@/lib/supabase'
+import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
@@ -438,6 +438,22 @@ export default function GrammarClient() {
     setSrsStats(prev => new Map([...prev, [stat.grammar_id, stat]]))
   }
 
+  async function handleAddToSrs(grammarId: string) {
+    const result = await markGrammarAsStudying(grammarId)
+    if (result) handleSrsUpdate(result)
+    else {
+      // Already exists — fetch the current stat
+      const stats = await fetchAllGrammarSrsStats()
+      const found = stats.find(s => s.grammar_id === grammarId)
+      if (found) handleSrsUpdate(found)
+    }
+  }
+
+  async function handleRemoveFromSrs(grammarId: string) {
+    await removeGrammarFromSrs(grammarId)
+    setSrsStats(prev => { const m = new Map(prev); m.delete(grammarId); return m })
+  }
+
   useEffect(() => {
     if (!state.user) { setLoadingKnown(false); return }
 
@@ -549,6 +565,9 @@ export default function GrammarClient() {
         activeVocab={activeVocab}
         onBack={() => setView({ kind: 'list' })}
         canEdit={canEdit}
+        srsStat={srsStats.get(view.grammar.id) ?? null}
+        onAddToSrs={() => handleAddToSrs(view.grammar.id)}
+        onRemoveFromSrs={() => handleRemoveFromSrs(view.grammar.id)}
       />
     )
   }

@@ -21,6 +21,16 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Práctica de gramática estilo Bunpro',
+        description: 'La práctica de gramática ahora muestra la frase completa en japonés con un hueco para rellenar solo la parte gramatical, en lugar de tener que escribir la frase entera. Al fallar se muestra la respuesta correcta y una nota gramatical con la explicación del patrón.',
+      },
+      {
+        type: 'new',
+        title: 'Botón "Añadir a repasos" en fichas de gramática',
+        description: 'Cada ficha de gramática tiene ahora un botón "📚 Añadir a repasos" para incluirla en el SRS. También aparece el nivel actual y un botón ✕ para quitarla de los repasos en cualquier momento.',
+      },
+      {
+        type: 'new',
         title: 'Vocabulario WaniKani en ejemplos de gramática',
         description: 'La sección de ejemplos con IA en gramática ahora tiene un checkbox "Usar vocabulario WaniKani" (visible si tienes configurada la API Key de WaniKani). Al activarlo, la IA incluye palabras de tu progreso en WaniKani al generar las frases de ejemplo.',
       },

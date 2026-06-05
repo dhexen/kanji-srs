@@ -8,7 +8,7 @@ import {
   type GrammarSentence,
   type GrammarSrsStat,
   applyGrammarResult,
-  checkFullSentence,
+  checkAnswer,
   formatNextReview,
   getSrsLevelLabel,
 } from '@/lib/grammar-srs'
@@ -314,6 +314,9 @@ export default function GrammarPractice({
   const [deleting, setDeleting]             = useState(false)
   const [deleteConfirm, setDeleteConfirm]   = useState(false)
 
+  // ── Hint (translation) state for the asking phase ────────────────────────
+  const [showHint, setShowHint]             = useState(false)
+
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [ttsError, setTtsError]     = useState(false)
   const currentAudio                = useRef<HTMLAudioElement | null>(null)
@@ -577,7 +580,12 @@ Otras reglas:
         console.info(`[GrammarPractice] Quality filter: ${newSentences.length} kept, ${discarded} discarded (score < ${QUALITY_THRESHOLD})`)
       }
 
-      await saveGrammarSentences(grammar.id, newSentences)
+      // Sentences generated with WaniKani vocab are private — not visible in the community pool
+      const isPrivate = useWkVocab && wkVocab.length > 0
+      await saveGrammarSentences(grammar.id, newSentences, isPrivate
+        ? { isPrivate: true, userId: supabase.auth.getUser ? (await supabase.auth.getUser()).data.user?.id : undefined }
+        : undefined
+      )
 
       // Trim pool to MAX_POOL, removing the oldest sentences if necessary,
       // then reload from DB so local state matches the actual shared pool.
@@ -753,20 +761,7 @@ Otras reglas:
     if (!userInput.trim() || phase !== 'asking') return
     const sentence = sentences[sessionQueue[currentPos]]
     if (!sentence) return
-    const correct = checkFullSentence(
-      userInput,
-      sentence.sentence_before_reading,
-      sentence.sentence_before,
-      sentence.answer,
-      sentence.sentence_after_reading,
-      sentence.sentence_after,
-      {
-        beforeAlts: (sentence.sentence_before_alts ?? [])
-          .map((jp, i) => ({ jp, reading: (sentence.sentence_before_reading_alts ?? [])[i] ?? '' }))
-          .filter(a => a.jp),
-        answerAlts: sentence.answer_alts,
-      },
-    )
+    const correct = checkAnswer(userInput.trim(), sentence.answer, sentence.answer_alts)
     setIsCorrect(correct)
     setSessionResults(prev => [...prev, correct])
     setPhase('answered')
@@ -840,6 +835,7 @@ Otras reglas:
       setUserInput('')
       setDeleteConfirm(false)
       setShareSuccess(false)
+      setShowHint(false)
       setReportOpen(false)
       setReportSent(false)
       setReportDesc('')
@@ -1174,40 +1170,82 @@ Otras reglas:
         />
       </div>
 
-      {/* ── ASKING phase: show translation as prompt ───────────────────────── */}
+      {/* ── ASKING phase: Japanese sentence with blank ────────────────────── */}
       {phase === 'asking' && (
         <>
-          {/* Prompt card */}
+          {/* Sentence card */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+            {/* Controls row */}
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                {t(lang, 'gp_translate_prompt')}
+                {lang === 'en' ? 'Fill in the blank' : lang === 'ca' ? 'Omple el buit' : 'Rellena el hueco'}
               </span>
-            </div>
-            <div className="px-5 py-5 text-center space-y-3">
-              {/* Translation — the "question" */}
-              {translation && (
-                <p className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-                  {translation}
-                </p>
-              )}
-              {/* Grammar pattern hint */}
-              <div className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-full px-3 py-1">
-                <span className="text-xs text-slate-400 dark:text-slate-500">{t(lang, 'gp_pattern_ref')}:</span>
-                <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{grammar.pattern}</span>
+              <div className="flex items-center gap-2">
+                {hasFurigana && (
+                  <button
+                    onClick={() => setShowFurigana(v => !v)}
+                    className={`text-xs px-2 py-0.5 rounded-full border transition ${
+                      showFurigana
+                        ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                        : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    ふ
+                  </button>
+                )}
+                {currentSentence?.validated && (
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {t(lang, 'gp_validated_badge')}
+                  </span>
+                )}
               </div>
             </div>
-            {currentSentence?.validated && (
-              <div className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-t border-emerald-100 dark:border-emerald-800 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {t(lang, 'gp_validated_badge')}
+
+            {/* Japanese sentence with blank */}
+            <div className="px-5 py-6 text-center">
+              <div className="kanji-font text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+                {currentSentence.sentence_before && (
+                  <span>
+                    {showFurigana && hasFurigana
+                      ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
+                      : currentSentence.sentence_before}
+                  </span>
+                )}
+                {/* The blank */}
+                <span className="mx-1 inline-flex items-center justify-center min-w-[4ch] px-2 border-b-4 border-indigo-400 dark:border-indigo-500 text-indigo-300 dark:text-indigo-600 select-none">
+                  {'　'}
+                </span>
+                {currentSentence.sentence_after && (
+                  <span>
+                    {showFurigana && hasFurigana
+                      ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
+                      : currentSentence.sentence_after}
+                  </span>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Translation hint (optional) */}
+            {showHint && translation ? (
+              <div className="px-5 pb-4 text-center">
+                <p className="text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>
+              </div>
+            ) : translation ? (
+              <div className="flex justify-center pb-4">
+                <button
+                  onClick={() => setShowHint(true)}
+                  className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition flex items-center gap-1"
+                >
+                  💡 {lang === 'en' ? 'Show translation' : lang === 'ca' ? 'Mostra traducció' : 'Ver traducción'}
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          {/* Input */}
+          {/* Input — only the grammar answer */}
           <div className="space-y-3">
             <div className="relative">
               <input
@@ -1221,7 +1259,7 @@ Otras reglas:
                   setUserInput(toHiragana((e.target as HTMLInputElement).value, { IMEMode: true }))
                 }}
                 onKeyDown={e => e.key === 'Enter' && submitAnswer()}
-                placeholder={t(lang, 'gp_input_ph')}
+                placeholder={lang === 'en' ? 'Type the grammar form…' : lang === 'ca' ? 'Escriu la gramàtica…' : 'Escribe la gramática…'}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1336,14 +1374,47 @@ Otras reglas:
               </div>
 
               {/* User's answer */}
-              <div className={`pt-3 border-t text-center ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
-                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
-                  {t(lang, 'gp_your_answer')}
-                </p>
-                <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  {userInput}
-                </p>
+              <div className={`pt-3 border-t ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
+                <div className="flex items-center justify-center gap-3">
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
+                      {t(lang, 'gp_your_answer')}
+                    </p>
+                    <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {userInput}
+                    </p>
+                  </div>
+                  {!isCorrect && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-600 text-lg">→</span>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
+                          {lang === 'en' ? 'Correct' : lang === 'ca' ? 'Correcte' : 'Correcto'}
+                        </p>
+                        <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                          {currentSentence.answer}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
+
+              {/* Grammar explanation — shown on wrong answer */}
+              {!isCorrect && (() => {
+                const explanation =
+                  lang === 'ca' ? (grammar as any).explanation_ca :
+                  lang === 'en' ? (grammar as any).explanation_en :
+                  (grammar as any).explanation_es
+                return explanation ? (
+                  <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl text-left">
+                    <p className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide mb-1">
+                      {lang === 'en' ? 'Grammar note' : lang === 'ca' ? 'Nota gramatical' : 'Nota gramatical'} — {grammar.pattern}
+                    </p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
+                  </div>
+                ) : null
+              })()}
             </div>
 
             {/* ── Validated footer ─────────────────────────────────────────── */}

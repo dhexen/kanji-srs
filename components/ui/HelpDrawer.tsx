@@ -119,12 +119,19 @@ function HelpGrammar() {
   return (
     <div className="space-y-5">
       <div>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Añadir a repasos</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          En la ficha de cada punto gramatical pulsa <strong>"📚 Añadir a repasos"</strong> para incluirlo en tu SRS. Verás su nivel SRS actual y podrás quitarlo con el botón <strong>✕</strong> en cualquier momento.
+        </p>
+      </div>
+
+      <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Cómo practicar</h3>
         <ol className="space-y-2">
-          <Step n={1}>Elige un punto gramatical de la lista</Step>
-          <Step n={2}>Lee la explicación y los ejemplos</Step>
-          <Step n={3}>Pulsa <strong>"Practicar"</strong> para empezar las frases de rellena-el-hueco</Step>
-          <Step n={4}>Escribe la respuesta en el hueco. La app acepta kanji y kana.</Step>
+          <Step n={1}>Elige un punto gramatical y pulsa <strong>"Practicar"</strong></Step>
+          <Step n={2}>Verás la frase japonesa con un <strong>hueco (___)</strong> — escribe solo la gramática que falta</Step>
+          <Step n={3}>La traducción está oculta por defecto; pulsa <strong>"Ver traducción"</strong> si la necesitas</Step>
+          <Step n={4}>Al fallar verás la respuesta correcta y una nota con la explicación del patrón</Step>
         </ol>
       </div>
 
