@@ -394,26 +394,26 @@ export async function saveTourDone(): Promise<void> {
   }
 }
 
+// All section names — written atomically so a single DB write covers every section.
+const ALL_HELP_SECTIONS = [
+  'review', 'vocabulary', 'grammar', 'kana', 'context',
+  'stats', 'progress', 'study', 'import',
+]
+
 /**
- * Mark a help section as seen for the current user (persisted in the DB so it
- * doesn't re-trigger on other browsers). Reads the current array, appends the
- * section if missing, and writes it back.
+ * Mark ALL help sections as seen for the current user in one atomic write.
+ * Writing the full list at once means a single successful upsert permanently
+ * suppresses every auto-open on any future device, avoiding the race condition
+ * of multiple partial per-section writes.
  */
-export async function markHelpSeen(section: string): Promise<void> {
+export async function markHelpSeen(_section: string): Promise<void> {
   try {
     const userId = await ensureUserSettingsRow()
-    const { data } = await supabase
-      .from('user_settings')
-      .select('help_seen')
-      .eq('user_id', userId)
-      .maybeSingle()
-    const current: string[] = Array.isArray(data?.help_seen) ? data!.help_seen as string[] : []
-    if (current.includes(section)) return
     await supabase
       .from('user_settings')
-      .upsert({ user_id: userId, help_seen: [...current, section] }, { onConflict: 'user_id' })
+      .upsert({ user_id: userId, help_seen: ALL_HELP_SECTIONS }, { onConflict: 'user_id' })
   } catch {
-    // Non-critical — localStorage backup still works
+    // Non-critical — localStorage flag (HELP_DONE_KEY) handles same-device suppression
   }
 }
 

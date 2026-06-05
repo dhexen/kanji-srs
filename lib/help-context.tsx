@@ -16,6 +16,16 @@ function getSectionFromPath(pathname: string): string {
   return ''
 }
 
+// localStorage key: once set, tutorials never auto-open on this device again.
+const HELP_DONE_KEY = 'help_done_v1'
+
+function isHelpDoneLocally(): boolean {
+  try { return localStorage.getItem(HELP_DONE_KEY) === '1' } catch { return false }
+}
+function setHelpDoneLocally() {
+  try { localStorage.setItem(HELP_DONE_KEY, '1') } catch { /* incognito */ }
+}
+
 interface HelpCtx {
   isOpen: boolean
   section: string
@@ -34,31 +44,34 @@ export function HelpProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const section = getSectionFromPath(pathname)
 
-  // Auto-open once per section. We check two sources:
-  //   1. state.helpSeen — persisted in the DB → works across browsers (per-account)
-  //   2. localStorage    — immediate fallback → avoids repeats in the SAME browser
-  //      even if the DB column (migration 018) isn't applied yet.
-  // We wait for state.loaded so helpSeen has been hydrated before deciding.
+  // Auto-open once per lifetime (not once per section, not once per device).
+  // Guard order (first match wins):
+  //   1. localStorage HELP_DONE_KEY — set after the FIRST auto-open on any device.
+  //      Prevents any further auto-opens on this device regardless of DB state.
+  //   2. state.helpSeen.length > 0 — DB told us tutorials have been seen on another device.
+  //      Works cross-device when the DB write succeeded.
+  //   3. Neither set → first time ever. Auto-open, then persist to both storages.
   useEffect(() => {
     if (!section) return
     if (!state.loaded) return
 
-    let localSeen: string[] = []
-    try { localSeen = JSON.parse(localStorage.getItem('help_seen_v1') || '[]') } catch { /* ignore */ }
+    // Same-device guard (most reliable — always works)
+    if (isHelpDoneLocally()) return
 
-    if (state.helpSeen.includes(section) || localSeen.includes(section)) return
+    // Cross-device guard (requires successful DB write on the first device)
+    if (state.helpSeen.length > 0) {
+      // DB says seen — also set the local flag so future checks are instant
+      setHelpDoneLocally()
+      return
+    }
 
-    // Mark as seen in both the DB (cross-browser) and localStorage (same-browser)
-    markHelpSeen(section)
-    try {
-      if (!localSeen.includes(section)) {
-        localStorage.setItem('help_seen_v1', JSON.stringify([...localSeen, section]))
-      }
-    } catch { /* ignore */ }
+    // First time ever on this account: show the tutorial.
+    markHelpSeen(section)  // persists ALL sections to DB in one write
+    setHelpDoneLocally()   // suppress all future auto-opens on this device
 
     const timer = setTimeout(() => setIsOpen(true), 600)
     return () => clearTimeout(timer)
-  }, [section, state.loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [section, state.loaded, state.helpSeen.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close when navigating away
   useEffect(() => { setIsOpen(false) }, [pathname])
