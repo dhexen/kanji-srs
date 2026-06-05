@@ -26,6 +26,10 @@ import {
   runFullClassifyBatch,
   fetchFeedbackReports,
   updateFeedbackStatus,
+  fetchVocabReports,
+  updateVocabReportStatus,
+  fetchGrammarReports,
+  updateGrammarReportStatus,
   type AdminUserRow,
   type AdminSnapshotRow,
   type ImageStats,
@@ -36,6 +40,8 @@ import {
   type FullClassifyStats,
   type FullClassifyResult,
   type FeedbackReport,
+  type VocabReport,
+  type GrammarReport,
 } from '@/lib/admin-client'
 import { STAGE_NAMES, DEFAULT_SRS_INTERVALS, getSrsIntervals, setSrsIntervals } from '@/lib/srs'
 
@@ -95,6 +101,18 @@ export default function AdminClient() {
   const [feedbackExpanded, setFeedbackExpanded] = useState<string | null>(null)
   const [feedbackUpdating, setFeedbackUpdating] = useState<string | null>(null)
   const [feedbackReply, setFeedbackReply] = useState<Record<string, string>>({})
+
+  // Grammar reports (in feedback tab)
+  const [grammarReports, setGrammarReports] = useState<GrammarReport[] | null>(null)
+  const [grammarLoading, setGrammarLoading] = useState(false)
+  const [grammarExpanded, setGrammarExpanded] = useState<string | null>(null)
+  const [grammarUpdating, setGrammarUpdating] = useState<string | null>(null)
+
+  // Vocab reports (in feedback tab — read + resolve only, editing in vocab tab)
+  const [fbVocabReports, setFbVocabReports] = useState<VocabReport[] | null>(null)
+  const [fbVocabLoading, setFbVocabLoading] = useState(false)
+  const [fbVocabExpanded, setFbVocabExpanded] = useState<string | null>(null)
+  const [fbVocabUpdating, setFbVocabUpdating] = useState<string | null>(null)
 
   // SRS intervals editor
   const [srsIntervals, setSrsIntervalsLocal] = useState<number[]>([...getSrsIntervals()])
@@ -1055,6 +1073,7 @@ export default function AdminClient() {
 
       {/* ── TAB: FEEDBACK ────────────────────────────────────────────── */}
       {activeTab === 'feedback' && (
+        <>
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -1203,6 +1222,292 @@ export default function AdminClient() {
             )
           })()}
         </div>
+
+        {/* ── GRAMMAR REPORTS ──────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">🔤 Errores de gramática</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Frases de práctica reportadas como incorrectas por los usuarios.</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setGrammarLoading(true)
+                try { setGrammarReports(await fetchGrammarReports()) }
+                catch (e: any) { showToast(e.message || 'Error', 'error') }
+                finally { setGrammarLoading(false) }
+              }}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition"
+            >
+              {grammarLoading ? 'Cargando…' : grammarReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
+            </button>
+          </div>
+
+          {grammarReports === null && !grammarLoading && (
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Pulsa «Cargar reportes» para ver los reportes.</p>
+          )}
+          {grammarReports !== null && grammarReports.length === 0 && (
+            <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay reportes de gramática todavía.</p>
+          )}
+
+          {grammarReports !== null && grammarReports.length > 0 && (() => {
+            const byPattern = new Map<string, GrammarReport[]>()
+            for (const r of grammarReports) {
+              const key = r.grammar_pattern
+              if (!byPattern.has(key)) byPattern.set(key, [])
+              byPattern.get(key)!.push(r)
+            }
+            return (
+              <div className="space-y-4">
+                {Array.from(byPattern.entries()).map(([pattern, reports]) => {
+                  const openCount = reports.filter(r => r.status === 'open').length
+                  return (
+                    <div key={pattern} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50">
+                        <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{pattern}</span>
+                        <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300">{reports.length} reporte{reports.length !== 1 ? 's' : ''}</span>
+                        {openCount > 0 && (
+                          <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">{openCount} abierto{openCount !== 1 ? 's' : ''}</span>
+                        )}
+                      </div>
+                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {reports.map(report => {
+                          const isOpen = grammarExpanded === report.id
+                          const dateStr = new Date(report.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          return (
+                            <div key={report.id}>
+                              <button
+                                type="button"
+                                onClick={() => setGrammarExpanded(isOpen ? null : report.id)}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition"
+                              >
+                                <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 truncate font-mono">{report.sentence}</span>
+                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${
+                                  report.status === 'open'
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {report.status === 'open' ? 'Abierto' : 'Resuelto'}
+                                </span>
+                                <span className="text-slate-300 dark:text-slate-600 text-xs">{isOpen ? '▲' : '▼'}</span>
+                              </button>
+                              {isOpen && (
+                                <div className="px-4 pb-4 pt-1 bg-slate-50 dark:bg-slate-700/30 space-y-3">
+                                  <div className="text-xs text-slate-400 dark:text-slate-500">{report.user_email} · {dateStr}</div>
+                                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Frase completa</p>
+                                    <p className="text-base font-bold text-slate-800 dark:text-slate-100">{report.sentence}</p>
+                                  </div>
+                                  {report.description && (
+                                    <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{report.description}</p>
+                                  )}
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={grammarUpdating === report.id}
+                                      onClick={async () => {
+                                        const newStatus = report.status === 'open' ? 'resolved' : 'open'
+                                        setGrammarUpdating(report.id)
+                                        try {
+                                          await updateGrammarReportStatus(report.id, newStatus)
+                                          setGrammarReports(prev => prev ? prev.map(r => r.id === report.id ? { ...r, status: newStatus } : r) : prev)
+                                          if (newStatus === 'resolved') showToast('✓ Reporte resuelto', 'success')
+                                        } catch (e: any) {
+                                          showToast(e.message || 'Error', 'error')
+                                        } finally {
+                                          setGrammarUpdating(null)
+                                        }
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                        report.status === 'open'
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                                      }`}
+                                    >
+                                      {grammarUpdating === report.id ? '…' : report.status === 'open' ? '✓ Marcar resuelto' : '↩ Reabrir'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* ── VOCAB REPORTS ────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">🚩 Errores de vocabulario</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Lecturas o significados incorrectos reportados. Para editar ve a la pestaña Vocabulario.</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setFbVocabLoading(true)
+                try { setFbVocabReports(await fetchVocabReports()) }
+                catch (e: any) { showToast(e.message || 'Error', 'error') }
+                finally { setFbVocabLoading(false) }
+              }}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition"
+            >
+              {fbVocabLoading ? 'Cargando…' : fbVocabReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
+            </button>
+          </div>
+
+          {fbVocabReports === null && !fbVocabLoading && (
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Pulsa «Cargar reportes» para ver los reportes.</p>
+          )}
+          {fbVocabReports !== null && fbVocabReports.length === 0 && (
+            <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay errores de vocabulario reportados.</p>
+          )}
+
+          {fbVocabReports !== null && fbVocabReports.length > 0 && (() => {
+            const byWord = new Map<string, VocabReport[]>()
+            for (const r of fbVocabReports) {
+              if (!byWord.has(r.word)) byWord.set(r.word, [])
+              byWord.get(r.word)!.push(r)
+            }
+            return (
+              <div className="space-y-3">
+                {Array.from(byWord.entries()).map(([word, reports]) => {
+                  const openCount = reports.filter(r => r.status === 'open').length
+                  return (
+                    <div key={word} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setFbVocabExpanded(fbVocabExpanded === word ? null : word)}
+                        className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left"
+                      >
+                        <span className="kanji-font text-lg font-bold text-slate-800 dark:text-slate-100">{word}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300">{reports.length} reporte{reports.length !== 1 ? 's' : ''}</span>
+                        {openCount > 0 && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">{openCount} abierto{openCount !== 1 ? 's' : ''}</span>
+                        )}
+                        <span className="ml-auto text-slate-300 dark:text-slate-600 text-xs">{fbVocabExpanded === word ? '▲' : '▼'}</span>
+                      </button>
+                      {fbVocabExpanded === word && (
+                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                          {reports.map(r => (
+                            <div key={r.id} className="flex items-start gap-3 px-4 py-3">
+                              <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                                r.field === 'reading'  ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' :
+                                r.field === 'meaning'  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' :
+                                r.field === 'kanji'    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
+                                                         'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                              }`}>
+                                {r.field === 'reading' ? 'Lectura' : r.field === 'meaning' ? 'Significado' : r.field === 'kanji' ? 'Kanji' : 'General'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{r.user_email} · {new Date(r.created_at).toLocaleDateString('es-ES')}</p>
+                                {r.description && <p className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">{r.description}</p>}
+                              </div>
+                              <div className="shrink-0 flex items-center gap-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  r.status === 'open'
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {r.status === 'open' ? 'Abierto' : 'Resuelto'}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={fbVocabUpdating === r.id}
+                                  onClick={async () => {
+                                    const newStatus = r.status === 'open' ? 'resolved' : 'open'
+                                    setFbVocabUpdating(r.id)
+                                    try {
+                                      await updateVocabReportStatus(r.id, newStatus)
+                                      setFbVocabReports(prev => prev ? prev.map(x => x.id === r.id ? { ...x, status: newStatus } : x) : prev)
+                                    } catch (e: any) {
+                                      showToast(e.message || 'Error', 'error')
+                                    } finally {
+                                      setFbVocabUpdating(null)
+                                    }
+                                  }}
+                                  className={`text-xs font-semibold px-2 py-0.5 rounded-lg transition ${
+                                    r.status === 'open'
+                                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200'
+                                      : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200'
+                                  }`}
+                                >
+                                  {fbVocabUpdating === r.id ? '…' : r.status === 'open' ? '✓' : '↩'}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* ── IMAGE REPORTS ─────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">🖼️ Imágenes reportadas</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Imágenes con más votos negativos que positivos. Para gestión completa ve a la pestaña Imágenes.</p>
+            </div>
+            <button
+              type="button"
+              onClick={loadImgReports}
+              disabled={imgReportsLoading}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition disabled:opacity-50"
+            >
+              {imgReportsLoading ? 'Cargando…' : imgReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
+            </button>
+          </div>
+
+          {imgReports === null && !imgReportsLoading && (
+            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Pulsa «Cargar reportes» para ver las imágenes con votos negativos.</p>
+          )}
+          {imgReports !== null && imgReports.length === 0 && (
+            <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay imágenes reportadas.</p>
+          )}
+          {imgReports !== null && imgReports.length > 0 && (
+            <div className="space-y-3">
+              {imgReports.map(r => {
+                const acting = imgReportActing === r.word
+                return (
+                  <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 dark:border-slate-700 rounded-xl bg-slate-50/60 dark:bg-slate-700/30">
+                    <img src={r.image_url} alt={r.word} className="w-full sm:w-16 h-16 object-cover rounded-lg shrink-0 self-center sm:self-start" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="kanji-font text-lg font-bold text-slate-800 dark:text-slate-100">{r.word}</span>
+                        <span className="text-xs text-slate-400">{r.meaning_es}</span>
+                        <span className="ml-auto text-xs font-semibold text-rose-600">👍 {r.upvotes} · 👎 {r.downvotes}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="button"
+                          disabled={acting}
+                          onClick={() => handleReportAction(r.word, 'remove')}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold disabled:opacity-50 transition"
+                        >
+                          {acting ? '…' : '🗑️ Quitar imagen'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        </>
       )}
 
       {/* Backup restore modal — global (outside tabs) */}

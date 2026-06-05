@@ -503,6 +503,7 @@ export async function fetchFeedbackReports(): Promise<FeedbackReport[]> {
 export interface PendingReportsCount {
   feedback: number
   vocab: number
+  grammar: number
   total: number
 }
 
@@ -518,6 +519,33 @@ export async function updateFeedbackStatus(id: string, status: 'open' | 'resolve
     method: 'PATCH',
     headers,
     body: JSON.stringify({ id, status, admin_response: adminResponse }),
+  })
+  await parseAdminResponse<{ ok: boolean }>(res)
+}
+
+export interface GrammarReport {
+  id: string
+  grammar_id: string
+  grammar_pattern: string
+  sentence: string
+  user_id: string | null
+  user_email: string
+  description: string | null
+  status: 'open' | 'resolved'
+  resolved_at: string | null
+  created_at: string
+}
+
+export async function fetchGrammarReports(): Promise<GrammarReport[]> {
+  const res = await fetch('/api/admin/grammar-reports', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<GrammarReport[]>(res)
+}
+
+export async function updateGrammarReportStatus(id: string, status: 'open' | 'resolved'): Promise<void> {
+  const res = await fetch('/api/admin/grammar-reports', {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ id, status }),
   })
   await parseAdminResponse<{ ok: boolean }>(res)
 }

@@ -36,7 +36,7 @@ function LevelChangeToast({ dir, newLevel, lang }: { dir: 'up' | 'down'; newLeve
   return (
     <div className={[
       'pointer-events-none select-none',
-      'fixed top-24 left-4 z-50',
+      'absolute top-11 left-3 z-20',
       'flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg',
       'text-sm font-bold animate-xp-float',
       dir === 'up' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white',
@@ -197,9 +197,6 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {xpGained !== null && (
         <XpToast key={xpToastKey} xp={xpGained} type="vocab" />
       )}
-      {levelChange !== null && (
-        <LevelChangeToast key={levelChangeKey} dir={levelChange.dir} newLevel={levelChange.newLevel} lang={lang} />
-      )}
     <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
       <div className="flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -222,6 +219,9 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         <span className={`absolute top-3 left-3 z-10 px-2.5 py-1 text-xs font-semibold rounded-md shadow-sm ${badgeColors[mode]}`}>
           {t(lang, cfg.label_key)} <span className="opacity-60">{getStageName(level, lang)}</span>
         </span>
+        {levelChange !== null && (
+          <LevelChangeToast key={levelChangeKey} dir={levelChange.dir} newLevel={levelChange.newLevel} lang={lang} />
+        )}
 
         {/* Image banner — full width, all screen sizes */}
         {hasImage && (
@@ -389,6 +389,12 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
             ? (isPaperMode ? t(lang, 'review_paper_correct') : t(lang, 'review_correct'))
             : isPaperMode ? t(lang, 'review_paper_incorrect')
             : `${t(lang, 'review_wrong')} ${mode === 'meaning' ? meaning : item.reading}`}
+          {isTypingMode && inputValue && (
+            <div className="mt-2 text-sm font-normal opacity-80">
+              <span className="opacity-70">{t(lang, 'gp_your_answer')}:</span>{' '}
+              <span className="font-semibold tracking-wider">{inputValue}</span>
+            </div>
+          )}
         </div>
       )}
 

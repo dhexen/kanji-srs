@@ -1932,6 +1932,25 @@ export async function submitFeedbackReport(payload: {
   if (error) throw new Error(error.message)
 }
 
+export async function submitGrammarReport(payload: {
+  grammar_id: string
+  grammar_pattern: string
+  sentence: string
+  description?: string
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { error } = await supabase.from('grammar_reports').insert({
+    grammar_id: payload.grammar_id,
+    grammar_pattern: payload.grammar_pattern,
+    sentence: payload.sentence,
+    user_id: user.id,
+    user_email: user.email ?? '',
+    description: payload.description ?? '',
+  })
+  if (error) throw new Error(error.message)
+}
+
 // ── My reports (ticketing view for the user's own profile) ─────────────────────
 
 export interface MyFeedbackTicket {
