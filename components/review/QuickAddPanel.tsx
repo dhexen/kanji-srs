@@ -8,9 +8,10 @@ import { t } from '@/lib/i18n'
 import SkipToGradeModal from './SkipToGradeModal'
 
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
+  const perModeLevel = level > 1 ? level : 0
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
   Object.values(MODE_CONFIG).forEach(cfg => {
-    ;(upd as unknown as Record<string, number>)[`${cfg.key}_level`] = level
+    ;(upd as unknown as Record<string, number>)[`${cfg.key}_level`] = perModeLevel
     ;(upd as unknown as Record<string, number>)[`${cfg.key}_due`] = due
   })
   return migrateItem(upd)

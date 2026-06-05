@@ -8,6 +8,7 @@ import { submitImageVote, submitVocabReport } from '@/lib/supabase'
 import type { SessionItem } from './ReviewClient'
 import { vocabXpForResult } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
+import KanjiStrokeOrder from './KanjiStrokeOrder'
 
 interface Props {
   sessionItem: SessionItem
@@ -15,6 +16,8 @@ interface Props {
   index: number
   total: number
   isPractice: boolean
+  /** How many times this item has been failed in the current session BEFORE this encounter. */
+  priorWrongCount: number
   onAnswer: (sessionItem: SessionItem, isCorrect: boolean) => void
   onMaster: (sessionItem: SessionItem) => void
   onQuit: () => void
@@ -47,7 +50,7 @@ function LevelChangeToast({ dir, newLevel, lang }: { dir: 'up' | 'down'; newLeve
   )
 }
 
-export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, onAnswer, onMaster, onQuit }: Props) {
+export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, priorWrongCount, onAnswer, onMaster, onQuit }: Props) {
   const { masterVocabItem, addXP, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
@@ -139,12 +142,16 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       addXP({ vocabXp: xp })
       setXpGained(xp)
       setXpToastKey(k => k + 1)
-      // Level change indicator (approximate: assumes first attempt)
-      const newLevel = isCorrect
-        ? Math.min(level + 1, SRS_MAX_LEVEL)
-        : Math.max(level - 1, 1)
+      // Mirror applyResult logic for the visual toast.
+      // priorWrongCount = failures before this encounter; +1 if this encounter itself is wrong.
+      const totalWrong = isCorrect ? priorWrongCount : priorWrongCount + 1
+      const newLevel = level === 0
+        ? (isCorrect ? 1 : 0)  // unreviewed word: correct → Apprentice 1, wrong → stays 0
+        : totalWrong === 0
+          ? Math.min(level + 1, SRS_MAX_LEVEL)
+          : Math.max(level - totalWrong, 1)
       if (newLevel !== level) {
-        setLevelChange({ newLevel, dir: isCorrect ? 'up' : 'down' })
+        setLevelChange({ newLevel, dir: newLevel > level ? 'up' : 'down' })
         setLevelChangeKey(k => k + 1)
       }
     }
@@ -361,8 +368,8 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
               {t(lang, 'review_show_answer')}
             </button>
           ) : (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-5 text-center">
-              <div className="mb-1">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-5 text-center space-y-3">
+              <div>
                 <ruby className="kanji-font text-4xl font-bold text-slate-800 dark:text-slate-100">
                   {item.jp}
                   <rt style={{ fontSize: '0.45em' }} className="font-normal tracking-widest text-slate-500 dark:text-slate-400">
@@ -371,6 +378,10 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
                 </ruby>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">{meaning}</p>
+              <KanjiStrokeOrder kanji={item.jp} />
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                ✏️ {t(lang, 'stroke_order_tip')}
+              </p>
             </div>
           )}
           {showAnswer && (

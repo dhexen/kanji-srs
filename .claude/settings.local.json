@@ -62,7 +62,13 @@
       "Bash(node -e \"const w = require\\('/home/dhexen/Documentos/proyecto/kanji-srs/node_modules/wanakana'\\); console.log\\('toHiragana:', typeof w.toHiragana\\); console.log\\('toKatakana:', typeof w.toKatakana\\); console.log\\('toRomaji:', typeof w.toRomaji\\); console.log\\('test tsukue:', w.toHiragana\\('tsukue'\\)\\); console.log\\('test ga:', w.toHiragana\\('ga'\\)\\); console.log\\('test koohii kata:', w.toKatakana\\('koohii'\\)\\); console.log\\('romaji コオヒイ:', w.toRomaji\\('コオヒイ'\\)\\); console.log\\('romaji コーヒー:', w.toRomaji\\('コーヒー'\\)\\);\")",
       "Bash(node -e \"const w = require\\('/home/dhexen/Documentos/proyecto/kanji-srs/node_modules/wanakana'\\); ['tegami','megane','mizu','ringo','okaasan','nomimono'].forEach\\(r => console.log\\(r, '->', w.toHiragana\\(r\\), '-> romaji', w.toRomaji\\(w.toHiragana\\(r\\)\\)\\)\\);\")",
       "Bash(timeout 180 node_modules/.bin/next build)",
-      "Bash(grep -E \"\\\\.\\(sql|ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(sql|ts|tsx\\)$\")",
+      "Bash(which node *)",
+      "Read(//home/dhexen/.nvm/versions/**)",
+      "Bash(ls /usr/local/bin/ | grep -E \"npm|pnpm|yarn|bun\" 2>/dev/null; ls /usr/bin/ | grep -E \"npm|pnpm|yarn|bun\" 2>/dev/null)",
+      "Read(//usr/local/bin/**)",
+      "Read(//usr/bin/**)",
+      "Bash(node -e \"const { execSync } = require\\('child_process'\\); console.log\\(execSync\\('npm --version', {cwd: '/home/dhexen/Documentos/proyecto/kanji-srs'}\\).toString\\(\\)\\)\")"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

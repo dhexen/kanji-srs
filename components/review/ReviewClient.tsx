@@ -475,6 +475,7 @@ export default function ReviewClient() {
 
   const current = sequence[index]
   const uniqueTotal = new Set(sequence.map(s => `${s.item.jp}:${s.mode}`)).size
+  const currentKey = `${current.item.jp}:${current.mode}`
   return (
     <QuestionCard
       key={`${current.item.jp}-${current.mode}-${index}`}
@@ -483,6 +484,7 @@ export default function ReviewClient() {
       index={completedRef.current.size}
       total={uniqueTotal}
       isPractice={isPractice}
+      priorWrongCount={wrongCountsRef.current.get(currentKey) ?? 0}
       onAnswer={onAnswer}
       onMaster={onMaster}
       onQuit={onQuit}

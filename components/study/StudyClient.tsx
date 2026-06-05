@@ -6,10 +6,14 @@ import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
+  // Per-mode levels start at 0 for new words (level ≤ 1) so the first correct
+  // answer brings them to level 1, not level 2. Words explicitly mastered
+  // (level > 1, e.g. "Ya me la sé") keep the given level.
+  const perModeLevel = level > 1 ? level : 0
   const upd: VocabItem = { ...item, status: 'active', srsLevel: level, due }
   Object.values(MODE_CONFIG).forEach(cfg => {
     const row = upd as unknown as Record<string, number>
-    row[`${cfg.key}_level`] = level
+    row[`${cfg.key}_level`] = perModeLevel
     row[`${cfg.key}_due`] = due
   })
   return migrateItem(upd)

@@ -160,7 +160,10 @@ export function migrateItem(item: VocabItem): VocabItem {
   Object.values(MODE_CONFIG).forEach(cfg => {
     const lvlKey = cfg.key + '_level' as keyof VocabItem
     const dueKey = cfg.key + '_due' as keyof VocabItem
-    if (!result[lvlKey]) (result as any)[lvlKey] = item.srsLevel || 1
+    // Only set if null/undefined (not if 0, which is a valid "never reviewed" state).
+    // New words (srsLevel ≤ 1) start at level 0 so their first correct answer → level 1.
+    // Words migrated from the old single-level system (srsLevel > 1) keep their level.
+    if (result[lvlKey] == null) (result as any)[lvlKey] = item.srsLevel > 1 ? item.srsLevel : 0
     if (!result[dueKey]) (result as any)[dueKey] = item.due || Date.now()
   })
   return result
@@ -168,22 +171,30 @@ export function migrateItem(item: VocabItem): VocabItem {
 
 export function getModeLevelAndDue(item: VocabItem, mode: ReviewMode) {
   const cfg = MODE_CONFIG[mode]
+  // Use ?? (not ||) so level 0 ("never reviewed") is kept as 0, not overridden to 1.
+  // Fall back to 1 only for truly missing data (undefined/null = old data before per-mode SRS).
+  const rawLevel = (item as any)[cfg.key + '_level'] as number | undefined | null
   return {
-    level: (item as any)[cfg.key + '_level'] as number || 1,
+    level: rawLevel ?? 1,
     due: (item as any)[cfg.key + '_due'] as number || 0,
   }
 }
 
-// wrongCount=0 → correct first try → +1 level
-// wrongCount>0 → failed N times → −N levels (min Apprentice 1)
+// Level 0 = never successfully reviewed (show immediately every session).
+// wrongCount=0 AND cur>0 → correct first try → +1 level
+// wrongCount>0 AND cur>0 → failed N times → −N levels (min Apprentice 1)
+// cur===0 (any wrongCount) → first ever correct → Apprentice 1 (level 1)
 export function applyResult(item: VocabItem, mode: ReviewMode, wrongCount: number): VocabItem {
   const cfg = MODE_CONFIG[mode]
   const lvlKey = cfg.key + '_level'
   const dueKey = cfg.key + '_due'
-  const cur = (item as any)[lvlKey] as number || 1
-  const newLevel = wrongCount === 0
-    ? Math.min(cur + 1, SRS_MAX_LEVEL)
-    : Math.max(cur - wrongCount, 1)
+  const rawCur = (item as any)[lvlKey] as number | undefined | null
+  const cur = rawCur ?? 1
+  const newLevel = cur === 0
+    ? 1  // first ever correct review → Apprentice 1, regardless of failures in same session
+    : wrongCount === 0
+      ? Math.min(cur + 1, SRS_MAX_LEVEL)
+      : Math.max(cur - wrongCount, 1)
   const newDue = newLevel >= SRS_MAX_LEVEL
     ? Number.MAX_SAFE_INTEGER
     : Date.now() + getSrsIntervals()[newLevel]
