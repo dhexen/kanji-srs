@@ -75,9 +75,9 @@ function HelpReview() {
       <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Añadir palabras nuevas</h3>
         <ol className="space-y-2">
-          <Step n={1}>Pulsa el botón <strong>"+"</strong> en esta página</Step>
-          <Step n={2}>Elige cuántas palabras añadir (empieza con 3-5)</Step>
-          <Step n={3}>Las palabras siguen el currículo escolar japonés, de más básico a más avanzado</Step>
+          <Step n={1}>Pulsa el botón <strong>"+"</strong> en esta página y elige cuántas palabras añadir</Step>
+          <Step n={2}>Se abre una <strong>sesión de estudio</strong>: ve pasando las tarjetas para ver el kanji, lectura e imagen de cada palabra</Step>
+          <Step n={3}>Al terminar pulsa <strong>"Empezar repaso"</strong> para pasar al SRS, o cierra para hacerlo más tarde</Step>
         </ol>
       </div>
 
@@ -147,6 +147,13 @@ function HelpGrammar() {
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           La gramática tiene su propio SRS de <strong>8 niveles</strong> (de 4h a 1 mes).
           Si aciertas ≥60% de la sesión, subes nivel. Si no, bajas.
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Reportar una frase incorrecta</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Si crees que una frase está mal construida, pulsa el enlace <strong>🚩 Reportar error en esta frase</strong> que aparece debajo de la respuesta. El administrador recibirá el reporte y podrá revisarla.
         </p>
       </div>
 

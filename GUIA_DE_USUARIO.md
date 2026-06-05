@@ -92,12 +92,22 @@ Si una palabra ya la sabes de antes, pulsa el botón **"Ya me lo sé"** (aparece
 #### Añadir palabras nuevas
 
 En la página de repasos, hay un botón **"+"** para añadir palabras nuevas. Puedes elegir:
-- **3 palabras** — para empezar poco a poco
-- **5 palabras** — ritmo normal
-- **10 palabras** — si tienes tiempo para estudiar
-- **20 palabras** — para avanzar rápido
+- **+3 palabras** — para empezar poco a poco
+- **+5 palabras** — ritmo normal
+- **+15 palabras** — para avanzar rápido
 
 Las palabras se añaden siguiendo el currículo escolar japonés (de más básico a más avanzado).
+
+#### Sesión de estudio previa al repaso
+
+Cuando añades palabras nuevas, la app abre primero una **sesión de estudio** antes de pasar al repaso. En esta pantalla puedes:
+
+- **Ver cada palabra** con su kanji, lectura en hiragana, significado e imagen
+- **Navegar** con los botones Anterior / Siguiente o con las teclas ← →
+- Al llegar a la última palabra, pulsa **"Empezar repaso"** para iniciar el SRS con esas palabras
+- O pulsa **"Más tarde"** si prefieres hacer el repaso en otro momento (las palabras quedan en tu cola)
+
+> **¿Por qué esta sesión previa?** Para que no te llegue una pregunta de repaso sobre una palabra que no has visto nunca. El estudio previo garantiza que cuando te la pregunten ya la habrás visto al menos una vez.
 
 ---
 
@@ -138,6 +148,13 @@ Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 
 #### El sistema de repaso de gramática
 
 Al igual que el vocabulario, la gramática tiene su propio sistema de niveles. Cuando practicas un punto gramatical, la app lo añade a tu "cola de repaso de gramática". El banner **"⏰ N puntos de gramática vencidos hoy"** te avisará cuando toca repasar.
+
+#### Reportar una frase incorrecta
+
+Si durante la práctica encuentras una frase que parece incorrecta o mal construida, puedes reportarla. Debajo de la respuesta aparece el enlace **🚩 Reportar error en esta frase**. Al pulsarlo:
+
+1. Puedes describir el error (opcional)
+2. Pulsa **"Enviar"** — el administrador recibirá el reporte y podrá revisarla
 
 #### Filtros disponibles
 

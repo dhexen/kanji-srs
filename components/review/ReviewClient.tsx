@@ -9,9 +9,10 @@ import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
+import LessonSession from './LessonSession'
 
 export type SessionItem = { item: VocabItem; mode: ReviewMode }
-type Phase = 'select' | 'playing' | 'done'
+type Phase = 'select' | 'lesson' | 'playing' | 'done'
 
 // Canonical mode order for spaced-repetition learning progression
 const CANONICAL_MODE_ORDER: ReviewMode[] = ['multi', 'meaning', 'reading', 'kanji', 'reverse']
@@ -66,6 +67,7 @@ export default function ReviewClient() {
   const [index, setIndex] = useState(0)
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+  const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
 
   // Per-session wrong-count tracking (key = "jp:mode")
   const wrongCountsRef = useRef(new Map<string, number>())
@@ -166,6 +168,13 @@ export default function ReviewClient() {
     } finally {
       setIsStarting(false)
     }
+  }
+
+  // When new words are added via +N, show a study (lesson) session first.
+  function onNewWordsAdded(newItems: VocabItem[]) {
+    if (newItems.length === 0) return
+    setLessonItems(newItems)
+    setPhase('lesson')
   }
 
   // Called by QuestionCard when the user submits an answer.
@@ -445,7 +454,7 @@ export default function ReviewClient() {
           </div>
 
           {/* Nous Kanjis */}
-          <QuickAddPanel onAdded={startWithItems} />
+          <QuickAddPanel onAdded={onNewWordsAdded} />
         </div>
 
         {/* ── Dades totals ──────────────────────────────────────────── */}
@@ -466,6 +475,17 @@ export default function ReviewClient() {
         )}
 
       </div>
+    )
+  }
+
+  if (phase === 'lesson') {
+    return (
+      <LessonSession
+        items={lessonItems}
+        lang={lang}
+        onComplete={() => startWithItems(lessonItems)}
+        onSkip={() => { setLessonItems([]); setPhase('select') }}
+      />
     )
   }
 

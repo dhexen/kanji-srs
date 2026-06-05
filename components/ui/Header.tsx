@@ -7,6 +7,8 @@ import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
 import { useState, useEffect } from 'react'
 import { fetchPendingReportsCount } from '@/lib/admin-client'
+import { hasUnseenChanges } from '@/lib/changelog'
+import WhatsNewModal from './WhatsNewModal'
 
 function HamburgerIcon() {
   return (
@@ -22,10 +24,20 @@ export default function Header() {
   const help = useHelp()
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [pendingReports, setPendingReports] = useState(0)
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const [hasUnseen, setHasUnseen] = useState(false)
 
   const user = state.user
   const initial = (user?.email?.[0] ?? '?').toUpperCase()
   const isRealAdmin = state.role === 'admin'
+
+  // Check for unseen changelog entries and auto-open once per version
+  useEffect(() => {
+    if (!user) return
+    const unseen = hasUnseenChanges()
+    setHasUnseen(unseen)
+    if (unseen) setWhatsNewOpen(true)
+  }, [user])
 
   // Poll the count of open reports for the admin badge
   useEffect(() => {
@@ -113,6 +125,23 @@ export default function Header() {
             </Link>
           )}
 
+          {/* What's new */}
+          {user && (
+            <button
+              type="button"
+              onClick={() => { setWhatsNewOpen(true); setHasUnseen(false) }}
+              title="Novedades"
+              aria-label="Novedades"
+              className="relative flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400 transition-all shrink-0"
+            >
+              <span>🚀</span>
+              <span className="hidden md:inline">Novedades</span>
+              {hasUnseen && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-rose-500 border border-white dark:border-slate-900" />
+              )}
+            </button>
+          )}
+
           {/* Help */}
           <button
             type="button"
@@ -140,6 +169,9 @@ export default function Header() {
       </header>
 
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      {whatsNewOpen && (
+        <WhatsNewModal onClose={() => { setWhatsNewOpen(false); setHasUnseen(false) }} />
+      )}
     </>
   )
 }
