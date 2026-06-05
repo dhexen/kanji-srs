@@ -275,6 +275,7 @@ function GrammarSrsQueue({
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         showSharedSentences={showSharedSentences}
+        sessionSize={1}
         onBack={handleGrammarBack}
         onSrsUpdate={onSrsUpdate}
         onSessionEnd={handleSessionEnd}

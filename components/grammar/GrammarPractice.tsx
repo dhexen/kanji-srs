@@ -73,6 +73,8 @@ interface Props {
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   showSharedSentences?: boolean
+  /** How many sentences to show per session. Defaults to SESSION_SIZE (5). Pass 1 for SRS queue mode. */
+  sessionSize?: number
   onBack: () => void
   onSrsUpdate?: (stat: GrammarSrsStat) => void
   onSessionEnd?: (grammarId: string, hadWrongs: boolean) => void
@@ -254,6 +256,7 @@ export default function GrammarPractice({
   sessionToken,
   activeVocab,
   showSharedSentences: showSharedProp = true,
+  sessionSize: sessionSizeProp,
   onBack,
   onSrsUpdate,
   onSessionEnd,
@@ -731,7 +734,7 @@ Otras reglas:
     // Sync merged sentences into state so session indices are valid
     if (showShared && sharedSentences.length > 0) setSentences(allSentences)
 
-    const count = Math.min(SESSION_SIZE, allSentences.length)
+    const count = Math.min(sessionSizeProp ?? SESSION_SIZE, allSentences.length)
     const validatedIdx   = allSentences.map((s, i) => ({ s, i })).filter(x => x.s.validated).map(x => x.i).sort(() => Math.random() - 0.5)
     const sharedIdx      = allSentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated && x.s.is_shared).map(x => x.i).sort(() => Math.random() - 0.5)
     const unvalidatedIdx = allSentences.map((s, i) => ({ s, i })).filter(x => !x.s.validated && !x.s.is_shared).map(x => x.i).sort(() => Math.random() - 0.5)
@@ -1125,7 +1128,7 @@ Otras reglas:
           onClick={startSession}
           className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base rounded-xl transition shadow-md"
         >
-          🏋️ {t(lang, 'gp_start_session').replace('{n}', String(Math.min(SESSION_SIZE, sentences.length)))}
+          🏋️ {t(lang, 'gp_start_session').replace('{n}', String(Math.min(sessionSizeProp ?? SESSION_SIZE, sentences.length)))}
         </button>
 
         <button onClick={onBack} className="w-full py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition">
@@ -1155,7 +1158,11 @@ Otras reglas:
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{grammar.pattern}</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
+            {phase === 'answered'
+              ? grammar.pattern
+              : (lang === 'en' ? 'Grammar practice' : lang === 'ca' ? 'Pràctica de gramàtica' : 'Práctica de gramática')}
+          </span>
         </div>
         <span className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 ml-2">
           {currentPos + 1} / {sessionQueue.length}
