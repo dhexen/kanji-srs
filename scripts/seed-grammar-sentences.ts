@@ -16,7 +16,9 @@
  * Required env vars (loaded from .env.local automatically):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
- *   GEMINI_API_KEY
+ *   GEMINI_API_KEY   — one key, or several separated by commas: key1,key2,key3
+ *                      When a key hits quota the script rotates to the next one.
+ *                      All keys exhausted → waits QUOTA_WAIT_MS then retries from the first.
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -49,18 +51,45 @@ if (fs.existsSync(envFile)) {
   }
 }
 
-const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_KEY       = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const GEMINI_KEY        = process.env.GEMINI_API_KEY!
-const DRY_RUN           = process.argv.includes('--dry-run')
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const DRY_RUN      = process.argv.includes('--dry-run')
+
+// Support multiple comma-separated Gemini keys
+const GEMINI_KEYS: string[] = (process.env.GEMINI_API_KEY ?? '')
+  .split(',').map(k => k.trim()).filter(Boolean)
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
   process.exit(1)
 }
-if (!GEMINI_KEY && !DRY_RUN) {
+if (GEMINI_KEYS.length === 0 && !DRY_RUN) {
   console.error('❌ Missing GEMINI_API_KEY in .env.local')
   process.exit(1)
+}
+
+// ─── Key rotator ──────────────────────────────────────────────────────────────
+// Tracks which keys are currently rate-limited and when they can be retried.
+const keyThrottledUntil = new Map<string, number>()
+
+function getActiveKey(): string | null {
+  const now = Date.now()
+  for (const key of GEMINI_KEYS) {
+    if ((keyThrottledUntil.get(key) ?? 0) <= now) return key
+  }
+  return null
+}
+
+function throttleKey(key: string) {
+  keyThrottledUntil.set(key, Date.now() + QUOTA_WAIT_MS)
+  const active = GEMINI_KEYS.filter(k => (keyThrottledUntil.get(k) ?? 0) <= Date.now())
+  if (active.length > 0) {
+    console.log(`\n  🔑 Key …${key.slice(-6)} throttled. Switching to next key (${active.length} available).`)
+  } else {
+    const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
+    const wait = earliest - Date.now()
+    console.log(`\n  ⏸  All ${GEMINI_KEYS.length} keys throttled. Waiting ${fmt(wait)}…`)
+  }
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
@@ -82,6 +111,7 @@ const ALL_GRAMMAR: GrammarPoint[] = [
   ...BUNPRO_GRAMMAR.map(bunproToGrammarPoint),
 ]
 console.log(`📚 Total grammar points: ${ALL_GRAMMAR.length}`)
+if (!DRY_RUN) console.log(`🔑 Gemini keys loaded: ${GEMINI_KEYS.length}`)
 
 // ─── Count existing shared sentences ──────────────────────────────────────────
 async function getSharedCounts(): Promise<Map<string, number>> {
@@ -180,9 +210,12 @@ Otras reglas:
 - Genera exactamente ${GENERATE_SIZE} frases distintas`
 }
 
-// ─── Call Gemini ──────────────────────────────────────────────────────────────
+// ─── Call Gemini (uses active key, throws 'quota' if key is rate-limited) ─────
 async function callGemini(prompt: string): Promise<any[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`
+  const key = getActiveKey()
+  if (!key) throw Object.assign(new Error('all keys throttled'), { kind: 'quota' })
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -191,7 +224,10 @@ async function callGemini(prompt: string): Promise<any[]> {
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     const msg: string = data?.error?.message ?? `HTTP ${res.status}`
-    if (res.status === 429) throw Object.assign(new Error(msg), { kind: 'quota' })
+    if (res.status === 429) {
+      throttleKey(key)
+      throw Object.assign(new Error(msg), { kind: 'quota' })
+    }
     if (res.status >= 500 || res.status === 408) throw Object.assign(new Error(msg), { kind: 'transient' })
     throw Object.assign(new Error(msg), { kind: 'permanent' })
   }
@@ -291,10 +327,11 @@ async function main() {
         const kind: string = e.kind ?? 'transient'
 
         if (kind === 'quota') {
-          console.log(`\n  ⏸  Quota/rate limit hit. Waiting ${fmt(QUOTA_WAIT_MS)}…`)
-          await sleep(QUOTA_WAIT_MS)
-          // retry same attempt (don't increment)
-          attempt--
+          // Wait until the earliest throttled key is available again
+          const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
+          const wait = Math.max(0, earliest - Date.now())
+          if (wait > 0) await sleep(wait + 500) // +500ms buffer
+          attempt-- // retry same attempt with a fresh key
           continue
         }
 
