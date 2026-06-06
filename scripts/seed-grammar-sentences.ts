@@ -16,7 +16,6 @@
  * Required env vars (add to .env.local):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
- *   GEMINI_API_KEY        — one key or comma-separated: key1,key2,key3
  *   SEED_SECRET           — must match SEED_SECRET in Vercel env vars
  */
 
@@ -30,13 +29,12 @@ import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '../lib/grammar-bunpro'
 import type { GrammarPoint } from '../lib/grammar-mnn1'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const TARGET        = 25    // desired shared sentences per grammar point
-const GENERATE_SIZE = 38    // ask Gemini for more so filtering still leaves TARGET
-const QUALITY_MIN   = 4     // minimum quality score (1–5) to keep a sentence
+const TARGET        = 25     // desired shared sentences per grammar point
+const GENERATE_SIZE = 38     // ask Gemini for more so filtering still leaves TARGET
+const QUALITY_MIN   = 4      // minimum quality score (1–5) to keep a sentence
 const DELAY_MS      = 5_000  // ms between successful calls (~12/min, under 15 RPM)
-const KEY_SWITCH_MS = 3_000  // ms to wait before trying the next key after a 429
-const QUOTA_WAIT_MS = 90_000 // ms to throttle a key after 429
-const MAX_ATTEMPTS  = 4      // max retries per grammar point for transient errors
+const QUOTA_WAIT_MS = 65_000 // ms to wait after a 429 (server key RPM reset)
+const MAX_ATTEMPTS  = 5      // max retries per grammar point
 const APP_URL       = 'https://kanji-srs-one.vercel.app'
 
 // ─── Load .env.local ──────────────────────────────────────────────────────────
@@ -56,15 +54,12 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const SEED_SECRET  = process.env.SEED_SECRET!
 const DRY_RUN      = process.argv.includes('--dry-run')
 
-const GEMINI_KEYS: string[] = (process.env.GEMINI_API_KEY ?? '')
-  .split(',').map(k => k.trim()).filter(Boolean)
-
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
   process.exit(1)
 }
-if (!DRY_RUN && (GEMINI_KEYS.length === 0 || !SEED_SECRET)) {
-  console.error('❌ Missing GEMINI_API_KEY or SEED_SECRET in .env.local')
+if (!DRY_RUN && !SEED_SECRET) {
+  console.error('❌ Missing SEED_SECRET in .env.local')
   process.exit(1)
 }
 
@@ -79,27 +74,6 @@ function fmt(ms: number) {
 }
 
 
-// ─── Key rotator ──────────────────────────────────────────────────────────────
-const keyThrottledUntil = new Map<string, number>()
-
-function getActiveKey(): string | null {
-  const now = Date.now()
-  for (const key of GEMINI_KEYS) {
-    if ((keyThrottledUntil.get(key) ?? 0) <= now) return key
-  }
-  return null
-}
-
-function throttleKey(key: string) {
-  keyThrottledUntil.set(key, Date.now() + QUOTA_WAIT_MS)
-  const active = GEMINI_KEYS.filter(k => (keyThrottledUntil.get(k) ?? 0) <= Date.now())
-  if (active.length > 0) {
-    console.log(`\n  🔑 Key …${key.slice(-6)} throttled. Switching to next key (${active.length} available).`)
-  } else {
-    const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
-    console.log(`\n  ⏸  All ${GEMINI_KEYS.length} keys throttled. Waiting ${fmt(earliest - Date.now())}…`)
-  }
-}
 
 // ─── All grammar points ───────────────────────────────────────────────────────
 const ALL_GRAMMAR: GrammarPoint[] = [
@@ -192,16 +166,13 @@ Genera exactamente ${GENERATE_SIZE} frases distintas.`
 
 // ─── Call Gemini via Vercel app ───────────────────────────────────────────────
 async function callGeminiViaApp(prompt: string): Promise<any[]> {
-  const key = getActiveKey()
-  if (!key) throw Object.assign(new Error('all keys throttled'), { kind: 'quota' })
-
   const res = await fetch(`${APP_URL}/api/gemini`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Seed-Secret': SEED_SECRET,
     },
-    body: JSON.stringify({ prompt, model: 'gemini-2.0-flash', userApiKey: key }),
+    body: JSON.stringify({ prompt, model: 'gemini-2.0-flash' }),
   })
 
   if (!res.ok) {
@@ -209,11 +180,11 @@ async function callGeminiViaApp(prompt: string): Promise<any[]> {
     const msg: string = data?.error ?? `HTTP ${res.status}`
     console.log(`\n  [${res.status}] ${msg}`)
     if (res.status === 429) {
-      throttleKey(key)
-      await sleep(KEY_SWITCH_MS)
+      console.log(`\n  ⏸  Rate limited. Waiting ${fmt(QUOTA_WAIT_MS)}…`)
+      await sleep(QUOTA_WAIT_MS)
       throw Object.assign(new Error(msg), { kind: 'quota' })
     }
-    if (res.status === 401) throw Object.assign(new Error('session expired'), { kind: 'auth' })
+    if (res.status === 401) throw Object.assign(new Error('check SEED_SECRET matches Vercel env'), { kind: 'auth' })
     if (res.status >= 500 || res.status === 408) throw Object.assign(new Error(msg), { kind: 'transient' })
     throw Object.assign(new Error(msg), { kind: 'permanent' })
   }
@@ -259,7 +230,7 @@ async function saveSentences(grammarId: string, sentences: any[]): Promise<numbe
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`📚 Total grammar points: ${ALL_GRAMMAR.length}`)
-  if (!DRY_RUN) console.log(`🔑 Gemini keys loaded: ${GEMINI_KEYS.length}`)
+  if (!DRY_RUN) console.log(`🌐 Using Vercel server Gemini key via ${APP_URL}`)
 
   const counts = await getSharedCounts()
   const pending = ALL_GRAMMAR.filter(g => (counts.get(g.id) ?? 0) < TARGET)
@@ -313,9 +284,7 @@ async function main() {
         const kind: string = e.kind ?? 'transient'
 
         if (kind === 'quota') {
-          const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
-          const wait = Math.max(0, earliest - Date.now())
-          if (wait > 0) await sleep(wait + 500)
+          // Already slept QUOTA_WAIT_MS inside callGeminiViaApp — retry immediately
           attempt--
           continue
         }

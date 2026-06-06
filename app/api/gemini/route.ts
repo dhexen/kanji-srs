@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'No hay API Key configurada. Añade tu clave de Gemini en la sección de Contexto.' }, { status: 401 })
   }
-  if (!usingUserKey && !checkServerKeyRateLimit(userId)) {
+  if (!usingUserKey && userId !== 'seed-script' && !checkServerKeyRateLimit(userId)) {
     return NextResponse.json({ error: 'Has alcanzado el límite de solicitudes (10/hora). Añade tu propia API Key de Gemini para uso ilimitado.' }, { status: 429 })
   }
 
