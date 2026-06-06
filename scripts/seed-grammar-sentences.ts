@@ -3,9 +3,9 @@
  * Seed shared grammar sentences for all grammar points.
  *
  * - Skips grammar points that already have >= TARGET sentences shared (is_private = false).
- * - Calls the Gemini API directly (no Next.js server needed).
+ * - Routes Gemini calls through the Vercel app (avoids EU free-tier restrictions).
  * - Uses the Supabase service role key to write sentences (bypasses RLS).
- * - Handles 429 / quota errors: waits QUOTA_WAIT_MS before retrying.
+ * - Handles 429 / quota errors: rotates keys, waits QUOTA_WAIT_MS before retrying.
  * - Handles transient errors: exponential backoff up to MAX_ATTEMPTS retries.
  * - Fully resumable: re-running picks up from where it left off.
  *
@@ -13,12 +13,12 @@
  *   npx tsx scripts/seed-grammar-sentences.ts
  *   npx tsx scripts/seed-grammar-sentences.ts --dry-run
  *
- * Required env vars (loaded from .env.local automatically):
+ * Required env vars (add to .env.local):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
- *   GEMINI_API_KEY   — one key, or several separated by commas: key1,key2,key3
- *                      When a key hits quota the script rotates to the next one.
- *                      All keys exhausted → waits QUOTA_WAIT_MS then retries from the first.
+ *   GEMINI_API_KEY        — one key or comma-separated: key1,key2,key3
+ *   ADMIN_EMAIL           — your app login email
+ *   ADMIN_PASSWORD        — your app login password
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -30,15 +30,17 @@ import { MNN_C1_GRAMMAR_POINTS } from '../lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '../lib/grammar-bunpro'
 import type { GrammarPoint } from '../lib/grammar-mnn1'
 
-// ─── Config ────────────────────────────────────────────────────────────────────
-const TARGET        = 25   // desired shared sentences per grammar point
-const GENERATE_SIZE = 38   // ask Gemini for more so filtering still leaves us with TARGET
-const QUALITY_MIN   = 4    // minimum quality score (1–5) to keep a sentence
-const DELAY_MS         = 8_000     // ms between successful calls (~7/min, safe under 15 RPM)
-const KEY_SWITCH_MS    = 3_000     // ms to wait before trying the next key after a 429
-const QUOTA_WAIT_MS    = 90_000    // ms to throttle a key after 429
-const MAX_ATTEMPTS     = 4         // max retries per grammar point for transient errors
-const GEMINI_MODEL     = 'gemini-2.0-flash-lite'
+// ─── Config ───────────────────────────────────────────────────────────────────
+const TARGET        = 25    // desired shared sentences per grammar point
+const GENERATE_SIZE = 38    // ask Gemini for more so filtering still leaves TARGET
+const QUALITY_MIN   = 4     // minimum quality score (1–5) to keep a sentence
+const DELAY_MS      = 8_000  // ms between successful calls (~7/min, under 15 RPM)
+const KEY_SWITCH_MS = 3_000  // ms to wait before trying the next key after a 429
+const QUOTA_WAIT_MS = 90_000 // ms to throttle a key after 429
+const MAX_ATTEMPTS  = 4      // max retries per grammar point for transient errors
+const APP_URL       = 'https://kanji-srs-one.vercel.app'
+// Token refresh interval: Supabase JWTs expire after 1h; refresh every 50 min
+const TOKEN_REFRESH_MS = 50 * 60 * 1000
 
 // ─── Load .env.local ──────────────────────────────────────────────────────────
 const envFile = path.join(process.cwd(), '.env.local')
@@ -52,11 +54,12 @@ if (fs.existsSync(envFile)) {
   }
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const DRY_RUN      = process.argv.includes('--dry-run')
+const SUPABASE_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SERVICE_KEY     = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const ADMIN_EMAIL     = process.env.ADMIN_EMAIL!
+const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD!
+const DRY_RUN         = process.argv.includes('--dry-run')
 
-// Support multiple comma-separated Gemini keys
 const GEMINI_KEYS: string[] = (process.env.GEMINI_API_KEY ?? '')
   .split(',').map(k => k.trim()).filter(Boolean)
 
@@ -64,13 +67,40 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
   process.exit(1)
 }
-if (GEMINI_KEYS.length === 0 && !DRY_RUN) {
-  console.error('❌ Missing GEMINI_API_KEY in .env.local')
+if (!DRY_RUN && (GEMINI_KEYS.length === 0 || !ADMIN_EMAIL || !ADMIN_PASSWORD)) {
+  console.error('❌ Missing GEMINI_API_KEY, ADMIN_EMAIL or ADMIN_PASSWORD in .env.local')
   process.exit(1)
 }
 
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+function fmt(ms: number) {
+  const s = Math.round(ms / 1000)
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60}s`
+}
+
+// ─── Session token (auto-refresh every 50 min) ────────────────────────────────
+let sessionToken = ''
+let tokenRefreshedAt = 0
+
+async function ensureToken() {
+  if (sessionToken && Date.now() - tokenRefreshedAt < TOKEN_REFRESH_MS) return
+  const authClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ?? SERVICE_KEY)  // anon key preferred; service key as fallback for token generation
+  const { data, error } = await authClient.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD,
+  })
+  if (error || !data.session) throw new Error(`Auth failed: ${error?.message}`)
+  sessionToken = data.session.access_token
+  tokenRefreshedAt = Date.now()
+  console.log('🔐 Session token refreshed')
+}
+
 // ─── Key rotator ──────────────────────────────────────────────────────────────
-// Tracks which keys are currently rate-limited and when they can be retried.
 const keyThrottledUntil = new Map<string, number>()
 
 function getActiveKey(): string | null {
@@ -88,33 +118,19 @@ function throttleKey(key: string) {
     console.log(`\n  🔑 Key …${key.slice(-6)} throttled. Switching to next key (${active.length} available).`)
   } else {
     const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
-    const wait = earliest - Date.now()
-    console.log(`\n  ⏸  All ${GEMINI_KEYS.length} keys throttled. Waiting ${fmt(wait)}…`)
+    console.log(`\n  ⏸  All ${GEMINI_KEYS.length} keys throttled. Waiting ${fmt(earliest - Date.now())}…`)
   }
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-
-function fmt(ms: number) {
-  const s = Math.round(ms / 1000)
-  if (s < 60) return `${s}s`
-  return `${Math.floor(s / 60)}m${s % 60}s`
-}
-
-// ─── All grammar points (unified) ─────────────────────────────────────────────
+// ─── All grammar points ───────────────────────────────────────────────────────
 const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
   ...MNN2_GRAMMAR_POINTS,
   ...MNN_C1_GRAMMAR_POINTS,
   ...BUNPRO_GRAMMAR.map(bunproToGrammarPoint),
 ]
-console.log(`📚 Total grammar points: ${ALL_GRAMMAR.length}`)
-if (!DRY_RUN) console.log(`🔑 Gemini keys loaded: ${GEMINI_KEYS.length}`)
 
-// ─── Count existing shared sentences ──────────────────────────────────────────
+// ─── Count existing shared sentences ─────────────────────────────────────────
 async function getSharedCounts(): Promise<Map<string, number>> {
   console.log('🔍 Fetching existing shared sentence counts…')
   const counts = new Map<string, number>()
@@ -137,7 +153,7 @@ async function getSharedCounts(): Promise<Map<string, number>> {
   return counts
 }
 
-// ─── Fetch school vocab sample ─────────────────────────────────────────────────
+// ─── Fetch school vocab sample ────────────────────────────────────────────────
 async function fetchSchoolVocab(): Promise<{ jp: string; reading: string; meaning: string }[]> {
   const { data } = await supabase
     .from('vocabulary')
@@ -182,73 +198,62 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 }
 
 ⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
-2. El sujeto debe ser claro.
-3. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
+1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola.
+2. El sujeto debe ser claro. Usa contextos cotidianos realistas.
 
-⚠️ REGLA CRÍTICA sobre el campo "answer":
-- Debe contener ÚNICAMENTE el marcador gramatical: partículas, cópulas, conjugaciones, patrones fijos
-- NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
-- NUNCA uses kanji en el answer — solo hiragana o katakana
+⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji.
 
-⚠️ REGLAS CRÍTICAS sobre las traducciones:
-- Cada traducción debe ser una oración COMPLETA y NATURAL en el idioma destino
-- NUNCA termines en fragmento incompleto
+⚠️ REGLAS sobre traducciones: oraciones COMPLETAS y NATURALES en cada idioma.
 
-Campo "quality" — puntuación 1–5 (sé MUY ESTRICTO):
-- 5: Frase perfecta — japonés natural, sentido completo, traducción exacta
-- 4: Buena — uso correcto, algún detalle mejorable
-- 3: Aceptable — uso algo forzado
-- 2: Deficiente — frase incompleta o traducción inexacta
-- 1: Incorrecta — errores graves o sin sentido
+Campo "quality" 1–5 (estricto): 5=perfecto, 4=bueno, 3=aceptable, 2=deficiente, 1=incorrecto.
 
-Otras reglas:
-- Frases naturales y correctas, nivel ${grammar.jlpt}
-- Varía sujetos, contextos y vocabulario
-- before_reading y after_reading: solo kana
-- ⚠️ Partículas con forma ORTOGRÁFICA: は (no わ), を (no お), へ (no え)
-- answer_alts: variantes aceptables en hiragana o array vacío []
-- Genera exactamente ${GENERATE_SIZE} frases distintas`
+Nivel ${grammar.jlpt}. Varía sujetos y contextos. Partículas ortográficas: は (no わ), を (no お), へ (no え).
+Genera exactamente ${GENERATE_SIZE} frases distintas.`
 }
 
-// ─── Call Gemini (uses active key, throws 'quota' if key is rate-limited) ─────
-async function callGemini(prompt: string): Promise<any[]> {
+// ─── Call Gemini via Vercel app ───────────────────────────────────────────────
+async function callGeminiViaApp(prompt: string): Promise<any[]> {
+  await ensureToken()
   const key = getActiveKey()
   if (!key) throw Object.assign(new Error('all keys throttled'), { kind: 'quota' })
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`
-  const res = await fetch(url, {
+  const res = await fetch(`${APP_URL}/api/gemini`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${sessionToken}`,
+    },
+    body: JSON.stringify({ prompt, userApiKey: key }),
   })
+
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    const msg: string = data?.error?.message ?? `HTTP ${res.status}`
+    const msg: string = data?.error ?? `HTTP ${res.status}`
+    console.log(`\n  [${res.status}] ${msg}`)
     if (res.status === 429) {
-      console.log(`\n  [429] ${msg}`)
       throttleKey(key)
-      await sleep(KEY_SWITCH_MS) // small pause before trying next key
+      await sleep(KEY_SWITCH_MS)
       throw Object.assign(new Error(msg), { kind: 'quota' })
     }
+    if (res.status === 401) throw Object.assign(new Error('session expired'), { kind: 'auth' })
     if (res.status >= 500 || res.status === 408) throw Object.assign(new Error(msg), { kind: 'transient' })
     throw Object.assign(new Error(msg), { kind: 'permanent' })
   }
+
   const data = await res.json()
-  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw Object.assign(new Error('Gemini returned empty response'), { kind: 'transient' })
+  const text: string = data.text ?? ''
+  if (!text) throw Object.assign(new Error('empty response'), { kind: 'transient' })
   const clean = text.replace(/```json|```/g, '').trim()
   const parsed = JSON.parse(clean)
-  if (!parsed.sentences?.length) throw Object.assign(new Error('no sentences in response'), { kind: 'transient' })
+  if (!parsed.sentences?.length) throw Object.assign(new Error('no sentences'), { kind: 'transient' })
   return parsed.sentences as any[]
 }
 
-// ─── Save sentences to Supabase ────────────────────────────────────────────────
+// ─── Save sentences to Supabase ───────────────────────────────────────────────
 async function saveSentences(grammarId: string, sentences: any[]): Promise<number> {
   const passing = sentences
     .filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
     .slice(0, TARGET)
-
   if (passing.length === 0) return 0
 
   const rows = passing.map((s: any) => ({
@@ -277,8 +282,10 @@ async function saveSentences(grammarId: string, sentences: any[]): Promise<numbe
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  const counts = await getSharedCounts()
+  console.log(`📚 Total grammar points: ${ALL_GRAMMAR.length}`)
+  if (!DRY_RUN) console.log(`🔑 Gemini keys loaded: ${GEMINI_KEYS.length}`)
 
+  const counts = await getSharedCounts()
   const pending = ALL_GRAMMAR.filter(g => (counts.get(g.id) ?? 0) < TARGET)
   const already = ALL_GRAMMAR.length - pending.length
 
@@ -298,8 +305,12 @@ async function main() {
     return
   }
 
+  // Sign in once at the start
+  await ensureToken()
+
   const schoolVocab = await fetchSchoolVocab()
-  console.log(`📖 Loaded ${schoolVocab.length} school vocab entries\n`)
+  console.log(`📖 Loaded ${schoolVocab.length} school vocab entries`)
+  console.log(`🌐 Routing through ${APP_URL}\n`)
 
   let done = 0
   let skipped = 0
@@ -307,11 +318,10 @@ async function main() {
 
   for (const grammar of pending) {
     const existing = counts.get(grammar.id) ?? 0
-    const needed   = TARGET - existing
-    const idx      = done + skipped + 1
-    const prefix   = `[${idx}/${pending.length}]`
+    const idx    = done + skipped + 1
+    const prefix = `[${idx}/${pending.length}]`
 
-    process.stdout.write(`${prefix} ${grammar.id} "${grammar.pattern}" (has ${existing}, need ${needed})… `)
+    process.stdout.write(`${prefix} ${grammar.id} "${grammar.pattern}" (has ${existing})… `)
 
     let attempt = 0
     let succeeded = false
@@ -320,7 +330,7 @@ async function main() {
       attempt++
       try {
         const prompt    = buildPrompt(grammar, schoolVocab)
-        const sentences = await callGemini(prompt)
+        const sentences = await callGeminiViaApp(prompt)
         const kept      = await saveSentences(grammar.id, sentences)
         console.log(`✓ saved ${kept} sentences (attempt ${attempt})`)
         done++
@@ -330,11 +340,17 @@ async function main() {
         const kind: string = e.kind ?? 'transient'
 
         if (kind === 'quota') {
-          // Wait until the earliest throttled key is available again
           const earliest = Math.min(...GEMINI_KEYS.map(k => keyThrottledUntil.get(k) ?? 0))
           const wait = Math.max(0, earliest - Date.now())
-          if (wait > 0) await sleep(wait + 500) // +500ms buffer
-          attempt-- // retry same attempt with a fresh key
+          if (wait > 0) await sleep(wait + 500)
+          attempt--
+          continue
+        }
+
+        if (kind === 'auth') {
+          // Token expired mid-run — force refresh and retry
+          tokenRefreshedAt = 0
+          attempt--
           continue
         }
 
