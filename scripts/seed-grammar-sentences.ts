@@ -247,8 +247,6 @@ async function saveSentences(grammarId: string, sentences: any[]): Promise<numbe
     translation_es:               String(s.translation_es  ?? ''),
     translation_ca:               String(s.translation_ca  ?? ''),
     translation_en:               String(s.translation_en  ?? ''),
-    topic:                        typeof s.topic === 'string' ? s.topic : null,
-    vocab_used:                   Array.isArray(s.vocab_used) ? s.vocab_used.map(String) : [],
     is_private:                   false,
     private_user_id:              null,
   }))
