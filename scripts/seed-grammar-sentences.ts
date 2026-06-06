@@ -52,14 +52,15 @@ if (fs.existsSync(envFile)) {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const SEED_SECRET  = process.env.SEED_SECRET!
+const GEMINI_KEY   = process.env.GEMINI_API_KEY!
 const DRY_RUN      = process.argv.includes('--dry-run')
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
   process.exit(1)
 }
-if (!DRY_RUN && !SEED_SECRET) {
-  console.error('❌ Missing SEED_SECRET in .env.local')
+if (!DRY_RUN && (!SEED_SECRET || !GEMINI_KEY)) {
+  console.error('❌ Missing SEED_SECRET or GEMINI_API_KEY in .env.local')
   process.exit(1)
 }
 
@@ -172,7 +173,7 @@ async function callGeminiViaApp(prompt: string): Promise<any[]> {
       'Content-Type': 'application/json',
       'X-Seed-Secret': SEED_SECRET,
     },
-    body: JSON.stringify({ prompt, model: 'gemini-2.0-flash' }),
+    body: JSON.stringify({ prompt, model: 'gemini-2.5-flash', userApiKey: GEMINI_KEY }),
   })
 
   if (!res.ok) {
@@ -230,7 +231,7 @@ async function saveSentences(grammarId: string, sentences: any[]): Promise<numbe
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`📚 Total grammar points: ${ALL_GRAMMAR.length}`)
-  if (!DRY_RUN) console.log(`🌐 Using Vercel server Gemini key via ${APP_URL}`)
+  if (!DRY_RUN) console.log(`🔑 Using user Gemini key …${GEMINI_KEY.slice(-6)} via ${APP_URL}`)
 
   const counts = await getSharedCounts()
   const pending = ALL_GRAMMAR.filter(g => (counts.get(g.id) ?? 0) < TARGET)
