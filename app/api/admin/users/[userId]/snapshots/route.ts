@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, listUserSnapshots, adminJsonError } from '@/lib/admin-server'
 
