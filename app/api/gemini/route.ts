@@ -29,19 +29,28 @@ function checkServerKeyRateLimit(userId: string): boolean {
 
 export async function POST(req: NextRequest) {
   // 1. Verificar sesión activa — cualquier petición sin sesión se rechaza
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Debes iniciar sesión para usar esta función.' }, { status: 401 })
-  }
-  const token = authHeader.slice(7)
-  const anonClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
-  const { data: { user }, error: authError } = await anonClient.auth.getUser(token)
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Sesión inválida o expirada.' }, { status: 401 })
+  //    Exception: requests with X-Seed-Secret header (used by admin seeding scripts)
+  let userId: string
+  const seedSecret = req.headers.get('X-Seed-Secret')
+  const serverSeedSecret = process.env.SEED_SECRET
+  if (seedSecret && serverSeedSecret && seedSecret === serverSeedSecret) {
+    userId = 'seed-script'
+  } else {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Debes iniciar sesión para usar esta función.' }, { status: 401 })
+    }
+    const token = authHeader.slice(7)
+    const anonClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    )
+    const { data: { user }, error: authError } = await anonClient.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Sesión inválida o expirada.' }, { status: 401 })
+    }
+    userId = user.id
   }
 
   // 2. Validar body
@@ -64,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'No hay API Key configurada. Añade tu clave de Gemini en la sección de Contexto.' }, { status: 401 })
   }
-  if (!usingUserKey && !checkServerKeyRateLimit(user.id)) {
+  if (!usingUserKey && !checkServerKeyRateLimit(userId)) {
     return NextResponse.json({ error: 'Has alcanzado el límite de solicitudes (10/hora). Añade tu propia API Key de Gemini para uso ilimitado.' }, { status: 429 })
   }
 

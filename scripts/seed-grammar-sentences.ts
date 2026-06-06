@@ -17,8 +17,7 @@
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *   GEMINI_API_KEY        — one key or comma-separated: key1,key2,key3
- *   ADMIN_EMAIL           — your app login email
- *   ADMIN_PASSWORD        — your app login password
+ *   SEED_SECRET           — must match SEED_SECRET in Vercel env vars
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -39,8 +38,6 @@ const KEY_SWITCH_MS = 3_000  // ms to wait before trying the next key after a 42
 const QUOTA_WAIT_MS = 90_000 // ms to throttle a key after 429
 const MAX_ATTEMPTS  = 4      // max retries per grammar point for transient errors
 const APP_URL       = 'https://kanji-srs-one.vercel.app'
-// Token refresh interval: Supabase JWTs expire after 1h; refresh every 50 min
-const TOKEN_REFRESH_MS = 50 * 60 * 1000
 
 // ─── Load .env.local ──────────────────────────────────────────────────────────
 const envFile = path.join(process.cwd(), '.env.local')
@@ -54,11 +51,10 @@ if (fs.existsSync(envFile)) {
   }
 }
 
-const SUPABASE_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SERVICE_KEY     = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const ADMIN_EMAIL     = process.env.ADMIN_EMAIL!
-const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD!
-const DRY_RUN         = process.argv.includes('--dry-run')
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const SEED_SECRET  = process.env.SEED_SECRET!
+const DRY_RUN      = process.argv.includes('--dry-run')
 
 const GEMINI_KEYS: string[] = (process.env.GEMINI_API_KEY ?? '')
   .split(',').map(k => k.trim()).filter(Boolean)
@@ -67,8 +63,8 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
   process.exit(1)
 }
-if (!DRY_RUN && (GEMINI_KEYS.length === 0 || !ADMIN_EMAIL || !ADMIN_PASSWORD)) {
-  console.error('❌ Missing GEMINI_API_KEY, ADMIN_EMAIL or ADMIN_PASSWORD in .env.local')
+if (!DRY_RUN && (GEMINI_KEYS.length === 0 || !SEED_SECRET)) {
+  console.error('❌ Missing GEMINI_API_KEY or SEED_SECRET in .env.local')
   process.exit(1)
 }
 
@@ -82,23 +78,6 @@ function fmt(ms: number) {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60}s`
 }
 
-// ─── Session token (auto-refresh every 50 min) ────────────────────────────────
-let sessionToken = ''
-let tokenRefreshedAt = 0
-
-async function ensureToken() {
-  if (sessionToken && Date.now() - tokenRefreshedAt < TOKEN_REFRESH_MS) return
-  const authClient = createClient(SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ?? SERVICE_KEY)  // anon key preferred; service key as fallback for token generation
-  const { data, error } = await authClient.auth.signInWithPassword({
-    email: ADMIN_EMAIL,
-    password: ADMIN_PASSWORD,
-  })
-  if (error || !data.session) throw new Error(`Auth failed: ${error?.message}`)
-  sessionToken = data.session.access_token
-  tokenRefreshedAt = Date.now()
-  console.log('🔐 Session token refreshed')
-}
 
 // ─── Key rotator ──────────────────────────────────────────────────────────────
 const keyThrottledUntil = new Map<string, number>()
@@ -213,7 +192,6 @@ Genera exactamente ${GENERATE_SIZE} frases distintas.`
 
 // ─── Call Gemini via Vercel app ───────────────────────────────────────────────
 async function callGeminiViaApp(prompt: string): Promise<any[]> {
-  await ensureToken()
   const key = getActiveKey()
   if (!key) throw Object.assign(new Error('all keys throttled'), { kind: 'quota' })
 
@@ -221,7 +199,7 @@ async function callGeminiViaApp(prompt: string): Promise<any[]> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${sessionToken}`,
+      'X-Seed-Secret': SEED_SECRET,
     },
     body: JSON.stringify({ prompt, userApiKey: key }),
   })
@@ -305,9 +283,6 @@ async function main() {
     return
   }
 
-  // Sign in once at the start
-  await ensureToken()
-
   const schoolVocab = await fetchSchoolVocab()
   console.log(`📖 Loaded ${schoolVocab.length} school vocab entries`)
   console.log(`🌐 Routing through ${APP_URL}\n`)
@@ -348,10 +323,10 @@ async function main() {
         }
 
         if (kind === 'auth') {
-          // Token expired mid-run — force refresh and retry
-          tokenRefreshedAt = 0
-          attempt--
-          continue
+          // SEED_SECRET-based auth shouldn't expire; skip and log
+          console.log(`\n  ❌ Auth error: ${e.message} — check SEED_SECRET matches Vercel env`)
+          skipped++
+          break
         }
 
         if (kind === 'permanent') {
