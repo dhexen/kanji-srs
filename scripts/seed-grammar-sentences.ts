@@ -34,10 +34,11 @@ import type { GrammarPoint } from '../lib/grammar-mnn1'
 const TARGET        = 25   // desired shared sentences per grammar point
 const GENERATE_SIZE = 38   // ask Gemini for more so filtering still leaves us with TARGET
 const QUALITY_MIN   = 4    // minimum quality score (1–5) to keep a sentence
-const DELAY_MS      = 6_000        // ms between successful calls (~10/min, safe under 15 RPM)
-const QUOTA_WAIT_MS = 90_000       // ms to wait after a 429 / quota error
-const MAX_ATTEMPTS  = 4            // max retries per grammar point for transient errors
-const GEMINI_MODEL  = 'gemini-2.0-flash'
+const DELAY_MS         = 8_000     // ms between successful calls (~7/min, safe under 15 RPM)
+const KEY_SWITCH_MS    = 3_000     // ms to wait before trying the next key after a 429
+const QUOTA_WAIT_MS    = 90_000    // ms to throttle a key after 429
+const MAX_ATTEMPTS     = 4         // max retries per grammar point for transient errors
+const GEMINI_MODEL     = 'gemini-2.0-flash'
 
 // ─── Load .env.local ──────────────────────────────────────────────────────────
 const envFile = path.join(process.cwd(), '.env.local')
@@ -225,7 +226,9 @@ async function callGemini(prompt: string): Promise<any[]> {
     const data = await res.json().catch(() => ({}))
     const msg: string = data?.error?.message ?? `HTTP ${res.status}`
     if (res.status === 429) {
+      console.log(`\n  [429] ${msg}`)
       throttleKey(key)
+      await sleep(KEY_SWITCH_MS) // small pause before trying next key
       throw Object.assign(new Error(msg), { kind: 'quota' })
     }
     if (res.status >= 500 || res.status === 408) throw Object.assign(new Error(msg), { kind: 'transient' })
