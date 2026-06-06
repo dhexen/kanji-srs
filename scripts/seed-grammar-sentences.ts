@@ -33,7 +33,7 @@ import type { GrammarPoint } from '../lib/grammar-mnn1'
 const TARGET        = 25    // desired shared sentences per grammar point
 const GENERATE_SIZE = 38    // ask Gemini for more so filtering still leaves TARGET
 const QUALITY_MIN   = 4     // minimum quality score (1–5) to keep a sentence
-const DELAY_MS      = 8_000  // ms between successful calls (~7/min, under 15 RPM)
+const DELAY_MS      = 5_000  // ms between successful calls (~12/min, under 15 RPM)
 const KEY_SWITCH_MS = 3_000  // ms to wait before trying the next key after a 429
 const QUOTA_WAIT_MS = 90_000 // ms to throttle a key after 429
 const MAX_ATTEMPTS  = 4      // max retries per grammar point for transient errors
@@ -201,7 +201,7 @@ async function callGeminiViaApp(prompt: string): Promise<any[]> {
       'Content-Type': 'application/json',
       'X-Seed-Secret': SEED_SECRET,
     },
-    body: JSON.stringify({ prompt, userApiKey: key }),
+    body: JSON.stringify({ prompt, model: 'gemini-2.0-flash', userApiKey: key }),
   })
 
   if (!res.ok) {
