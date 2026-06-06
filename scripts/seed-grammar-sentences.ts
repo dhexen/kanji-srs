@@ -38,7 +38,7 @@ const DELAY_MS         = 8_000     // ms between successful calls (~7/min, safe 
 const KEY_SWITCH_MS    = 3_000     // ms to wait before trying the next key after a 429
 const QUOTA_WAIT_MS    = 90_000    // ms to throttle a key after 429
 const MAX_ATTEMPTS     = 4         // max retries per grammar point for transient errors
-const GEMINI_MODEL     = 'gemini-2.0-flash'
+const GEMINI_MODEL     = 'gemini-2.0-flash-lite'
 
 // ─── Load .env.local ──────────────────────────────────────────────────────────
 const envFile = path.join(process.cwd(), '.env.local')
