@@ -240,7 +240,7 @@ function HelpContext() {
         </ol>
       </div>
       <Tip>Necesitas tener vocabulario activo en tus repasos para que los textos sean relevantes a tu nivel.</Tip>
-      <Tip>Si tienes configurada tu API Key de WaniKani, activa <strong>"Incluir vocabulario de WaniKani"</strong> para que el texto combine tu vocabulario de la página con el de tu progreso en WaniKani.</Tip>
+      <Tip>Con las casillas <strong>"Incluir vocabulario"</strong> y <strong>"Incluir vocabulario de WaniKani"</strong> eliges la fuente: marca las dos para mezclarlas, o solo una para usar únicamente ese vocabulario. El vocabulario de WaniKani (formal/técnico/antiguo) se usa solo cuando encaja en el contexto.</Tip>
     </div>
   )
 }

@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Lecturas IA: kanji completos y elección de vocabulario',
+        description: 'Los textos de Lecturas IA ahora escriben las palabras con sus kanji correctos y completos (con furigana sobre todos). Además hay dos casillas: "Incluir vocabulario" (el de la página) e "Incluir vocabulario de WaniKani". Marca las dos para mezclar ambos vocabularios o solo una para usar únicamente ese. El vocabulario de WaniKani, que puede ser muy formal o antiguo, se usa solo cuando encaja en el contexto.',
+      },
+      {
         type: 'new',
         title: 'Elige el modelo de Gemini',
         description: 'En Mi Perfil → Configuración puedes elegir el modelo de Gemini (Gemini 2.5 Flash o Gemini 3.1 Flash Lite). Así, si un modelo se queda sin cuota, puedes cambiar al otro para seguir generando lecturas y frases de gramática.',

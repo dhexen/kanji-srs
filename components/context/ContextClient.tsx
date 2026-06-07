@@ -30,7 +30,7 @@ function buildAutoPrompt(
   jlptLevel: string,
   useMyGrammar: boolean,
   grammarPatternsText: string,
-  vocab: string,
+  ownVocab: string,
   wkVocab = '',
 ): string {
   const levelInfo = JLPT_LEVELS.find(l => l.v === jlptLevel)
@@ -38,11 +38,24 @@ function buildAutoPrompt(
     ? `Prioriza el uso de estas estructuras gramaticales que el usuario está aprendiendo: ${grammarPatternsText || 'gramática básica'}.`
     : `Nivel gramatical JLPT: hasta ${jlptLevel} (${levelInfo?.d ?? ''}). Usa únicamente estructuras gramaticales de ese nivel o inferiores.`
 
-  const vocabSection = wkVocab
-    ? `Usa el mayor número posible de estas palabras de vocabulario que el usuario está aprendiendo o ya ha aprendido:
-- Vocabulario de la página (aprendiendo/aprendido): ${vocab}
-- Vocabulario WaniKani del alumno (ya adquirido): ${wkVocab}`
-    : `Usa el mayor número posible de estas palabras de vocabulario: ${vocab}.`
+  const hasOwn = ownVocab.trim().length > 0
+  const hasWk = wkVocab.trim().length > 0
+  // WaniKani vocab can include very formal, technical, work-related or archaic
+  // words; warn the model to only use them where the register fits.
+  const wkRegisterNote = 'Ten en cuenta que parte del vocabulario de WaniKani puede ser muy formal, técnico, del ámbito laboral o arcaico: úsalo SOLO cuando encaje de forma natural en el contexto y el registro del texto; si no encaja, prioriza el resto de vocabulario.'
+
+  let vocabSection: string
+  if (hasOwn && hasWk) {
+    vocabSection = `Usa el mayor número posible de estas palabras de vocabulario que el usuario está aprendiendo o ya ha aprendido:
+- Vocabulario de la página (aprendiendo/aprendido): ${ownVocab}
+- Vocabulario WaniKani del alumno (ya adquirido): ${wkVocab}
+${wkRegisterNote}`
+  } else if (hasWk) {
+    vocabSection = `Usa el mayor número posible de estas palabras de vocabulario de WaniKani del alumno (ya adquirido): ${wkVocab}.
+${wkRegisterNote}`
+  } else {
+    vocabSection = `Usa el mayor número posible de estas palabras de vocabulario: ${ownVocab}.`
+  }
 
   return `Eres profesor de japonés experto. Genera un texto narrativo en japonés sobre "${topic}" con exactamente 4-5 frases.
 ${grammarSection}
@@ -52,11 +65,12 @@ Control de calidad obligatorio:
 - El texto debe ser narrativamente coherente: las frases se conectan formando una historia o descripción continua con sentido.
 - El nivel gramatical debe ser consistente en todo el texto, sin mezclar estructuras de niveles incompatibles.
 - El vocabulario debe integrarse de forma natural, sin forzar palabras que no encajen en el contexto.
+- ESCRITURA EN KANJI: escribe cada palabra con sus kanji habituales y completos. No la escribas en hiragana/katakana ni omitas kanji que normalmente se escriben (p. ej. escribe 食べる, no たべる; 学校, no がっこう). Añade furigana en formato ruby sobre TODOS los kanji, sin excepción.
 Sé creativo y diferente cada vez.
 
 Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 {
-  "japanese": "texto completo en japonés con furigana en formato ruby HTML: <ruby>漢字<rt>かんじ</rt></ruby>",
+  "japanese": "texto completo en japonés; cada palabra escrita con sus kanji habituales y con furigana ruby en TODOS los kanji: <ruby>漢字<rt>かんじ</rt></ruby>",
   "spanish": "traducción al español de España",
   "catalan": "traducció al català",
   "english": "English translation",
@@ -106,6 +120,10 @@ export default function ContextClient() {
   const [promptOverride, setPromptOverride] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [useOwnVocab, setUseOwnVocab] = useState(() => {
+    // Default ON; only off if the user explicitly turned it off before.
+    try { return localStorage.getItem('ctx_use_own_vocab') !== 'false' } catch { return true }
+  })
   const [useWkVocab, setUseWkVocab] = useState(() => {
     try { return localStorage.getItem('ctx_use_wk_vocab') === 'true' } catch { return false }
   })
@@ -132,19 +150,32 @@ export default function ContextClient() {
 
   const previewPrompt = useMemo(() => {
     const example = activeWords[0]
-    const vocabPlaceholder = activeWords.length > 0
-      ? `${example?.jp}(${example?.reading}): ${example?.meaning}, … [hasta 20 palabras de tu vocabulario activo]`
-      : '[tus palabras de vocabulario activo]'
+    const ownPlaceholder = useOwnVocab
+      ? (activeWords.length > 0
+          ? `${example?.jp}(${example?.reading}): ${example?.meaning}, … [hasta 20 palabras de tu vocabulario activo]`
+          : '[tus palabras de vocabulario activo]')
+      : ''
     const wkPlaceholder = useWkVocab && wkVocab.length > 0
       ? `${wkVocab[0]?.jp}(${wkVocab[0]?.reading}): ${wkVocab[0]?.meaning}, … [hasta 15 palabras de WaniKani]`
       : ''
-    return buildAutoPrompt(topic, jlptLevel, useMyGrammar, '[tus gramáticas aprendidas]', vocabPlaceholder, wkPlaceholder)
-  }, [topic, jlptLevel, useMyGrammar, activeWords, useWkVocab, wkVocab])
+    return buildAutoPrompt(topic, jlptLevel, useMyGrammar, '[tus gramáticas aprendidas]', ownPlaceholder, wkPlaceholder)
+  }, [topic, jlptLevel, useMyGrammar, activeWords, useOwnVocab, useWkVocab, wkVocab])
 
   async function generate() {
     const key = state.geminiApiKey
     if (!key) { showToast(t(lang, 'api_missing_banner'), 'error'); return }
-    if (activeWords.length === 0) { showToast(t(lang, 'review_no_words'), 'error'); return }
+
+    const wantOwn = useOwnVocab
+    const wantWk = useWkVocab && hasWaniKani
+    if (!wantOwn && !wantWk) {
+      setErrorMsg('Marca al menos "Incluir vocabulario" o "Incluir vocabulario de WaniKani".')
+      showToast('Selecciona un tipo de vocabulario', 'error')
+      return
+    }
+    if (wantOwn && !wantWk && activeWords.length === 0) {
+      showToast(t(lang, 'review_no_words'), 'error')
+      return
+    }
 
     setLoading(true)
     setErrorMsg('')
@@ -154,16 +185,22 @@ export default function ContextClient() {
         state.contextTexts.slice(0, 5).flatMap(ct => ct.words_used ?? [])
       )
 
-      // Prioritize words not recently used; fill with used ones if needed
-      const freshWords = activeWords.filter(w => !recentlyUsed.has(w.jp))
-      const usedWords = activeWords.filter(w => recentlyUsed.has(w.jp))
-      const selected = [...shuffleArray(freshWords), ...shuffleArray(usedWords)].slice(0, 20)
+      // Own (page) vocabulary — only when that source is selected.
+      let vocab = ''
+      if (wantOwn) {
+        const freshWords = activeWords.filter(w => !recentlyUsed.has(w.jp))
+        const usedWords = activeWords.filter(w => recentlyUsed.has(w.jp))
+        const selected = [...shuffleArray(freshWords), ...shuffleArray(usedWords)].slice(0, 20)
+        vocab = selected.map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+      }
 
-      const vocab = selected.map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
-
-      const wkVocabText = useWkVocab && wkVocab.length > 0
+      const wkVocabText = wantWk && wkVocab.length > 0
         ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 15).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
         : ''
+
+      if (!vocab && !wkVocabText) {
+        throw new Error('No hay vocabulario disponible para generar el texto. Añade palabras o sincroniza WaniKani.')
+      }
 
       let prompt: string
       if (promptOverride.trim()) {
@@ -318,29 +355,54 @@ export default function ContextClient() {
           </div>
         </div>
 
-        {/* WaniKani vocabulary toggle */}
-        {hasWaniKani && (
-          <label className="flex items-center gap-2 mb-4 cursor-pointer select-none group">
+        {/* Vocabulary source toggles */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
+          {/* Own (page) vocabulary */}
+          <label className="flex items-center gap-2 cursor-pointer select-none group">
             <input
               type="checkbox"
-              checked={useWkVocab}
+              checked={useOwnVocab}
               onChange={e => {
                 const v = e.target.checked
-                setUseWkVocab(v)
-                try { localStorage.setItem('ctx_use_wk_vocab', String(v)) } catch { /* incognito */ }
+                setUseOwnVocab(v)
+                try { localStorage.setItem('ctx_use_own_vocab', String(v)) } catch { /* incognito */ }
               }}
-              className="w-4 h-4 rounded accent-pink-500"
+              className="w-4 h-4 rounded accent-indigo-500"
             />
-            <span className="text-xs font-semibold text-pink-600 dark:text-pink-400 group-hover:text-pink-700 dark:group-hover:text-pink-300 transition">
-              Incluir vocabulario de WaniKani
+            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition">
+              Incluir vocabulario
             </span>
-            {useWkVocab && wkVocab.length > 0 && (
-              <span className="text-[10px] bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-full px-1.5 py-0.5">
-                {wkVocab.length} palabras
+            {useOwnVocab && activeWords.length > 0 && (
+              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-full px-1.5 py-0.5">
+                {activeWords.length} palabras
               </span>
             )}
           </label>
-        )}
+
+          {/* WaniKani vocabulary */}
+          {hasWaniKani && (
+            <label className="flex items-center gap-2 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={useWkVocab}
+                onChange={e => {
+                  const v = e.target.checked
+                  setUseWkVocab(v)
+                  try { localStorage.setItem('ctx_use_wk_vocab', String(v)) } catch { /* incognito */ }
+                }}
+                className="w-4 h-4 rounded accent-pink-500"
+              />
+              <span className="text-xs font-semibold text-pink-600 dark:text-pink-400 group-hover:text-pink-700 dark:group-hover:text-pink-300 transition">
+                Incluir vocabulario de WaniKani
+              </span>
+              {useWkVocab && wkVocab.length > 0 && (
+                <span className="text-[10px] bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-full px-1.5 py-0.5">
+                  {wkVocab.length} palabras
+                </span>
+              )}
+            </label>
+          )}
+        </div>
 
         {/* Prompt editor (collapsible) */}
         <details className="group mt-2">

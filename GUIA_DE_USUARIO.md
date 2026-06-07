@@ -217,9 +217,14 @@ Se recomienda aprender primero el hiragana completo y luego el katakana.
 
 Genera textos de lectura en japonés adaptados a tu nivel actual de vocabulario. La IA crea textos usando las palabras que ya dominas para que puedas practicar la lectura en contexto real.
 
-Puedes especificar el tema del texto y la longitud. Los textos generados se guardan para que puedas revisarlos más tarde.
+Puedes especificar el tema del texto y la longitud. Los textos generados se guardan para que puedas revisarlos más tarde. Las palabras se escriben con sus kanji correctos y completos, con furigana sobre todos ellos.
 
-Si tienes configurada tu API Key de WaniKani, aparece el checkbox **"Incluir vocabulario de WaniKani"**. Al activarlo, la IA combina el vocabulario que estás aprendiendo o ya has aprendido en la página con las palabras de tu progreso en WaniKani al crear el texto.
+Hay dos casillas para elegir qué vocabulario usa la IA:
+
+- **Incluir vocabulario** — usa el vocabulario que estás aprendiendo o ya has aprendido en la página.
+- **Incluir vocabulario de WaniKani** — usa las palabras de tu progreso en WaniKani (solo aparece si tienes configurada tu API Key de WaniKani).
+
+Si marcas las dos, el texto mezcla ambos vocabularios. Si marcas solo una, usa únicamente ese vocabulario. Como WaniKani incluye palabras muy formales, técnicas o antiguas, la IA solo las usa cuando encajan en el contexto y el registro del texto.
 
 ---
 
