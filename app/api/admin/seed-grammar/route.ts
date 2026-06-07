@@ -14,7 +14,7 @@ const ALL_GRAMMAR = [
   ...BUNPRO_GRAMMAR.map(bunproToGrammarPoint),
 ]
 
-export const TARGET = 25
+const TARGET = 25
 
 export async function GET(req: NextRequest) {
   try {

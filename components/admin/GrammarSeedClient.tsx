@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 interface GrammarRow {
   id: string
@@ -34,12 +34,10 @@ export default function GrammarSeedClient() {
   const runningRef = useRef(false)
   const waitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentRowRef = useRef<HTMLTableRowElement | null>(null)
-  const supabase = createClient()
-
   const getToken = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     return session?.access_token ?? ''
-  }, [supabase])
+  }, [])
 
   const fetchState = useCallback(async () => {
     const token = await getToken()
