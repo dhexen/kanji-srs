@@ -32,6 +32,8 @@ export default function GrammarSeedClient() {
   const [currentId, setCurrentId] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [waitingMs, setWaitingMs] = useState(0)
+  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
   const runningRef = useRef(false)
   const waitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentRowRef = useRef<HTMLTableRowElement | null>(null)
@@ -181,6 +183,28 @@ export default function GrammarSeedClient() {
     setCurrentId(null)
   }
 
+  async function handleTest() {
+    setTesting(true)
+    setTestResult(null)
+    const token = await getToken()
+    try {
+      const res = await fetch('/api/admin/seed-grammar/test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setTestResult(`✅ OK — clave ${data.key_hint}, modelo ${data.model} → "${data.response_text}"`)
+      } else {
+        setTestResult(`❌ Error ${data.status} — ${data.error}`)
+      }
+    } catch (e: any) {
+      setTestResult(`❌ Error de red: ${e.message}`)
+    } finally {
+      setTesting(false)
+    }
+  }
+
   async function handleClearErrors() {
     const token = await getToken()
     await fetch('/api/admin/seed-grammar', {
@@ -235,6 +259,13 @@ export default function GrammarSeedClient() {
         </div>
 
         <div className="ml-auto flex gap-2 items-center">
+            <button
+            onClick={handleTest}
+            disabled={testing}
+            className="px-3 py-1.5 text-sm rounded border border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {testing ? 'Probando…' : '🔬 Probar clave'}
+          </button>
           {errors > 0 && !state.running && (
             <button
               onClick={handleClearErrors}
@@ -260,6 +291,13 @@ export default function GrammarSeedClient() {
           )}
         </div>
       </div>
+
+      {/* Test result */}
+      {testResult && (
+        <div className={`text-sm rounded px-3 py-2 font-mono border ${testResult.startsWith('✅') ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          {testResult}
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="w-full bg-slate-200 rounded-full h-2.5">
