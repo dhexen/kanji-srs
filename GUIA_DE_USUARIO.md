@@ -217,6 +217,8 @@ Genera textos de lectura en japonés adaptados a tu nivel actual de vocabulario.
 
 Puedes especificar el tema del texto y la longitud. Los textos generados se guardan para que puedas revisarlos más tarde.
 
+Si tienes configurada tu API Key de WaniKani, aparece el checkbox **"Incluir vocabulario de WaniKani"**. Al activarlo, la IA combina el vocabulario que estás aprendiendo o ya has aprendido en la página con las palabras de tu progreso en WaniKani al crear el texto.
+
 ---
 
 ### Votar imágenes de vocabulario

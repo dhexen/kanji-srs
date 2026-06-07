@@ -1,11 +1,11 @@
 'use client'
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import type { ContextText } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
-import { supabase, fetchKnownGrammar, fetchAllGrammarSrsStats } from '@/lib/supabase'
+import { supabase, fetchKnownGrammar, fetchAllGrammarSrsStats, fetchWaniKaniVocabSample } from '@/lib/supabase'
 import { BUNPRO_GRAMMAR } from '@/lib/grammar-bunpro'
 
 const TOPICS = [
@@ -31,15 +31,22 @@ function buildAutoPrompt(
   useMyGrammar: boolean,
   grammarPatternsText: string,
   vocab: string,
+  wkVocab = '',
 ): string {
   const levelInfo = JLPT_LEVELS.find(l => l.v === jlptLevel)
   const grammarSection = useMyGrammar
     ? `Prioriza el uso de estas estructuras gramaticales que el usuario está aprendiendo: ${grammarPatternsText || 'gramática básica'}.`
     : `Nivel gramatical JLPT: hasta ${jlptLevel} (${levelInfo?.d ?? ''}). Usa únicamente estructuras gramaticales de ese nivel o inferiores.`
 
+  const vocabSection = wkVocab
+    ? `Usa el mayor número posible de estas palabras de vocabulario que el usuario está aprendiendo o ya ha aprendido:
+- Vocabulario de la página (aprendiendo/aprendido): ${vocab}
+- Vocabulario WaniKani del alumno (ya adquirido): ${wkVocab}`
+    : `Usa el mayor número posible de estas palabras de vocabulario: ${vocab}.`
+
   return `Eres profesor de japonés experto. Genera un texto narrativo en japonés sobre "${topic}" con exactamente 4-5 frases.
 ${grammarSection}
-Usa el mayor número posible de estas palabras de vocabulario: ${vocab}.
+${vocabSection}
 
 Control de calidad obligatorio:
 - El texto debe ser narrativamente coherente: las frases se conectan formando una historia o descripción continua con sentido.
@@ -99,17 +106,40 @@ export default function ContextClient() {
   const [promptOverride, setPromptOverride] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [useWkVocab, setUseWkVocab] = useState(() => {
+    try { return localStorage.getItem('ctx_use_wk_vocab') === 'true' } catch { return false }
+  })
+  const [wkVocab, setWkVocab] = useState<{ jp: string; reading: string; meaning: string }[]>([])
 
+  const hasWaniKani = Boolean(state.waniKaniApiKey)
   const activeWords = state.db.filter(i => i.status === 'active')
   const userVocabSet = useMemo(() => new Set(state.db.map(i => i.kanji)), [state.db])
+
+  // Load WaniKani vocabulary when the toggle is on
+  useEffect(() => {
+    if (!hasWaniKani || !useWkVocab) return
+    fetchWaniKaniVocabSample(40).then(items => {
+      setWkVocab(items.map(w => ({
+        jp: w.word,
+        reading: w.reading,
+        meaning:
+          lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
+          lang === 'en' ? w.meaning_en :
+          (w.meaning_es ?? w.meaning_en),
+      })))
+    }).catch(() => {})
+  }, [hasWaniKani, useWkVocab, lang])
 
   const previewPrompt = useMemo(() => {
     const example = activeWords[0]
     const vocabPlaceholder = activeWords.length > 0
       ? `${example?.jp}(${example?.reading}): ${example?.meaning}, … [hasta 20 palabras de tu vocabulario activo]`
       : '[tus palabras de vocabulario activo]'
-    return buildAutoPrompt(topic, jlptLevel, useMyGrammar, '[tus gramáticas aprendidas]', vocabPlaceholder)
-  }, [topic, jlptLevel, useMyGrammar, activeWords])
+    const wkPlaceholder = useWkVocab && wkVocab.length > 0
+      ? `${wkVocab[0]?.jp}(${wkVocab[0]?.reading}): ${wkVocab[0]?.meaning}, … [hasta 15 palabras de WaniKani]`
+      : ''
+    return buildAutoPrompt(topic, jlptLevel, useMyGrammar, '[tus gramáticas aprendidas]', vocabPlaceholder, wkPlaceholder)
+  }, [topic, jlptLevel, useMyGrammar, activeWords, useWkVocab, wkVocab])
 
   async function generate() {
     const key = state.geminiApiKey
@@ -131,9 +161,15 @@ export default function ContextClient() {
 
       const vocab = selected.map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
 
+      const wkVocabText = useWkVocab && wkVocab.length > 0
+        ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 15).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+        : ''
+
       let prompt: string
       if (promptOverride.trim()) {
-        prompt = promptOverride.replace('{VOCABULARIO}', vocab)
+        prompt = promptOverride
+          .replace('{VOCABULARIO}', vocab)
+          .replace('{WANIKANI}', wkVocabText)
       } else {
         let grammarPatternsText = ''
         if (useMyGrammar) {
@@ -148,7 +184,7 @@ export default function ContextClient() {
             .slice(0, 25)
           grammarPatternsText = patterns.length > 0 ? patterns.join(', ') : 'gramática básica'
         }
-        prompt = buildAutoPrompt(topic, jlptLevel, useMyGrammar, grammarPatternsText, vocab)
+        prompt = buildAutoPrompt(topic, jlptLevel, useMyGrammar, grammarPatternsText, vocab, wkVocabText)
       }
 
       const { data: { session } } = await supabase.auth.getSession()
@@ -282,6 +318,30 @@ export default function ContextClient() {
           </div>
         </div>
 
+        {/* WaniKani vocabulary toggle */}
+        {hasWaniKani && (
+          <label className="flex items-center gap-2 mb-4 cursor-pointer select-none group">
+            <input
+              type="checkbox"
+              checked={useWkVocab}
+              onChange={e => {
+                const v = e.target.checked
+                setUseWkVocab(v)
+                try { localStorage.setItem('ctx_use_wk_vocab', String(v)) } catch { /* incognito */ }
+              }}
+              className="w-4 h-4 rounded accent-pink-500"
+            />
+            <span className="text-xs font-semibold text-pink-600 dark:text-pink-400 group-hover:text-pink-700 dark:group-hover:text-pink-300 transition">
+              Incluir vocabulario de WaniKani
+            </span>
+            {useWkVocab && wkVocab.length > 0 && (
+              <span className="text-[10px] bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-full px-1.5 py-0.5">
+                {wkVocab.length} palabras
+              </span>
+            )}
+          </label>
+        )}
+
         {/* Prompt editor (collapsible) */}
         <details className="group mt-2">
           <summary className="cursor-pointer text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 select-none flex items-center gap-1.5">
@@ -295,7 +355,7 @@ export default function ContextClient() {
           <div className="mt-3 space-y-2">
             <p className="text-xs text-slate-400 dark:text-slate-500">
               {promptOverride
-                ? 'Usando prompt personalizado. Puedes usar {VOCABULARIO} como placeholder para tus palabras.'
+                ? 'Usando prompt personalizado. Placeholders: {VOCABULARIO} para tus palabras y {WANIKANI} para el vocabulario de WaniKani.'
                 : 'Previsualización del prompt según la configuración actual. Edítalo para personalizar.'}
             </p>
             <textarea

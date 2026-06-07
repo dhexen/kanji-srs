@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Vocabulario WaniKani en Lecturas IA',
+        description: 'La sección de Lecturas IA tiene ahora un checkbox "Incluir vocabulario de WaniKani" (visible si tienes configurada la API Key de WaniKani). Al activarlo, la IA combina el vocabulario que estás aprendiendo o ya has aprendido en la página con las palabras de tu progreso en WaniKani al crear el texto.',
+      },
+      {
         type: 'improvement',
         title: 'Generación de frases con reintentos automáticos',
         description: 'Al generar frases de gramática con IA, si la API está saturada (timeouts) la app reintenta automáticamente hasta 5 veces sin que tengas que pulsar otra vez. Si te has quedado sin cuota de la API, se muestra un aviso que puedes cerrar con la ✕.',
