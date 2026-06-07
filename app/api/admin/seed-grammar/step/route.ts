@@ -64,8 +64,8 @@ Nivel ${grammar.jlpt}. Varía sujetos y contextos. Partículas ortográficas: �
 Genera exactamente ${GENERATE_SIZE} frases distintas.`
 }
 
-// gemini-2.0-flash: 1500 RPD free tier (best for batch), 2.5-flash: only 20 RPD
-const MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash']
+// 3.1-flash-lite: 500 RPD, 3.1-flash: 500 RPD, 2.5-flash: 20 RPD (last resort)
+const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-3.1-flash-preview', 'gemini-2.5-flash']
 
 function parseRetryAfterMs(errorMsg: string, status: number): number {
   const match = errorMsg.match(/retry in (\d+(?:\.\d+)?)s/i)
