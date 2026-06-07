@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'Imágenes de vocabulario más nítidas y completas',
+        description: 'Las fotos de las palabras ya no se ven estiradas ni cortadas: ahora se muestran enteras, centradas y a mayor resolución, en un tamaño más contenido tanto en los repasos como en la sesión de estudio.',
+      },
+      {
+        type: 'improvement',
+        title: 'Repaso más compacto, sin tener que hacer scroll',
+        description: 'Se ha reducido el espaciado de la tarjeta de repaso para que el significado y el botón "Siguiente" quepan en pantalla al adivinar una palabra, evitando tener que desplazarse.',
+      },
+      {
         type: 'new',
         title: 'Vocabulario WaniKani en Lecturas IA',
         description: 'La sección de Lecturas IA tiene ahora un checkbox "Incluir vocabulario de WaniKani" (visible si tienes configurada la API Key de WaniKani). Al activarlo, la IA combina el vocabulario que estás aprendiendo o ya has aprendido en la página con las palabras de tu progreso en WaniKani al crear el texto.',

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { VocabItem, VocabWordType } from '@/lib/srs'
 import { getMeaningForLang } from '@/lib/srs'
+import { upgradeVocabImage } from '@/lib/image'
 
 interface Props {
   items: VocabItem[]
@@ -188,13 +189,13 @@ export default function LessonSession({ items, lang, onComplete, onSkip }: Props
 
       {/* Word card */}
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-        {/* Image */}
+        {/* Image — small, centered, shown whole (not cropped) */}
         {hasImage && (
-          <div className="w-full h-44 sm:h-56 bg-slate-100 dark:bg-slate-700 overflow-hidden">
+          <div className="w-full flex justify-center bg-slate-50 dark:bg-slate-900/40 py-4">
             <img
-              src={item.image_url}
+              src={upgradeVocabImage(item.image_url)}
               alt={item.jp}
-              className="w-full h-full object-cover"
+              className="h-36 sm:h-44 w-auto max-w-[80%] object-contain rounded-xl"
               onError={() => setImgError(true)}
             />
           </div>

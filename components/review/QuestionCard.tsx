@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType, SRS_MAX_LEVEL } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
 import { submitImageVote, submitVocabReport } from '@/lib/supabase'
+import { upgradeVocabImage } from '@/lib/image'
 import type { SessionItem } from './ReviewClient'
 import { vocabXpForResult } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
@@ -204,7 +205,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {xpGained !== null && (
         <XpToast key={xpToastKey} xp={xpGained} type="vocab" />
       )}
-    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
+    <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
       <div className="flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           {isPractice ? t(lang, 'review_practice') : t(lang, 'review_srs')}
@@ -230,14 +231,14 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           <LevelChangeToast key={levelChangeKey} dir={levelChange.dir} newLevel={levelChange.newLevel} lang={lang} />
         )}
 
-        {/* Image banner — full width, all screen sizes */}
+        {/* Image — small, centered, shown whole (not cropped) */}
         {hasImage && (
-          <div className="relative w-full">
+          <div className="relative w-full flex justify-center bg-slate-50 dark:bg-slate-900/40 pt-4">
             <img
-              src={item.image_url!}
+              src={upgradeVocabImage(item.image_url)}
               alt={meaning}
               onError={handleImgError}
-              className="w-full h-36 sm:h-44 object-cover"
+              className="h-32 sm:h-40 w-auto max-w-[80%] object-contain rounded-xl"
             />
             <div className="absolute bottom-2 right-2 flex gap-1">
               <button type="button" onClick={() => handleImgVote(1)} title="Buena imagen"
@@ -252,7 +253,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
           </div>
         )}
 
-        <div className={`pb-6 px-4 ${hasImage ? 'pt-5' : 'pt-12'}`}>
+        <div className={`pb-5 px-4 ${hasImage ? 'pt-4' : 'pt-8'}`}>
           {/* Main word display */}
           {mode === 'meaning' && answerState !== 'waiting' ? (
             // After answering meaning mode: show furigana above kanji
