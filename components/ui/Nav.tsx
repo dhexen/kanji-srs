@@ -26,63 +26,6 @@ type SubItem = {
   badge: boolean
 }
 
-// ── ProfileMenu ───────────────────────────────────────────────────────────────
-function ProfileMenu() {
-  const { state } = useStore()
-  const lang = state.lang
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
-
-  if (!state.user) return null
-
-  const initial = (state.user.email?.[0] ?? '?').toUpperCase()
-  const items = [
-    { href: '/stats?tab=stats',    label: stripEmoji(t(lang, 'stats_tab_stats')) },
-    { href: '/stats?tab=reports',  label: 'Mis reportes' },
-    { href: '/stats?tab=settings', label: stripEmoji(t(lang, 'stats_tab_settings')) },
-    { href: '/stats?tab=account',  label: stripEmoji(t(lang, 'stats_tab_account')) },
-  ]
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(s => !s)}
-        className="w-8 h-8 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-sm hover:bg-violet-700 dark:hover:bg-violet-600 transition-colors select-none"
-        aria-label="Perfil"
-      >
-        {initial}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden z-50">
-          <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700">
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{state.user.email}</p>
-          </div>
-          {items.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className="flex items-center px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700/60 transition-all"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({
   href, icon, label, badge, tutorialId, progress, isAdmin, pathname, onNavigate,
@@ -294,13 +237,6 @@ function NavInner() {
   const hasActiveVocab = state.db.some(i => i.status === 'active')
 
   // ── Sidebar (all users) ───────────────────────────────────────────────────
-  const profileSubItems: SubItem[] = [
-    { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')),    tabKey: 'stats',    isDefault: true,  badge: false },
-    { href: '/stats?tab=reports',  icon: '🎫', label: 'Mis reportes',                            tabKey: 'reports',  isDefault: false, badge: false },
-    { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')), tabKey: 'settings', isDefault: false, badge: false },
-    { href: '/stats?tab=account',  icon: '👤', label: stripEmoji(t(lang, 'stats_tab_account')),  tabKey: 'account',  isDefault: false, badge: !state.user },
-  ]
-
   const sidebarContent = (
     <>
       {/* Logo */}
@@ -397,11 +333,6 @@ function NavInner() {
             badge={0} progress={null} pathname={pathname} isAdmin
           />
         )}
-        <NavSection
-          icon="👤" label={stripEmoji(t(lang, 'nav_stats'))}
-          basePath="/stats" subItems={profileSubItems}
-          pathname={pathname} currentTab={currentTab}
-        />
         {isAdmin && (
           <NavSection
             icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}

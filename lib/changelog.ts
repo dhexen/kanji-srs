@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Se recuerda tu selección de tipos de repaso',
+        description: 'Los tipos de repaso que eliges (lectura múltiple, significado, kanji, etc.) se guardan y se mantienen en tu próxima visita, hasta que selecciones otros.',
+      },
+      {
+        type: 'improvement',
+        title: 'Menú de usuario en el avatar superior',
+        description: 'El acceso a tu perfil (Estadísticas, Mis reportes, Configuración, Cuenta y cerrar sesión) ya no está en el menú lateral: ahora se despliega al pulsar tu avatar en la esquina superior derecha.',
+      },
+      {
         type: 'fix',
         title: 'Imágenes de vocabulario más nítidas y completas',
         description: 'Las fotos de las palabras ya no se ven estiradas ni cortadas: ahora se muestran enteras, centradas y a mayor resolución, en un tamaño más contenido tanto en los repasos como en la sesión de estudio.',

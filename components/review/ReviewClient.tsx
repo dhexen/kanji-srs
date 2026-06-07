@@ -17,6 +17,9 @@ type Phase = 'select' | 'lesson' | 'playing' | 'done'
 // Canonical mode order for spaced-repetition learning progression
 const CANONICAL_MODE_ORDER: ReviewMode[] = ['multi', 'meaning', 'reading', 'kanji', 'reverse']
 
+// localStorage key for persisting the user's last review-mode selection
+const SELECTED_MODES_KEY = 'review_selected_modes'
+
 function orderByMode(items: SessionItem[]): SessionItem[] {
   const groups = new Map<ReviewMode, SessionItem[]>(CANONICAL_MODE_ORDER.map(m => [m, []]))
   for (const item of items) groups.get(item.mode)?.push(item)
@@ -74,6 +77,25 @@ export default function ReviewClient() {
   // Items that have been answered correctly at least once this session
   const completedRef = useRef(new Set<string>())
   const modes = Object.entries(MODE_CONFIG) as [ReviewMode, typeof MODE_CONFIG[ReviewMode]][]
+
+  // Restore the last mode selection on mount, then persist on every change so it
+  // stays until the user picks a different set.
+  const modesLoadedRef = useRef(false)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SELECTED_MODES_KEY)
+      if (raw) {
+        const allModes = Object.keys(MODE_CONFIG) as ReviewMode[]
+        const saved = (JSON.parse(raw) as ReviewMode[]).filter(m => allModes.includes(m))
+        if (saved.length > 0) setSelectedModes(saved)
+      }
+    } catch { /* ignore corrupt/unavailable storage */ }
+    modesLoadedRef.current = true
+  }, [])
+  useEffect(() => {
+    if (!modesLoadedRef.current) return
+    try { localStorage.setItem(SELECTED_MODES_KEY, JSON.stringify(selectedModes)) } catch { /* ignore */ }
+  }, [selectedModes])
 
   // Ticker that updates every 60 s so due-count memos recompute when new items become due
   const [tick, setTick] = useState(0)

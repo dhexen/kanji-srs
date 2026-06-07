@@ -267,7 +267,7 @@ Si completas correctamente una frase durante la práctica, verás un botón **"�
 
 ### Mi Perfil
 
-**Cómo acceder:** En la barra lateral, haz clic en **"Mi Perfil"** o en tu avatar en la parte superior
+**Cómo acceder:** Pulsa tu **avatar** (la inicial de tu correo) en la esquina superior derecha. Se despliega un menú con acceso directo a Estadísticas, Mis reportes, Configuración, Cuenta y a cerrar sesión.
 
 Tiene varias pestañas:
 
@@ -351,7 +351,7 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 
 1. Ve a **"Mis Repasos"**
 2. Verás cuántas palabras tienes pendientes de repasar hoy
-3. Selecciona los modos de repaso que quieres practicar
+3. Selecciona los modos de repaso que quieres practicar (tu selección se recuerda y se mantiene hasta que elijas otra)
 4. Pulsa **"Iniciar repaso"**
 5. Responde a cada pregunta:
    - En los modos de selección múltiple: pulsa la opción correcta
@@ -431,8 +431,8 @@ La app también crea copias automáticas cada 25 repasos.
 
 ### Cómo ver tu progreso detallado
 
-1. En la barra lateral, haz clic en **"Mi Perfil"**
-2. Selecciona la pestaña **"Estadísticas"**
+1. Pulsa tu **avatar** en la esquina superior derecha
+2. Selecciona **"Estadísticas"** en el menú
 3. Puedes ver:
    - Cuántas palabras tienes en cada nivel
    - Tu racha de días de estudio

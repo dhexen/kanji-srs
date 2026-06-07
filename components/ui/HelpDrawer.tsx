@@ -70,6 +70,9 @@ function HelpReview() {
             </div>
           ))}
         </div>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2.5 leading-snug">
+          Tu selección de tipos de repaso se recuerda y se mantiene hasta que elijas otra.
+        </p>
       </div>
 
       <div>
@@ -242,6 +245,9 @@ function HelpContext() {
 function HelpStats() {
   return (
     <div className="space-y-5">
+      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+        Accede a tu perfil pulsando tu <strong>avatar</strong> en la esquina superior derecha: se despliega un menú con las pestañas y la opción de cerrar sesión.
+      </p>
       <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Las pestañas</h3>
         <div className="space-y-2.5">

@@ -5,10 +5,15 @@ import { useSidebar } from '@/lib/sidebar-context'
 import { useHelp } from '@/lib/help-context'
 import ThemeToggle from './ThemeToggle'
 import FeedbackModal from './FeedbackModal'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchPendingReportsCount } from '@/lib/admin-client'
 import { hasUnseenChanges } from '@/lib/changelog'
+import { t } from '@/lib/i18n'
 import WhatsNewModal from './WhatsNewModal'
+
+function stripEmoji(label: string) {
+  return label.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[☀-➿️]\s*/u, '')
+}
 
 function HamburgerIcon() {
   return (
@@ -19,17 +24,37 @@ function HamburgerIcon() {
 }
 
 export default function Header() {
-  const { state } = useStore()
+  const { state, logout } = useStore()
   const { toggle } = useSidebar()
   const help = useHelp()
+  const lang = state.lang
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [pendingReports, setPendingReports] = useState(0)
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
   const [hasUnseen, setHasUnseen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const user = state.user
   const initial = (user?.email?.[0] ?? '?').toUpperCase()
   const isRealAdmin = state.role === 'admin'
+
+  // Close the profile dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
+
+  const profileItems = [
+    { href: '/stats?tab=stats',    icon: '📊', label: stripEmoji(t(lang, 'stats_tab_stats')) },
+    { href: '/stats?tab=reports',  icon: '🎫', label: 'Mis reportes' },
+    { href: '/stats?tab=settings', icon: '⚙️', label: stripEmoji(t(lang, 'stats_tab_settings')) },
+    { href: '/stats?tab=account',  icon: '👤', label: stripEmoji(t(lang, 'stats_tab_account')) },
+  ]
 
   // Check for unseen changelog entries and auto-open once per version
   useEffect(() => {
@@ -89,33 +114,71 @@ export default function Header() {
             <span className="text-violet-400 animate-pulse text-xs hidden sm:inline">Sincronizando…</span>
           )}
 
-          {/* User info */}
+          {/* User menu */}
           {user ? (
-            <Link
-              href="/stats?tab=account"
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-violet-50 dark:hover:bg-slate-800 transition-colors shrink-0"
-            >
-              <div className="relative shrink-0">
-                <div className="w-7 h-7 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-xs select-none">
-                  {initial}
-                </div>
-                <span
-                  title={state.isOnline ? 'Online' : 'Sin conexión'}
-                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${state.isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}
-                />
-                {isRealAdmin && pendingReports > 0 && (
+            <div ref={menuRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setMenuOpen(s => !s)}
+                aria-label="Menú de usuario"
+                aria-expanded={menuOpen}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-violet-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="relative shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-violet-600 dark:bg-violet-700 flex items-center justify-center text-white font-bold text-xs select-none">
+                    {initial}
+                  </div>
                   <span
-                    title={`${pendingReports} reporte(s) pendiente(s)`}
-                    className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold border-2 border-white dark:border-slate-900 tabular-nums"
+                    title={state.isOnline ? 'Online' : 'Sin conexión'}
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${state.isOnline ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}
+                  />
+                  {isRealAdmin && pendingReports > 0 && (
+                    <span
+                      title={`${pendingReports} reporte(s) pendiente(s)`}
+                      className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold border-2 border-white dark:border-slate-900 tabular-nums"
+                    >
+                      {pendingReports > 9 ? '9+' : pendingReports}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden sm:block text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[140px] truncate">
+                  {user.email}
+                </span>
+                <svg className={`hidden sm:block w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden z-50">
+                  <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700">
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                    <p className={`text-[10px] mt-0.5 font-medium ${state.isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                      {state.isOnline ? '● Online' : '● Sin conexión'}
+                    </p>
+                  </div>
+                  {profileItems.map(item => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700/60 transition-colors"
+                    >
+                      <span className="w-5 text-center shrink-0">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={async () => { setMenuOpen(false); await logout() }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border-t border-slate-100 dark:border-slate-700 transition-colors"
                   >
-                    {pendingReports > 9 ? '9+' : pendingReports}
-                  </span>
-                )}
-              </div>
-              <span className="hidden sm:block text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[140px] truncate">
-                {user.email}
-              </span>
-            </Link>
+                    <span className="w-5 text-center shrink-0">🚪</span>
+                    <span className="truncate">{t(lang, 'stats_logout')}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <Link
               href="/login"
