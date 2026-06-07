@@ -16,6 +16,7 @@ interface GrammarRow {
 interface JobState {
   running: boolean
   started_at: string | null
+  key_hint: string
   grammars: GrammarRow[]
   total: number
   done: number
@@ -204,6 +205,13 @@ export default function GrammarSeedClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {/* Key indicator */}
+      <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-3 py-1.5 font-mono">
+        🔑 Clave activa: <span className={state.key_hint.startsWith('sin') ? 'text-red-600 font-semibold' : 'text-slate-700 font-semibold'}>{state.key_hint}</span>
+        {state.key_hint.startsWith('sin') && <span className="ml-2 text-red-500">— añade tu clave Gemini en Configuración</span>}
+        {state.key_hint.startsWith('vercel') && <span className="ml-2 text-amber-600">— usando clave del servidor (puede tener cuota compartida)</span>}
+      </div>
+
       {/* Header stats */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex gap-3 text-sm">

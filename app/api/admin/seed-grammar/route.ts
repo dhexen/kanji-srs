@@ -18,13 +18,21 @@ const TARGET = 25
 
 export async function GET(req: NextRequest) {
   try {
-    const { service } = await requireAdmin(req)
+    const { adminId, service } = await requireAdmin(req)
 
-    const [jobRes, countRes, errorRes] = await Promise.all([
+    const [jobRes, countRes, errorRes, progressRes] = await Promise.all([
       service.from('grammar_seed_job').select('running, started_at, stopped_at').eq('id', 1).single(),
       service.from('grammar_sentences').select('grammar_id').eq('is_private', false),
       service.from('grammar_seed_errors').select('grammar_id, error_msg, is_permanent, updated_at'),
+      service.from('srs_progress').select('gemini_api_key').eq('user_id', adminId).maybeSingle(),
     ])
+
+    const userKey: string = progressRes.data?.gemini_api_key ?? ''
+    const serverKey: string = process.env.GEMINI_API_KEY ?? ''
+    const activeKey = userKey || serverKey
+    const keyHint = activeKey
+      ? (userKey ? `perfil …${userKey.slice(-6)}` : `vercel …${serverKey.slice(-6)}`)
+      : 'sin clave'
 
     const countMap = new Map<string, number>()
     for (const row of countRes.data ?? []) {
@@ -46,6 +54,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       running: jobRes.data?.running ?? false,
       started_at: jobRes.data?.started_at ?? null,
+      key_hint: keyHint,
       grammars,
       total: ALL_GRAMMAR.length,
       done: grammars.filter(g => g.count >= TARGET).length,
