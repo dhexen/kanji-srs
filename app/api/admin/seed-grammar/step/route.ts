@@ -64,9 +64,14 @@ Nivel ${grammar.jlpt}. Varía sujetos y contextos. Partículas ortográficas: �
 Genera exactamente ${GENERATE_SIZE} frases distintas.`
 }
 
-function parseRetryAfterMs(errorMsg: string): number {
+// gemini-1.5-flash: 1500 RPD free tier (best for batch), 2.5-flash: only 20 RPD
+const MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash']
+
+function parseRetryAfterMs(errorMsg: string, status: number): number {
   const match = errorMsg.match(/retry in (\d+(?:\.\d+)?)s/i)
-  return match ? Math.ceil(parseFloat(match[1]) * 1000) + 2000 : 65_000
+  if (match) return Math.ceil(parseFloat(match[1]) * 1000) + 2000
+  if (status === 503) return 15_000  // high demand — retry quickly
+  return 65_000
 }
 
 export async function POST(req: NextRequest) {
@@ -152,36 +157,41 @@ export async function POST(req: NextRequest) {
       jp: d.word, reading: d.reading, meaning: d.meaning_es ?? '',
     }))
 
-    // 7. Call Gemini directly (server-side — no EU restriction)
+    // 7. Call Gemini directly (server-side — no EU restriction), try models in order
     const prompt = buildPrompt(next, vocab)
-    let geminiRes: Response
-    try {
-      geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        },
-      )
-    } catch (networkErr: any) {
-      await upsertError(service, next.id, `Network error: ${networkErr.message}`, false)
-      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: networkErr.message, retry_after_ms: 10_000 })
-    }
+    let geminiRes!: Response
+    let geminiData: any = null
+    let usedModel = ''
 
-    const geminiData = await geminiRes.json()
+    for (const model of MODELS) {
+      try {
+        geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          },
+        )
+        geminiData = await geminiRes.json()
+        usedModel = model
+        if (geminiRes.status !== 503) break  // only fall through on high-demand
+      } catch (networkErr: any) {
+        await upsertError(service, next.id, `Network error: ${networkErr.message}`, false)
+        return NextResponse.json({ status: 'retry', grammar_id: next.id, error: networkErr.message, retry_after_ms: 10_000 })
+      }
+    }
 
     if (!geminiRes.ok) {
       const errMsg: string = geminiData?.error?.message ?? `HTTP ${geminiRes.status}`
-      // 400/403/404 = permanent (bad key, denied access, not found), 429 = quota (retry), 5xx = transient
       const isPermanent = geminiRes.status === 400 || geminiRes.status === 403 || geminiRes.status === 404
-      const retryAfterMs = parseRetryAfterMs(errMsg)
+      const retryAfterMs = parseRetryAfterMs(errMsg, geminiRes.status)
 
-      await upsertError(service, next.id, errMsg, isPermanent)
+      await upsertError(service, next.id, `[${usedModel}] ${errMsg}`, isPermanent)
       return NextResponse.json({
         status: isPermanent ? 'skip' : 'retry',
         grammar_id: next.id,
-        error: errMsg,
+        error: `[${usedModel}] ${errMsg}`,
         retry_after_ms: retryAfterMs,
       })
     }

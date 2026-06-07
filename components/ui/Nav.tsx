@@ -47,6 +47,7 @@ function ProfileMenu() {
   const initial = (state.user.email?.[0] ?? '?').toUpperCase()
   const items = [
     { href: '/stats?tab=stats',    label: stripEmoji(t(lang, 'stats_tab_stats')) },
+    { href: '/stats?tab=reports',  label: 'Mis reportes' },
     { href: '/stats?tab=settings', label: stripEmoji(t(lang, 'stats_tab_settings')) },
     { href: '/stats?tab=account',  label: stripEmoji(t(lang, 'stats_tab_account')) },
   ]

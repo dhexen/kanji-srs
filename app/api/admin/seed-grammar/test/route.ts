@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No hay clave configurada', status: null })
     }
 
-    const model = 'gemini-2.5-flash'
+    const model = 'gemini-1.5-flash'
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
