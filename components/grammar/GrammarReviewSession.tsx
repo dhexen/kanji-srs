@@ -9,6 +9,7 @@ import {
   type GrammarSrsStat,
   applyGrammarResult,
   checkAnswer,
+  checkFullSentence,
   getSrsLevelLabel,
 } from '@/lib/grammar-srs'
 import {
@@ -30,9 +31,14 @@ interface Props {
   showSharedSentences: boolean
   onBack: () => void
   onSrsUpdate?: (stat: GrammarSrsStat) => void
+  /** Free review: no SRS/XP, several sentences per grammar, and a full-sentence
+   *  writing challenge after each correct fill-in. */
+  free?: boolean
+  /** How many sentences to show per grammar (free mode). Default 1. */
+  sentencesPerGrammar?: number
 }
 
-type Phase = 'loading' | 'asking' | 'answered' | 'done'
+type Phase = 'loading' | 'asking' | 'writing' | 'answered' | 'done'
 
 function ui(lang: string, es: string, ca: string, en: string) {
   if (lang === 'ca') return ca
@@ -48,6 +54,8 @@ export default function GrammarReviewSession({
   showSharedSentences,
   onBack,
   onSrsUpdate,
+  free = false,
+  sentencesPerGrammar = 1,
 }: Props) {
   const { addXP } = useStore()
 
@@ -71,6 +79,10 @@ export default function GrammarReviewSession({
   // Per-question UI state
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false)
+  // Free-mode full-sentence writing step
+  const [fullInput, setFullInput] = useState('')
+  const [fullCorrect, setFullCorrect] = useState(false)
+  const freeReviewedRef = useRef(0)
   const [showHint, setShowHint] = useState(false)
   const [showFurigana, setShowFurigana] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -109,6 +121,8 @@ export default function GrammarReviewSession({
   function resetQuestionState() {
     setUserInput('')
     setIsCorrect(false)
+    setFullInput('')
+    setFullCorrect(false)
     setShowHint(false)
     setReportOpen(false)
     setReportSent(false)
@@ -162,16 +176,22 @@ export default function GrammarReviewSession({
       poolsRef.current = pools
       for (const g of queue) oldLevelsRef.current.set(g.id, srsStats.get(g.id)?.level ?? 0)
 
-      // Build the queue with one entry per grammar id (dedupe in case the
-      // candidate list contains the same grammar twice).
+      // Build the queue. SRS mode: one entry per grammar id. Free mode: several
+      // entries per grammar (up to sentencesPerGrammar, capped by pool size) so
+      // the learner sees 2-3 different sentences per point.
       const seenIds = new Set<string>()
       const validIds: string[] = []
       const empties:  string[] = []
       for (const g of queue) {
         if (seenIds.has(g.id)) continue
         seenIds.add(g.id)
-        if (pools.has(g.id)) validIds.push(g.id)
-        else empties.push(g.id)
+        const pool = pools.get(g.id)
+        if (pool && pool.length > 0) {
+          const reps = free ? Math.min(sentencesPerGrammar, pool.length) : 1
+          for (let r = 0; r < reps; r++) validIds.push(g.id)
+        } else {
+          empties.push(g.id)
+        }
       }
       setEmptyGrammars(empties)
       queueRef.current = validIds
@@ -193,23 +213,57 @@ export default function GrammarReviewSession({
   function submitAnswer() {
     if (!userInput.trim() || phase !== 'asking' || !currentSentence) return
     submittedAtRef.current = Date.now()
-    setIsCorrect(checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts))
+    const correct = checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts)
+    setIsCorrect(correct)
+    // Free mode: after a correct fill-in, challenge the learner to write the
+    // whole sentence (in their language → Japanese). Wrong fill-ins skip it.
+    if (free && correct) {
+      setPhase('writing')
+      setTimeout(() => inputRef.current?.focus(), 100)
+    } else {
+      setPhase('answered')
+    }
+  }
+
+  function submitFull() {
+    if (!fullInput.trim() || phase !== 'writing' || !currentSentence) return
+    submittedAtRef.current = Date.now()
+    const ok = checkFullSentence(
+      fullInput.trim(),
+      currentSentence.sentence_before_reading,
+      currentSentence.sentence_before,
+      currentSentence.answer,
+      currentSentence.sentence_after_reading,
+      currentSentence.sentence_after,
+      { beforeAlts: undefined, answerAlts: currentSentence.answer_alts },
+    )
+    setFullCorrect(ok)
     setPhase('answered')
   }
 
   function finish() {
-    const correctFirstTry = [...completedRef.current].filter(id => (wrongCountsRef.current.get(id) ?? 0) === 0).length
-    const withMistakes = completedRef.current.size - correctFirstTry
-    const xp = grammarXpForSession(correctFirstTry, withMistakes, true)
-    if (xp > 0) {
-      addXP({ grammarXp: xp })
-      setXpGained(xp)
-      setXpToastKey(k => k + 1)
+    if (!free) {
+      const correctFirstTry = [...completedRef.current].filter(id => (wrongCountsRef.current.get(id) ?? 0) === 0).length
+      const withMistakes = completedRef.current.size - correctFirstTry
+      const xp = grammarXpForSession(correctFirstTry, withMistakes, true)
+      if (xp > 0) {
+        addXP({ grammarXp: xp })
+        setXpGained(xp)
+        setXpToastKey(k => k + 1)
+      }
     }
     setPhase('done')
   }
 
   function next() {
+    // Free mode: never touches SRS/XP and never re-queues — just advance.
+    if (free) {
+      freeReviewedRef.current += 1
+      if (idx + 1 >= queueRef.current.length) finish()
+      else advanceTo(idx + 1)
+      return
+    }
+
     const id = queueRef.current[idx]
     let didAppend = false
 
@@ -271,31 +325,40 @@ export default function GrammarReviewSession({
         {xpGained !== null && <XpToast key={xpToastKey} xp={xpGained} type="grammar" />}
         <div className="space-y-5">
           <div className="text-center py-6 space-y-2">
-            <p className="text-5xl">🎉</p>
+            <p className="text-5xl">{free ? '🎲' : '🎉'}</p>
             <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              {ui(lang, '¡Repaso completado!', 'Repàs completat!', 'Review complete!')}
+              {free
+                ? ui(lang, '¡Repaso libre completado!', 'Repàs lliure completat!', 'Free review complete!')
+                : ui(lang, '¡Repaso completado!', 'Repàs completat!', 'Review complete!')}
             </p>
+            {free && (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {ui(lang, `${freeReviewedRef.current} frases repasadas · no afecta a tus niveles`, `${freeReviewedRef.current} frases repassades · no afecta els teus nivells`, `${freeReviewedRef.current} sentences reviewed · doesn't affect your levels`)}
+              </p>
+            )}
           </div>
 
-          {/* Counters */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
-              <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{correctFirstTry}</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
-                {ui(lang, 'a la primera', 'a la primera', 'first try')}
-              </p>
+          {/* Counters (SRS mode only — free review doesn't score) */}
+          {!free && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
+                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{correctFirstTry}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
+                  {ui(lang, 'a la primera', 'a la primera', 'first try')}
+                </p>
+              </div>
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-center">
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-400">{withMistakes}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+                  {ui(lang, 'con fallos', 'amb errades', 'with mistakes')}
+                </p>
+              </div>
             </div>
-            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-center">
-              <p className="text-3xl font-bold text-amber-700 dark:text-amber-400">{withMistakes}</p>
-              <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-                {ui(lang, 'con fallos', 'amb errades', 'with mistakes')}
-              </p>
-            </div>
-          </div>
+          )}
 
-          {/* Per-grammar level changes */}
+          {/* Per-grammar level changes (SRS mode) + skipped grammars */}
           <div className="space-y-2">
-            {reviewedIds.map(id => {
+            {!free && reviewedIds.map(id => {
               const g = grammarById.get(id)
               const r = results.get(id)
               if (!g || !r) return null
@@ -453,6 +516,49 @@ export default function GrammarReviewSession({
         </>
       )}
 
+      {/* ── WRITING (free mode: write the whole sentence) ──────────────────── */}
+      {phase === 'writing' && (
+        <>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 shadow-sm overflow-hidden">
+            <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                ✅ {ui(lang, '¡Bien! Ahora escribe la frase entera en japonés', 'Bé! Ara escriu la frase sencera en japonès', 'Nice! Now write the whole sentence in Japanese')}
+              </span>
+            </div>
+            <div className="px-5 py-6 text-center">
+              <p className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
+                {translation || (s.sentence_before + s.answer + s.sentence_after)}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={fullInput}
+                onChange={e => { if (!isComposing.current) setFullInput(toHiragana(e.target.value, { IMEMode: true })); else setFullInput(e.target.value) }}
+                onCompositionStart={() => { isComposing.current = true }}
+                onCompositionEnd={e => { isComposing.current = false; setFullInput(toHiragana((e.target as HTMLInputElement).value, { IMEMode: true })) }}
+                onKeyDown={e => e.key === 'Enter' && submitFull()}
+                placeholder={t(lang, 'gp_input_ph')}
+                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+                data-lpignore="true" data-1p-ignore="true"
+                className="w-full px-4 py-3.5 text-center text-lg font-bold border-2 border-slate-200 dark:border-slate-600 focus:border-emerald-400 dark:focus:border-emerald-500 rounded-xl focus:outline-none transition bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500 select-none pointer-events-none">ローマ字OK</span>
+            </div>
+            <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
+              {ui(lang, 'Puedes escribirla con kanji o toda en hiragana.', 'Pots escriure-la amb kanji o tota en hiragana.', 'Write it with kanji or fully in hiragana.')}
+            </p>
+            <button onClick={submitFull} disabled={!fullInput.trim()} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm">
+              {t(lang, 'gp_check')}
+            </button>
+          </div>
+        </>
+      )}
+
       {/* ── ANSWERED ───────────────────────────────────────────────────────── */}
       {phase === 'answered' && (
         <>
@@ -496,6 +602,20 @@ export default function GrammarReviewSession({
                 {translation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>}
               </div>
 
+              {/* Free-mode: result of the full-sentence writing challenge */}
+              {free && fullInput && (
+                <div className={`pt-3 border-t ${fullCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-amber-100 dark:border-amber-800/50'}`}>
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1 text-center">
+                    {fullCorrect
+                      ? `✅ ${ui(lang, 'Tu frase', 'La teva frase', 'Your sentence')}`
+                      : `✍️ ${ui(lang, 'Tu frase (compárala arriba)', 'La teva frase (compara-la a dalt)', 'Your sentence (compare above)')}`}
+                  </p>
+                  <p className={`text-lg font-bold text-center ${fullCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-500'}`}>
+                    {fullInput}
+                  </p>
+                </div>
+              )}
+
               {/* User answer */}
               <div className={`pt-3 border-t ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
                 <div className="flex items-center justify-center gap-3">
@@ -528,9 +648,10 @@ export default function GrammarReviewSession({
           </div>
 
           {(() => {
-            // Will the session finish on "next"? Only if this is the last queued item
-            // and the current answer won't get requeued (i.e. it was correct).
-            const willFinish = isCorrect && idx + 1 >= queueRef.current.length
+            // Will the session finish on "next"? In free mode there's no requeue,
+            // so it finishes on the last item; in SRS mode only if the answer was
+            // correct (wrong answers get requeued).
+            const willFinish = (free || isCorrect) && idx + 1 >= queueRef.current.length
             return (
               <button onClick={next} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-sm">
                 {willFinish ? `🏁 ${t(lang, 'gp_see_results')}` : `${t(lang, 'gp_next')} →`}

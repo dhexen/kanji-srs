@@ -53,20 +53,36 @@ Return ONLY valid JSON, no backticks, no extra text:
 Words:
 ${wordList}`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
-    },
-  )
-  if (!res.ok) {
+  // Retry transient failures (network errors, 429/5xx) a few times before giving
+  // up; permanent errors (bad key, quota) fail fast.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+  const MAX_ATTEMPTS = 3
+  let text = ''
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
+      })
+    } catch (e) {
+      if (attempt === MAX_ATTEMPTS) throw e
+      await new Promise(r => setTimeout(r, 800 * attempt))
+      continue
+    }
+    if (res.ok) {
+      const data = await res.json()
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      break
+    }
     const data = await res.json().catch(() => ({})) as { error?: { message?: string } }
-    throw new Error(data?.error?.message ?? `Gemini API error ${res.status}`)
+    const msg = data?.error?.message ?? `Gemini API error ${res.status}`
+    const transient = res.status === 429 || res.status >= 500
+    if (!transient || attempt === MAX_ATTEMPTS) throw new Error(msg)
+    await new Promise(r => setTimeout(r, 800 * attempt))
   }
-  const data = await res.json()
-  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
   try {
     const clean = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)

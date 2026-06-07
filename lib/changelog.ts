@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Repaso libre de vocabulario y gramática',
+        description: 'Nuevo modo "Repaso libre" sin presión: no cuenta para los niveles. En vocabulario, repasa de forma aleatoria todo tu vocabulario activo (botón 🎲 en el Dashboard). En gramática, eliges por lección las gramáticas que estudias, repasas 2-3 frases por punto y, tras acertar el hueco, escribes la frase entera en japonés (se acepta con kanji o toda en hiragana).',
+      },
+      {
+        type: 'improvement',
+        title: 'Clasificación de WaniKani más robusta ante errores',
+        description: 'Al clasificar el vocabulario de WaniKani, si hay un error temporal (p. ej. la API saturada) se reintenta automáticamente varias veces y continúa con las palabras que aún falten por clasificar, en lugar de detenerse al primer fallo. Si aun así se interrumpe, basta con volver a pulsar el botón para seguir donde lo dejó.',
+      },
+      {
         type: 'fix',
         title: 'Kanji de las frases de gramática más claros',
         description: 'Las frases de gramática (en la práctica y en el repaso) ahora usan la misma fuente clara que la respuesta, en lugar de una decorativa que hacía algunos kanji difíciles de leer.',

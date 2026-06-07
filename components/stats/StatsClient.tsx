@@ -429,29 +429,59 @@ export default function StatsClient() {
       const token = session?.access_token
       if (!token) throw new Error('No session')
 
+      const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+      const MAX_RETRIES = 4
       let totalUpdated = 0
-      // Loop batches until nothing is left (or a batch classifies nothing).
-      for (let i = 0; i < 60; i++) {
-        const res = await fetch('/api/wanikani/classify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ limit: 60 }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
-        totalUpdated += data.updated ?? 0
-        if (data.processed === 0) {
-          setWkClassifyMsg(totalUpdated === 0 ? 'Tu vocabulario de WaniKani ya está clasificado.' : `Clasificadas ${totalUpdated} palabras.`)
-          break
+      let retries = 0
+      let stoppedOnError = false
+
+      // Loop batches until nothing is pending. Each request re-fetches the rows
+      // still missing a category, so after any failure it simply continues with
+      // whatever is left. Transient errors (or a batch that classifies nothing)
+      // are retried up to MAX_RETRIES before giving up.
+      for (let i = 0; i < 300; i++) {
+        let data: { processed?: number; updated?: number; pending?: number } | null = null
+        try {
+          const res = await fetch('/api/wanikani/classify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ limit: 60 }),
+          })
+          data = await res.json()
+          if (!res.ok) throw new Error((data as { error?: string })?.error ?? `Error ${res.status}`)
+        } catch {
+          retries++
+          if (retries > MAX_RETRIES) { stoppedOnError = true; break }
+          setWkClassifyMsg(`Error temporal, reintentando (${retries}/${MAX_RETRIES})…`)
+          await sleep(1000 * retries)
+          continue
         }
-        setWkClassifyMsg(`Clasificando… ${totalUpdated} hasta ahora${data.pending ? ` · ${data.pending} pendientes` : ''}`)
-        if ((data.updated ?? 0) === 0) {
-          // Batch classified nothing → stop to avoid looping on the same rows.
-          setWkClassifyMsg(`Clasificadas ${totalUpdated} palabras. Vuelve a intentarlo para el resto.`)
-          break
+
+        if ((data?.processed ?? 0) === 0) break  // nothing left to classify
+
+        const updated = data?.updated ?? 0
+        totalUpdated += updated
+
+        if (updated === 0) {
+          // This batch classified nothing — retry a few times (transient), then stop.
+          retries++
+          if (retries > MAX_RETRIES) { stoppedOnError = true; break }
+          setWkClassifyMsg(`Reintentando (${retries}/${MAX_RETRIES})… ${totalUpdated} clasificadas`)
+          await sleep(1000 * retries)
+          continue
         }
+
+        retries = 0  // progress made → reset the retry budget and keep going
+        setWkClassifyMsg(`Clasificando… ${totalUpdated} clasificadas${data?.pending ? ` · ${data.pending} pendientes` : ''}`)
       }
-      showToast('Clasificación de WaniKani completada', 'success')
+
+      if (stoppedOnError) {
+        setWkClassifyMsg(`Se detuvo tras varios intentos. Clasificadas ${totalUpdated}. Vuelve a pulsar para continuar con las que falten.`)
+        showToast('Clasificación interrumpida; reintenta para continuar', 'error')
+      } else {
+        setWkClassifyMsg(totalUpdated === 0 ? 'Tu vocabulario de WaniKani ya está clasificado.' : `Clasificadas ${totalUpdated} palabras.`)
+        showToast('Clasificación de WaniKani completada', 'success')
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al clasificar'
       setWkClassifyMsg(msg)

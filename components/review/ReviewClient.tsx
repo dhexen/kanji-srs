@@ -341,20 +341,31 @@ export default function ReviewClient() {
                 {pendingCount}
               </p>
             </div>
-            <button
-              onClick={() => start(false)}
-              disabled={pendingCount === 0 || activeWords.length === 0 || isStarting}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
-            >
-              {isStarting
-                ? '⏳'
-                : (
-                  <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                    {strip(t(lang, 'review_start'))}
-                  </>
-                )}
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => start(false)}
+                disabled={pendingCount === 0 || activeWords.length === 0 || isStarting}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
+              >
+                {isStarting
+                  ? '⏳'
+                  : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      {strip(t(lang, 'review_start'))}
+                    </>
+                  )}
+              </button>
+              {/* Free review: all active words, random, no SRS pressure */}
+              <button
+                onClick={() => start(true)}
+                disabled={activeWords.length === 0 || selectedModes.length === 0 || isStarting}
+                title={({ es: 'Repasa todo tu vocabulario activo sin afectar a los niveles', en: 'Review all your active vocabulary without affecting levels', ca: 'Repassa tot el teu vocabulari actiu sense afectar els nivells', ja: 'レベルに影響せず全語彙を復習' } as Record<string, string>)[lang]}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-white dark:bg-slate-700 border border-violet-200 dark:border-slate-600 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed font-semibold rounded-xl text-xs transition active:scale-95"
+              >
+                🎲 {({ es: 'Repaso libre', en: 'Free review', ca: 'Repàs lliure', ja: '自由復習' } as Record<string, string>)[lang] ?? 'Repaso libre'}
+              </button>
+            </div>
           </div>
 
           {/* Hourly timeline */}

@@ -91,6 +91,7 @@ function HelpReview() {
         Si ya sabes una palabra, pulsa <strong>"Ya me lo sé"</strong> en la tarjeta de repaso.
         Se marca directamente como nivel 8 y no vuelve hasta dentro de 4 meses.
       </Tip>
+      <Tip>El botón <strong>🎲 Repaso libre</strong> repasa al azar todo tu vocabulario activo sin presión: no cuenta para el nivel de las palabras.</Tip>
     </div>
   )
 }
@@ -183,6 +184,7 @@ function HelpGrammar() {
       </div>
 
       <Tip>Usa el filtro <strong>"📚 Estudiando"</strong> para ver solo los puntos que tienes activos en tu SRS.</Tip>
+      <Tip>El botón <strong>🎲 Repaso libre</strong> te deja elegir lecciones (de lo que estudias) y repasar sin afectar a los niveles: 2-3 frases por punto y, tras acertar el hueco, escribes la frase entera en japonés.</Tip>
     </div>
   )
 }

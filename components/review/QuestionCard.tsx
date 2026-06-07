@@ -363,8 +363,8 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
         </div>
       </div>
 
-      {/* "Ya me lo sé" — visible in waiting state for all modes */}
-      {answerState === 'waiting' && (
+      {/* "Ya me lo sé" — visible in waiting state for all modes (not in free review, which never touches SRS) */}
+      {answerState === 'waiting' && !isPractice && (
         <div className="flex justify-end">
           <button
             type="button"

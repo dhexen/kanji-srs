@@ -26,8 +26,9 @@ type View =
   | { kind: 'list' }
   | { kind: 'detail'; grammar: GrammarPointWithBook }
   | { kind: 'practice'; grammar: GrammarPointWithBook }
-  | { kind: 'srs_queue'; queue: GrammarPointWithBook[]; showShared: boolean }
+  | { kind: 'srs_queue'; queue: GrammarPointWithBook[]; showShared: boolean; free?: boolean }
   | { kind: 'queue_select'; candidates: GrammarPointWithBook[] }
+  | { kind: 'free_select' }
 
 const BOOKS: { key: BookKey; label: string; subtitle: string }[] = [
   { key: 'mnn1', label: 'MNN 1', subtitle: 'Minna no Nihongo 1' },
@@ -408,6 +409,93 @@ function QueueSelect({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FreeReviewSelect — pick lessons (of grammars you're studying) for a free review
+// ─────────────────────────────────────────────────────────────────────────────
+function FreeReviewSelect({
+  lessons,
+  lang,
+  onStart,
+  onCancel,
+}: {
+  lessons: { key: string; book: BookKey; lesson: number; points: GrammarPointWithBook[] }[]
+  lang: string
+  onStart: (queue: GrammarPointWithBook[]) => void
+  onCancel: () => void
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(lessons.map(l => l.key)))
+  const bookLabel = (b: BookKey) => BOOKS.find(x => x.key === b)?.label ?? b
+  const toggle = (key: string) =>
+    setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
+  const queue = lessons.filter(l => selected.has(l.key)).flatMap(l => l.points)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button onClick={onCancel} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+          🎲 {lang === 'en' ? 'Free grammar review' : lang === 'ca' ? 'Repàs lliure de gramàtica' : 'Repaso libre de gramática'}
+        </h2>
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {lang === 'en'
+          ? 'Pick the lessons to review. It won\'t affect your levels, and after each correct fill-in you\'ll write the whole sentence.'
+          : lang === 'ca'
+          ? 'Tria les lliçons a repassar. No afecta els teus nivells, i després d\'encertar el buit escriuràs la frase sencera.'
+          : 'Elige las lecciones a repasar. No afecta a tus niveles, y tras acertar el hueco escribirás la frase entera.'}
+      </p>
+
+      {lessons.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          {lang === 'en' ? 'You are not studying any grammar yet. Add grammar points to your reviews first.'
+            : lang === 'ca' ? 'Encara no estudies cap gramàtica. Afegeix punts als teus repassos primer.'
+            : 'Todavía no estás estudiando ninguna gramática. Añade puntos a tus repasos primero.'}
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-3 text-xs">
+            <button onClick={() => setSelected(new Set(lessons.map(l => l.key)))} className="text-indigo-600 dark:text-indigo-400 hover:underline">
+              {lang === 'en' ? 'Select all' : lang === 'ca' ? 'Selecciona-ho tot' : 'Seleccionar todas'}
+            </button>
+            <button onClick={() => setSelected(new Set())} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:underline">
+              {lang === 'en' ? 'Clear' : lang === 'ca' ? 'Cap' : 'Ninguna'}
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-[50vh] overflow-y-auto custom-scroll pr-1">
+            {lessons.map(l => {
+              const on = selected.has(l.key)
+              return (
+                <label key={l.key} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${
+                  on ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800'
+                }`}>
+                  <input type="checkbox" checked={on} onChange={() => toggle(l.key)} className="w-4 h-4 rounded accent-indigo-600 shrink-0" />
+                  <span className="flex-1 min-w-0 text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
+                    {bookLabel(l.book)} · {t(lang as any, 'grammar_lesson').replace('{n}', String(l.lesson))}
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{l.points.length}</span>
+                </label>
+              )
+            })}
+          </div>
+
+          <button
+            disabled={queue.length === 0}
+            onClick={() => onStart(queue)}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-sm"
+          >
+            🎲 {lang === 'en' ? `Start free review (${queue.length})` : lang === 'ca' ? `Comença el repàs lliure (${queue.length})` : `Empezar repaso libre (${queue.length})`}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main GrammarClient
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -522,6 +610,21 @@ export default function GrammarClient() {
     )
   }, [filtered])
 
+  // Lessons of grammars the user is studying (in SRS or known), grouped by
+  // book+lesson — candidates for the free review.
+  const studyingLessons = useMemo(() => {
+    const studying = ALL_GRAMMAR_POINTS.filter(g => srsStats.has(g.id) || knownIds.has(g.id))
+    const map = new Map<string, { key: string; book: BookKey; lesson: number; points: GrammarPointWithBook[] }>()
+    for (const g of studying) {
+      const key = `${g.book}-${g.lesson}`
+      if (!map.has(key)) map.set(key, { key, book: g.book, lesson: g.lesson, points: [] })
+      map.get(key)!.points.push(g)
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.book !== b.book ? (a.book < b.book ? -1 : 1) : a.lesson - b.lesson
+    )
+  }, [srsStats, knownIds])
+
   // Grammar points with SRS due today — known (mastered) points are excluded
   const dueGrammarPoints = useMemo(() => {
     const now = Date.now()
@@ -599,7 +702,20 @@ export default function GrammarClient() {
         srsStats={srsStats}
         showSharedSentences={view.showShared}
         onBack={() => setView({ kind: 'list' })}
-        onSrsUpdate={handleSrsUpdate}
+        onSrsUpdate={view.free ? undefined : handleSrsUpdate}
+        free={view.free}
+        sentencesPerGrammar={view.free ? 3 : 1}
+      />
+    )
+  }
+
+  if (view.kind === 'free_select') {
+    return (
+      <FreeReviewSelect
+        lessons={studyingLessons}
+        lang={lang}
+        onStart={queue => setView({ kind: 'srs_queue', queue, showShared: state.showSharedSentences, free: true })}
+        onCancel={() => setView({ kind: 'list' })}
       />
     )
   }
@@ -690,6 +806,15 @@ export default function GrammarClient() {
               {dueGrammarPoints.length > 0
                 ? `▶ ${t(lang, 'gp_start_review')}`
                 : t(lang, 'gp_up_to_date')}
+            </button>
+            {/* Free review: pick lessons, no SRS, full-sentence challenge */}
+            <button
+              disabled={studyingLessons.length === 0}
+              onClick={() => setView({ kind: 'free_select' })}
+              title={lang === 'en' ? 'Free review without affecting levels' : lang === 'ca' ? 'Repàs lliure sense afectar els nivells' : 'Repaso libre sin afectar a los niveles'}
+              className="px-4 py-2 rounded-xl text-xs font-bold transition bg-white dark:bg-slate-700 border border-indigo-200 dark:border-slate-600 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              🎲 {lang === 'en' ? 'Free review' : lang === 'ca' ? 'Repàs lliure' : 'Repaso libre'}
             </button>
           </div>
         </div>

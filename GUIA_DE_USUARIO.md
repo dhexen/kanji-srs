@@ -371,6 +371,22 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 
 ---
 
+### Repaso libre (vocabulario)
+
+En el Dashboard, junto a "Iniciar repaso", tienes el botón **🎲 Repaso libre**. Repasa de forma aleatoria **todo** tu vocabulario activo (no solo lo que toca hoy) con los modos que tengas seleccionados. Es un repaso **sin presión: no cuenta para el nivel** de las palabras, ideal para practicar cuando quieras.
+
+---
+
+### Repaso libre (gramática)
+
+En la sección de Gramática, en el bloque de repaso, pulsa **🎲 Repaso libre**. Podrás **elegir por lección** (con un check por lección y opción de seleccionarlas todas) entre las gramáticas que estás estudiando. Este repaso:
+
+- **No cuenta para el nivel** de las gramáticas.
+- Muestra **2-3 frases por punto** gramatical (en vez de una).
+- Tras acertar el hueco, te muestra la frase en tu idioma y debes **escribir la frase entera en japonés** (se acepta con kanji o toda en hiragana). Es un reto extra para afianzar frases que acabas de ver.
+
+---
+
 ### Cómo configurar tu API Key de Gemini (para gramática sin límites)
 
 1. Ve a [aistudio.google.com](https://aistudio.google.com) y crea una cuenta gratuita
@@ -389,7 +405,7 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 4. Elige el nivel mínimo de SRS (recomendado: Gurú = nivel 5)
 5. En **Mi Perfil → Cuenta**, pulsa **"Sincronizar WaniKani"**
 
-Al sincronizar, cada palabra se traduce y se clasifica automáticamente por categoría y tipo. Si ya tenías vocabulario importado sin clasificar, en **Mi Perfil → Cuenta** pulsa **"Clasificar vocabulario de WaniKani"**: clasifica solo las palabras que falten, sin volver a descargar de WaniKani. Puedes pulsarlo en cualquier momento.
+Al sincronizar, cada palabra se traduce y se clasifica automáticamente por categoría y tipo. Si ya tenías vocabulario importado sin clasificar, en **Mi Perfil → Cuenta** pulsa **"Clasificar vocabulario de WaniKani"**: clasifica solo las palabras que falten, sin volver a descargar de WaniKani. Puedes pulsarlo en cualquier momento. Si hay un error temporal reintenta solo varias veces y continúa con las que falten; si se interrumpe, vuelve a pulsarlo para seguir donde lo dejó.
 
 ---
 
