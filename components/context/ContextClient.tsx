@@ -194,7 +194,7 @@ export default function ContextClient() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ prompt, userApiKey: key }),
+        body: JSON.stringify({ prompt, model: state.geminiModel, userApiKey: key }),
       })
 
       if (!res.ok) {
@@ -408,6 +408,7 @@ export default function ContextClient() {
             text={tx}
             userVocabSet={userVocabSet}
             geminiApiKey={state.geminiApiKey}
+            geminiModel={state.geminiModel}
             onRemove={() => removeContextText(tx.id)}
           />
         ))}
@@ -477,10 +478,11 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
 // ─── TextCard ─────────────────────────────────────────────────────────────────
 
-function TextCard({ text, userVocabSet, geminiApiKey, onRemove }: {
+function TextCard({ text, userVocabSet, geminiApiKey, geminiModel, onRemove }: {
   text: ContextText
   userVocabSet: Set<string>
   geminiApiKey: string
+  geminiModel: string
   onRemove: () => void
 }) {
   const [showTrans, setShowTrans] = useState<'es' | 'ca' | 'en' | null>(null)
@@ -525,7 +527,7 @@ function TextCard({ text, userVocabSet, geminiApiKey, onRemove }: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ prompt, userApiKey: geminiApiKey }),
+        body: JSON.stringify({ prompt, model: geminiModel, userApiKey: geminiApiKey }),
       })
 
       if (!res.ok) {

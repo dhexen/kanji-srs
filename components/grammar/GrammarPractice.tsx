@@ -348,6 +348,7 @@ export default function GrammarPractice({
         lang,
         geminiKey,
         sessionToken,
+        model: state.geminiModel,
         activeVocab,
         useWkVocab: useWkVocab && wkVocab.length > 0,
         onAttempt: (n, max) => setGenAttempt({ n, max }),

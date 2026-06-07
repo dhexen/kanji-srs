@@ -14,6 +14,7 @@ import {
   createManualSnapshot,
   getUserRole,
   saveGeminiKey,
+  saveGeminiModel,
   savePexelsKey,
   saveWaniKaniKey,
   saveShowSharedSentences,
@@ -44,6 +45,7 @@ interface State {
   syncing: boolean
   loaded: boolean
   geminiApiKey: string
+  geminiModel: string
   pexelsApiKey: string
   waniKaniApiKey: string
   showSharedSentences: boolean
@@ -66,6 +68,7 @@ type Action =
   | { type: 'ADD_ITEMS'; payload: VocabItem[] }
   | { type: 'APPLY_RESULT'; payload: { jp: string; mode: ReviewMode; wrongCount: number } }
   | { type: 'SET_GEMINI_KEY'; payload: string }
+  | { type: 'SET_GEMINI_MODEL'; payload: string }
   | { type: 'SET_PEXELS_KEY'; payload: string }
   | { type: 'SET_WANIKANI_KEY'; payload: string }
   | { type: 'SET_SHOW_SHARED'; payload: boolean }
@@ -91,6 +94,7 @@ function appReducer(state: State, action: Action): State {
     case 'SET_SYNCING': return { ...state, syncing: action.payload }
     case 'SET_LOADED': return { ...state, loaded: true }
     case 'SET_GEMINI_KEY': return { ...state, geminiApiKey: action.payload }
+    case 'SET_GEMINI_MODEL': return { ...state, geminiModel: action.payload }
     case 'SET_PEXELS_KEY': return { ...state, pexelsApiKey: action.payload }
     case 'SET_WANIKANI_KEY': return { ...state, waniKaniApiKey: action.payload }
     case 'SET_SHOW_SHARED': return { ...state, showSharedSentences: action.payload }
@@ -116,7 +120,7 @@ function appReducer(state: State, action: Action): State {
     case 'APPLY_RESULT': {
       return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.wrongCount)) }
     }
-    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
+    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', geminiModel: 'gemini-2.5-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
     default: return state
   }
 }
@@ -200,6 +204,7 @@ interface StoreContextType {
   syncDown: () => Promise<void>
   resetRemoteProgress: () => Promise<void>
   updateGeminiKey: (key: string) => Promise<void>
+  updateGeminiModel: (model: string) => Promise<void>
   updatePexelsKey: (key: string) => Promise<void>
   updateWaniKaniKey: (key: string) => Promise<void>
   updateShowSharedSentences: (show: boolean) => Promise<void>
@@ -222,7 +227,7 @@ const StoreContext = createContext<StoreContextType | null>(null)
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
-    geminiApiKey: '', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
+    geminiApiKey: '', geminiModel: 'gemini-2.5-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
     progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     pendingWrites: 0,
@@ -465,6 +470,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_DB', payload: migrated })
         dbRef.current = migrated
         if (data.gemini_api_key) dispatch({ type: 'SET_GEMINI_KEY', payload: data.gemini_api_key })
+        if (data.gemini_model) dispatch({ type: 'SET_GEMINI_MODEL', payload: data.gemini_model })
         if (data.pexels_api_key) dispatch({ type: 'SET_PEXELS_KEY', payload: data.pexels_api_key })
         if (data.wanikani_api_key) dispatch({ type: 'SET_WANIKANI_KEY', payload: data.wanikani_api_key })
         dispatch({ type: 'SET_SHOW_SHARED', payload: data.show_shared_sentences ?? true })
@@ -521,6 +527,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateGeminiKey = useCallback(async (key: string) => {
     dispatch({ type: 'SET_GEMINI_KEY', payload: key })
     try { await saveGeminiKey(key) } catch (e) { console.error('Error guardando API key:', e) }
+  }, [])
+
+  const updateGeminiModel = useCallback(async (model: string) => {
+    dispatch({ type: 'SET_GEMINI_MODEL', payload: model })
+    try { await saveGeminiModel(model) } catch (e) { console.error('Error guardando modelo Gemini:', e) }
   }, [])
 
   const updatePexelsKey = useCallback(async (key: string) => {
@@ -731,6 +742,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       syncDown,
       resetRemoteProgress,
       updateGeminiKey,
+      updateGeminiModel,
       updatePexelsKey,
       updateWaniKaniKey,
       updateShowSharedSentences,

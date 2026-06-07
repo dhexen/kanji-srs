@@ -62,6 +62,8 @@ export interface GenerateGrammarOptions {
   lang: Lang
   geminiKey: string
   sessionToken: string
+  /** Gemini model to use (defaults to gemini-2.5-flash on the server if omitted). */
+  model?: string
   /** Fallback vocabulary (the user's active words) if the school sample is empty. */
   activeVocab: SimpleVocab[]
   /** Include the student's WaniKani vocabulary in the prompt (sentences become private). */
@@ -84,7 +86,7 @@ export interface GenerateGrammarResult {
  * stored as private (only visible to their owner). Throws on API/parse errors.
  */
 export async function generateGrammarSentences(opts: GenerateGrammarOptions): Promise<GenerateGrammarResult> {
-  const { grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab } = opts
+  const { grammar, lang, geminiKey, sessionToken, model, activeVocab, useWkVocab } = opts
 
   // Fetch vocabulary samples internally
   const [schoolSampleRaw, wkSampleRaw] = await Promise.all([
@@ -200,7 +202,7 @@ Otras reglas:
       const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
-        body: JSON.stringify({ prompt, userApiKey: geminiKey }),
+        body: JSON.stringify({ prompt, ...(model ? { model } : {}), userApiKey: geminiKey }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

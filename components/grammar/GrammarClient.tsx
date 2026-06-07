@@ -173,6 +173,7 @@ function QueueSelect({
   lang,
   srsStats,
   geminiKey,
+  geminiModel,
   sessionToken,
   activeVocab,
   hasWaniKani,
@@ -183,6 +184,7 @@ function QueueSelect({
   lang: string
   srsStats: Map<string, GrammarSrsStat>
   geminiKey: string
+  geminiModel: string
   sessionToken: string
   activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   hasWaniKani: boolean
@@ -223,7 +225,7 @@ function QueueSelect({
     setGenAttempt({ n: 1, max: DEFAULT_GEN_MAX_ATTEMPTS })
     try {
       const { kept } = await generateGrammarSentences({
-        grammar: g, lang: lang as any, geminiKey, sessionToken, activeVocab,
+        grammar: g, lang: lang as any, geminiKey, sessionToken, model: geminiModel, activeVocab,
         useWkVocab: useWk && hasWaniKani,
         onAttempt: (n, max) => setGenAttempt({ n, max }),
       })
@@ -609,6 +611,7 @@ export default function GrammarClient() {
         lang={lang}
         srsStats={srsStats}
         geminiKey={state.geminiApiKey}
+        geminiModel={state.geminiModel}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
         hasWaniKani={Boolean(state.waniKaniApiKey)}

@@ -317,6 +317,7 @@ export async function countUserVocab(userId?: string): Promise<number> {
 
 export async function fetchUserSettings(): Promise<{
   gemini_api_key: string
+  gemini_model: string
   pexels_api_key: string
   wanikani_api_key: string
   wanikani_min_srs_stage: number
@@ -326,6 +327,8 @@ export async function fetchUserSettings(): Promise<{
   tour_v3_done: boolean
 } | null> {
   const user = await requireUser()
+  // gemini_model is selected separately so a missing column (migration 023 not
+  // applied) never breaks loading the rest of the settings.
   const { data, error } = await supabase
     .from('user_settings')
     .select('gemini_api_key, pexels_api_key, wanikani_api_key, wanikani_min_srs_stage, show_shared_sentences, context_texts, language, tour_v3_done')
@@ -338,6 +341,7 @@ export async function fetchUserSettings(): Promise<{
       if (!legacy) return null
       return {
         gemini_api_key: legacy.gemini_api_key ?? '',
+        gemini_model: 'gemini-2.5-flash',
         pexels_api_key: '',
         wanikani_api_key: '',
         wanikani_min_srs_stage: 5,
@@ -353,6 +357,7 @@ export async function fetchUserSettings(): Promise<{
   if (!data) return null
   return {
     gemini_api_key: data.gemini_api_key ?? '',
+    gemini_model: await fetchGeminiModel(user.id),
     pexels_api_key: data.pexels_api_key ?? '',
     wanikani_api_key: data.wanikani_api_key ?? '',
     wanikani_min_srs_stage: data.wanikani_min_srs_stage ?? 5,
@@ -360,6 +365,38 @@ export async function fetchUserSettings(): Promise<{
     context_texts: (data.context_texts as ContextText[]) ?? [],
     language: data.language ?? 'es',
     tour_v3_done: data.tour_v3_done ?? false,
+  }
+}
+
+/**
+ * Read the user's selected Gemini model. Kept SEPARATE (and tolerant of a
+ * missing column) so an unapplied migration 023 never breaks settings loading.
+ * Defaults to 'gemini-2.5-flash'.
+ */
+async function fetchGeminiModel(userId: string): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('gemini_model')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error || !data) return 'gemini-2.5-flash'
+    return (data as { gemini_model?: string | null }).gemini_model || 'gemini-2.5-flash'
+  } catch {
+    return 'gemini-2.5-flash'
+  }
+}
+
+export async function saveGeminiModel(model: string) {
+  try {
+    const userId = await ensureUserSettingsRow()
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, gemini_model: model, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw error
+  } catch (e) {
+    if (isSchemaUnavailable(e as { code?: string; message?: string })) return
+    throw e
   }
 }
 
@@ -791,6 +828,7 @@ export async function migrateLegacyProgressIfNeeded(): Promise<boolean> {
 export async function downloadAccountData(): Promise<{
   vocab: VocabItem[]
   gemini_api_key: string
+  gemini_model: string
   pexels_api_key: string
   wanikani_api_key: string
   wanikani_min_srs_stage: number
@@ -828,6 +866,7 @@ export async function downloadAccountData(): Promise<{
   return {
     vocab,
     gemini_api_key: legacy?.gemini_api_key ?? '',
+    gemini_model: 'gemini-2.5-flash',
     pexels_api_key: '',
     wanikani_api_key: '',
     wanikani_min_srs_stage: 5,

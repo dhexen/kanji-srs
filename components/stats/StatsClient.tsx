@@ -9,6 +9,7 @@ import { fetchKnownGrammar, getWaniKaniSyncStatus, fetchMyReports, type MyTicket
 import ProgressClient from '@/components/progress/ProgressClient'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
 import { getOverallLevel } from '@/lib/srs'
+import { GEMINI_MODELS } from '@/lib/gemini-models'
 
 // Total grammar points (MNN1: 73 + MNN2: 48)
 const TOTAL_GRAMMAR_POINTS = 121
@@ -274,7 +275,7 @@ function MyReportsTab({ lang }: { lang: Lang }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StatsClient() {
-  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updatePexelsKey, updateWaniKaniKey, setSimulatedRole } = useStore()
+  const { state, dispatch, syncUp, saveVocabDb, logout, setLang, resetRemoteProgress, updateGeminiKey, updateGeminiModel, updatePexelsKey, updateWaniKaniKey, setSimulatedRole } = useStore()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as TabKey | null
   const resolveTab = (p: TabKey | null): TabKey =>
@@ -718,6 +719,21 @@ export default function StatsClient() {
                   {t(lang, 'api_remove')}
                 </button>
               )}
+            </div>
+
+            {/* Model selector — lets the user switch models if one runs out of quota */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Modelo de Gemini</label>
+              <select
+                value={state.geminiModel}
+                onChange={e => updateGeminiModel(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              >
+                {GEMINI_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-snug">
+                Si un modelo se queda sin cuota, cambia al otro para seguir generando.
+              </p>
             </div>
           </div>
 

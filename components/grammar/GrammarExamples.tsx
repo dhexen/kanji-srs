@@ -388,7 +388,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ prompt, userApiKey: geminiKey }),
+        body: JSON.stringify({ prompt, model: state.geminiModel, userApiKey: geminiKey }),
       })
       if (!res.ok) {
         const err = await res.json()

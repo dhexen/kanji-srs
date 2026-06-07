@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Elige el modelo de Gemini',
+        description: 'En Mi Perfil → Configuración puedes elegir el modelo de Gemini (Gemini 2.5 Flash o Gemini 3.1 Flash Lite). Así, si un modelo se queda sin cuota, puedes cambiar al otro para seguir generando lecturas y frases de gramática.',
+      },
+      {
         type: 'improvement',
         title: 'Opciones de repaso de opción múltiple más exigentes',
         description: 'En los repasos de opción múltiple, las respuestas incorrectas ya no son palabras al azar: ahora se eligen palabras que comparten un kanji con la palabra objetivo, suenan de forma parecida o son del mismo tipo, para que distinguir la correcta sea un reto real.',
