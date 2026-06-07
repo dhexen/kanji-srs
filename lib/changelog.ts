@@ -22,7 +22,7 @@ export const CHANGELOG: ChangelogVersion[] = [
       {
         type: 'new',
         title: 'Repaso libre de vocabulario y gramática',
-        description: 'Nuevo modo "Repaso libre" sin presión: no cuenta para los niveles. En vocabulario, repasa de forma aleatoria todo tu vocabulario activo (botón 🎲 en el Dashboard). En gramática, eliges por lección las gramáticas que estudias, repasas 2-3 frases por punto y, tras acertar el hueco, escribes la frase entera en japonés (se acepta con kanji o toda en hiragana).',
+        description: 'Nuevo modo "Repaso libre" sin presión: no cuenta para los niveles. En vocabulario, repasa de forma aleatoria todo tu vocabulario activo (botón 🎲 en el Dashboard). En gramática, eliges por lección las gramáticas que estudias y repasas 2-3 frases por punto en orden aleatorio (sin gramáticas iguales seguidas). De vez en cuando, de forma aleatoria, aparece el reto de escribir entera una frase que ya viste antes en el repaso: se compara con la original, cuenta el acierto/fallo y, si te equivocas, te señala dónde está el error (se acepta con kanji o toda en hiragana).',
       },
       {
         type: 'improvement',

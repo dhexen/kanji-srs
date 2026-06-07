@@ -382,8 +382,9 @@ En el Dashboard, junto a "Iniciar repaso", tienes el botón **🎲 Repaso libre*
 En la sección de Gramática, en el bloque de repaso, pulsa **🎲 Repaso libre**. Podrás **elegir por lección** (con un check por lección y opción de seleccionarlas todas) entre las gramáticas que estás estudiando. Este repaso:
 
 - **No cuenta para el nivel** de las gramáticas.
-- Muestra **2-3 frases por punto** gramatical (en vez de una).
-- Tras acertar el hueco, te muestra la frase en tu idioma y debes **escribir la frase entera en japonés** (se acepta con kanji o toda en hiragana). Es un reto extra para afianzar frases que acabas de ver.
+- Muestra **2-3 frases por punto** gramatical (en vez de una), en **orden aleatorio** y sin repetir la misma gramática una detrás de otra.
+- Al rellenar el hueco ves siempre el resultado (correcto/incorrecto) con la frase completa.
+- De vez en cuando, de forma **aleatoria**, aparece un reto: una frase **que ya viste antes** en el repaso se muestra en tu idioma y debes **escribirla entera en japonés** (con kanji o toda en hiragana). Se compara con la frase original; si te equivocas, cuenta como fallo y se te **señala dónde está el error**.
 
 ---
 

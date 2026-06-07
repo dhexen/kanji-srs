@@ -184,7 +184,7 @@ function HelpGrammar() {
       </div>
 
       <Tip>Usa el filtro <strong>"📚 Estudiando"</strong> para ver solo los puntos que tienes activos en tu SRS.</Tip>
-      <Tip>El botón <strong>🎲 Repaso libre</strong> te deja elegir lecciones (de lo que estudias) y repasar sin afectar a los niveles: 2-3 frases por punto y, tras acertar el hueco, escribes la frase entera en japonés.</Tip>
+      <Tip>El botón <strong>🎲 Repaso libre</strong> te deja elegir lecciones (de lo que estudias) y repasar sin afectar a los niveles: 2-3 frases por punto en orden aleatorio. De vez en cuando, al azar, te pide escribir entera una frase que ya viste antes; se compara con la original y, si fallas, te marca el error.</Tip>
     </div>
   )
 }

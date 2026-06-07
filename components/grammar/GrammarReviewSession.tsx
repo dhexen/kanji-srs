@@ -46,6 +46,53 @@ function ui(lang: string, es: string, ca: string, en: string) {
   return es
 }
 
+const hasKanji = (s: string) => /[一-鿿㐀-䶿]/.test(s)
+const stripForDiff = (s: string) => s.replace(/[。、！？\s]/g, '')
+
+// Build the full kanji form of a sentence: before + answer + after.
+function kanjiForm(s: GrammarSentence): string {
+  return s.sentence_before + s.answer + s.sentence_after
+}
+
+// Build a best-effort full reading (hiragana) form: before_reading + answer
+// reading + after_reading. The answer reading is the answer itself if it's
+// already kana, else the first all-kana alternative, else the answer as-is.
+function readingForm(s: GrammarSentence): string {
+  const answerKana = !hasKanji(s.answer)
+    ? s.answer
+    : (s.answer_alts ?? []).find(a => a && !hasKanji(a)) ?? s.answer
+  return (s.sentence_before_reading || s.sentence_before) + answerKana + (s.sentence_after_reading || s.sentence_after)
+}
+
+// Common prefix/suffix diff between the user's input and a reference string.
+// Returns the matched prefix/suffix and the differing middle of each, so the
+// UI can highlight where the error is.
+function splitDiff(a: string, b: string) {
+  let p = 0
+  while (p < a.length && p < b.length && a[p] === b[p]) p++
+  let ea = a.length, eb = b.length
+  while (ea > p && eb > p && a[ea - 1] === b[eb - 1]) { ea--; eb-- }
+  return {
+    pre: a.slice(0, p),
+    aMid: a.slice(p, ea), aSuf: a.slice(ea),
+    bMid: b.slice(p, eb), bSuf: b.slice(eb),
+  }
+}
+
+// Pick the reference (kanji or reading form) closest to what the user typed, so
+// the error highlight makes sense whether they wrote kanji or hiragana.
+function closestRef(input: string, s: GrammarSentence): string {
+  const inp = stripForDiff(input)
+  const candidates = [kanjiForm(s), readingForm(s)].map(stripForDiff)
+  let best = candidates[0], bestScore = -1
+  for (const c of candidates) {
+    const d = splitDiff(inp, c)
+    const score = d.pre.length + Math.min(d.aSuf.length, d.bSuf.length)
+    if (score > bestScore) { bestScore = score; best = c }
+  }
+  return best
+}
+
 export default function GrammarReviewSession({
   queue,
   lang,
@@ -79,10 +126,16 @@ export default function GrammarReviewSession({
   // Per-question UI state
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false)
-  // Free-mode full-sentence writing step
+  // Free-mode full-sentence writing step. `writingSentence` ≠ null means the
+  // current 'writing'/'answered' screen is the full-sentence challenge (about a
+  // sentence seen earlier), not the fill-in.
   const [fullInput, setFullInput] = useState('')
   const [fullCorrect, setFullCorrect] = useState(false)
+  const [writingSentence, setWritingSentence] = useState<GrammarSentence | null>(null)
+  const seenRef = useRef<GrammarSentence[]>([])        // sentences shown so far (for the writing challenge)
   const freeReviewedRef = useRef(0)
+  const freeWrittenRef = useRef(0)
+  const freeWrittenOkRef = useRef(0)
   const [showHint, setShowHint] = useState(false)
   const [showFurigana, setShowFurigana] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -133,8 +186,11 @@ export default function GrammarReviewSession({
     const id = queueRef.current[nextIdx]
     if (!id) return
     setIdx(nextIdx)
-    setCurrentSentence(pickFor(id))
+    const picked = pickFor(id)
+    setCurrentSentence(picked)
+    if (picked) seenRef.current.push(picked)  // remember for the writing challenge
     resetQuestionState()
+    setWritingSentence(null)
     setPhase('asking')
     setTimeout(() => inputRef.current?.focus(), 100)
   }, [pickFor])
@@ -177,23 +233,44 @@ export default function GrammarReviewSession({
       for (const g of queue) oldLevelsRef.current.set(g.id, srsStats.get(g.id)?.level ?? 0)
 
       // Build the queue. SRS mode: one entry per grammar id. Free mode: several
-      // entries per grammar (up to sentencesPerGrammar, capped by pool size) so
-      // the learner sees 2-3 different sentences per point.
+      // entries per grammar (up to sentencesPerGrammar, capped by pool size).
       const seenIds = new Set<string>()
-      const validIds: string[] = []
-      const empties:  string[] = []
+      const counts = new Map<string, number>()
+      const empties: string[] = []
       for (const g of queue) {
         if (seenIds.has(g.id)) continue
         seenIds.add(g.id)
         const pool = pools.get(g.id)
         if (pool && pool.length > 0) {
-          const reps = free ? Math.min(sentencesPerGrammar, pool.length) : 1
-          for (let r = 0; r < reps; r++) validIds.push(g.id)
+          counts.set(g.id, free ? Math.min(sentencesPerGrammar, pool.length) : 1)
         } else {
           empties.push(g.id)
         }
       }
       setEmptyGrammars(empties)
+
+      // Order the entries. Free mode: interleave so the same grammar never
+      // appears twice in a row — greedily take the id with the most repetitions
+      // remaining that isn't the previous one. SRS mode keeps insertion order.
+      let validIds: string[]
+      if (free) {
+        validIds = []
+        let last: string | null = null
+        const total = [...counts.values()].reduce((a, b) => a + b, 0)
+        for (let n = 0; n < total; n++) {
+          let pool = [...counts.entries()].filter(([id, c]) => c > 0 && id !== last)
+          if (pool.length === 0) pool = [...counts.entries()].filter(([, c]) => c > 0)
+          pool.sort((a, b) => b[1] - a[1])
+          const top = pool.filter(p => p[1] === pool[0][1])
+          const pick = top[Math.floor(Math.random() * top.length)][0]
+          validIds.push(pick)
+          counts.set(pick, counts.get(pick)! - 1)
+          last = pick
+        }
+      } else {
+        validIds = [...counts.keys()]
+      }
+
       queueRef.current = validIds
       setQueueLen(validIds.length)
 
@@ -213,30 +290,25 @@ export default function GrammarReviewSession({
   function submitAnswer() {
     if (!userInput.trim() || phase !== 'asking' || !currentSentence) return
     submittedAtRef.current = Date.now()
-    const correct = checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts)
-    setIsCorrect(correct)
-    // Free mode: after a correct fill-in, challenge the learner to write the
-    // whole sentence (in their language → Japanese). Wrong fill-ins skip it.
-    if (free && correct) {
-      setPhase('writing')
-      setTimeout(() => inputRef.current?.focus(), 100)
-    } else {
-      setPhase('answered')
-    }
+    // Always show fill-in feedback (the writing challenge comes later, at random).
+    setIsCorrect(checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts))
+    setPhase('answered')
   }
 
   function submitFull() {
-    if (!fullInput.trim() || phase !== 'writing' || !currentSentence) return
+    if (!fullInput.trim() || phase !== 'writing' || !writingSentence) return
     submittedAtRef.current = Date.now()
     const ok = checkFullSentence(
       fullInput.trim(),
-      currentSentence.sentence_before_reading,
-      currentSentence.sentence_before,
-      currentSentence.answer,
-      currentSentence.sentence_after_reading,
-      currentSentence.sentence_after,
-      { beforeAlts: undefined, answerAlts: currentSentence.answer_alts },
+      writingSentence.sentence_before_reading,
+      writingSentence.sentence_before,
+      writingSentence.answer,
+      writingSentence.sentence_after_reading,
+      writingSentence.sentence_after,
+      { beforeAlts: undefined, answerAlts: writingSentence.answer_alts },
     )
+    freeWrittenRef.current += 1
+    if (ok) freeWrittenOkRef.current += 1
     setFullCorrect(ok)
     setPhase('answered')
   }
@@ -256,8 +328,28 @@ export default function GrammarReviewSession({
   }
 
   function next() {
-    // Free mode: never touches SRS/XP and never re-queues — just advance.
+    // Free mode: never touches SRS/XP and never re-queues.
     if (free) {
+      // Leaving a writing-challenge screen → move on to the next grammar.
+      if (writingSentence) {
+        setWritingSentence(null)
+        freeReviewedRef.current += 1
+        if (idx + 1 >= queueRef.current.length) finish()
+        else advanceTo(idx + 1)
+        return
+      }
+      // Leaving a fill-in feedback screen: at random, inject a full-sentence
+      // challenge about a sentence seen EARLIER (not the one just answered, and
+      // never on the very first question).
+      const earlier = seenRef.current.slice(0, -1)
+      if (earlier.length > 0 && Math.random() < 0.6) {
+        setWritingSentence(earlier[Math.floor(Math.random() * earlier.length)])
+        setFullInput('')
+        setFullCorrect(false)
+        setPhase('writing')
+        setTimeout(() => inputRef.current?.focus(), 100)
+        return
+      }
       freeReviewedRef.current += 1
       if (idx + 1 >= queueRef.current.length) finish()
       else advanceTo(idx + 1)
@@ -332,9 +424,15 @@ export default function GrammarReviewSession({
                 : ui(lang, '¡Repaso completado!', 'Repàs completat!', 'Review complete!')}
             </p>
             {free && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {ui(lang, `${freeReviewedRef.current} frases repasadas · no afecta a tus niveles`, `${freeReviewedRef.current} frases repassades · no afecta els teus nivells`, `${freeReviewedRef.current} sentences reviewed · doesn't affect your levels`)}
-              </p>
+              <div className="text-sm text-slate-500 dark:text-slate-400 space-y-0.5">
+                <p>{ui(lang, `${freeReviewedRef.current} frases repasadas · no afecta a tus niveles`, `${freeReviewedRef.current} frases repassades · no afecta els teus nivells`, `${freeReviewedRef.current} sentences reviewed · doesn't affect your levels`)}</p>
+                {freeWrittenRef.current > 0 && (
+                  <p>✍️ {ui(lang,
+                    `${freeWrittenOkRef.current}/${freeWrittenRef.current} frases escritas correctas`,
+                    `${freeWrittenOkRef.current}/${freeWrittenRef.current} frases escrites correctes`,
+                    `${freeWrittenOkRef.current}/${freeWrittenRef.current} sentences written correctly`)}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -418,6 +516,17 @@ export default function GrammarReviewSession({
     lang === 'ca' ? currentGrammar.explanation_ca :
     lang === 'en' ? currentGrammar.explanation_en :
     currentGrammar.explanation_es
+
+  // Full-sentence writing challenge (free mode): about a sentence seen earlier.
+  const ws = writingSentence
+  const wsTranslation = ws
+    ? (lang === 'ca' ? (ws.translation_ca || ws.translation_es) : lang === 'en' ? (ws.translation_en || ws.translation_es) : ws.translation_es)
+    : ''
+  const wsGrammar = ws ? grammarById.get(ws.grammar_id) : null
+  // The 'answered' screen shows the writing result when a writing challenge is active.
+  const answeredCorrect = ws ? fullCorrect : isCorrect
+  // Error highlight for a wrong full sentence: diff the input against the closest form.
+  const diff = ws && !fullCorrect && fullInput ? splitDiff(stripForDiff(fullInput), closestRef(fullInput, ws)) : null
 
   return (
     <div className="space-y-4">
@@ -516,19 +625,22 @@ export default function GrammarReviewSession({
         </>
       )}
 
-      {/* ── WRITING (free mode: write the whole sentence) ──────────────────── */}
-      {phase === 'writing' && (
+      {/* ── WRITING (free mode: write a previously-seen sentence in full) ───── */}
+      {phase === 'writing' && ws && (
         <>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 shadow-sm overflow-hidden">
-            <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800">
-              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
-                ✅ {ui(lang, '¡Bien! Ahora escribe la frase entera en japonés', 'Bé! Ara escriu la frase sencera en japonès', 'Nice! Now write the whole sentence in Japanese')}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-sm overflow-hidden">
+            <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
+              <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">
+                ✍️ {ui(lang, 'Escribe esta frase entera en japonés', 'Escriu aquesta frase sencera en japonès', 'Write this whole sentence in Japanese')}
               </span>
             </div>
             <div className="px-5 py-6 text-center">
               <p className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-                {translation || (s.sentence_before + s.answer + s.sentence_after)}
+                {wsTranslation || kanjiForm(ws)}
               </p>
+              {wsGrammar && (
+                <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{wsGrammar.pattern}</p>
+              )}
             </div>
           </div>
 
@@ -562,14 +674,16 @@ export default function GrammarReviewSession({
       {/* ── ANSWERED ───────────────────────────────────────────────────────── */}
       {phase === 'answered' && (
         <>
-          <div className={`rounded-2xl border overflow-hidden ${isCorrect ? 'border-emerald-200 dark:border-emerald-800' : 'border-rose-200 dark:border-rose-800'}`}>
+          <div className={`rounded-2xl border overflow-hidden ${answeredCorrect ? 'border-emerald-200 dark:border-emerald-800' : 'border-rose-200 dark:border-rose-800'}`}>
             <div className={`flex items-center justify-between px-4 py-2 border-b ${
-              isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
+              answeredCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
             }`}>
               <div className="flex items-center gap-2">
-                <span className="text-base">{isCorrect ? '✅' : '❌'}</span>
-                <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                  {isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong')}
+                <span className="text-base">{answeredCorrect ? '✅' : '❌'}</span>
+                <span className={`text-sm font-bold ${answeredCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                  {ws
+                    ? (answeredCorrect ? ui(lang, '¡Frase correcta!', 'Frase correcta!', 'Sentence correct!') : ui(lang, 'Frase incorrecta', 'Frase incorrecta', 'Sentence incorrect'))
+                    : (isCorrect ? t(lang, 'gp_correct') : t(lang, 'gp_wrong'))}
                 </span>
               </div>
               {hasFurigana && (
@@ -585,73 +699,104 @@ export default function GrammarReviewSession({
             </div>
 
             <div className="bg-white dark:bg-slate-800 px-5 py-4 space-y-4">
-              {/* Correct full sentence */}
-              <div className="text-center">
-                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
-                <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
-                  {s.sentence_before && (
-                    <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
-                  )}
-                  <span className={`mx-0.5 px-1.5 py-0.5 rounded-lg ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'}`}>
-                    {s.answer}
-                  </span>
-                  {s.sentence_after && (
-                    <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} /> : s.sentence_after}</span>
-                  )}
-                </div>
-                {translation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>}
-              </div>
-
-              {/* Free-mode: result of the full-sentence writing challenge */}
-              {free && fullInput && (
-                <div className={`pt-3 border-t ${fullCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-amber-100 dark:border-amber-800/50'}`}>
-                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1 text-center">
-                    {fullCorrect
-                      ? `✅ ${ui(lang, 'Tu frase', 'La teva frase', 'Your sentence')}`
-                      : `✍️ ${ui(lang, 'Tu frase (compárala arriba)', 'La teva frase (compara-la a dalt)', 'Your sentence (compare above)')}`}
-                  </p>
-                  <p className={`text-lg font-bold text-center ${fullCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-500'}`}>
-                    {fullInput}
-                  </p>
-                </div>
-              )}
-
-              {/* User answer */}
-              <div className={`pt-3 border-t ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
-                <div className="flex items-center justify-center gap-3">
+              {ws ? (
+                <>
+                  {/* Writing challenge: correct full sentence */}
                   <div className="text-center">
-                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">{t(lang, 'gp_your_answer')}</p>
-                    <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{userInput}</p>
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
+                    <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+                      {ws.sentence_before && (
+                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_before} reading={ws.sentence_before_reading} /> : ws.sentence_before}</span>
+                      )}
+                      <span className="mx-0.5 px-1.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{ws.answer}</span>
+                      {ws.sentence_after && (
+                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_after} reading={ws.sentence_after_reading} /> : ws.sentence_after}</span>
+                      )}
+                    </div>
+                    {wsTranslation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{wsTranslation}</p>}
                   </div>
-                  {!isCorrect && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-600 text-lg">→</span>
-                      <div className="text-center">
-                        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">{ui(lang, 'Correcto', 'Correcte', 'Correct')}</p>
-                        <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{s.answer}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
 
-              {/* Grammar note on wrong answer */}
-              {!isCorrect && explanation && (
-                <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl text-left">
-                  <p className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide mb-1">
-                    {ui(lang, 'Nota gramatical', 'Nota gramatical', 'Grammar note')} — {currentGrammar.pattern}
-                  </p>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
-                </div>
+                  {/* Your sentence (with error highlight when wrong) */}
+                  <div className={`pt-3 border-t ${fullCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1 text-center">{t(lang, 'gp_your_answer')}</p>
+                    <p className="text-lg font-bold text-center break-words">
+                      {fullCorrect || !diff
+                        ? <span className="text-emerald-700 dark:text-emerald-400">{fullInput}</span>
+                        : <>
+                            <span className="text-slate-700 dark:text-slate-200">{diff.pre}</span>
+                            {diff.aMid && <span className="bg-rose-200 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 rounded px-0.5">{diff.aMid}</span>}
+                            <span className="text-slate-700 dark:text-slate-200">{diff.aSuf}</span>
+                          </>}
+                    </p>
+                    {!fullCorrect && diff && diff.bMid && (
+                      <p className="mt-1 text-center text-xs text-slate-500 dark:text-slate-400">
+                        {ui(lang, 'Debería ser', 'Hauria de ser', 'Should be')}:{' '}
+                        <span className="font-semibold">{diff.pre}</span>
+                        <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded px-0.5 font-semibold">{diff.bMid}</span>
+                        <span className="font-semibold">{diff.bSuf}</span>
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Fill-in: correct full sentence */}
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
+                    <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+                      {s.sentence_before && (
+                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
+                      )}
+                      <span className={`mx-0.5 px-1.5 py-0.5 rounded-lg ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'}`}>
+                        {s.answer}
+                      </span>
+                      {s.sentence_after && (
+                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} /> : s.sentence_after}</span>
+                      )}
+                    </div>
+                    {translation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>}
+                  </div>
+
+                  {/* User answer */}
+                  <div className={`pt-3 border-t ${isCorrect ? 'border-emerald-100 dark:border-emerald-800/50' : 'border-rose-100 dark:border-rose-800/50'}`}>
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">{t(lang, 'gp_your_answer')}</p>
+                        <p className={`text-xl font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{userInput}</p>
+                      </div>
+                      {!isCorrect && (
+                        <>
+                          <span className="text-slate-300 dark:text-slate-600 text-lg">→</span>
+                          <div className="text-center">
+                            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">{ui(lang, 'Correcto', 'Correcte', 'Correct')}</p>
+                            <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{s.answer}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Grammar note on wrong answer */}
+                  {!isCorrect && explanation && (
+                    <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl text-left">
+                      <p className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide mb-1">
+                        {ui(lang, 'Nota gramatical', 'Nota gramatical', 'Grammar note')} — {currentGrammar.pattern}
+                      </p>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
           {(() => {
-            // Will the session finish on "next"? In free mode there's no requeue,
-            // so it finishes on the last item; in SRS mode only if the answer was
-            // correct (wrong answers get requeued).
-            const willFinish = (free || isCorrect) && idx + 1 >= queueRef.current.length
+            // Will the session finish on "next"? SRS: only if correct (wrong gets
+            // requeued). Free: on the last item, unless a writing challenge may
+            // still be injected (fill-in feedback with earlier sentences available).
+            const willFinish = idx + 1 >= queueRef.current.length && (
+              free ? (ws !== null || seenRef.current.length <= 1) : isCorrect
+            )
             return (
               <button onClick={next} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-sm">
                 {willFinish ? `🏁 ${t(lang, 'gp_see_results')}` : `${t(lang, 'gp_next')} →`}
@@ -659,8 +804,8 @@ export default function GrammarReviewSession({
             )
           })()}
 
-          {/* Report sentence */}
-          {sessionToken && (
+          {/* Report sentence (fill-in feedback only) */}
+          {sessionToken && !ws && (
             reportSent ? (
               <div className="text-center text-xs text-emerald-600 dark:text-emerald-400">
                 ✓ {ui(lang, 'Reporte enviado', 'Informe enviat', 'Report sent')}
