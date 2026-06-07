@@ -26,6 +26,27 @@ interface JobState {
 const TARGET = 25
 const STEP_DELAY_MS = 5_000
 
+const MODEL_LIMITS: Record<string, number> = {
+  'gemini-3.1-flash-lite-preview': 500,
+  'gemini-3.1-flash-preview': 500,
+  'gemini-2.5-flash': 20,
+}
+const ALL_MODELS = Object.keys(MODEL_LIMITS)
+
+function todayKey() {
+  return `grammar_seed_rpd_${new Date().toISOString().slice(0, 10)}`
+}
+function loadDailyStats(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(todayKey())
+    const saved = raw ? JSON.parse(raw) : {}
+    return Object.fromEntries(ALL_MODELS.map(m => [m, saved[m] ?? 0]))
+  } catch { return Object.fromEntries(ALL_MODELS.map(m => [m, 0])) }
+}
+function saveDailyStats(counts: Record<string, number>) {
+  try { localStorage.setItem(todayKey(), JSON.stringify(counts)) } catch {}
+}
+
 export default function GrammarSeedClient() {
   const [state, setState] = useState<JobState | null>(null)
   const [loading, setLoading] = useState(true)
@@ -34,18 +55,18 @@ export default function GrammarSeedClient() {
   const [waitingMs, setWaitingMs] = useState(0)
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
-  const [modelCounts, setModelCounts] = useState<Record<string, number>>({
-    'gemini-3.1-flash-lite-preview': 0,
-    'gemini-3.1-flash-preview': 0,
-    'gemini-2.5-flash': 0,
-  })
+  const [modelCounts, setModelCounts] = useState<Record<string, number>>(() => loadDailyStats())
   const runningRef = useRef(false)
   const waitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentRowRef = useRef<HTMLTableRowElement | null>(null)
+  const stateRef = useRef<JobState | null>(null)
   const getToken = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     return session?.access_token ?? ''
   }, [])
+
+  // Keep a ref in sync so the async loop can read current state without stale closures
+  useEffect(() => { stateRef.current = state }, [state])
 
   const fetchState = useCallback(async () => {
     const token = await getToken()
@@ -100,6 +121,13 @@ export default function GrammarSeedClient() {
     const token = await getToken()
 
     while (runningRef.current) {
+      // Predict which grammar the server will pick so we can show "Generando…" immediately
+      const predicted = stateRef.current?.grammars.find(g => g.count < TARGET && !g.is_permanent) ?? null
+      if (predicted) {
+        setCurrentId(predicted.id)
+        setStatusMsg(`⟳ Generando ${predicted.id}…`)
+      }
+
       let result: any
       try {
         const res = await fetch('/api/admin/seed-grammar/step', {
@@ -108,6 +136,7 @@ export default function GrammarSeedClient() {
         })
         result = await res.json()
       } catch (e: any) {
+        setCurrentId(null)
         setStatusMsg(`Error de red: ${e.message} — reintentando en 10s`)
         startWaitCountdown(10_000)
         await sleep(10_000)
@@ -133,7 +162,11 @@ export default function GrammarSeedClient() {
       }
 
       if (result.model_used) {
-        setModelCounts(prev => ({ ...prev, [result.model_used]: (prev[result.model_used] ?? 0) + 1 }))
+        setModelCounts(prev => {
+          const next = { ...prev, [result.model_used]: (prev[result.model_used] ?? 0) + 1 }
+          saveDailyStats(next)
+          return next
+        })
       }
 
       if (result.status === 'done') {
@@ -250,12 +283,12 @@ export default function GrammarSeedClient() {
         {state.key_hint.startsWith('vercel') && <span className="ml-2 text-amber-600">— usando clave del servidor (puede tener cuota compartida)</span>}
       </div>
 
-      {/* Model usage stats (tracked this session) */}
+      {/* Model usage stats (persisted in localStorage, keyed by date) */}
       <div className="flex flex-wrap gap-2 text-xs font-mono items-center">
-        <span className="text-slate-400">Llamadas sesión:</span>
+        <span className="text-slate-400">RPD hoy:</span>
         {Object.entries(modelCounts).map(([model, count]) => {
           const shortName = model.replace('gemini-', '').replace('-preview', '')
-          const limit = model.includes('3.1-flash-lite') ? 500 : model.includes('3.1-flash') ? 500 : 20
+          const limit = MODEL_LIMITS[model] ?? 20
           const pct = Math.round((count / limit) * 100)
           return (
             <span
@@ -263,11 +296,11 @@ export default function GrammarSeedClient() {
               className={`px-2 py-0.5 rounded border ${pct >= 80 ? 'bg-red-50 border-red-200 text-red-700' : pct >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
               title={`${count}/${limit} RPD (${pct}%)`}
             >
-              {shortName}: {count}/{limit} RPD
+              {shortName}: {count}/{limit}
             </span>
           )
         })}
-        <span className="text-slate-300">(se resetea al recargar)</span>
+        <span className="text-slate-300">(se resetea a medianoche)</span>
       </div>
 
       {/* Header stats */}

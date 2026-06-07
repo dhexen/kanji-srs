@@ -20,9 +20,8 @@ export async function GET(req: NextRequest) {
   try {
     const { adminId, service } = await requireAdmin(req)
 
-    const [jobRes, countRes, errorRes, progressRes] = await Promise.all([
+    const [jobRes, errorRes, progressRes] = await Promise.all([
       service.from('grammar_seed_job').select('running, started_at, stopped_at').eq('id', 1).single(),
-      service.from('grammar_sentences').select('grammar_id').eq('is_private', false),
       service.from('grammar_seed_errors').select('grammar_id, error_msg, is_permanent, updated_at'),
       service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle(),
     ])
@@ -39,9 +38,21 @@ export async function GET(req: NextRequest) {
       ? (userKey ? `perfil …${userKey.slice(-6)}` : `vercel …${serverKey.slice(-6)}`)
       : 'sin clave'
 
+    // Paginate to handle tables with >1000 rows (Supabase default limit)
     const countMap = new Map<string, number>()
-    for (const row of countRes.data ?? []) {
-      countMap.set(row.grammar_id, (countMap.get(row.grammar_id) ?? 0) + 1)
+    let from = 0
+    while (true) {
+      const { data } = await service
+        .from('grammar_sentences')
+        .select('grammar_id')
+        .eq('is_private', false)
+        .range(from, from + 999)
+      if (!data?.length) break
+      for (const row of data) {
+        countMap.set(row.grammar_id, (countMap.get(row.grammar_id) ?? 0) + 1)
+      }
+      if (data.length < 1000) break
+      from += 1000
     }
 
     const errorMap = new Map((errorRes.data ?? []).map(e => [e.grammar_id, e]))
