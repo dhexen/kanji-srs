@@ -24,10 +24,15 @@ export async function GET(req: NextRequest) {
       service.from('grammar_seed_job').select('running, started_at, stopped_at').eq('id', 1).single(),
       service.from('grammar_sentences').select('grammar_id').eq('is_private', false),
       service.from('grammar_seed_errors').select('grammar_id, error_msg, is_permanent, updated_at'),
-      service.from('srs_progress').select('gemini_api_key').eq('user_id', adminId).maybeSingle(),
+      service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle(),
     ])
 
-    const userKey: string = progressRes.data?.gemini_api_key ?? ''
+    // user_settings is the primary store; srs_progress is legacy fallback
+    let userKey: string = progressRes.data?.gemini_api_key ?? ''
+    if (!userKey) {
+      const { data: legacy } = await service.from('srs_progress').select('gemini_api_key').eq('user_id', adminId).maybeSingle()
+      userKey = legacy?.gemini_api_key ?? ''
+    }
     const serverKey: string = process.env.GEMINI_API_KEY ?? ''
     const activeKey = userKey || serverKey
     const keyHint = activeKey

@@ -121,14 +121,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'all_done' })
     }
 
-    // 5. Get admin's Gemini API key from their settings
-    const { data: progress } = await service
-      .from('srs_progress')
+    // 5. Get admin's Gemini API key (user_settings is primary, srs_progress is legacy fallback)
+    const { data: settings } = await service
+      .from('user_settings')
       .select('gemini_api_key')
       .eq('user_id', adminId)
       .maybeSingle()
 
-    const apiKey = progress?.gemini_api_key || process.env.GEMINI_API_KEY
+    let apiKey = settings?.gemini_api_key || ''
+    if (!apiKey) {
+      const { data: legacy } = await service.from('srs_progress').select('gemini_api_key').eq('user_id', adminId).maybeSingle()
+      apiKey = legacy?.gemini_api_key || ''
+    }
+    apiKey = apiKey || process.env.GEMINI_API_KEY || ''
     if (!apiKey) {
       return NextResponse.json({
         status: 'error',
