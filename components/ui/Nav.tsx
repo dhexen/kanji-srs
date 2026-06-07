@@ -407,10 +407,11 @@ function NavInner() {
             icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
             basePath="/admin"
             subItems={[
-              { href: '/admin?tab=users',  icon: '👥', label: 'Usuarios',    tabKey: 'users',  isDefault: true,  badge: false },
-              { href: '/admin?tab=images', icon: '🖼️', label: 'Imágenes',    tabKey: 'images', isDefault: false, badge: false },
-              { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario', tabKey: 'vocab',  isDefault: false, badge: false },
-              { href: '/admin?tab=system', icon: '⚙️', label: 'Sistema',     tabKey: 'system', isDefault: false, badge: false },
+              { href: '/admin?tab=users',    icon: '👥', label: 'Usuarios',    tabKey: 'users',    isDefault: true,  badge: false },
+              { href: '/admin?tab=images',   icon: '🖼️', label: 'Imágenes',    tabKey: 'images',   isDefault: false, badge: false },
+              { href: '/admin?tab=vocab',    icon: '📚', label: 'Vocabulario', tabKey: 'vocab',    isDefault: false, badge: false },
+              { href: '/admin?tab=system',   icon: '⚙️', label: 'Sistema',     tabKey: 'system',   isDefault: false, badge: false },
+              { href: '/admin?tab=feedback', icon: '💬', label: 'Reportes',    tabKey: 'feedback', isDefault: false, badge: false },
             ]}
             pathname={pathname} currentTab={currentTab}
           />

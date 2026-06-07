@@ -423,6 +423,7 @@ export default function GrammarClient() {
   const [sessionToken, setSessionToken] = useState('')
   const [loadingKnown, setLoadingKnown] = useState(true)
   const [srsStats, setSrsStats] = useState<Map<string, GrammarSrsStat>>(new Map())
+  const [scrollToId, setScrollToId] = useState<string | null>(null)
 
   function handleSrsUpdate(stat: GrammarSrsStat) {
     setSrsStats(prev => new Map([...prev, [stat.grammar_id, stat]]))
@@ -455,6 +456,13 @@ export default function GrammarClient() {
       setSessionToken(session?.access_token ?? '')
     })
   }, [state.user])
+
+  useEffect(() => {
+    if (view.kind !== 'list' || !scrollToId) return
+    const el = document.getElementById(`grammar-${scrollToId}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setScrollToId(null)
+  }, [view, scrollToId])
 
   async function toggleKnown(id: string, val: boolean) {
     setKnownIds(prev => {
@@ -542,6 +550,9 @@ export default function GrammarClient() {
   // ── Sub-views ────────────────────────────────────────────────────────────
 
   if (view.kind === 'detail') {
+    const currentIndex = filtered.findIndex(g => g.id === view.grammar.id)
+    const prevGrammar = currentIndex > 0 ? filtered[currentIndex - 1] : null
+    const nextGrammar = currentIndex < filtered.length - 1 ? filtered[currentIndex + 1] : null
     return (
       <GrammarDetail
         grammar={view.grammar}
@@ -549,11 +560,14 @@ export default function GrammarClient() {
         geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
-        onBack={() => setView({ kind: 'list' })}
+        onBack={() => { setScrollToId(view.grammar.id); setView({ kind: 'list' }) }}
         canEdit={canEdit}
         srsStat={srsStats.get(view.grammar.id) ?? null}
         onAddToSrs={() => handleAddToSrs(view.grammar.id)}
         onRemoveFromSrs={() => handleRemoveFromSrs(view.grammar.id)}
+        prevGrammar={prevGrammar}
+        nextGrammar={nextGrammar}
+        onNavigate={g => setView({ kind: 'detail', grammar: g as GrammarPointWithBook })}
       />
     )
   }
@@ -852,16 +866,17 @@ export default function GrammarClient() {
               </div>
               <div className="space-y-2">
                 {points.map(g => (
-                  <GrammarCard
-                    key={g.id}
-                    grammar={g}
-                    known={knownIds.has(g.id)}
-                    srsStat={srsStats.get(g.id)}
-                    onToggleKnown={toggleKnown}
-                    onSelect={g => setView({ kind: 'detail', grammar: g })}
-                    lang={lang}
-                    showBook={bookFilter === 'all'}
-                  />
+                  <div key={g.id} id={`grammar-${g.id}`}>
+                    <GrammarCard
+                      grammar={g}
+                      known={knownIds.has(g.id)}
+                      srsStat={srsStats.get(g.id)}
+                      onToggleKnown={toggleKnown}
+                      onSelect={g => setView({ kind: 'detail', grammar: g })}
+                      lang={lang}
+                      showBook={bookFilter === 'all'}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
