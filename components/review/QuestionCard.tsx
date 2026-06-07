@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType, SRS_MAX_LEVEL } from '@/lib/srs'
@@ -28,6 +28,28 @@ type AnswerState = 'waiting' | 'correct' | 'incorrect'
 
 function normalizeJP(str: string) {
   return str.trim().replace(/\s/g, '').replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+}
+
+// Extract the kanji (CJK) characters of a word, used to find distractors that
+// share a kanji with the target word.
+function kanjiChars(s: string): string[] {
+  return Array.from(s).filter(c => /[一-龯㐀-䶿々]/.test(c))
+}
+
+// Rough phonetic-similarity score between two readings (in kana). Rewards a
+// shared prefix (same onset), shared kana anywhere, and equal length — so
+// similar-sounding words score higher and make tougher distractors.
+function readingSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0
+  const na = normalizeJP(a), nb = normalizeJP(b)
+  if (na === nb) return 0 // identical reading isn't a useful distractor here
+  let prefix = 0
+  const min = Math.min(na.length, nb.length)
+  for (let i = 0; i < min; i++) { if (na[i] === nb[i]) prefix++; else break }
+  const setB = new Set(Array.from(nb))
+  let shared = 0
+  for (const ch of new Set(Array.from(na))) if (setB.has(ch)) shared++
+  return prefix * 2 + shared + (na.length === nb.length ? 1 : 0)
 }
 
 function LevelChangeToast({ dir, newLevel, lang }: { dir: 'up' | 'down'; newLevel: number; lang: string }) {
@@ -124,15 +146,50 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [answerState, goNext])
 
-  const buildOptions = (field: 'reading' | 'meaning', count: number) => {
+  // Build challenging multiple-choice options. Instead of random distractors,
+  // prefer words that share a kanji with the target, sound similar, or are the
+  // same word type — so the choice is a real test, not trivially eliminable.
+  // Memoized by word + mode so options don't reshuffle on unrelated re-renders.
+  const options = useMemo(() => {
+    if (!isMultiChoice) return []
+    const field: 'reading' | 'meaning' = mode === 'meaning' ? 'meaning' : 'reading'
+    const count = mode === 'meaning' ? 4 : 3
     const correct = field === 'meaning' ? meaning : item[field]
-    const others = allItems
-      .filter(w => w[field] !== item[field])
-      .map(w => field === 'meaning' ? getMeaningForLang(w, lang) : w[field])
-      .sort(() => Math.random() - 0.5)
-      .slice(0, count - 1)
-    return [correct, ...others].sort(() => Math.random() - 0.5)
-  }
+    const optText = (w: VocabItem) => field === 'meaning' ? getMeaningForLang(w, lang) : w[field]
+
+    const targetKanji = new Set(kanjiChars(item.jp))
+
+    // Score every candidate by how confusable it is with the target.
+    const score = (w: VocabItem): number => {
+      let sharedKanji = 0
+      for (const c of new Set(kanjiChars(w.jp))) if (targetKanji.has(c)) sharedKanji++
+      const rSim = readingSimilarity(item.reading, w.reading)
+      const typeBonus = w.word_type && item.word_type && w.word_type === item.word_type ? 1 : 0
+      return sharedKanji * 10 + rSim + typeBonus
+    }
+
+    // Dedupe candidate option texts (keep the highest-scoring word per text).
+    const byText = new Map<string, { text: string; score: number }>()
+    for (const w of allItems) {
+      if (w.jp === item.jp) continue
+      const text = optText(w)
+      if (!text || text === correct) continue
+      const s = score(w)
+      const existing = byText.get(text)
+      if (!existing || s > existing.score) byText.set(text, { text, score: s })
+    }
+
+    const candidates = [...byText.values()]
+    // Challenging pool: candidates related to the target (shared kanji / similar
+    // sound / same type). Shuffle within the pool for variety across sessions.
+    const related = candidates.filter(c => c.score > 0).sort((a, b) => b.score - a.score)
+    const unrelated = candidates.filter(c => c.score === 0)
+    const topRelated = related.slice(0, Math.max(count * 2, 8)).sort(() => Math.random() - 0.5)
+    const filler = unrelated.sort(() => Math.random() - 0.5)
+
+    const distractors = [...topRelated, ...filler].slice(0, count - 1).map(c => c.text)
+    return [correct, ...distractors].sort(() => Math.random() - 0.5)
+  }, [item.jp, mode, lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResult = (isCorrect: boolean) => {
     submittedAtRef.current = Date.now()
@@ -325,7 +382,7 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {/* Multi choice */}
       {isMultiChoice && answerState === 'waiting' && (
         <div className={`grid gap-3 ${mode === 'meaning' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
-          {buildOptions(mode === 'meaning' ? 'meaning' : 'reading', mode === 'meaning' ? 4 : 3).map(opt => (
+          {options.map(opt => (
             <button key={opt}
               onClick={() => handleResult(opt === (mode === 'meaning' ? meaning : item.reading))}
               className="py-3 px-4 bg-slate-50 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold text-sm rounded-xl transition-all text-slate-700 dark:text-slate-200 text-left">

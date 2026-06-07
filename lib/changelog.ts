@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'Opciones de repaso de opción múltiple más exigentes',
+        description: 'En los repasos de opción múltiple, las respuestas incorrectas ya no son palabras al azar: ahora se eligen palabras que comparten un kanji con la palabra objetivo, suenan de forma parecida o son del mismo tipo, para que distinguir la correcta sea un reto real.',
+      },
+      {
+        type: 'improvement',
         title: 'Se recuerda tu selección de tipos de repaso',
         description: 'Los tipos de repaso que eliges (lectura múltiple, significado, kanji, etc.) se guardan y se mantienen en tu próxima visita, hasta que selecciones otros.',
       },

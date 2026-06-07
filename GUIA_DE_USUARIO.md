@@ -85,6 +85,8 @@ La app te puede preguntar cada palabra de 5 formas diferentes:
 4. **Escritura de kanji** — Ves el significado y escribes el kanji en papel (la app te pregunta si lo has hecho bien)
 5. **Inverso** — Ves el kanji y su significado, y escribes todo en papel
 
+En los modos de opción múltiple, las opciones incorrectas no son aleatorias: son palabras parecidas a la correcta (que comparten un kanji, suenan de forma similar o son del mismo tipo), para que elegir bien suponga un reto y no puedas descartarlas a simple vista.
+
 #### Botón "Ya me lo sé"
 
 Si una palabra ya la sabes de antes, pulsa el botón **"Ya me lo sé"** (aparece en la parte inferior de la tarjeta). Esto la marca directamente como nivel 8 y desaparece de tus repasos hasta dentro de 4 meses.

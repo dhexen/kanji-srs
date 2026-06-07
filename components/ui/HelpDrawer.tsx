@@ -73,6 +73,9 @@ function HelpReview() {
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-2.5 leading-snug">
           Tu selección de tipos de repaso se recuerda y se mantiene hasta que elijas otra.
         </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 leading-snug">
+          En opción múltiple, las respuestas incorrectas son palabras parecidas (comparten un kanji, suenan similar o son del mismo tipo) para que elegir bien sea un reto.
+        </p>
       </div>
 
       <div>
