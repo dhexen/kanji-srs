@@ -1010,9 +1010,10 @@ export default function GrammarPractice({
               </div>
             </div>
 
-            {/* Japanese sentence with blank */}
+            {/* Japanese sentence with blank — uses the default (clearer) font,
+                matching the answer reveal below; Kiwi Maru rendered some kanji unclearly. */}
             <div className="px-5 py-6 text-center">
-              <div className="kanji-font text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+              <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                 {currentSentence.sentence_before && (
                   <span>
                     {showFurigana && hasFurigana

@@ -405,7 +405,7 @@ export default function GrammarReviewSession({
             </div>
 
             <div className="px-5 py-6 text-center">
-              <div className="kanji-font text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+              <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                 {s.sentence_before && (
                   <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
                 )}
@@ -482,7 +482,7 @@ export default function GrammarReviewSession({
               {/* Correct full sentence */}
               <div className="text-center">
                 <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
-                <div className="kanji-font text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
+                <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                   {s.sentence_before && (
                     <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
                   )}

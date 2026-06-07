@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'Kanji de las frases de gramática más claros',
+        description: 'Las frases de gramática (en la práctica y en el repaso) ahora usan la misma fuente clara que la respuesta, en lugar de una decorativa que hacía algunos kanji difíciles de leer.',
+      },
+      {
         type: 'new',
         title: 'Clasifica tu vocabulario de WaniKani cuando quieras',
         description: 'En Mi Perfil → Cuenta hay un botón "Clasificar vocabulario de WaniKani" que clasifica por categoría y tipo las palabras importadas que aún no lo estén, sin tener que volver a sincronizar. Útil para el vocabulario que importaste antes de esta función.',
