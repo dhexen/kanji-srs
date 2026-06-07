@@ -241,7 +241,7 @@ function HelpContext() {
       </div>
       <Tip>Necesitas tener vocabulario activo en tus repasos para que los textos sean relevantes a tu nivel.</Tip>
       <Tip>Con las casillas <strong>"Incluir vocabulario"</strong> y <strong>"Incluir vocabulario de WaniKani"</strong> eliges la fuente: marca las dos para mezclarlas, o solo una para usar únicamente ese vocabulario. El vocabulario de WaniKani (formal/técnico/antiguo) se usa solo cuando encaja en el contexto.</Tip>
-      <Tip>Según el tema elegido, se priorizan las palabras cuya categoría encaja con él. El vocabulario de WaniKani se clasifica al sincronizar; si lo importaste antes, vuelve a sincronizarlo para clasificarlo.</Tip>
+      <Tip>Según el tema elegido, se priorizan las palabras cuya categoría encaja con él. El vocabulario de WaniKani se clasifica al sincronizar; si lo importaste antes, pulsa <strong>"Clasificar vocabulario de WaniKani"</strong> en Mi Perfil → Cuenta para clasificar lo que falte.</Tip>
     </div>
   )
 }
@@ -259,7 +259,7 @@ function HelpStats() {
             { icon: '📊', label: 'Estadísticas', desc: 'Distribución de niveles SRS, racha de estudio, pronóstico de repasos para los próximos 7 días' },
             { icon: '⭐', label: 'Progresión', desc: 'XP acumulado, nivel estimado de JLPT, niveles separados para vocabulario y gramática' },
             { icon: '⚙️', label: 'Configuración', desc: 'API Keys de Gemini y WaniKani, elección del modelo de Gemini (2.5 Flash o 3.1 Flash Lite), idioma de la interfaz, toggle de oraciones compartidas' },
-            { icon: '👤', label: 'Cuenta', desc: 'Copias de seguridad del progreso, sincronización con WaniKani, cerrar sesión' },
+            { icon: '👤', label: 'Cuenta', desc: 'Copias de seguridad del progreso, sincronización y clasificación del vocabulario de WaniKani, cerrar sesión' },
           ].map(s => (
             <div key={s.label} className="flex gap-2.5">
               <span className="text-lg shrink-0">{s.icon}</span>

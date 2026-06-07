@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Clasifica tu vocabulario de WaniKani cuando quieras',
+        description: 'En Mi Perfil → Cuenta hay un botón "Clasificar vocabulario de WaniKani" que clasifica por categoría y tipo las palabras importadas que aún no lo estén, sin tener que volver a sincronizar. Útil para el vocabulario que importaste antes de esta función.',
+      },
+      {
         type: 'improvement',
         title: 'Lecturas IA por tema + vocabulario de WaniKani clasificado',
         description: 'Al sincronizar WaniKani, ahora cada palabra se clasifica por categoría y tipo (igual que el vocabulario de la página). Las Lecturas IA usan esa categoría para priorizar las palabras (de la página y de WaniKani) que encajan con el tema elegido, haciendo los textos más coherentes. Vuelve a sincronizar WaniKani para clasificar el vocabulario que ya tenías importado.',

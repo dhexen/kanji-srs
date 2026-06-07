@@ -300,6 +300,8 @@ export default function StatsClient() {
   const [wkSyncing, setWkSyncing] = useState(false)
   const [wkSyncResult, setWkSyncResult] = useState<{ count: number; at: string } | null>(null)
   const [wkSyncError, setWkSyncError] = useState('')
+  const [wkClassifying, setWkClassifying] = useState(false)
+  const [wkClassifyMsg, setWkClassifyMsg] = useState('')
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1) // -1 = loading
   const lang = state.lang
 
@@ -415,6 +417,47 @@ export default function StatsClient() {
       showToast(msg, 'error')
     } finally {
       setWkSyncing(false)
+    }
+  }
+
+  async function handleClassifyWaniKani() {
+    if (!state.user) return
+    setWkClassifying(true)
+    setWkClassifyMsg('')
+    try {
+      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('No session')
+
+      let totalUpdated = 0
+      // Loop batches until nothing is left (or a batch classifies nothing).
+      for (let i = 0; i < 60; i++) {
+        const res = await fetch('/api/wanikani/classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ limit: 60 }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
+        totalUpdated += data.updated ?? 0
+        if (data.processed === 0) {
+          setWkClassifyMsg(totalUpdated === 0 ? 'Tu vocabulario de WaniKani ya está clasificado.' : `Clasificadas ${totalUpdated} palabras.`)
+          break
+        }
+        setWkClassifyMsg(`Clasificando… ${totalUpdated} hasta ahora${data.pending ? ` · ${data.pending} pendientes` : ''}`)
+        if ((data.updated ?? 0) === 0) {
+          // Batch classified nothing → stop to avoid looping on the same rows.
+          setWkClassifyMsg(`Clasificadas ${totalUpdated} palabras. Vuelve a intentarlo para el resto.`)
+          break
+        }
+      }
+      showToast('Clasificación de WaniKani completada', 'success')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error al clasificar'
+      setWkClassifyMsg(msg)
+      showToast(msg, 'error')
+    } finally {
+      setWkClassifying(false)
     }
   }
 
@@ -869,6 +912,26 @@ export default function StatsClient() {
                     </span>
                   </div>
                 )}
+
+                {/* Classify imported WaniKani vocabulary by category/type */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Clasifica tu vocabulario de WaniKani por categoría y tipo para que las Lecturas IA prioricen las palabras según el tema.
+                  </p>
+                  <button
+                    onClick={handleClassifyWaniKani}
+                    disabled={wkClassifying || wkSyncing}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition"
+                  >
+                    {wkClassifying
+                      ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/></svg> Clasificando…</>
+                      : <>🏷️ Clasificar vocabulario de WaniKani</>
+                    }
+                  </button>
+                  {wkClassifyMsg && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{wkClassifyMsg}</p>
+                  )}
+                </div>
               </div>
             )}
           </div>

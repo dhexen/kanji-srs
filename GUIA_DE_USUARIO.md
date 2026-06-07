@@ -226,7 +226,7 @@ Hay dos casillas para elegir qué vocabulario usa la IA:
 
 Si marcas las dos, el texto mezcla ambos vocabularios. Si marcas solo una, usa únicamente ese vocabulario. Como WaniKani incluye palabras muy formales, técnicas o antiguas, la IA solo las usa cuando encajan en el contexto y el registro del texto.
 
-Según el **tema** que elijas, la app prioriza las palabras cuya categoría encaja con ese tema (tanto del vocabulario de la página como del de WaniKani), para que el texto sea más coherente. El vocabulario de WaniKani se clasifica por categoría al sincronizarlo; si lo importaste antes de esta función, vuelve a sincronizar WaniKani (Mi Perfil → Cuenta) para que se clasifique.
+Según el **tema** que elijas, la app prioriza las palabras cuya categoría encaja con ese tema (tanto del vocabulario de la página como del de WaniKani), para que el texto sea más coherente. El vocabulario de WaniKani se clasifica por categoría al sincronizarlo. Si lo importaste antes de esta función, ve a **Mi Perfil → Cuenta** y pulsa **"Clasificar vocabulario de WaniKani"** para clasificar las palabras que aún no lo estén (sin tener que volver a sincronizar).
 
 ---
 
@@ -303,7 +303,7 @@ Añade palabras buscando por kanji o importando desde un archivo CSV.
 
 #### 👤 Cuenta
 - **Backup del progreso** — Guarda una copia de seguridad de todo tu vocabulario
-- **WaniKani** — Sincroniza tu vocabulario de WaniKani
+- **WaniKani** — Sincroniza tu vocabulario de WaniKani y clasifícalo por categoría/tipo con **"Clasificar vocabulario de WaniKani"**
 - **Cerrar sesión**
 
 ---
@@ -388,6 +388,8 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 3. Pega la API Key en **"API Key de WaniKani"**
 4. Elige el nivel mínimo de SRS (recomendado: Gurú = nivel 5)
 5. En **Mi Perfil → Cuenta**, pulsa **"Sincronizar WaniKani"**
+
+Al sincronizar, cada palabra se traduce y se clasifica automáticamente por categoría y tipo. Si ya tenías vocabulario importado sin clasificar, en **Mi Perfil → Cuenta** pulsa **"Clasificar vocabulario de WaniKani"**: clasifica solo las palabras que falten, sin volver a descargar de WaniKani. Puedes pulsarlo en cualquier momento.
 
 ---
 
