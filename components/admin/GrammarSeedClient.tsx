@@ -34,7 +34,11 @@ export default function GrammarSeedClient() {
   const [waitingMs, setWaitingMs] = useState(0)
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
-  const [modelCounts, setModelCounts] = useState<Record<string, number>>({})
+  const [modelCounts, setModelCounts] = useState<Record<string, number>>({
+    'gemini-3.1-flash-lite-preview': 0,
+    'gemini-3.1-flash-preview': 0,
+    'gemini-2.5-flash': 0,
+  })
   const runningRef = useRef(false)
   const waitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const currentRowRef = useRef<HTMLTableRowElement | null>(null)
@@ -128,12 +132,13 @@ export default function GrammarSeedClient() {
         break
       }
 
+      if (result.model_used) {
+        setModelCounts(prev => ({ ...prev, [result.model_used]: (prev[result.model_used] ?? 0) + 1 }))
+      }
+
       if (result.status === 'done') {
         updateGrammar(result.grammar_id, { count: result.new_count, error: null, is_permanent: false })
         setStatusMsg(`✓ ${result.grammar_id}: +${result.sentences_added} frases`)
-        if (result.model_used) {
-          setModelCounts(prev => ({ ...prev, [result.model_used]: (prev[result.model_used] ?? 0) + 1 }))
-        }
         setCurrentId(null)
         startWaitCountdown(STEP_DELAY_MS)
         await sleep(STEP_DELAY_MS)
@@ -246,25 +251,24 @@ export default function GrammarSeedClient() {
       </div>
 
       {/* Model usage stats (tracked this session) */}
-      {Object.keys(modelCounts).length > 0 && (
-        <div className="flex flex-wrap gap-2 text-xs font-mono">
-          <span className="text-slate-400">Uso sesión:</span>
-          {Object.entries(modelCounts).map(([model, count]) => {
-            const shortName = model.replace('gemini-', '').replace('-preview', '')
-            const limit = model.includes('3.1-flash-lite') ? 500 : model.includes('3.1-flash') ? 500 : 20
-            const pct = Math.round((count / limit) * 100)
-            return (
-              <span
-                key={model}
-                className={`px-2 py-0.5 rounded border ${pct >= 80 ? 'bg-red-50 border-red-200 text-red-700' : pct >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
-                title={`${count}/${limit} RPD (${pct}%)`}
-              >
-                {shortName}: {count}/{limit} RPD
-              </span>
-            )
-          })}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 text-xs font-mono items-center">
+        <span className="text-slate-400">Llamadas sesión:</span>
+        {Object.entries(modelCounts).map(([model, count]) => {
+          const shortName = model.replace('gemini-', '').replace('-preview', '')
+          const limit = model.includes('3.1-flash-lite') ? 500 : model.includes('3.1-flash') ? 500 : 20
+          const pct = Math.round((count / limit) * 100)
+          return (
+            <span
+              key={model}
+              className={`px-2 py-0.5 rounded border ${pct >= 80 ? 'bg-red-50 border-red-200 text-red-700' : pct >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+              title={`${count}/${limit} RPD (${pct}%)`}
+            >
+              {shortName}: {count}/{limit} RPD
+            </span>
+          )
+        })}
+        <span className="text-slate-300">(se resetea al recargar)</span>
+      </div>
 
       {/* Header stats */}
       <div className="flex flex-wrap gap-4 items-center">
