@@ -173,8 +173,8 @@ export async function POST(req: NextRequest) {
 
     if (!geminiRes.ok) {
       const errMsg: string = geminiData?.error?.message ?? `HTTP ${geminiRes.status}`
-      // 400/404 = bad request (permanent), 429 = quota (retry), 5xx = transient (retry)
-      const isPermanent = geminiRes.status === 400 || geminiRes.status === 404
+      // 400/403/404 = permanent (bad key, denied access, not found), 429 = quota (retry), 5xx = transient
+      const isPermanent = geminiRes.status === 400 || geminiRes.status === 403 || geminiRes.status === 404
       const retryAfterMs = parseRetryAfterMs(errMsg)
 
       await upsertError(service, next.id, errMsg, isPermanent)

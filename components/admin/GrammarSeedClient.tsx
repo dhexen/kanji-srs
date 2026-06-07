@@ -61,17 +61,18 @@ export default function GrammarSeedClient() {
   }, [currentId])
 
   function startWaitCountdown(ms: number) {
+    const endsAt = Date.now() + ms
     setWaitingMs(ms)
     if (waitTimerRef.current) clearInterval(waitTimerRef.current)
     waitTimerRef.current = setInterval(() => {
-      setWaitingMs(prev => {
-        if (prev <= 100) {
-          clearInterval(waitTimerRef.current!)
-          return 0
-        }
-        return prev - 100
-      })
-    }, 100)
+      const remaining = endsAt - Date.now()
+      if (remaining <= 0) {
+        clearInterval(waitTimerRef.current!)
+        setWaitingMs(0)
+      } else {
+        setWaitingMs(remaining)
+      }
+    }, 500)
   }
 
   function updateGrammar(id: string, patch: Partial<GrammarRow>) {
