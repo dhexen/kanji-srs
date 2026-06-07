@@ -539,7 +539,7 @@ export default function AdminClient() {
       </div>
 
       {/* Tab bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-1 flex gap-1 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-1 flex gap-1 shadow-sm flex-wrap">
         {tabs.map(tab => (
           <button
             key={tab.key}
@@ -554,6 +554,12 @@ export default function AdminClient() {
             {tab.label}
           </button>
         ))}
+        <a
+          href="/admin/seed-grammar"
+          className="flex-1 py-2 px-3 rounded-xl text-sm font-semibold text-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition whitespace-nowrap"
+        >
+          🌱 Frases gramática
+        </a>
       </div>
 
       {/* ── TAB: USUARIOS ─────────────────────────────────────────────── */}
