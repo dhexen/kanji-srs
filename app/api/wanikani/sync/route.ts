@@ -45,22 +45,51 @@ async function wkFetchAll<T>(url: string, wkKey: string): Promise<T[]> {
   return results
 }
 
-async function translateBatch(
-  items: { id: number; meaning_en: string }[],
+const VALID_WORD_TYPES = new Set([
+  'noun', 'verb_transitive', 'verb_intransitive', 'verb',
+  'adj_i', 'adj_na', 'adverb', 'particle', 'expression',
+])
+const VALID_CATEGORIES = new Set([
+  'animals', 'nature', 'colors', 'weather', 'time', 'food', 'transport',
+  'family', 'body', 'school', 'home', 'work', 'places', 'numbers',
+  'emotions', 'actions', 'sports', 'culture', 'other',
+])
+
+interface EnrichResult {
+  es: string
+  ca: string
+  category: string | null
+  word_type: string | null
+}
+
+// One Gemini call per batch both translates the meaning (ES/CA) and classifies
+// the word (semantic category + grammatical type), so the user's WaniKani vocab
+// gets the same taxonomy as the page vocabulary at no extra request cost.
+async function enrichBatch(
+  items: { id: number; word: string; reading: string; meaning_en: string }[],
   geminiKey: string,
-): Promise<Map<number, { es: string; ca: string }>> {
-  const result = new Map<number, { es: string; ca: string }>()
+): Promise<Map<number, EnrichResult>> {
+  const result = new Map<number, EnrichResult>()
   if (!items.length) return result
 
   const BATCH = 60
   for (let i = 0; i < items.length; i += BATCH) {
     const batch = items.slice(i, i + BATCH)
-    const wordList = batch.map(w => `${w.id}: ${w.meaning_en}`).join('\n')
-    const prompt = `Translate these Japanese vocabulary English meanings to Spanish and Catalan.
-Return ONLY valid JSON, no backticks, no extra text:
-{"translations":[{"id":123,"es":"...","ca":"..."},...]}
+    const wordList = batch.map(w => `${w.id}: ${w.word} (${w.reading}) = ${w.meaning_en}`).join('\n')
+    const prompt = `For each Japanese vocabulary word, translate the English meaning to Spanish and Catalan AND classify it.
 
-Words to translate:
+WORD_TYPE — pick exactly one:
+  noun, verb_transitive (他動詞, takes direct object), verb_intransitive (自動詞, no direct object),
+  verb (when trans/intrans is ambiguous), adj_i (い形), adj_na (な形), adverb, particle, expression
+
+CATEGORY — pick exactly one:
+  animals, nature, colors, weather, time, food, transport, family, body,
+  school, home, work, places, numbers, emotions, actions, sports, culture, other
+
+Return ONLY valid JSON, no backticks, no extra text:
+{"words":[{"id":123,"es":"...","ca":"...","word_type":"noun","category":"food"},...]}
+
+Words:
 ${wordList}`
 
     const res = await fetch(
@@ -68,7 +97,7 @@ ${wordList}`
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
       },
     )
     if (!res.ok) continue
@@ -77,11 +106,14 @@ ${wordList}`
     try {
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed = JSON.parse(clean)
-      for (const t of parsed.translations ?? []) {
-        if (t.id && t.es) result.set(t.id, { es: String(t.es), ca: String(t.ca ?? t.es) })
+      for (const t of (parsed.words ?? parsed.translations ?? [])) {
+        if (!t.id || !t.es) continue
+        const wt = typeof t.word_type === 'string' && VALID_WORD_TYPES.has(t.word_type) ? t.word_type : null
+        const cat = typeof t.category === 'string' && VALID_CATEGORIES.has(t.category) ? t.category : null
+        result.set(t.id, { es: String(t.es), ca: String(t.ca ?? t.es), category: cat, word_type: wt })
       }
     } catch {
-      // Skip failed batch — meanings will remain null
+      // Skip failed batch — fields will remain null
     }
   }
   return result
@@ -174,16 +206,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ count: 0, message: 'No hay vocabulario que cumpla el nivel SRS mínimo.' })
     }
 
-    // Translate to ES + CA using Gemini
-    let translations = new Map<number, { es: string; ca: string }>()
+    // Translate to ES + CA and classify (category + word_type) using Gemini
+    let enriched = new Map<number, EnrichResult>()
     if (geminiKey) {
-      const toTranslate = eligible.map(e => ({ id: e.wanikani_id, meaning_en: e.meaning_en }))
-      translations = await translateBatch(toTranslate, geminiKey)
+      const toEnrich = eligible.map(e => ({
+        id: e.wanikani_id, word: e.word, reading: e.reading, meaning_en: e.meaning_en,
+      }))
+      enriched = await enrichBatch(toEnrich, geminiKey)
     }
 
     // Build rows for upsert
     const rows = eligible.map(e => {
-      const t = translations.get(e.wanikani_id)
+      const t = enriched.get(e.wanikani_id)
       return {
         user_id: user.id,
         wanikani_id: e.wanikani_id,
@@ -192,6 +226,8 @@ export async function POST(req: NextRequest) {
         meaning_en: e.meaning_en,
         meaning_es: t?.es ?? null,
         meaning_ca: t?.ca ?? null,
+        category: t?.category ?? null,
+        word_type: t?.word_type ?? null,
         level: e.level,
         srs_stage: e.srs_stage,
         synced_at: new Date().toISOString(),

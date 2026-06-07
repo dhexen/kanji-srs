@@ -226,6 +226,8 @@ Hay dos casillas para elegir qué vocabulario usa la IA:
 
 Si marcas las dos, el texto mezcla ambos vocabularios. Si marcas solo una, usa únicamente ese vocabulario. Como WaniKani incluye palabras muy formales, técnicas o antiguas, la IA solo las usa cuando encajan en el contexto y el registro del texto.
 
+Según el **tema** que elijas, la app prioriza las palabras cuya categoría encaja con ese tema (tanto del vocabulario de la página como del de WaniKani), para que el texto sea más coherente. El vocabulario de WaniKani se clasifica por categoría al sincronizarlo; si lo importaste antes de esta función, vuelve a sincronizar WaniKani (Mi Perfil → Cuenta) para que se clasifique.
+
 ---
 
 ### Votar imágenes de vocabulario

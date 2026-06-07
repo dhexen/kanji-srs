@@ -17,6 +17,24 @@ const TOPICS = [
   { v: 'clima y tiempo', e: '⛅' }, { v: 'historia y cultura japonesa', e: '⛩️' },
 ]
 
+// Maps each reading topic to the vocabulary categories (same taxonomy as the
+// page vocab and the classified WaniKani vocab) that fit it, so generation can
+// prioritize topic-relevant words. Empty/unknown topic ⇒ no filtering.
+const TOPIC_CATEGORIES: Record<string, string[]> = {
+  'vida cotidiana':            ['home', 'actions', 'time', 'emotions'],
+  'viajes y transporte':       ['transport', 'places'],
+  'comida y restaurantes':     ['food'],
+  'naturaleza y estaciones':   ['nature', 'weather', 'animals'],
+  'escuela y estudio':         ['school'],
+  'trabajo y negocios':        ['work'],
+  'familia y amigos':          ['family', 'emotions'],
+  'ciudad y compras':          ['places', 'home'],
+  'salud y cuerpo':            ['body'],
+  'ocio y entretenimiento':    ['sports', 'culture', 'actions'],
+  'clima y tiempo':            ['weather', 'time'],
+  'historia y cultura japonesa': ['culture'],
+}
+
 const JLPT_LEVELS = [
   { v: 'N5', l: '🟢 Hasta N5', d: 'partículas, です, ます, verbos simples, adjetivos básicos' },
   { v: 'N4', l: '🔵 Hasta N4', d: 'forma て, たい, condicional ば/たら, potencial, ている' },
@@ -88,6 +106,33 @@ function shuffleArray<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5)
 }
 
+// Order vocabulary so topic-relevant words come first, then not-recently-used
+// ones, shuffling within each bucket for variety. Falls back to filling with the
+// rest so a narrow topic never yields an empty list. Empty topicCats ⇒ no topic
+// preference (just fresh-first, the previous behaviour).
+function pickVocabByTopic<T>(
+  items: T[],
+  getCategory: (x: T) => string | null | undefined,
+  getJp: (x: T) => string,
+  recentlyUsed: Set<string>,
+  topicCats: Set<string>,
+  limit: number,
+): T[] {
+  const isTopical = (x: T) => {
+    if (topicCats.size === 0) return true
+    const c = getCategory(x)
+    return !!c && topicCats.has(c)
+  }
+  // Buckets: 0 topical+fresh, 1 topical+used, 2 other+fresh, 3 other+used
+  const buckets: T[][] = [[], [], [], []]
+  for (const it of items) {
+    const t = isTopical(it) ? 0 : 1
+    const u = recentlyUsed.has(getJp(it)) ? 1 : 0
+    buckets[t * 2 + u].push(it)
+  }
+  return buckets.flatMap(b => shuffleArray(b)).slice(0, limit)
+}
+
 // ─── Types for grammar analysis ───────────────────────────────────────────────
 
 interface GrammarPoint {
@@ -127,16 +172,17 @@ export default function ContextClient() {
   const [useWkVocab, setUseWkVocab] = useState(() => {
     try { return localStorage.getItem('ctx_use_wk_vocab') === 'true' } catch { return false }
   })
-  const [wkVocab, setWkVocab] = useState<{ jp: string; reading: string; meaning: string }[]>([])
+  const [wkVocab, setWkVocab] = useState<{ jp: string; reading: string; meaning: string; category: string | null }[]>([])
 
   const hasWaniKani = Boolean(state.waniKaniApiKey)
   const activeWords = state.db.filter(i => i.status === 'active')
   const userVocabSet = useMemo(() => new Set(state.db.map(i => i.kanji)), [state.db])
 
-  // Load WaniKani vocabulary when the toggle is on
+  // Load WaniKani vocabulary when the toggle is on. Fetch a larger sample so
+  // there are enough candidates to filter by the chosen topic.
   useEffect(() => {
     if (!hasWaniKani || !useWkVocab) return
-    fetchWaniKaniVocabSample(40).then(items => {
+    fetchWaniKaniVocabSample(80).then(items => {
       setWkVocab(items.map(w => ({
         jp: w.word,
         reading: w.reading,
@@ -144,6 +190,7 @@ export default function ContextClient() {
           lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
           lang === 'en' ? w.meaning_en :
           (w.meaning_es ?? w.meaning_en),
+        category: w.category,
       })))
     }).catch(() => {})
   }, [hasWaniKani, useWkVocab, lang])
@@ -185,17 +232,19 @@ export default function ContextClient() {
         state.contextTexts.slice(0, 5).flatMap(ct => ct.words_used ?? [])
       )
 
+      // Categories that fit the chosen topic — used to prioritize relevant words.
+      const topicCats = new Set(TOPIC_CATEGORIES[topic] ?? [])
+
       // Own (page) vocabulary — only when that source is selected.
       let vocab = ''
       if (wantOwn) {
-        const freshWords = activeWords.filter(w => !recentlyUsed.has(w.jp))
-        const usedWords = activeWords.filter(w => recentlyUsed.has(w.jp))
-        const selected = [...shuffleArray(freshWords), ...shuffleArray(usedWords)].slice(0, 20)
+        const selected = pickVocabByTopic(activeWords, w => w.category, w => w.jp, recentlyUsed, topicCats, 20)
         vocab = selected.map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
       }
 
       const wkVocabText = wantWk && wkVocab.length > 0
-        ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 15).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+        ? pickVocabByTopic(wkVocab, w => w.category, w => w.jp, recentlyUsed, topicCats, 15)
+            .map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
         : ''
 
       if (!vocab && !wkVocabText) {

@@ -554,27 +554,43 @@ export interface WaniKaniVocabItem {
   meaning_en: string
   meaning_es: string | null
   meaning_ca: string | null
+  category: string | null
+  word_type: string | null
   level: number
   srs_stage: number
 }
 
 export async function fetchWaniKaniVocabSample(limit = 40): Promise<WaniKaniVocabItem[]> {
   const user = await requireUser()
-  const { data, error } = await supabase
-    .from('wanikani_user_vocab')
-    .select('wanikani_id, word, reading, meaning_en, meaning_es, meaning_ca, level, srs_stage')
-    .eq('user_id', user.id)
-    .order('srs_stage', { ascending: false })
-    .limit(limit * 3) // fetch extra to allow random sampling
+
+  async function run(columns: string) {
+    return supabase
+      .from('wanikani_user_vocab')
+      .select(columns)
+      .eq('user_id', user.id)
+      .order('srs_stage', { ascending: false })
+      .limit(limit * 3) // fetch extra to allow random sampling
+  }
+
+  // category/word_type may not exist yet (migration 024) — fall back gracefully.
+  let { data, error } = await run('wanikani_id, word, reading, meaning_en, meaning_es, meaning_ca, category, word_type, level, srs_stage')
+  if (error && isSchemaUnavailable(error)) {
+    ({ data, error } = await run('wanikani_id, word, reading, meaning_en, meaning_es, meaning_ca, level, srs_stage'))
+  }
 
   if (error) {
     if (isSchemaUnavailable(error)) return []
     console.error('fetchWaniKaniVocabSample:', error)
     return []
   }
-  if (!data?.length) return []
-  // Random sample
-  return [...data].sort(() => Math.random() - 0.5).slice(0, limit)
+  const rows = (data ?? []) as unknown as Record<string, unknown>[]
+  if (!rows.length) return []
+  // Random sample, ensuring category/word_type are present (null if column missing)
+  return [...rows].sort(() => Math.random() - 0.5).slice(0, limit).map(d => ({
+    category: null,
+    word_type: null,
+    ...d,
+  })) as unknown as WaniKaniVocabItem[]
 }
 
 export async function upsertWaniKaniVocab(

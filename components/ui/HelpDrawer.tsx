@@ -241,6 +241,7 @@ function HelpContext() {
       </div>
       <Tip>Necesitas tener vocabulario activo en tus repasos para que los textos sean relevantes a tu nivel.</Tip>
       <Tip>Con las casillas <strong>"Incluir vocabulario"</strong> y <strong>"Incluir vocabulario de WaniKani"</strong> eliges la fuente: marca las dos para mezclarlas, o solo una para usar únicamente ese vocabulario. El vocabulario de WaniKani (formal/técnico/antiguo) se usa solo cuando encaja en el contexto.</Tip>
+      <Tip>Según el tema elegido, se priorizan las palabras cuya categoría encaja con él. El vocabulario de WaniKani se clasifica al sincronizar; si lo importaste antes, vuelve a sincronizarlo para clasificarlo.</Tip>
     </div>
   )
 }

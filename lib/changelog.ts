@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'Lecturas IA por tema + vocabulario de WaniKani clasificado',
+        description: 'Al sincronizar WaniKani, ahora cada palabra se clasifica por categoría y tipo (igual que el vocabulario de la página). Las Lecturas IA usan esa categoría para priorizar las palabras (de la página y de WaniKani) que encajan con el tema elegido, haciendo los textos más coherentes. Vuelve a sincronizar WaniKani para clasificar el vocabulario que ya tenías importado.',
+      },
+      {
+        type: 'improvement',
         title: 'Lecturas IA: kanji completos y elección de vocabulario',
         description: 'Los textos de Lecturas IA ahora escriben las palabras con sus kanji correctos y completos (con furigana sobre todos). Además hay dos casillas: "Incluir vocabulario" (el de la página) e "Incluir vocabulario de WaniKani". Marca las dos para mezclar ambos vocabularios o solo una para usar únicamente ese. El vocabulario de WaniKani, que puede ser muy formal o antiguo, se usa solo cuando encaja en el contexto.',
       },
