@@ -9,6 +9,7 @@ import type { GrammarSrsStat } from '@/lib/grammar-srs'
 import { getSrsLevelLabel } from '@/lib/grammar-srs'
 import GrammarExamples from './GrammarExamples'
 import GrammarPractice from './GrammarPractice'
+import GrammarSentenceExamples from './GrammarSentenceExamples'
 
 function getLang3<T extends { es: T[keyof T]; ca: T[keyof T]; en: T[keyof T] }>(obj: T, lang: Lang) {
   if (lang === 'ca') return obj.ca
@@ -302,6 +303,9 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         activeVocab={activeVocab}
         canEdit={canEdit}
       />
+
+      {/* Seeded practice sentences as read-only examples */}
+      <GrammarSentenceExamples grammarId={grammar.id} lang={lang} />
 
       {/* Remove from SRS — shown only when in SRS, at the bottom to avoid accidental taps */}
       {srsStat && onRemoveFromSrs && (

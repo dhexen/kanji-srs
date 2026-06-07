@@ -193,6 +193,7 @@ export async function POST(req: NextRequest) {
         grammar_id: next.id,
         error: `[${usedModel}] ${errMsg}`,
         retry_after_ms: retryAfterMs,
+        model_used: usedModel,
       })
     }
 
@@ -252,6 +253,7 @@ export async function POST(req: NextRequest) {
       grammar_id: next.id,
       sentences_added: rows.length,
       new_count: currentCount + rows.length,
+      model_used: usedModel,
     })
   } catch (e) {
     return adminJsonError(e)
