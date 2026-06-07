@@ -205,18 +205,22 @@ export default function GrammarSeedClient() {
     }
   }
 
-  async function handleClearErrors() {
+  async function handleClearErrors(action: 'clear_errors' | 'clear_permanent_errors' | 'clear_all_errors') {
     const token = await getToken()
     await fetch('/api/admin/seed-grammar', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'clear_errors' }),
+      body: JSON.stringify({ action }),
     })
     setState(prev => {
       if (!prev) return prev
       return {
         ...prev,
-        grammars: prev.grammars.map(g => ({ ...g, error: null, is_permanent: false })),
+        grammars: prev.grammars.map(g => ({
+          ...g,
+          error: (action === 'clear_all_errors' || (action === 'clear_errors' && !g.is_permanent) || (action === 'clear_permanent_errors' && g.is_permanent)) ? null : g.error,
+          is_permanent: (action === 'clear_all_errors' || action === 'clear_permanent_errors') ? false : g.is_permanent,
+        })),
       }
     })
   }
@@ -268,10 +272,18 @@ export default function GrammarSeedClient() {
           </button>
           {errors > 0 && !state.running && (
             <button
-              onClick={handleClearErrors}
+              onClick={() => handleClearErrors('clear_errors')}
               className="px-3 py-1.5 text-sm rounded border border-slate-300 hover:bg-slate-50"
             >
               Limpiar errores
+            </button>
+          )}
+          {permErrors > 0 && !state.running && (
+            <button
+              onClick={() => handleClearErrors('clear_permanent_errors')}
+              className="px-3 py-1.5 text-sm rounded border border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Reintentar permanentes ({permErrors})
             </button>
           )}
           {state.running ? (

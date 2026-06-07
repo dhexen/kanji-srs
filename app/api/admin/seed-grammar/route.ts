@@ -86,6 +86,10 @@ export async function POST(req: NextRequest) {
       ).eq('id', 1)
     } else if (action === 'clear_errors') {
       await service.from('grammar_seed_errors').delete().eq('is_permanent', false)
+    } else if (action === 'clear_permanent_errors') {
+      await service.from('grammar_seed_errors').delete().eq('is_permanent', true)
+    } else if (action === 'clear_all_errors') {
+      await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     }
 
     return NextResponse.json({ ok: true })
