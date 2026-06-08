@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
@@ -77,6 +77,9 @@ export default function AdminClient() {
   const [fullStats,      setFullStats]      = useState<FullClassifyStats | null>(null)
   const [fullProcessing, setFullProcessing] = useState(false)
   const [fullLastResult, setFullLastResult] = useState<FullClassifyResult | null>(null)
+  const [autoRunning,    setAutoRunning]    = useState(false)
+  const [autoMsg,        setAutoMsg]        = useState('')
+  const autoRunningRef = useRef(false)
   const [showLegacy,     setShowLegacy]     = useState(false)
 
   // Tabs
@@ -143,6 +146,9 @@ export default function AdminClient() {
       fetchFullClassifyStats().then(setFullStats).catch(() => {})
     }
   }, [isAdmin, aal])
+
+  // Stop the mass auto-loop if the admin navigates away.
+  useEffect(() => () => { autoRunningRef.current = false }, [])
 
   async function loadSrsIntervals() {
     setSrsIntervalsLoading(true)
@@ -256,25 +262,29 @@ export default function AdminClient() {
     }
   }
 
+  async function runFullBatchOnce() {
+    const result = await runFullClassifyBatch({
+      limit:        35,
+      geminiApiKey: imgGeminiKey || undefined,
+      pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
+    })
+    setFullLastResult(result)
+    const [stats, imgS, clsS] = await Promise.all([
+      fetchFullClassifyStats().catch(() => null),
+      fetchImageStats().catch(() => null),
+      fetchClassifyStats().catch(() => null),
+    ])
+    if (stats) setFullStats(stats)
+    if (imgS)  setImgStats(imgS)
+    if (clsS)  setClsStats(clsS)
+    return { result, stats }
+  }
+
   async function handleFullClassifyBatch() {
     setFullProcessing(true)
     setFullLastResult(null)
     try {
-      const result = await runFullClassifyBatch({
-        limit:        35,
-        geminiApiKey: imgGeminiKey || undefined,
-        pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
-      })
-      setFullLastResult(result)
-      // Refresh all stat blocks
-      const [stats, imgS, clsS] = await Promise.all([
-        fetchFullClassifyStats().catch(() => null),
-        fetchImageStats().catch(() => null),
-        fetchClassifyStats().catch(() => null),
-      ])
-      if (stats) setFullStats(stats)
-      if (imgS)  setImgStats(imgS)
-      if (clsS)  setClsStats(clsS)
+      const { result } = await runFullBatchOnce()
       showToast(
         result.processed === 0
           ? 'No quedan palabras pendientes'
@@ -286,6 +296,53 @@ export default function AdminClient() {
     } finally {
       setFullProcessing(false)
     }
+  }
+
+  // Auto loop: keep processing 35-word batches until nothing is pending, the
+  // admin stops it, or too many consecutive errors occur. Each batch re-reads
+  // the pending set, so it always continues with whatever is left.
+  async function handleAutoClassify() {
+    if (autoRunningRef.current) return
+    autoRunningRef.current = true
+    setAutoRunning(true)
+    setFullLastResult(null)
+    let totalProcessed = 0
+    let errors = 0
+    const MAX_ERRORS = 4
+    try {
+      while (autoRunningRef.current) {
+        let res: Awaited<ReturnType<typeof runFullBatchOnce>>
+        try {
+          res = await runFullBatchOnce()
+        } catch (e) {
+          errors++
+          if (errors > MAX_ERRORS) {
+            setAutoMsg(`Detenido tras varios errores. Procesadas ${totalProcessed}. Vuelve a lanzarlo para continuar.`)
+            showToast(e instanceof Error ? e.message : 'Error en clasificación', 'error')
+            break
+          }
+          setAutoMsg(`Error temporal, reintentando (${errors}/${MAX_ERRORS})…`)
+          await new Promise(r => setTimeout(r, 1500 * errors))
+          continue
+        }
+        errors = 0
+        totalProcessed += res.result.processed
+        const pending = res.stats?.pending ?? 0
+        if (res.result.processed === 0 || pending === 0) {
+          setAutoMsg(`✓ Completado · ${totalProcessed} palabras procesadas`)
+          break
+        }
+        setAutoMsg(`Procesando en masa… ${totalProcessed} hechas · ${pending} pendientes`)
+      }
+    } finally {
+      autoRunningRef.current = false
+      setAutoRunning(false)
+    }
+  }
+
+  function handleStopAuto() {
+    autoRunningRef.current = false
+    setAutoMsg('Deteniendo…')
   }
 
   async function handleClassifyBatch() {
@@ -766,7 +823,7 @@ export default function AdminClient() {
                 ✨ Clasificación completa — 1 llamada Gemini
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta antónimos para verbos y adjetivos. Procesa 35 palabras a la vez.
+                Una sola consulta IA asigna tipo gramatical, categoría semántica, imagen (Pexels) y detecta antónimos para verbos y adjetivos. Procesa en lotes de 35; con "Procesar todas en masa" se repiten lotes automáticamente hasta no dejar pendientes.
               </p>
             </div>
 
@@ -808,21 +865,50 @@ export default function AdminClient() {
               </div>
             )}
 
-            {/* Action button */}
-            <button
-              type="button"
-              disabled={fullProcessing || fullStats?.pending === 0}
-              onClick={handleFullClassifyBatch}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-sm"
-            >
-              {fullProcessing
-                ? '⏳ Clasificando…'
-                : fullStats?.pending === 0
-                ? '✓ Todo clasificado y antónimos detectados'
-                : fullStats && fullStats.antonym_todo > 0 && fullStats.pending === fullStats.antonym_todo
-                ? `⇄ Detectar antónimos (${Math.min(35, fullStats.antonym_todo)} verbos/adj.)`
-                : `✨ Clasificar lote (${Math.min(35, fullStats?.pending ?? 0)} palabras)`}
-            </button>
+            {/* Action buttons */}
+            <div className="space-y-2">
+              {/* Mass auto-process: loops batches until nothing is pending */}
+              {autoRunning ? (
+                <button
+                  type="button"
+                  onClick={handleStopAuto}
+                  className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm transition shadow-sm"
+                >
+                  ⏹ Detener
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={fullProcessing || fullStats?.pending === 0}
+                  onClick={handleAutoClassify}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-sm"
+                >
+                  {fullStats?.pending === 0
+                    ? '✓ Todo clasificado y antónimos detectados'
+                    : `🚀 Procesar todas en masa (${fullStats?.pending ?? 0} pendientes)`}
+                </button>
+              )}
+
+              {(autoRunning || autoMsg) && (
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400">{autoMsg}</p>
+              )}
+
+              {/* Single batch (manual, 35 at a time) */}
+              {!autoRunning && fullStats?.pending !== 0 && (
+                <button
+                  type="button"
+                  disabled={fullProcessing}
+                  onClick={handleFullClassifyBatch}
+                  className="w-full py-2 bg-white dark:bg-slate-700 border border-indigo-200 dark:border-slate-600 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-600 disabled:opacity-40 font-semibold rounded-xl text-xs transition"
+                >
+                  {fullProcessing
+                    ? '⏳ Clasificando…'
+                    : fullStats && fullStats.antonym_todo > 0 && fullStats.pending === fullStats.antonym_todo
+                    ? `⇄ Detectar antónimos (${Math.min(35, fullStats.antonym_todo)} verbos/adj.)`
+                    : `✨ Solo un lote (${Math.min(35, fullStats?.pending ?? 0)} palabras)`}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* ── SECCIONES INDIVIDUALES (avanzado / legacy) ──────────────────── */}
