@@ -110,22 +110,35 @@ Words to classify:
 ${wordList}`
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0 },
-    }),
-  })
-
-  if (!res.ok) {
+  // Retry transient failures (429 rate limit, 5xx) with exponential backoff so a
+  // momentary rate-limit hit doesn't fail the whole batch.
+  const MAX_ATTEMPTS = 4
+  let text = ''
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
+      })
+    } catch (e) {
+      if (attempt === MAX_ATTEMPTS) throw e
+      await new Promise(r => setTimeout(r, 2000 * attempt))
+      continue
+    }
+    if (res.ok) {
+      const data = await res.json()
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      break
+    }
     const data = await res.json().catch(() => ({}))
-    throw new Error(`Gemini ${res.status}: ${(data as { error?: { message?: string } })?.error?.message ?? res.statusText}`)
+    const msg = (data as { error?: { message?: string } })?.error?.message ?? res.statusText
+    const transient = res.status === 429 || res.status >= 500
+    if (!transient || attempt === MAX_ATTEMPTS) throw new Error(`Gemini ${res.status}: ${msg}`)
+    // Rate-limited: wait longer (Gemini free tier is a few requests per minute).
+    await new Promise(r => setTimeout(r, (res.status === 429 ? 20000 : 3000) * attempt))
   }
-
-  const data = await res.json()
-  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
   if (!text) throw new Error('Gemini devolvió respuesta vacía')
 
   const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '')

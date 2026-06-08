@@ -306,9 +306,14 @@ export default function AdminClient() {
     autoRunningRef.current = true
     setAutoRunning(true)
     setFullLastResult(null)
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+    // Pace between batches to stay under Gemini's requests-per-minute limit
+    // (free tier is only a few per minute). The endpoint also retries on 429.
+    const BATCH_DELAY_MS = 6000
+    const RATE_LIMIT_WAIT_MS = 45000
     let totalProcessed = 0
     let errors = 0
-    const MAX_ERRORS = 4
+    const MAX_ERRORS = 6
     try {
       while (autoRunningRef.current) {
         let res: Awaited<ReturnType<typeof runFullBatchOnce>>
@@ -321,8 +326,14 @@ export default function AdminClient() {
             showToast(e instanceof Error ? e.message : 'Error en clasificación', 'error')
             break
           }
-          setAutoMsg(`Error temporal, reintentando (${errors}/${MAX_ERRORS})…`)
-          await new Promise(r => setTimeout(r, 1500 * errors))
+          const msg = e instanceof Error ? e.message : ''
+          const rateLimited = /429|quota|rate|resource exhausted|exceeded/i.test(msg)
+          const wait = rateLimited ? RATE_LIMIT_WAIT_MS : 3000 * errors
+          setAutoMsg(rateLimited
+            ? `Límite de Gemini alcanzado, esperando ${Math.round(wait / 1000)}s para reanudar… (${errors}/${MAX_ERRORS})`
+            : `Error temporal, reintentando en ${Math.round(wait / 1000)}s… (${errors}/${MAX_ERRORS})`)
+          // Sleep in 1s slices so "Detener" responds quickly.
+          for (let w = 0; w < wait && autoRunningRef.current; w += 1000) await sleep(Math.min(1000, wait - w))
           continue
         }
         errors = 0
@@ -332,7 +343,9 @@ export default function AdminClient() {
           setAutoMsg(`✓ Completado · ${totalProcessed} palabras procesadas`)
           break
         }
-        setAutoMsg(`Procesando en masa… ${totalProcessed} hechas · ${pending} pendientes`)
+        setAutoMsg(`Procesando en masa… ${totalProcessed} hechas · ${pending} pendientes · pausa entre lotes`)
+        // Throttle before the next batch (interruptible by "Detener").
+        for (let w = 0; w < BATCH_DELAY_MS && autoRunningRef.current; w += 1000) await sleep(Math.min(1000, BATCH_DELAY_MS - w))
       }
     } finally {
       autoRunningRef.current = false
