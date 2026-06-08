@@ -320,18 +320,26 @@ export default function AdminClient() {
         try {
           res = await runFullBatchOnce()
         } catch (e) {
-          errors++
-          if (errors > MAX_ERRORS) {
-            setAutoMsg(`Detenido tras varios errores. Procesadas ${totalProcessed}. Vuelve a lanzarlo para continuar.`)
-            showToast(e instanceof Error ? e.message : 'Error en clasificación', 'error')
+          const msg = e instanceof Error ? e.message : String(e)
+          const rateLimited = /429|quota|rate|resource exhausted|exceeded/i.test(msg)
+          // Config/auth errors (missing key, no permission, bad request) won't fix
+          // themselves — stop immediately and show the real message.
+          const permanent = !rateLimited && /falta|api key|no autenticado|sesión|sesion|permiso|forbidden|unauthor|\b40[0-3]\b/i.test(msg)
+          if (permanent) {
+            setAutoMsg(`Detenido: ${msg}`)
+            showToast(msg, 'error')
             break
           }
-          const msg = e instanceof Error ? e.message : ''
-          const rateLimited = /429|quota|rate|resource exhausted|exceeded/i.test(msg)
+          errors++
+          if (errors > MAX_ERRORS) {
+            setAutoMsg(`Detenido tras varios errores. Procesadas ${totalProcessed}. Último error: ${msg}`)
+            showToast(msg, 'error')
+            break
+          }
           const wait = rateLimited ? RATE_LIMIT_WAIT_MS : 3000 * errors
           setAutoMsg(rateLimited
             ? `Límite de Gemini alcanzado, esperando ${Math.round(wait / 1000)}s para reanudar… (${errors}/${MAX_ERRORS})`
-            : `Error temporal, reintentando en ${Math.round(wait / 1000)}s… (${errors}/${MAX_ERRORS})`)
+            : `Error temporal (${msg}). Reintento en ${Math.round(wait / 1000)}s… (${errors}/${MAX_ERRORS})`)
           // Sleep in 1s slices so "Detener" responds quickly.
           for (let w = 0; w < wait && autoRunningRef.current; w += 1000) await sleep(Math.min(1000, wait - w))
           continue
