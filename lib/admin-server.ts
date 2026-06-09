@@ -164,14 +164,21 @@ export async function listAdminUsers(
 
   const matchedIds = new Set(filtered.map(u => u.id))
 
-  // Word counts — only for matched users
+  // Word counts (active words only) — paginated so we don't hit PostgREST's
+  // default 1000-row cap, which silently undercounted when many users had
+  // progress rows.
   const wordCounts: Record<string, number> = {}
-  const { data: vocabRows } = await service
-    .from('user_vocab_progress')
-    .select('user_id')
-    .in('user_id', [...matchedIds])
-  for (const row of vocabRows || []) {
-    wordCounts[row.user_id] = (wordCounts[row.user_id] || 0) + 1
+  const idList = [...matchedIds]
+  for (let from = 0; ; from += 1000) {
+    const { data: vocabRows, error: vErr } = await service
+      .from('user_vocab_progress')
+      .select('user_id')
+      .eq('status', 'active')
+      .in('user_id', idList)
+      .range(from, from + 999)
+    if (vErr || !vocabRows || vocabRows.length === 0) break
+    for (const row of vocabRows) wordCounts[row.user_id] = (wordCounts[row.user_id] || 0) + 1
+    if (vocabRows.length < 1000) break
   }
 
   const { data: legacyRows } = await service
@@ -180,7 +187,9 @@ export async function listAdminUsers(
     .in('user_id', [...matchedIds])
   for (const row of legacyRows || []) {
     if (!wordCounts[row.user_id] && Array.isArray(row.vocab_db)) {
-      wordCounts[row.user_id] = row.vocab_db.length
+      wordCounts[row.user_id] = row.vocab_db.filter(
+        (it: { status?: string }) => !it?.status || it.status === 'active',
+      ).length
     }
   }
 
