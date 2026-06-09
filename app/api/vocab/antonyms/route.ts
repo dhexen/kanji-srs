@@ -34,7 +34,7 @@ export async function GET() {
       const msg = (pairsErr.message ?? '').toLowerCase()
       if (pairsErr.code === '42P01' || pairsErr.code === 'PGRST205'
           || msg.includes('does not exist') || msg.includes('schema cache')) {
-        return NextResponse.json({ pairs: [] })
+        return NextResponse.json({ pairs: [] }, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
       }
       return NextResponse.json({ error: pairsErr.message }, { status: 500 })
     }
@@ -89,7 +89,7 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json({ pairs: result })
+    return NextResponse.json({ pairs: result }, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Error desconocido' },

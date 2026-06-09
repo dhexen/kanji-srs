@@ -363,6 +363,8 @@ export default function VocabAntonyms() {
         setAutoDetectMsg(`✓ Completado · ${totalAdded} pares nuevos · ${scanned} palabras · IA propuso ${totalProposed}, existían ${totalMatched}, ya registrados ${totalExisting}`)
         if (totalAdded > 0) showToast(`✓ ${totalAdded} pares de contrarios añadidos`, 'success')
       }
+      // Final refresh so the list is guaranteed current when it ends.
+      try { setPairs(await fetchAntonymPairs()) } catch { /* ignore */ }
     } catch (e: unknown) {
       setAutoDetectMsg(e instanceof Error ? e.message : 'Error en la detección automática')
     } finally {
