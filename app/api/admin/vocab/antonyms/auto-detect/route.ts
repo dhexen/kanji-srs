@@ -3,90 +3,76 @@ export const dynamic = 'force-dynamic'
 /**
  * POST /api/admin/vocab/antonyms/auto-detect
  *
- * Scans the vocabulary table for words that could have antonym pairs but
- * don't yet. Sends them to Gemini in batches and stores confirmed pairs.
- *
- * Strategy:
- *  1. Fetch all adjectives (adj_i, adj_na) and optionally verbs from vocab.
- *  2. Remove words that already have an antonym pair registered.
- *  3. Send the remaining words to Gemini: "from this list, identify antonym pairs".
- *     Gemini only returns pairs where BOTH words exist in the provided list.
- *  4. Insert new pairs into vocab_antonyms.
+ * For each candidate word, asks Gemini for its standard antonym (a Japanese
+ * word), then pairs it ONLY if that antonym already exists somewhere in the
+ * vocabulary table. This works regardless of whether both words land in the
+ * same batch (the old approach only paired words present in the same sample,
+ * so it almost never found anything in a large vocabulary).
  *
  * Body params:
- *   word_types?: string[]   — default ['adj_i','adj_na','verb','verb_transitive','verb_intransitive']
- *   limit?:      number     — max words to consider per run (default 200)
+ *   limit?:      number   — max candidate words to consider per run (default 150)
  *   geminiApiKey?: string
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
 
-const DEFAULT_LIMIT = 400
+// One Gemini call per request (page) keeps each request short so it never hits
+// the serverless timeout; the client pages through the whole vocabulary.
+const DEFAULT_LIMIT = 50
+const GEMINI_BATCH = 50
 
-interface GeminiPair {
-  word_a: string
-  word_b: string
-}
+interface AntonymGuess { word: string; antonym: string | null }
 
-async function detectAntonymsWithGemini(
+async function geminiAntonyms(
   words: Array<{ word: string; reading: string; meaning: string }>,
   apiKey: string,
-): Promise<GeminiPair[]> {
-  const wordSet   = new Set(words.map(w => w.word))
+): Promise<AntonymGuess[]> {
   const wordLines = words.map(w => `${w.word} (${w.reading}) = ${w.meaning}`).join('\n')
-
-  const prompt = `You are given a list of Japanese words. Your task is to identify antonym pairs where BOTH words appear in the list.
+  const prompt = `For each Japanese word below, give its single most standard, common antonym (opposite) as ONE Japanese word in dictionary form, or null if it has no clear common antonym.
 
 Rules:
-- Only return pairs where BOTH words are from the provided list (exact match).
-- Each word appears in at most one pair.
-- Focus on clear, standard opposites: 高い↔低い, 大きい↔小さい, 古い↔新しい, 入る↔出る, 上げる↔下げる, etc.
-- Do NOT create pairs for words without a clear antonym in the list.
-- Return ONLY a valid JSON array of objects with "word_a" and "word_b" keys.
-- If no pairs exist, return an empty array [].
+- The antonym must be a real, common Japanese word (dictionary form). Examples: 高い→低い, 大きい→小さい, 新しい→古い, 入る→出る, 上げる→下げる, 朝→夜, 男→女, 多い→少ない.
+- Use null for words without a clear opposite (most nouns, names, etc.).
+- Return ONLY a valid JSON array, no markdown:
+[{"word":"高い","antonym":"低い"},{"word":"犬","antonym":null}]
 
-Example output: [{"word_a":"高い","word_b":"低い"},{"word_a":"古い","word_b":"新しい"}]
-
-Word list:
-${wordLines}
-
-JSON pairs:`
+Words:
+${wordLines}`
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0 },
-    }),
-  })
-
-  if (!res.ok) {
+  const MAX_ATTEMPTS = 4
+  let text = ''
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
+      })
+    } catch (e) {
+      if (attempt === MAX_ATTEMPTS) throw e
+      await new Promise(r => setTimeout(r, 2000 * attempt)); continue
+    }
+    if (res.ok) {
+      const data = await res.json()
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      break
+    }
     const data = await res.json().catch(() => ({}))
-    throw new Error(`Gemini ${res.status}: ${(data as { error?: { message?: string } })?.error?.message ?? res.statusText}`)
+    const msg = (data as { error?: { message?: string } })?.error?.message ?? res.statusText
+    const transient = res.status === 429 || res.status >= 500
+    if (!transient || attempt === MAX_ATTEMPTS) throw new Error(`Gemini ${res.status}: ${msg}`)
+    await new Promise(r => setTimeout(r, (res.status === 429 ? 15000 : 3000) * attempt))
   }
-
-  const data = await res.json()
-  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw new Error('Gemini devolvió respuesta vacía')
-
+  if (!text) return []
   const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '')
-  let pairs: GeminiPair[]
   try {
-    pairs = JSON.parse(clean) as GeminiPair[]
+    return JSON.parse(clean) as AntonymGuess[]
   } catch {
     const match = clean.match(/\[[\s\S]*\]/)
-    if (match) pairs = JSON.parse(match[0]) as GeminiPair[]
-    else return []
+    return match ? (JSON.parse(match[0]) as AntonymGuess[]) : []
   }
-
-  // Safety: only keep pairs where both words are in the original list
-  return pairs.filter(
-    p => typeof p.word_a === 'string' && typeof p.word_b === 'string' &&
-         wordSet.has(p.word_a) && wordSet.has(p.word_b) &&
-         p.word_a !== p.word_b,
-  )
 }
 
 export async function POST(request: NextRequest) {
@@ -95,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const limit = Math.min(Math.max(1, Number(body.limit) || DEFAULT_LIMIT), 1000)
+    const offset = Math.max(0, Number(body.offset) || 0)
 
     const geminiApiKey = (typeof body.geminiApiKey === 'string' && body.geminiApiKey.trim())
       ? body.geminiApiKey.trim()
@@ -102,86 +89,102 @@ export async function POST(request: NextRequest) {
 
     if (!geminiApiKey) throw new AdminApiError('Falta la Gemini API Key.', 400)
 
-    // 1. Fetch candidate words — all types, no filter (antonyms exist across nouns, adj, verbs)
-    const { data: vocab, error: fetchErr } = await service
-      .from('vocabulary')
-      .select('word, reading, meaning_es')
-      .limit(limit)
-
-    if (fetchErr) throw new AdminApiError(fetchErr.message, 500)
-    if (!vocab || vocab.length === 0) {
-      return NextResponse.json({ pairs_added: 0, message: 'No se encontraron palabras con los tipos indicados.' })
-    }
-
-    // 2. Fetch existing antonym pairs to avoid duplicates
-    const allWords = vocab.map((v: { word: string }) => v.word)
-
+    // 1. Existing pairs — to dedupe and skip already-paired words.
     const { data: existingPairs } = await service
       .from('vocab_antonyms')
       .select('word_a, word_b')
-
-    const existingSet = new Set(
-      (existingPairs ?? []).map((p: { word_a: string; word_b: string }) =>
-        [p.word_a, p.word_b].sort().join('||'),
-      ),
+    const existingKeys = new Set(
+      (existingPairs ?? []).map((p: { word_a: string; word_b: string }) => [p.word_a, p.word_b].sort().join('||')),
     )
-
-    // Remove words that already participate in any antonym pair
     const wordsWithPairs = new Set(
       (existingPairs ?? []).flatMap((p: { word_a: string; word_b: string }) => [p.word_a, p.word_b]),
     )
-    const candidates = (vocab as { word: string; reading: string; meaning_es: string }[])
-      .filter(v => !wordsWithPairs.has(v.word))
+
+    // 2. One page of words (curriculum order). Paginated via offset so repeated
+    //    runs advance through the whole vocabulary instead of re-checking the start.
+    const { data: vocab, error: fetchErr } = await service
+      .from('vocabulary')
+      .select('word, reading, meaning_es')
+      .order('grade', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .range(offset, offset + limit - 1)
+    if (fetchErr) throw new AdminApiError(fetchErr.message, 500)
+
+    const rows = (vocab ?? []) as { word: string; reading: string; meaning_es: string }[]
+    const fetched = rows.length
+    const done = fetched < limit  // reached the end of the vocabulary
+
+    const seen = new Set<string>()
+    const candidates: Array<{ word: string; reading: string; meaning: string }> = []
+    for (const v of rows) {
+      if (wordsWithPairs.has(v.word) || seen.has(v.word)) continue
+      seen.add(v.word)
+      candidates.push({ word: v.word, reading: v.reading, meaning: v.meaning_es || '' })
+    }
 
     if (candidates.length === 0) {
       return NextResponse.json({
-        pairs_added: 0,
-        message: 'Todas las palabras ya tienen un par de contrarios registrado.',
+        pairs_added: 0, candidates_checked: 0, fetched, done, next_offset: offset + fetched,
+        message: done ? 'Revisión completada.' : 'En esta página ya estaban todas emparejadas; sigue.',
       })
     }
 
-    // 3. Send all candidates to Gemini in one call so antonym pairs are never split across batches
-    const words = candidates.map(v => ({
-      word:    v.word,
-      reading: v.reading as string,
-      meaning: (v.meaning_es as string) || '',
-    }))
-
-    let pairsAdded = 0
-    const insertedKeys = new Set(existingSet)
-
-    let geminipairs: GeminiPair[]
-    try {
-      geminipairs = await detectAntonymsWithGemini(words, geminiApiKey)
-    } catch (e) {
-      console.error('auto-detect antonyms Gemini error:', e)
-      geminipairs = []
+    // 3. Ask Gemini for each candidate's antonym, in batches.
+    const guesses: AntonymGuess[] = []
+    for (let i = 0; i < candidates.length; i += GEMINI_BATCH) {
+      try {
+        const batch = await geminiAntonyms(candidates.slice(i, i + GEMINI_BATCH), geminiApiKey)
+        guesses.push(...batch)
+      } catch (e) {
+        console.error('auto-detect antonyms Gemini error:', e)
+        // Keep whatever we already have; stop hammering on a hard error.
+        break
+      }
     }
 
-    for (const pair of geminipairs) {
-      const key = [pair.word_a, pair.word_b].sort().join('||')
-      if (insertedKeys.has(key)) continue
+    // 4. Keep only antonyms that actually exist in the vocabulary table.
+    const proposed = guesses
+      .filter(g => g && typeof g.word === 'string' && typeof g.antonym === 'string' && g.word !== g.antonym)
+      .map(g => ({ word: g.word, antonym: (g.antonym as string).trim() }))
+      .filter(g => g.antonym.length > 0)
 
+    const antonymWords = [...new Set(proposed.map(g => g.antonym))]
+    const existsSet = new Set<string>()
+    for (let i = 0; i < antonymWords.length; i += 300) {
+      const { data: found } = await service
+        .from('vocabulary')
+        .select('word')
+        .in('word', antonymWords.slice(i, i + 300))
+      for (const r of (found ?? []) as { word: string }[]) existsSet.add(r.word)
+    }
+
+    // 5. Insert new pairs.
+    let pairsAdded = 0
+    const insertedKeys = new Set(existingKeys)
+    for (const { word, antonym } of proposed) {
+      if (!existsSet.has(antonym)) continue
+      const key = [word, antonym].sort().join('||')
+      if (insertedKeys.has(key)) continue
+      insertedKeys.add(key)  // mark before insert so symmetric guesses don't duplicate
       const { error: insErr } = await service
         .from('vocab_antonyms')
-        .insert({ word_a: pair.word_a, word_b: pair.word_b })
-
+        .insert({ word_a: word, word_b: antonym })
       if (insErr) {
-        if (insErr.code !== '23505') {
-          console.error(`auto-detect insert error ${pair.word_a}↔${pair.word_b}:`, insErr.message)
-        }
+        if (insErr.code !== '23505') console.error(`insert ${word}↔${antonym}:`, insErr.message)
       } else {
         pairsAdded++
-        insertedKeys.add(key)
       }
     }
 
     return NextResponse.json({
       candidates_checked: candidates.length,
       pairs_added: pairsAdded,
+      fetched,
+      done,
+      next_offset: offset + fetched,
       message: pairsAdded > 0
         ? `Se encontraron ${pairsAdded} nuevos pares de contrarios.`
-        : 'No se encontraron nuevos pares de contrarios.',
+        : 'No se encontraron nuevos pares en esta página.',
     })
   } catch (e) {
     return adminJsonError(e)

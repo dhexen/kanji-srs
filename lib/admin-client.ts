@@ -390,6 +390,9 @@ export interface AutoDetectAntonymsResult {
   candidates_checked: number
   pairs_added: number
   message: string
+  fetched?: number
+  done?: boolean
+  next_offset?: number
 }
 
 /**
@@ -399,6 +402,7 @@ export interface AutoDetectAntonymsResult {
 export async function runAutoDetectAntonyms(opts: {
   wordTypes?:    string[]
   limit?:        number
+  offset?:       number
   geminiApiKey?: string
 }): Promise<AutoDetectAntonymsResult> {
   const res = await fetch('/api/admin/vocab/antonyms/auto-detect', {
