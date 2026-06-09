@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic'
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { normalizeGeminiModel } from '@/lib/gemini-models'
 
 const DEFAULT_BATCH = 35
 
@@ -76,6 +77,7 @@ const VALID_CATEGORIES = new Set([
 async function classifyWithGemini(
   words: Array<{ word: string; reading: string; meaning: string }>,
   apiKey: string,
+  model: string,
 ): Promise<GeminiFullResult[]> {
   const wordList = words.map(w => `${w.word} (${w.reading}) = ${w.meaning}`).join('\n')
 
@@ -109,7 +111,7 @@ Respond ONLY with a valid JSON array, no markdown, no extra text:
 Words to classify:
 ${wordList}`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
   // Retry transient failures (429 rate limit, 5xx) with exponential backoff so a
   // momentary rate-limit hit doesn't fail the whole batch.
   const MAX_ATTEMPTS = 4
@@ -237,6 +239,8 @@ export async function POST(request: NextRequest) {
       throw new AdminApiError('Falta la Pexels API Key (pexels.com/api, gratuita).', 400)
     }
 
+    const model = normalizeGeminiModel(typeof body.model === 'string' ? body.model : undefined)
+
     // Fetch words pending any classification
     const { data: pendingVocab, error: fetchErr } = await service
       .from('vocabulary')
@@ -291,7 +295,7 @@ export async function POST(request: NextRequest) {
     // ── Single Gemini call ────────────────────────────────────────────────────
     let classifications: GeminiFullResult[]
     try {
-      classifications = await classifyWithGemini(words, geminiApiKey)
+      classifications = await classifyWithGemini(words, geminiApiKey, model)
     } catch (e) {
       throw new AdminApiError(`Error de Gemini: ${e instanceof Error ? e.message : String(e)}`, 502)
     }

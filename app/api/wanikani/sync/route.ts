@@ -68,6 +68,7 @@ interface EnrichResult {
 async function enrichBatch(
   items: { id: number; word: string; reading: string; meaning_en: string }[],
   geminiKey: string,
+  model: string,
 ): Promise<Map<number, EnrichResult>> {
   const result = new Map<number, EnrichResult>()
   if (!items.length) return result
@@ -93,7 +94,7 @@ Words:
 ${wordList}`
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
   // Fetch user settings for WaniKani key + min SRS stage + Gemini key
   const { data: settings } = await anonClient
     .from('user_settings')
-    .select('wanikani_api_key, wanikani_min_srs_stage, gemini_api_key')
+    .select('wanikani_api_key, wanikani_min_srs_stage, gemini_api_key, gemini_model')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -152,6 +153,7 @@ export async function POST(req: NextRequest) {
   }
   const minStage: number = settings?.wanikani_min_srs_stage ?? 5
   const geminiKey: string = settings?.gemini_api_key?.trim() || process.env.GEMINI_API_KEY || ''
+  const geminiModel: string = (settings?.gemini_model as string)?.trim() || 'gemini-2.5-flash'
 
   try {
     // Fetch subjects (vocabulary only)
@@ -212,7 +214,7 @@ export async function POST(req: NextRequest) {
       const toEnrich = eligible.map(e => ({
         id: e.wanikani_id, word: e.word, reading: e.reading, meaning_en: e.meaning_en,
       }))
-      enriched = await enrichBatch(toEnrich, geminiKey)
+      enriched = await enrichBatch(toEnrich, geminiKey, geminiModel)
     }
 
     // Build rows for upsert

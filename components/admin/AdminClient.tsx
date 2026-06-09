@@ -267,6 +267,7 @@ export default function AdminClient() {
       limit:        35,
       geminiApiKey: imgGeminiKey || undefined,
       pexelsApiKey: imgPexelsKey || state.pexelsApiKey || undefined,
+      model:        state.geminiModel,
     })
     setFullLastResult(result)
     const [stats, imgS, clsS] = await Promise.all([

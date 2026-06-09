@@ -334,6 +334,7 @@ export default function VocabAntonyms() {
         const result = await runAutoDetectAntonyms({
           offset,
           geminiApiKey: state.geminiApiKey || undefined,
+          model: state.geminiModel,
         })
         totalAdded += result.pairs_added
         scanned += result.fetched ?? 0

@@ -350,6 +350,7 @@ export async function runFullClassifyBatch(opts: {
   limit?:        number
   geminiApiKey?: string
   pexelsApiKey?: string
+  model?:        string
 }): Promise<FullClassifyResult> {
   const res = await fetch('/api/admin/classify-vocab-full', {
     method: 'POST',
@@ -407,6 +408,7 @@ export async function runAutoDetectAntonyms(opts: {
   limit?:        number
   offset?:       number
   geminiApiKey?: string
+  model?:        string
 }): Promise<AutoDetectAntonymsResult> {
   const res = await fetch('/api/admin/vocab/antonyms/auto-detect', {
     method: 'POST',

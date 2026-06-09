@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { normalizeGeminiModel } from '@/lib/gemini-models'
 
 // One Gemini call per request (page) keeps each request short so it never hits
 // the serverless timeout; the client pages through the whole vocabulary.
@@ -26,6 +27,7 @@ interface AntonymGuess { word: string; antonym: string | null }
 async function geminiAntonyms(
   words: Array<{ word: string; reading: string; meaning: string }>,
   apiKey: string,
+  model: string,
 ): Promise<AntonymGuess[]> {
   const wordLines = words.map(w => `${w.word} (${w.reading}) = ${w.meaning}`).join('\n')
   const prompt = `For each Japanese word below, give its single most standard, common antonym (opposite) as ONE Japanese word in dictionary form, or null if it has no clear common antonym.
@@ -39,7 +41,7 @@ Rules:
 Words:
 ${wordLines}`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
   const MAX_ATTEMPTS = 4
   let text = ''
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -89,6 +91,9 @@ export async function POST(request: NextRequest) {
 
     if (!geminiApiKey) throw new AdminApiError('Falta la Gemini API Key.', 400)
 
+    // Respect the user's selected Gemini model (e.g. 3.1 Flash Lite has separate quota).
+    const model = normalizeGeminiModel(typeof body.model === 'string' ? body.model : undefined)
+
     // 1. Existing pairs — to dedupe and skip already-paired words.
     const { data: existingPairs } = await service
       .from('vocab_antonyms')
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
     let geminiError: string | null = null
     for (let i = 0; i < candidates.length; i += GEMINI_BATCH) {
       try {
-        const batch = await geminiAntonyms(candidates.slice(i, i + GEMINI_BATCH), geminiApiKey)
+        const batch = await geminiAntonyms(candidates.slice(i, i + GEMINI_BATCH), geminiApiKey, model)
         guesses.push(...batch)
       } catch (e) {
         geminiError = e instanceof Error ? e.message : String(e)
