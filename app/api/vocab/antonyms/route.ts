@@ -36,7 +36,14 @@ export async function GET() {
       )
     }
     if (!pairs || pairs.length === 0) {
-      return NextResponse.json({ pairs: [], _diag: { stage: 'no_rows', raw_pairs: pairs?.length ?? 0 } }, { headers: NO_STORE })
+      // Sanity check: does THIS client see any data at all, and which DB host?
+      const { count: antCount } = await service.from('vocab_antonyms').select('id', { count: 'exact', head: true })
+      const { count: vocabCount } = await service.from('vocabulary').select('word', { count: 'exact', head: true })
+      const host = (() => { try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').host } catch { return null } })()
+      return NextResponse.json(
+        { pairs: [], _diag: { stage: 'no_rows', raw_pairs: pairs?.length ?? 0, antonyms_count: antCount ?? null, vocab_count: vocabCount ?? null, db_host: host } },
+        { headers: NO_STORE },
+      )
     }
 
     const allWords = [...new Set([
