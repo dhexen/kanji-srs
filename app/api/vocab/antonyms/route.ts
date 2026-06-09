@@ -28,7 +28,12 @@ export async function GET() {
       .order('id', { ascending: true })
 
     if (pairsErr) {
-      if ((pairsErr.code === '42P01') || (pairsErr.message ?? '').includes('does not exist')) {
+      // Table not created yet (migration not applied): PostgREST reports either
+      // 42P01 ("does not exist") or PGRST205 ("could not find the table … in the
+      // schema cache"). Treat both as an empty list instead of a 500.
+      const msg = (pairsErr.message ?? '').toLowerCase()
+      if (pairsErr.code === '42P01' || pairsErr.code === 'PGRST205'
+          || msg.includes('does not exist') || msg.includes('schema cache')) {
         return NextResponse.json({ pairs: [] })
       }
       return NextResponse.json({ error: pairsErr.message }, { status: 500 })

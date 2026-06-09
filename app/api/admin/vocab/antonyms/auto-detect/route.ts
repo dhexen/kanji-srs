@@ -95,9 +95,16 @@ export async function POST(request: NextRequest) {
     const model = normalizeGeminiModel(typeof body.model === 'string' ? body.model : undefined)
 
     // 1. Existing pairs — to dedupe and skip already-paired words.
-    const { data: existingPairs } = await service
+    const { data: existingPairs, error: pairsErr } = await service
       .from('vocab_antonyms')
       .select('word_a, word_b')
+    if (pairsErr) {
+      const m = (pairsErr.message ?? '').toLowerCase()
+      if (pairsErr.code === '42P01' || pairsErr.code === 'PGRST205' || m.includes('does not exist') || m.includes('schema cache')) {
+        throw new AdminApiError('La tabla de contrarios no existe. Ejecuta la migración supabase-antonyms-migration.sql en Supabase.', 400)
+      }
+      throw new AdminApiError(pairsErr.message, 500)
+    }
     const existingKeys = new Set(
       (existingPairs ?? []).map((p: { word_a: string; word_b: string }) => [p.word_a, p.word_b].sort().join('||')),
     )
