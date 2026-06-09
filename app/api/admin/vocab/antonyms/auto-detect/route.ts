@@ -131,15 +131,20 @@ export async function POST(request: NextRequest) {
 
     // 3. Ask Gemini for each candidate's antonym, in batches.
     const guesses: AntonymGuess[] = []
+    let geminiError: string | null = null
     for (let i = 0; i < candidates.length; i += GEMINI_BATCH) {
       try {
         const batch = await geminiAntonyms(candidates.slice(i, i + GEMINI_BATCH), geminiApiKey)
         guesses.push(...batch)
       } catch (e) {
+        geminiError = e instanceof Error ? e.message : String(e)
         console.error('auto-detect antonyms Gemini error:', e)
-        // Keep whatever we already have; stop hammering on a hard error.
         break
       }
+    }
+    // Surface a Gemini failure instead of silently reporting "0 pairs".
+    if (geminiError && guesses.length === 0) {
+      throw new AdminApiError(`Error de Gemini: ${geminiError}`, 502)
     }
 
     // 4. Keep only antonyms that actually exist in the vocabulary table.
@@ -176,15 +181,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Debug sample so we can see what Gemini proposed vs what matched the dictionary.
+    const sample = proposed.slice(0, 8).map(p => ({ ...p, exists: existsSet.has(p.antonym) }))
+
     return NextResponse.json({
       candidates_checked: candidates.length,
       pairs_added: pairsAdded,
       fetched,
       done,
       next_offset: offset + fetched,
+      proposed_count: proposed.length,
+      matched_count: proposed.filter(p => existsSet.has(p.antonym)).length,
+      sample,
       message: pairsAdded > 0
         ? `Se encontraron ${pairsAdded} nuevos pares de contrarios.`
-        : 'No se encontraron nuevos pares en esta página.',
+        : `Sin pares: Gemini propuso ${proposed.length} antónimos, ${proposed.filter(p => existsSet.has(p.antonym)).length} existen en el vocabulario.`,
     })
   } catch (e) {
     return adminJsonError(e)

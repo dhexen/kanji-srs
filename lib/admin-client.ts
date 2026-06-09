@@ -393,6 +393,9 @@ export interface AutoDetectAntonymsResult {
   fetched?: number
   done?: boolean
   next_offset?: number
+  proposed_count?: number
+  matched_count?: number
+  sample?: Array<{ word: string; antonym: string; exists: boolean }>
 }
 
 /**

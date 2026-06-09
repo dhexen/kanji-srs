@@ -326,6 +326,8 @@ export default function VocabAntonyms() {
       let offset = 0
       let totalAdded = 0
       let scanned = 0
+      let totalProposed = 0
+      let totalMatched = 0
       // Page through the whole vocabulary; each page asks Gemini for the antonym
       // of every word and pairs it if that antonym exists in the dictionary.
       for (let page = 0; page < 200; page++) {
@@ -335,7 +337,9 @@ export default function VocabAntonyms() {
         })
         totalAdded += result.pairs_added
         scanned += result.fetched ?? 0
-        setAutoDetectMsg(`Revisando… ${scanned} palabras · ${totalAdded} pares encontrados`)
+        totalProposed += result.proposed_count ?? 0
+        totalMatched += result.matched_count ?? 0
+        setAutoDetectMsg(`Revisando… ${scanned} palabras · ${totalAdded} pares · (IA propuso ${totalProposed}, existen ${totalMatched})`)
         if (result.pairs_added > 0) {
           const updated = await fetchAntonymPairs()
           setPairs(updated)
@@ -345,7 +349,7 @@ export default function VocabAntonyms() {
         // Gentle pacing to stay under Gemini's per-minute limit.
         await new Promise(r => setTimeout(r, 1200))
       }
-      setAutoDetectMsg(`✓ Completado · ${totalAdded} pares de contrarios añadidos (${scanned} palabras revisadas)`)
+      setAutoDetectMsg(`✓ Completado · ${totalAdded} pares añadidos · ${scanned} palabras revisadas · IA propuso ${totalProposed} antónimos, ${totalMatched} existían en el vocabulario`)
       if (totalAdded > 0) showToast(`✓ ${totalAdded} pares de contrarios añadidos`, 'success')
     } catch (e: unknown) {
       setAutoDetectMsg(e instanceof Error ? e.message : 'Error en la detección automática')
