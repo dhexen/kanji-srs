@@ -396,6 +396,10 @@ export interface AutoDetectAntonymsResult {
   next_offset?: number
   proposed_count?: number
   matched_count?: number
+  existing_pairs?: number
+  already_existing?: number
+  insert_errors?: number
+  insert_error?: string | null
   sample?: Array<{ word: string; antonym: string; exists: boolean }>
 }
 

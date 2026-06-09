@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'La sección de Contrarios vuelve a mostrar los pares',
+        description: 'La lista de antónimos quedaba vacía cuando había muchos pares registrados, por un límite en la consulta. Ahora se cargan por lotes y se muestran todos correctamente.',
+      },
+      {
         type: 'improvement',
         title: 'Animación de trazos en bucle y orden del glosario',
         description: 'La animación de orden de trazos de los kanji ahora se repite en bucle (con una pausa) en todos los sitios donde aparece, para poder verla varias veces. Además, el glosario de vocabulario se ordena igual que tus repasos (orden del currículo) para evitar confusiones.',

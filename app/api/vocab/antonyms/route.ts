@@ -40,14 +40,19 @@ export async function GET() {
       ...pairs.map(p => p.word_b as string),
     ])]
 
-    const { data: vocabData, error: vocabErr } = await service
-      .from('vocabulary')
-      .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, word_type, grade')
-      .in('word', allWords)
-
-    if (vocabErr) return NextResponse.json({ error: vocabErr.message }, { status: 500 })
-
-    const vocabMap = new Map((vocabData ?? []).map(v => [v.word as string, v]))
+    // Fetch vocabulary details in chunks — a single .in() with hundreds of words
+    // builds an over-long URL that fails once there are many pairs (which left
+    // the antonyms list empty even though the table was populated).
+    const vocabMap = new Map<string, Record<string, unknown>>()
+    const CHUNK = 150
+    for (let i = 0; i < allWords.length; i += CHUNK) {
+      const { data: vocabData, error: vocabErr } = await service
+        .from('vocabulary')
+        .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, word_type, grade')
+        .in('word', allWords.slice(i, i + CHUNK))
+      if (vocabErr) return NextResponse.json({ error: vocabErr.message }, { status: 500 })
+      for (const v of vocabData ?? []) vocabMap.set(v.word as string, v as Record<string, unknown>)
+    }
 
     const result = []
     for (const pair of pairs) {

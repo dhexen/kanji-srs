@@ -170,17 +170,26 @@ export async function POST(request: NextRequest) {
 
     // 5. Insert new pairs.
     let pairsAdded = 0
+    let alreadyExisting = 0   // matched but already in the table
+    let insertErrors = 0
+    let firstInsertError: string | null = null
     const insertedKeys = new Set(existingKeys)
     for (const { word, antonym } of proposed) {
       if (!existsSet.has(antonym)) continue
       const key = [word, antonym].sort().join('||')
-      if (insertedKeys.has(key)) continue
+      if (insertedKeys.has(key)) { alreadyExisting++; continue }
       insertedKeys.add(key)  // mark before insert so symmetric guesses don't duplicate
       const { error: insErr } = await service
         .from('vocab_antonyms')
         .insert({ word_a: word, word_b: antonym })
       if (insErr) {
-        if (insErr.code !== '23505') console.error(`insert ${word}↔${antonym}:`, insErr.message)
+        if (insErr.code === '23505') {
+          alreadyExisting++
+        } else {
+          insertErrors++
+          if (!firstInsertError) firstInsertError = insErr.message
+          console.error(`insert ${word}↔${antonym}:`, insErr.message)
+        }
       } else {
         pairsAdded++
       }
@@ -197,10 +206,18 @@ export async function POST(request: NextRequest) {
       next_offset: offset + fetched,
       proposed_count: proposed.length,
       matched_count: proposed.filter(p => existsSet.has(p.antonym)).length,
+      existing_pairs: existingKeys.size,
+      already_existing: alreadyExisting,
+      insert_errors: insertErrors,
+      insert_error: firstInsertError,
       sample,
       message: pairsAdded > 0
         ? `Se encontraron ${pairsAdded} nuevos pares de contrarios.`
-        : `Sin pares: Gemini propuso ${proposed.length} antónimos, ${proposed.filter(p => existsSet.has(p.antonym)).length} existen en el vocabulario.`,
+        : insertErrors > 0
+        ? `Error al guardar pares: ${firstInsertError}`
+        : alreadyExisting > 0
+        ? `Sin nuevos: ${alreadyExisting} ya estaban registrados.`
+        : 'Sin pares en esta página.',
     })
   } catch (e) {
     return adminJsonError(e)

@@ -328,6 +328,8 @@ export default function VocabAntonyms() {
       let scanned = 0
       let totalProposed = 0
       let totalMatched = 0
+      let totalExisting = 0
+      let insertErr: string | null = null
       // Page through the whole vocabulary; each page asks Gemini for the antonym
       // of every word and pairs it if that antonym exists in the dictionary.
       for (let page = 0; page < 200; page++) {
@@ -340,18 +342,27 @@ export default function VocabAntonyms() {
         scanned += result.fetched ?? 0
         totalProposed += result.proposed_count ?? 0
         totalMatched += result.matched_count ?? 0
-        setAutoDetectMsg(`Revisando… ${scanned} palabras · ${totalAdded} pares · (IA propuso ${totalProposed}, existen ${totalMatched})`)
+        totalExisting += result.already_existing ?? 0
+        if (result.insert_error && !insertErr) insertErr = result.insert_error
+        setAutoDetectMsg(`Revisando… ${scanned} palabras · ${totalAdded} pares nuevos · (IA propuso ${totalProposed}, existen ${totalMatched}, ya registrados ${totalExisting})`)
         if (result.pairs_added > 0) {
           const updated = await fetchAntonymPairs()
           setPairs(updated)
         }
+        // Stop early on a real DB insert error — it won't fix itself.
+        if (insertErr) break
         if (result.done || result.fetched == null) break
         offset = result.next_offset ?? offset + (result.fetched ?? 0)
         // Gentle pacing to stay under Gemini's per-minute limit.
         await new Promise(r => setTimeout(r, 1200))
       }
-      setAutoDetectMsg(`✓ Completado · ${totalAdded} pares añadidos · ${scanned} palabras revisadas · IA propuso ${totalProposed} antónimos, ${totalMatched} existían en el vocabulario`)
-      if (totalAdded > 0) showToast(`✓ ${totalAdded} pares de contrarios añadidos`, 'success')
+      if (insertErr) {
+        setAutoDetectMsg(`⚠️ Error al guardar pares: ${insertErr} · (añadidos ${totalAdded}, propuestos ${totalProposed}, existen ${totalMatched})`)
+        showToast('Error al guardar pares de contrarios', 'error')
+      } else {
+        setAutoDetectMsg(`✓ Completado · ${totalAdded} pares nuevos · ${scanned} palabras · IA propuso ${totalProposed}, existían ${totalMatched}, ya registrados ${totalExisting}`)
+        if (totalAdded > 0) showToast(`✓ ${totalAdded} pares de contrarios añadidos`, 'success')
+      }
     } catch (e: unknown) {
       setAutoDetectMsg(e instanceof Error ? e.message : 'Error en la detección automática')
     } finally {
