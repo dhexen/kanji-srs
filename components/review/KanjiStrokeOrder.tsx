@@ -38,6 +38,7 @@ export default function KanjiStrokeOrder({ kanji }: Props) {
     if (!container || kanjiChars.length === 0) return
 
     let cancelled = false
+    let loopTimer: ReturnType<typeof setTimeout> | null = null
 
     async function render() {
       await loadScript(HANZI_WRITER_CDN)
@@ -70,15 +71,21 @@ export default function KanjiStrokeOrder({ kanji }: Props) {
         writers.push(writer)
       }
 
+      // Animate each character in sequence, then pause and loop forever so the
+      // learner can watch the stroke order as many times as they want.
       const animateSequentially = (i: number) => {
-        if (cancelled || i >= writers.length) return
+        if (cancelled) return
+        if (i >= writers.length) {
+          loopTimer = setTimeout(() => { if (!cancelled) animateSequentially(0) }, 1400)
+          return
+        }
         writers[i].animateCharacter({ onComplete: () => animateSequentially(i + 1) })
       }
       animateSequentially(0)
     }
 
     render()
-    return () => { cancelled = true }
+    return () => { cancelled = true; if (loopTimer) clearTimeout(loopTimer) }
   }, [kanji])
 
   if (kanjiChars.length === 0) return null

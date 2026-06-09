@@ -1026,8 +1026,7 @@ export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntr
     .from('vocabulary')
     .select(FULL_VOCAB_COLUMNS)
     .eq('grade', grade)
-    .order('kanji', { ascending: true })
-    .order('sort_order', { ascending: true })
+    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
     .limit(10000)
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
@@ -1060,8 +1059,8 @@ export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
   const { data, error } = await supabase
     .from('vocabulary')
     .select(FULL_VOCAB_COLUMNS)
-    .order('kanji', { ascending: true })
-    .order('sort_order', { ascending: true })
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
     .limit(10000)
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
@@ -1083,8 +1082,8 @@ export async function searchVocabGlossary(
     .from('vocabulary')
     .select(FULL_VOCAB_COLUMNS)
     .or(`word.ilike.${like},kanji.ilike.${like},reading.ilike.${like},meaning_es.ilike.${like},meaning_ca.ilike.${like},meaning_en.ilike.${like}`)
-    .order('kanji', { ascending: true })
-    .order('sort_order', { ascending: true })
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
     .limit(500)
   if (grade > 0) base = base.eq('grade', grade)
   const { data, error } = await base

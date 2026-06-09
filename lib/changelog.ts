@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Animación de trazos en bucle y orden del glosario',
+        description: 'La animación de orden de trazos de los kanji ahora se repite en bucle (con una pausa) en todos los sitios donde aparece, para poder verla varias veces. Además, el glosario de vocabulario se ordena igual que tus repasos (orden del currículo) para evitar confusiones.',
+      },
+      {
         type: 'new',
         title: 'Glosario de vocabulario renovado',
         description: 'Cada palabra muestra ahora su tipo y categoría, y un punto de color con tu progreso (verde = dominada, amarillo = estudiando, gris = no iniciada). Al tocar una palabra se abre una ficha grande con la lectura, el significado, la imagen (si la hay), el orden de trazos de cada kanji y, si la estudias, tu nivel en cada modo de repaso. Desde la ficha puedes añadir la palabra a tus repasos. El furigana se reparte por kanji y, cuando no es del todo fiable, avisa de que es aproximado.',
