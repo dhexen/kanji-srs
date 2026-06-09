@@ -832,15 +832,23 @@ export default function GrammarClient() {
             </span>
           </div>
           <div className="flex gap-3 flex-wrap">
-            {grammarForecast.slice(1).map(day => {
+            {grammarForecast.map(day => {
               const isEmpty = day.newDue === 0
+              const todayLabel = lang === 'ca' ? 'Avui' : lang === 'en' ? 'Today' : lang === 'ja' ? '今日' : 'Hoy'
               return (
-                <div key={day.date.toISOString()} className="flex flex-col items-center min-w-[2.5rem]">
-                  <span className="text-slate-400 dark:text-slate-500 text-[10px] font-medium capitalize">{day.dayLabel}</span>
+                <div
+                  key={day.date.toISOString()}
+                  className={`flex flex-col items-center min-w-[2.5rem] ${
+                    day.isToday ? 'rounded-lg bg-amber-100/70 dark:bg-amber-900/30 px-1.5 py-0.5' : ''
+                  }`}
+                >
+                  <span className={`text-[10px] font-medium capitalize ${day.isToday ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {day.isToday ? todayLabel : day.dayLabel}
+                  </span>
                   <span className="text-xs font-bold tabular-nums mt-0.5">
                     {isEmpty
                       ? <span className="text-slate-300 dark:text-slate-600">—</span>
-                      : <span className="text-amber-600 dark:text-amber-400">+{day.newDue}</span>
+                      : <span className="text-amber-600 dark:text-amber-400">{day.isToday ? day.newDue : `+${day.newDue}`}</span>
                     }
                   </span>
                 </div>

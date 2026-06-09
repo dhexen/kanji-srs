@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useHelp } from '@/lib/help-context'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
-import { fetchVocabMeta } from '@/lib/supabase'
+import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar } from '@/lib/supabase'
+import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
 import QuestionCard from './QuestionCard'
@@ -71,6 +72,23 @@ export default function ReviewClient() {
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
+  const [grammarDue, setGrammarDue] = useState(0)
+
+  // Pending grammar reviews (for the section tile badge)
+  useEffect(() => {
+    if (!state.user) { setGrammarDue(0); return }
+    let cancelled = false
+    Promise.all([fetchAllGrammarSrsStats(), fetchKnownGrammar()])
+      .then(([stats, known]) => {
+        if (cancelled) return
+        const now = Date.now()
+        setGrammarDue(stats.filter(s =>
+          !known.has(s.grammar_id) && s.level < GRAMMAR_SRS_MAX_LEVEL && s.next_review <= now,
+        ).length)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [state.user, phase])
 
   // Per-session wrong-count tracking (key = "jp:mode")
   const wrongCountsRef = useRef(new Map<string, number>())
@@ -282,6 +300,7 @@ export default function ReviewClient() {
         color: 'text-indigo-600 dark:text-indigo-400',
         bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20',
         href: '/vocabulary',
+        badge: pendingCount,
       },
       {
         id: 'grammar',
@@ -290,6 +309,7 @@ export default function ReviewClient() {
         color: 'text-emerald-600 dark:text-emerald-400',
         bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
         href: '/grammar',
+        badge: grammarDue,
       },
       {
         id: 'kana',
@@ -298,6 +318,7 @@ export default function ReviewClient() {
         color: 'text-violet-600 dark:text-violet-400',
         bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20',
         href: '/kana',
+        badge: 0,
       },
       {
         id: 'context',
@@ -306,6 +327,7 @@ export default function ReviewClient() {
         color: 'text-pink-600 dark:text-pink-400',
         bg: 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700 hover:bg-pink-50 dark:hover:bg-pink-900/20',
         href: '/context',
+        badge: 0,
       },
     ]
 
@@ -484,8 +506,13 @@ export default function ReviewClient() {
                 <Link
                   key={tile.id}
                   href={tile.href}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
+                  className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
                 >
+                  {tile.badge > 0 && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold tabular-nums">
+                      {tile.badge > 99 ? '99+' : tile.badge}
+                    </span>
+                  )}
                   <span className={tile.color}>{tile.icon}</span>
                   <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
                 </Link>
