@@ -27,18 +27,17 @@ export async function GET() {
       .select('id, word_a, word_b')
       .order('id', { ascending: true })
 
+    const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' }
     if (pairsErr) {
-      // Table not created yet (migration not applied): PostgREST reports either
-      // 42P01 ("does not exist") or PGRST205 ("could not find the table … in the
-      // schema cache"). Treat both as an empty list instead of a 500.
-      const msg = (pairsErr.message ?? '').toLowerCase()
-      if (pairsErr.code === '42P01' || pairsErr.code === 'PGRST205'
-          || msg.includes('does not exist') || msg.includes('schema cache')) {
-        return NextResponse.json({ pairs: [] }, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
-      }
-      return NextResponse.json({ error: pairsErr.message }, { status: 500 })
+      // Surface the real reason in _diag so an empty list can be diagnosed.
+      return NextResponse.json(
+        { pairs: [], _diag: { stage: 'select_pairs_error', code: pairsErr.code ?? null, message: pairsErr.message ?? null } },
+        { headers: NO_STORE },
+      )
     }
-    if (!pairs || pairs.length === 0) return NextResponse.json({ pairs: [] })
+    if (!pairs || pairs.length === 0) {
+      return NextResponse.json({ pairs: [], _diag: { stage: 'no_rows', raw_pairs: pairs?.length ?? 0 } }, { headers: NO_STORE })
+    }
 
     const allWords = [...new Set([
       ...pairs.map(p => p.word_a as string),
@@ -55,7 +54,10 @@ export async function GET() {
         .from('vocabulary')
         .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, word_type, grade')
         .in('word', allWords.slice(i, i + CHUNK))
-      if (vocabErr) return NextResponse.json({ error: vocabErr.message }, { status: 500 })
+      if (vocabErr) return NextResponse.json(
+        { pairs: [], _diag: { stage: 'vocab_fetch_error', code: vocabErr.code ?? null, message: vocabErr.message ?? null } },
+        { headers: NO_STORE },
+      )
       for (const v of vocabData ?? []) vocabMap.set(v.word as string, v as Record<string, unknown>)
     }
 
@@ -89,7 +91,10 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json({ pairs: result }, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
+    return NextResponse.json(
+      { pairs: result, _diag: { stage: 'ok', raw_pairs: pairs.length, words: allWords.length, vocab_found: vocabMap.size, returned: result.length } },
+      { headers: NO_STORE },
+    )
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Error desconocido' },
