@@ -5,6 +5,10 @@ import { fetchAllVocabByGrade, fetchAllVocab, searchVocabGlossary, FullVocabEntr
 import { deleteVocabWord, updateVocabWord, addVocabWord, runFillAdjectives } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
+import { VocabItem, ALL_REVIEW_MODES, getModeLevelAndDue, SRS_MAX_LEVEL } from '@/lib/srs'
+import VocabDetailModal from './VocabDetailModal'
+
+type WordState = 'burned' | 'studying' | 'unseen'
 
 const GRADES = [
   { value: 1, group: 'primary',   label: { es: '1º Prim.', ca: '1r Prim.', en: '1st', ja: '小1' } },
@@ -40,6 +44,21 @@ export default function VocabGlossary() {
   const [searching, setSearching] = useState(false)
   const [filter, setFilter] = useState('')
   const [showUnofficial, setShowUnofficial] = useState(true)
+  const [selected, setSelected] = useState<FullVocabEntry | null>(null)  // word opened in the detail modal
+
+  // The user's studying words, by word, to colour-code progress and show levels.
+  const userByWord = useMemo(() => {
+    const m = new Map<string, VocabItem>()
+    for (const it of state.db) if (it.status === 'active') m.set(it.jp, it)
+    return m
+  }, [state.db])
+
+  const wordState = (word: string): WordState => {
+    const it = userByWord.get(word)
+    if (!it) return 'unseen'
+    const allBurned = ALL_REVIEW_MODES.every(mode => getModeLevelAndDue(it, mode).level >= SRS_MAX_LEVEL)
+    return allBurned ? 'burned' : 'studying'
+  }
 
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -223,6 +242,10 @@ export default function VocabGlossary() {
           meaning_en: addMeaningEn.trim() || null,
           is_official: false,
           sort_order: 99999,
+          word_type: null,
+          category: null,
+          grade: k.grade ?? null,
+          image_url: null,
         }))
       if (newEntries.length > 0) {
         setWords(prev => [...prev, ...newEntries])
@@ -451,6 +474,15 @@ export default function VocabGlossary() {
         </p>
       ) : (
         <div className="space-y-3">
+          {/* Colour legend + click hint */}
+          {state.user && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-slate-400 dark:text-slate-500">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {lang === 'en' ? 'Burned' : lang === 'ca' ? 'Cremada' : 'Dominada'}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> {lang === 'en' ? 'Studying' : lang === 'ca' ? 'Estudiant' : 'Estudiando'}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" /> {lang === 'en' ? 'Not started' : lang === 'ca' ? 'No iniciada' : 'No iniciada'}</span>
+              <span className="ml-auto italic">{lang === 'en' ? 'Tap a word for details' : lang === 'ca' ? 'Toca una paraula per veure detalls' : 'Toca una palabra para ver detalles'}</span>
+            </div>
+          )}
           {kanjiKeys.map(kanji => {
             const kanjiWords = grouped[kanji]
             return (
@@ -479,13 +511,28 @@ export default function VocabGlossary() {
 
                 {/* Word rows */}
                 <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                  {kanjiWords.map(w => (
+                  {kanjiWords.map(w => {
+                    const st = wordState(w.word)
+                    return (
                     <div
                       key={w.word}
-                      className={`flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition group ${
+                      onClick={() => setSelected(w)}
+                      className={`flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition group cursor-pointer ${
                         !w.is_official ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''
                       }`}
                     >
+                      {/* Progress state dot: green burned · amber studying · gray unseen */}
+                      <span
+                        title={st === 'burned'
+                          ? (lang === 'en' ? 'Burned' : lang === 'ca' ? 'Cremada' : 'Dominada')
+                          : st === 'studying'
+                          ? (lang === 'en' ? 'Studying' : lang === 'ca' ? 'Estudiant' : 'Estudiando')
+                          : (lang === 'en' ? 'Not started' : lang === 'ca' ? 'No iniciada' : 'No iniciada')}
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          st === 'burned' ? 'bg-emerald-500' : st === 'studying' ? 'bg-amber-400' : 'bg-slate-300 dark:bg-slate-600'
+                        }`}
+                      />
+
                       {/* Word */}
                       <span className="kanji-font text-base font-bold text-slate-800 dark:text-slate-100 leading-none min-w-[3.5rem] shrink-0">
                         {w.word}
@@ -501,6 +548,18 @@ export default function VocabGlossary() {
                         {meaning(w)}
                       </span>
 
+                      {/* Type / category badges (room on the right) */}
+                      {w.word_type && (
+                        <span className="hidden md:inline text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300 shrink-0">
+                          {t(lang, `wt_${w.word_type}`)}
+                        </span>
+                      )}
+                      {w.category && (
+                        <span className="hidden lg:inline text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300 shrink-0">
+                          {t(lang, `cat_${w.category}`)}
+                        </span>
+                      )}
+
                       {/* Unofficial badge + promote button */}
                       {!w.is_official && (
                         <span className="flex items-center gap-1 shrink-0">
@@ -509,7 +568,7 @@ export default function VocabGlossary() {
                           </span>
                           {canEdit && (
                             <button
-                              onClick={() => toggleOfficial(w)}
+                              onClick={e => { e.stopPropagation(); toggleOfficial(w) }}
                               disabled={promotingWord === w.word}
                               title={t(lang, 'glossary_promote_btn')}
                               className="w-5 h-5 flex items-center justify-center rounded-full
@@ -532,7 +591,7 @@ export default function VocabGlossary() {
                       {/* Demote official → unofficial (admin/contributor) */}
                       {w.is_official && canEdit && (
                         <button
-                          onClick={() => toggleOfficial(w)}
+                          onClick={e => { e.stopPropagation(); toggleOfficial(w) }}
                           disabled={promotingWord === w.word}
                           title={t(lang, 'glossary_demote_btn')}
                           className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full
@@ -550,7 +609,7 @@ export default function VocabGlossary() {
                       {/* Edit button (admin + contributor) */}
                       {canEdit && (
                         <button
-                          onClick={() => openEdit(w)}
+                          onClick={e => { e.stopPropagation(); openEdit(w) }}
                           title={t(lang, 'glossary_edit_btn')}
                           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full
                                      text-indigo-400 hover:text-white hover:bg-indigo-500
@@ -566,7 +625,7 @@ export default function VocabGlossary() {
                       {/* Admin delete button */}
                       {isAdmin && (
                         <button
-                          onClick={() => setPendingDelete(w.word)}
+                          onClick={e => { e.stopPropagation(); setPendingDelete(w.word) }}
                           title={t(lang, 'glossary_delete_btn')}
                           className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full
                                      text-rose-400 hover:text-white hover:bg-rose-500
@@ -577,7 +636,7 @@ export default function VocabGlossary() {
                         </button>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )
@@ -856,6 +915,16 @@ export default function VocabGlossary() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Word detail modal ─────────────────────────────────────────────── */}
+      {selected && (
+        <VocabDetailModal
+          entry={selected}
+          userItem={userByWord.get(selected.word) ?? null}
+          lang={lang}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   )

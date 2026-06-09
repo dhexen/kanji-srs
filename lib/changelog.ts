@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Glosario de vocabulario renovado',
+        description: 'Cada palabra muestra ahora su tipo y categoría, y un punto de color con tu progreso (verde = dominada, amarillo = estudiando, gris = no iniciada). Al tocar una palabra se abre una ficha grande con la lectura, el significado, la imagen (si la hay), el orden de trazos de cada kanji y, si la estudias, tu nivel en cada modo de repaso. Desde la ficha puedes añadir la palabra a tus repasos. El furigana se reparte por kanji y, cuando no es del todo fiable, avisa de que es aproximado.',
+      },
+      {
         type: 'improvement',
         title: 'Contadores de pendientes en el Dashboard',
         description: 'Los accesos a Vocabulario y Gramática del Dashboard muestran ahora una insignia con el número de repasos pendientes, para ver de un vistazo qué tienes por hacer.',

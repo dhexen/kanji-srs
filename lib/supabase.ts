@@ -992,6 +992,29 @@ export interface FullVocabEntry {
   meaning_en: string | null
   is_official: boolean
   sort_order: number
+  word_type: string | null
+  category: string | null
+  grade: number | null
+  image_url: string | null
+}
+
+const FULL_VOCAB_COLUMNS = 'word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order, word_type, category, grade, image_url'
+
+function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
+  return {
+    word: d.word as string,
+    kanji: d.kanji as string,
+    reading: d.reading as string,
+    meaning_es: (d.meaning_es as string) ?? '',
+    meaning_ca: (d.meaning_ca as string) ?? null,
+    meaning_en: (d.meaning_en as string) ?? null,
+    is_official: (d.is_official as boolean) ?? true,
+    sort_order: (d.sort_order as number) ?? 0,
+    word_type: (d.word_type as string) ?? null,
+    category: (d.category as string) ?? null,
+    grade: (d.grade as number) ?? null,
+    image_url: (d.image_url as string) ?? null,
+  }
 }
 
 /**
@@ -1001,22 +1024,13 @@ export interface FullVocabEntry {
 export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntry[]> {
   const { data, error } = await supabase
     .from('vocabulary')
-    .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
+    .select(FULL_VOCAB_COLUMNS)
     .eq('grade', grade)
     .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
     .limit(10000)
   if (error) throw error
-  return (data ?? []).map(d => ({
-    word: d.word,
-    kanji: d.kanji,
-    reading: d.reading,
-    meaning_es: d.meaning_es ?? '',
-    meaning_ca: d.meaning_ca ?? null,
-    meaning_en: d.meaning_en ?? null,
-    is_official: d.is_official ?? true,
-    sort_order: d.sort_order ?? 0,
-  }))
+  return (data ?? []).map(mapFullVocab)
 }
 
 /** Returns word count per kanji for a set of kanjis in a grade. Used by QuickAddPanel. */
@@ -1045,21 +1059,12 @@ export async function getVocabWordCountsByKanjis(
 export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
   const { data, error } = await supabase
     .from('vocabulary')
-    .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
+    .select(FULL_VOCAB_COLUMNS)
     .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
     .limit(10000)
   if (error) throw error
-  return (data ?? []).map(d => ({
-    word: d.word,
-    kanji: d.kanji,
-    reading: d.reading,
-    meaning_es: d.meaning_es ?? '',
-    meaning_ca: d.meaning_ca ?? null,
-    meaning_en: d.meaning_en ?? null,
-    is_official: d.is_official ?? true,
-    sort_order: d.sort_order ?? 0,
-  }))
+  return (data ?? []).map(mapFullVocab)
 }
 
 /**
@@ -1076,7 +1081,7 @@ export async function searchVocabGlossary(
   const like = `%${q}%`
   let base = supabase
     .from('vocabulary')
-    .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order')
+    .select(FULL_VOCAB_COLUMNS)
     .or(`word.ilike.${like},kanji.ilike.${like},reading.ilike.${like},meaning_es.ilike.${like},meaning_ca.ilike.${like},meaning_en.ilike.${like}`)
     .order('kanji', { ascending: true })
     .order('sort_order', { ascending: true })
@@ -1084,16 +1089,7 @@ export async function searchVocabGlossary(
   if (grade > 0) base = base.eq('grade', grade)
   const { data, error } = await base
   if (error) throw error
-  return (data ?? []).map(d => ({
-    word: d.word,
-    kanji: d.kanji,
-    reading: d.reading,
-    meaning_es: d.meaning_es ?? '',
-    meaning_ca: d.meaning_ca ?? null,
-    meaning_en: d.meaning_en ?? null,
-    is_official: d.is_official ?? true,
-    sort_order: d.sort_order ?? 0,
-  }))
+  return (data ?? []).map(mapFullVocab)
 }
 
 /** Returns word+kanji+is_official for all rows of a grade — used for stats.

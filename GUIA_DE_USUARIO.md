@@ -122,6 +122,8 @@ Esta sección tiene tres pestañas:
 #### 📖 Glosario
 Puedes buscar cualquier palabra del diccionario. Usa la barra de búsqueda para encontrar palabras por su kanji, lectura o significado. También puedes filtrar por nivel escolar (grado 1-9 en el sistema educativo japonés).
 
+Cada palabra muestra su **tipo** y **categoría**, y un **punto de color** con tu progreso: 🟢 verde = dominada (burned), 🟡 amarillo = estudiando, ⚪ gris = no iniciada. Al **tocar una palabra** se abre su ficha grande con la lectura (furigana), el significado, la imagen (si la hay), el **orden de trazos** de cada kanji y, si la estudias, tu **nivel en cada modo de repaso**. Desde la ficha puedes **añadir la palabra a tus repasos**. El furigana se reparte por kanji; cuando esa división no es del todo fiable, se avisa de que es aproximada (la lectura completa que se muestra arriba siempre es correcta).
+
 #### ⇄ Antónimos
 Muestra palabras con significado opuesto (alto ↔ bajo, frío ↔ caliente, etc.). Puedes filtrar por verbos o adjetivos y buscar cualquier pareja.
 
