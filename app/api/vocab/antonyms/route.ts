@@ -22,10 +22,14 @@ export async function GET() {
   try {
     const service = getServiceClient()
 
-    const { data: pairs, error: pairsErr } = await service
+    // NB: no .order() here — on a freshly created table a stale PostgREST schema
+    // cache can make an ordered select return 0 rows even though count() sees
+    // them. We fetch unordered (with an explicit high limit) and sort in JS.
+    const { data: pairsRaw, error: pairsErr } = await service
       .from('vocab_antonyms')
       .select('id, word_a, word_b')
-      .order('id', { ascending: true })
+      .limit(10000)
+    const pairs = (pairsRaw ?? []).slice().sort((a, b) => (a.id as number) - (b.id as number))
 
     const NO_STORE = { 'Cache-Control': 'no-store, max-age=0' }
     if (pairsErr) {
