@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import { showToast } from '@/components/ui/Toast'
 import { searchVocabulary } from '@/lib/supabase'
+import AdminFuriganaReview from './AdminFuriganaReview'
 import {
   deleteVocabWord,
   deleteVocabByGrade,
@@ -227,6 +228,15 @@ export default function AdminVocabTab() {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+
+      {/* ── Revisión de furigana ──────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🈁 Revisión de furigana</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+          Palabras cuya lectura por kanji no es fiable automáticamente. Fija la lectura de cada kanji (o marca lectura conjunta para 熟字訓). Se aplica a todos los usuarios.
+        </p>
+        <AdminFuriganaReview />
+      </div>
 
       {/* ── Búsqueda y eliminación individual ─────────────────────────────────── */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">

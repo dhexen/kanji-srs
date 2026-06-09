@@ -10,6 +10,9 @@
 export interface FuriToken { text: string; ruby?: string }
 export interface FuriResult { tokens: FuriToken[]; perKanjiReliable: boolean }
 
+/** Curated per-kanji furigana segment stored in `vocabulary.reading_segments`. */
+export interface FuriSegment { t: string; f?: string }
+
 function isKanjiChar(ch: string): boolean {
   const cp = ch.codePointAt(0) ?? 0
   return (cp >= 0x4e00 && cp <= 0x9fff)   // CJK unified
@@ -23,7 +26,14 @@ export function hasKanji(s: string): boolean {
   return Array.from(s).some(isKanjiChar)
 }
 
-export function buildFurigana(word: string, reading: string): FuriResult {
+export function buildFurigana(word: string, reading: string, segments?: FuriSegment[] | null): FuriResult {
+  // Admin-curated segments are authoritative → always reliable.
+  if (segments && segments.length > 0) {
+    return {
+      tokens: segments.map(s => ({ text: s.t, ruby: s.f || undefined })),
+      perKanjiReliable: true,
+    }
+  }
   if (!word) return { tokens: [], perKanjiReliable: true }
   if (!reading) return { tokens: [{ text: word }], perKanjiReliable: !hasKanji(word) }
 

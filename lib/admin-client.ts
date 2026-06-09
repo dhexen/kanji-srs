@@ -212,6 +212,19 @@ export async function updateVocabWord(
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
+/** Save (or clear with null) the curated per-kanji furigana for a word. */
+export async function saveVocabReadingSegments(
+  word: string,
+  segments: { t: string; f?: string }[] | null,
+): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ reading_segments: segments }),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
 export interface AddVocabResult {
   ok: boolean
   kanjis: Array<{ kanji: string; grade: number }>

@@ -108,8 +108,18 @@ export async function PATCH(
       }
     }
 
-    // ── Normal field edit (reading + meanings) ──
-    const patch: Record<string, string | null> = {}
+    // ── Normal field edit (reading + meanings + curated furigana) ──
+    const patch: Record<string, unknown> = {}
+
+    // Curated per-kanji furigana: array of { t: string, f?: string } or null to clear.
+    if ('reading_segments' in body) {
+      const segs = body.reading_segments
+      patch.reading_segments = Array.isArray(segs) && segs.length
+        ? segs
+            .filter((s: unknown): s is { t: string; f?: string } => !!s && typeof (s as { t?: unknown }).t === 'string')
+            .map((s: { t: string; f?: string }) => ({ t: String(s.t), ...(s.f ? { f: String(s.f) } : {}) }))
+        : null
+    }
 
     if (typeof body.reading === 'string') {
       const v = body.reading.trim()

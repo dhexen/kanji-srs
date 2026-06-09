@@ -246,6 +246,7 @@ export default function VocabGlossary() {
           category: null,
           grade: k.grade ?? null,
           image_url: null,
+          reading_segments: null,
         }))
       if (newEntries.length > 0) {
         setWords(prev => [...prev, ...newEntries])

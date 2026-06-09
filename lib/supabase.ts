@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { VocabItem, ReviewMode } from './srs'
 import { DEFAULT_SRS_INTERVALS } from './srs'
+import type { FuriSegment } from './furigana'
 import {
   vocabItemToRow,
   rowToVocabItem,
@@ -996,8 +997,11 @@ export interface FullVocabEntry {
   category: string | null
   grade: number | null
   image_url: string | null
+  reading_segments: FuriSegment[] | null
 }
 
+// NB: reading_segments is fetched on demand (fetchVocabReadingSegments) so a
+// missing column (migration 025 not applied) never breaks the glossary list.
 const FULL_VOCAB_COLUMNS = 'word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order, word_type, category, grade, image_url'
 
 function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
@@ -1014,6 +1018,7 @@ function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
     category: (d.category as string) ?? null,
     grade: (d.grade as number) ?? null,
     image_url: (d.image_url as string) ?? null,
+    reading_segments: (d.reading_segments as FuriSegment[]) ?? null,
   }
 }
 
@@ -1089,6 +1094,32 @@ export async function searchVocabGlossary(
   const { data, error } = await base
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
+}
+
+/** Curated per-kanji furigana for one word (migration 025). Returns null if the
+ *  column doesn't exist or no curated reading is stored. */
+export async function fetchVocabReadingSegments(word: string): Promise<FuriSegment[] | null> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('reading_segments')
+    .eq('word', word)
+    .limit(1)
+    .maybeSingle()
+  if (error || !data) return null
+  const segs = (data as { reading_segments?: FuriSegment[] | null }).reading_segments
+  return Array.isArray(segs) && segs.length ? segs : null
+}
+
+/** Set of words that already have curated furigana — used by the admin review
+ *  queue to skip them. Returns an empty set if the column doesn't exist yet. */
+export async function fetchWordsWithReadingSegments(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('word')
+    .not('reading_segments', 'is', null)
+    .limit(10000)
+  if (error || !data) return new Set()
+  return new Set((data as { word: string }[]).map(d => d.word))
 }
 
 /** Returns word+kanji+is_official for all rows of a grade — used for stats.

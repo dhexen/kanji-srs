@@ -6,8 +6,8 @@ import { t, getStageName, type Lang } from '@/lib/i18n'
 import {
   VocabItem, MODE_CONFIG, ALL_REVIEW_MODES, getModeLevelAndDue, SRS_MAX_LEVEL, migrateItem,
 } from '@/lib/srs'
-import type { FullVocabEntry } from '@/lib/supabase'
-import { buildFurigana, hasKanji } from '@/lib/furigana'
+import { fetchVocabReadingSegments, type FullVocabEntry } from '@/lib/supabase'
+import { buildFurigana, hasKanji, type FuriSegment } from '@/lib/furigana'
 import { upgradeVocabImage } from '@/lib/image'
 import KanjiStrokeOrder from '@/components/review/KanjiStrokeOrder'
 
@@ -27,11 +27,21 @@ export default function VocabDetailModal({ entry, userItem, lang, onClose }: Pro
   const [shown, setShown] = useState(false)   // for the zoom-in transition
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const [segments, setSegments] = useState<FuriSegment[] | null>(entry.reading_segments)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true))
     return () => cancelAnimationFrame(id)
   }, [])
+
+  // Load curated per-kanji furigana on open (preferred over the heuristic).
+  useEffect(() => {
+    let cancelled = false
+    fetchVocabReadingSegments(entry.word)
+      .then(segs => { if (!cancelled && segs) setSegments(segs) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [entry.word])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -44,7 +54,7 @@ export default function VocabDetailModal({ entry, userItem, lang, onClose }: Pro
     lang === 'en' ? (entry.meaning_en || entry.meaning_es) :
     entry.meaning_es
 
-  const { tokens, perKanjiReliable } = buildFurigana(entry.word, entry.reading)
+  const { tokens, perKanjiReliable } = buildFurigana(entry.word, entry.reading, segments)
   const wordHasKanji = hasKanji(entry.word)
   const imgUrl = entry.image_url ? upgradeVocabImage(entry.image_url) : ''
 
