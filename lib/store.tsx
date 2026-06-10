@@ -612,7 +612,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
           .catch(() => { /* rol queda como 'user' por defecto */ })
         void syncDown()
-        void supabase.rpc('update_last_seen')
+        void fetch('/api/user/seen', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => {})
       } else {
         // Sin sesión: marcar como cargado para que AuthShell pueda redirigir a /login
         hydratingRef.current = false
@@ -642,7 +642,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
           .catch(() => {})
         void syncDown()
-        void supabase.rpc('update_last_seen')
+        void fetch('/api/user/seen', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => {})
       }
     })
 
