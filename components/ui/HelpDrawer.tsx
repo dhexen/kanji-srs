@@ -92,6 +92,7 @@ function HelpReview() {
         Se marca directamente como nivel 8 y no vuelve hasta dentro de 4 meses.
       </Tip>
       <Tip>El botón <strong>🎲 Repaso libre</strong> repasa al azar todo tu vocabulario activo sin presión: no cuenta para el nivel de las palabras.</Tip>
+      <Tip>Si dominas casi todas tus palabras y te quedan pocos repasos al día, verás una tarjeta 🌱 que te sugiere añadir vocabulario nuevo. Puedes descartarla.</Tip>
     </div>
   )
 }
@@ -185,6 +186,7 @@ function HelpGrammar() {
 
       <Tip>Usa el filtro <strong>"📚 Estudiando"</strong> para ver solo los puntos que tienes activos en tu SRS.</Tip>
       <Tip>El botón <strong>🎲 Repaso libre</strong> te deja elegir lecciones (de lo que estudias) y repasar sin afectar a los niveles: 2-3 frases por punto en orden aleatorio. De vez en cuando, al azar, te pide escribir entera una frase que ya viste antes; se compara con la original y, si fallas, te marca el error.</Tip>
+      <Tip>Si dominas casi toda la gramática que estudias y tienes pocos repasos próximos, aparece una tarjeta 🌱 sugiriéndote añadir más puntos. Es descartable.</Tip>
     </div>
   )
 }

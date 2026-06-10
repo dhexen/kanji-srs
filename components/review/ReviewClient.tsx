@@ -145,6 +145,26 @@ export default function ReviewClient() {
   // Personal stats
   const masteredCount = useMemo(() => activeWords.filter(w => w.srsLevel >= 5).length, [activeWords])
 
+  // "Load more vocab" suggestion: shown when the learner has clearly caught up —
+  // most active words are Guru+ and the upcoming daily review load is low.
+  const avgDailyReviews = useMemo(
+    () => Math.round(forecast.reduce((s, d) => s + d.newDue, 0) / Math.max(1, forecast.length)),
+    [forecast],
+  )
+  const [loadMoreDismissed, setLoadMoreDismissed] = useState(() => {
+    try { return Date.now() - Number(localStorage.getItem('vocab_load_more_dismissed') ?? 0) < 7 * 864e5 }
+    catch { return false }
+  })
+  const masteredRatio = activeWords.length > 0 ? masteredCount / activeWords.length : 0
+  const showLoadMore = !loadMoreDismissed
+    && activeWords.length >= 15
+    && masteredRatio >= 0.70
+    && avgDailyReviews <= 15
+  const dismissLoadMore = () => {
+    try { localStorage.setItem('vocab_load_more_dismissed', String(Date.now())) } catch { /* incognito */ }
+    setLoadMoreDismissed(true)
+  }
+
   function buildSequence(practice: boolean): SessionItem[] {
     const now = Date.now()
     const items: SessionItem[] = []
@@ -351,6 +371,33 @@ export default function ReviewClient() {
             ?
           </button>
         </div>
+
+        {/* ── "Load more vocab" suggestion ──────────────────────────── */}
+        {showLoadMore && (
+          <div className="flex items-start gap-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm">
+            <span className="text-xl shrink-0">🌱</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                {({ es: '¡Vas sobrado! Buen momento para añadir vocabulario', en: 'You\'re ahead! A good time to add vocabulary', ca: 'Vas sobrat! Bon moment per afegir vocabulari', ja: '余裕あり！新しい語彙を追加する好機' } as Record<string, string>)[lang] ?? '¡Vas sobrado!'}
+              </p>
+              <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">
+                {({
+                  es: `Dominas ${masteredCount} de ${activeWords.length} palabras y tienes pocos repasos próximos (~${avgDailyReviews}/día). Añade más con el panel de abajo 👇`,
+                  en: `You've mastered ${masteredCount} of ${activeWords.length} words with few upcoming reviews (~${avgDailyReviews}/day). Add more with the panel below 👇`,
+                  ca: `Domines ${masteredCount} de ${activeWords.length} paraules i tens pocs repassos propers (~${avgDailyReviews}/dia). Afegeix-ne més amb el panell de sota 👇`,
+                  ja: `${activeWords.length}語中${masteredCount}語を習得、今後の復習は少なめ（約${avgDailyReviews}/日）。下のパネルで追加しましょう 👇`,
+                } as Record<string, string>)[lang] ?? ''}
+              </p>
+            </div>
+            <button
+              onClick={dismissLoadMore}
+              aria-label="Descartar"
+              className="shrink-0 text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 font-bold text-lg leading-none transition"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* ── Forecast card ─────────────────────────────────────────── */}
         <div className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">

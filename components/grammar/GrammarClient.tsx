@@ -647,6 +647,33 @@ export default function GrammarClient() {
   const totalInBook    = bookPoints.length
   const totalKnownInBook = bookPoints.filter(p => knownIds.has(p.id)).length
 
+  // "Load more grammar" suggestion: most studied points mastered + low upcoming load.
+  const grammarStudyingCount = useMemo(
+    () => ALL_GRAMMAR_POINTS.filter(g => srsStats.has(g.id) || knownIds.has(g.id)).length,
+    [srsStats, knownIds],
+  )
+  const grammarMastered = useMemo(
+    () => ALL_GRAMMAR_POINTS.filter(g => knownIds.has(g.id) || (srsStats.get(g.id)?.level ?? 0) >= 5).length,
+    [srsStats, knownIds],
+  )
+  const grammarAvgDaily = useMemo(
+    () => Math.round(grammarForecast.reduce((s, d) => s + d.newDue, 0) / Math.max(1, grammarForecast.length)),
+    [grammarForecast],
+  )
+  const [grammarLoadMoreDismissed, setGrammarLoadMoreDismissed] = useState(() => {
+    try { return Date.now() - Number(localStorage.getItem('grammar_load_more_dismissed') ?? 0) < 7 * 864e5 }
+    catch { return false }
+  })
+  const showGrammarLoadMore = !grammarLoadMoreDismissed
+    && grammarStudyingCount >= 10
+    && grammarStudyingCount < ALL_GRAMMAR_POINTS.length  // still room to add
+    && grammarMastered / grammarStudyingCount >= 0.70
+    && grammarAvgDaily <= 5
+  const dismissGrammarLoadMore = () => {
+    try { localStorage.setItem('grammar_load_more_dismissed', String(Date.now())) } catch { /* incognito */ }
+    setGrammarLoadMoreDismissed(true)
+  }
+
   const activeVocab = state.db.filter(i => i.status === 'active')
   const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
   const effectiveRole = state.simulatedRole ?? state.role
@@ -817,6 +844,32 @@ export default function GrammarClient() {
               🎲 {lang === 'en' ? 'Free review' : lang === 'ca' ? 'Repàs lliure' : 'Repaso libre'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── "Load more grammar" suggestion ──────────────────────────────── */}
+      {showGrammarLoadMore && (
+        <div className="flex items-start gap-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm">
+          <span className="text-xl shrink-0">🌱</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+              {lang === 'en' ? "You're ahead! A good time to add grammar" : lang === 'ca' ? 'Vas sobrat! Bon moment per afegir gramàtica' : '¡Vas sobrado! Buen momento para añadir gramática'}
+            </p>
+            <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">
+              {lang === 'en'
+                ? `You've mastered ${grammarMastered} of ${grammarStudyingCount} grammar points with few upcoming reviews (~${grammarAvgDaily}/day). Add more points from the list below.`
+                : lang === 'ca'
+                ? `Domines ${grammarMastered} de ${grammarStudyingCount} punts de gramàtica i tens pocs repassos propers (~${grammarAvgDaily}/dia). Afegeix-ne més des de la llista de sota.`
+                : `Dominas ${grammarMastered} de ${grammarStudyingCount} puntos de gramática y tienes pocos repasos próximos (~${grammarAvgDaily}/día). Añade más desde la lista de abajo.`}
+            </p>
+          </div>
+          <button
+            onClick={dismissGrammarLoadMore}
+            aria-label="Descartar"
+            className="shrink-0 text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 font-bold text-lg leading-none transition"
+          >
+            ✕
+          </button>
         </div>
       )}
 

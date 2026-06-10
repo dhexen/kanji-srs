@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Sugerencia de cargar más vocabulario o gramática',
+        description: 'Cuando dominas la mayoría de lo que estudias (Gurú o más) y tienes pocos repasos diarios próximos, la app te avisa con una tarjeta de que es buen momento para añadir vocabulario nuevo (en el Dashboard) o gramática (en su sección). Es una sugerencia descartable, no molesta.',
+      },
+      {
         type: 'fix',
         title: 'La sección de Contrarios vuelve a mostrar los pares',
         description: 'La lista de antónimos quedaba vacía cuando había muchos pares registrados, por un límite en la consulta. Ahora se cargan por lotes y se muestran todos correctamente.',
