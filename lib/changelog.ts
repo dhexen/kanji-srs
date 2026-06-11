@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Menú de administración reorganizado',
+        description: 'Las herramientas de administración ya no ocupan la barra lateral: ahora están en un desplegable "🔧 Admin" arriba a la derecha, junto a tu perfil, ordenadas por grupos (Gestión, Contenido, Revisión, Sistema) para encontrarlas más rápido. La simulación de rol también vive ahí.',
+      },
+      {
         type: 'new',
         title: 'Escritura completa de las palabras (todos los kanji)',
         description: 'Muchas palabras se aprenden con solo el kanji que toca y el resto en kana (p. ej. 草はら). Ahora, además, se muestra la escritura real con todos sus kanji y furigana (草原): siempre en la ficha del glosario, y al revelar la respuesta en los repasos (para no dar pistas durante la pregunta).',

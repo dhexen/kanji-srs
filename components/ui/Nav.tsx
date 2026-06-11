@@ -17,15 +17,6 @@ function stripEmoji(label: string) {
   return label.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[☀-➿️]\s*/u, '')
 }
 
-type SubItem = {
-  href: string
-  icon: string
-  label: string
-  tabKey: string
-  isDefault: boolean
-  badge: boolean
-}
-
 // ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({
   href, icon, label, badge, tutorialId, progress, isAdmin, pathname, onNavigate,
@@ -77,94 +68,6 @@ function NavItem({
             </div>
             <span className="text-[10px] text-violet-400 tabular-nums w-7 text-right">{progress}%</span>
           </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── NavSection ────────────────────────────────────────────────────────────────
-function NavSection({
-  icon, label, basePath, subItems, tutorialId, progress, pathname, currentTab,
-}: {
-  icon: string
-  label: string
-  basePath: string
-  subItems: SubItem[]
-  tutorialId?: string
-  progress?: number | null
-  pathname: string
-  currentTab: string | null
-}) {
-  const isOnSection = pathname === basePath
-  const [isOpen, setIsOpen] = useState(isOnSection)
-
-  useEffect(() => {
-    if (isOnSection) setIsOpen(true)
-  }, [isOnSection])
-
-  function isChildActive(tabKey: string, isDefault = false) {
-    if (pathname !== basePath) return false
-    if (!currentTab && isDefault) return true
-    return currentTab === tabKey
-  }
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setIsOpen(prev => !prev)}
-        {...(tutorialId ? { 'data-tutorial-id': tutorialId } : {})}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-          isOnSection
-            ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 shadow-sm'
-            : 'text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400'
-        }`}
-      >
-        <span className="text-lg w-6 text-center shrink-0">{icon}</span>
-        <span className="truncate flex-1 text-left">{label}</span>
-        <svg
-          className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 opacity-50 ${isOpen ? 'rotate-180' : ''}`}
-          fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {progress !== null && progress !== undefined && (
-        <div className="px-3 pb-1.5 -mt-0.5">
-          <div className="flex items-center gap-1.5 pl-9">
-            <div className="flex-1 h-1 bg-violet-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${
-                  progress >= 80 ? 'bg-emerald-400' :
-                  progress >= 40 ? 'bg-violet-400' : 'bg-violet-200'
-                }`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="text-[10px] text-violet-400 tabular-nums w-7 text-right">{progress}%</span>
-          </div>
-        </div>
-      )}
-
-      {isOpen && (
-        <div className="ml-4 pl-3 border-l border-violet-100 dark:border-slate-700 space-y-0.5 mt-0.5 mb-1">
-          {subItems.map(child => (
-            <Link
-              key={child.href}
-              href={child.href}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                isChildActive(child.tabKey, child.isDefault)
-                  ? 'bg-violet-100/80 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
-                  : 'text-slate-400 dark:text-slate-500 hover:bg-violet-50 dark:hover:bg-slate-800 hover:text-violet-600 dark:hover:text-violet-400'
-              }`}
-            >
-              <span className="text-sm w-4 text-center shrink-0">{child.icon}</span>
-              <span className="truncate flex-1">{child.label}</span>
-              {child.badge && <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />}
-            </Link>
-          ))}
         </div>
       )}
     </div>
@@ -333,48 +236,7 @@ function NavInner() {
             badge={0} progress={null} pathname={pathname} isAdmin
           />
         )}
-        {isAdmin && (
-          <NavSection
-            icon="🔧" label={stripEmoji(t(lang, 'nav_admin'))}
-            basePath="/admin"
-            subItems={[
-              { href: '/admin?tab=users',    icon: '👥', label: 'Usuarios',    tabKey: 'users',    isDefault: true,  badge: false },
-              { href: '/admin?tab=images',   icon: '🖼️', label: 'Imágenes',    tabKey: 'images',   isDefault: false, badge: false },
-              { href: '/admin?tab=vocab',    icon: '📚', label: 'Vocabulario', tabKey: 'vocab',    isDefault: false, badge: false },
-              { href: '/admin?tab=system',   icon: '⚙️', label: 'Sistema',     tabKey: 'system',   isDefault: false, badge: false },
-              { href: '/admin?tab=feedback', icon: '💬', label: 'Reportes',    tabKey: 'feedback', isDefault: false, badge: false },
-            ]}
-            pathname={pathname} currentTab={currentTab}
-          />
-        )}
-        {/* Role simulation controls — real admins only */}
-        {isRealAdmin && (
-          <div className="px-2 pt-1">
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide px-1 mb-1.5">👁 Simular rol</p>
-            <div className="flex flex-col gap-1">
-              {(['admin', 'contributor', 'user'] as const).map(role => {
-                const active = state.simulatedRole === role || (!state.simulatedRole && role === state.role)
-                const isCurrentReal = !state.simulatedRole && role === state.role
-                return (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => setSimulatedRole(isCurrentReal ? null : role)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
-                      active
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                    <span className="capitalize">{role === 'user' ? 'Usuario' : role === 'contributor' ? 'Contributor' : 'Admin'}</span>
-                    {isCurrentReal && <span className="ml-auto text-[9px] text-slate-400 dark:text-slate-500">real</span>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* Admin tools + role simulation moved to the top-right "🔧 Admin" dropdown (Header). */}
       </nav>
 
       {/* Syncing */}
