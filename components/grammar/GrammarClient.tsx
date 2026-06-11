@@ -523,7 +523,7 @@ export default function GrammarClient() {
   const { state, addXP } = useStore()
   const lang = state.lang
 
-  const [bookFilter, setBookFilter] = useState<BookFilter>('mnn1')
+  const [bookFilter, setBookFilter] = useState<BookFilter>('all')
   const [search, setSearch] = useState('')
   const [jlptFilter, setJlptFilter] = useState<JlptFilter>('all')
   const [knownIds, setKnownIds] = useState<Set<string>>(new Set())
