@@ -7,6 +7,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 import { VocabItem, ALL_REVIEW_MODES, getModeLevelAndDue, SRS_MAX_LEVEL } from '@/lib/srs'
 import VocabDetailModal from './VocabDetailModal'
+import FullWordReview from './FullWordReview'
 
 type WordState = 'burned' | 'studying' | 'unseen'
 
@@ -445,6 +446,18 @@ export default function VocabGlossary() {
           <span className="flex-1">{fillAdjMsg}</span>
           <button onClick={() => setFillAdjMsg('')} className="text-violet-400 hover:text-violet-600 text-lg leading-none">×</button>
         </div>
+      )}
+
+      {/* Full-word review (admin/contributor) */}
+      {canEdit && (
+        <details className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+            🈶 Revisar escritura completa
+          </summary>
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+            <FullWordReview />
+          </div>
+        </details>
       )}
 
       {/* Summary */}

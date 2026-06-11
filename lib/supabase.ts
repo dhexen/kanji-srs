@@ -1135,6 +1135,22 @@ export async function fetchVocabExtras(word: string): Promise<{ segments: FuriSe
   }
 }
 
+/** Words whose full real spelling (full_word) differs from `word` — the ones
+ *  worth reviewing (the AI added kanji). Empty if migration 026 not applied. */
+export async function fetchFullWordReviewList(): Promise<Array<{ word: string; kanji: string; reading: string; meaning_es: string; full_word: string }>> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('word, kanji, reading, meaning_es, full_word')
+    .not('full_word', 'is', null)
+    .order('grade', { ascending: true })
+    .order('sort_order', { ascending: true })
+    .limit(10000)
+  if (error || !data) return []
+  return (data as Array<{ word: string; kanji: string; reading: string; meaning_es: string; full_word: string | null }>)
+    .filter(r => r.full_word && r.full_word !== r.word)
+    .map(r => ({ word: r.word, kanji: r.kanji, reading: r.reading, meaning_es: r.meaning_es ?? '', full_word: r.full_word as string }))
+}
+
 /** Set of words that already have curated furigana — used by the admin review
  *  queue to skip them. Returns an empty set if the column doesn't exist yet. */
 export async function fetchWordsWithReadingSegments(): Promise<Set<string>> {

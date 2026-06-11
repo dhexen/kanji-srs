@@ -220,6 +220,16 @@ export interface FillFullWordResult {
   next_offset: number
 }
 
+/** Save (or clear with null) the full real spelling for a word. Editor role. */
+export async function saveVocabFullWord(word: string, fullWord: string | null): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ full_word: fullWord }),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
 /** Fill the full real spelling (full_word) for a page of vocabulary via Gemini. */
 export async function runFillFullWord(opts: { offset?: number; model?: string; geminiApiKey?: string }): Promise<FillFullWordResult> {
   const res = await fetch('/api/admin/vocab/fill-full-word', {
