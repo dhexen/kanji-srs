@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Instala 栞 como app (PWA)',
+        description: 'Ahora puedes instalar la web como una app en tu PC o móvil: aparece un botón "Instalar" (o el icono de instalar del navegador) y la app se abre en su propia ventana con su icono, sin la barra del navegador. En iPhone/iPad se hace desde Compartir → "Añadir a pantalla de inicio".',
+      },
+      {
+        type: 'new',
         title: 'Sugerencia de cargar más vocabulario o gramática',
         description: 'Cuando dominas la mayoría de lo que estudias (Gurú o más) y tienes pocos repasos diarios próximos, la app te avisa con una tarjeta de que es buen momento para añadir vocabulario nuevo (en el Dashboard) o gramática (en su sección). Es una sugerencia descartable, no molesta.',
       },

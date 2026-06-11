@@ -45,6 +45,17 @@ La primera vez que entres, un **tutorial interactivo** te guiará por las funcio
 
 Cuando hayas terminado el tutorial puedes acceder a él de nuevo pulsando el botón **?** que aparece en ciertas secciones.
 
+### Instalar la app (PWA)
+
+Puedes instalar 栞 como una **app** en tu ordenador o móvil para abrirla en su propia ventana, con su icono y sin la barra del navegador:
+
+- En **Chrome/Edge** (PC y Android): aparece un botón **"Instalar"** abajo a la derecha, o el **icono de instalar** en la barra de direcciones. Púlsalo y listo.
+- En **iPhone/iPad (Safari)**: pulsa **Compartir** y luego **"Añadir a pantalla de inicio"**.
+
+Funciona contra internet (no es modo sin conexión); simplemente la tienes como una app más.
+
+---
+
 ### La barra lateral izquierda
 
 En la parte izquierda de la pantalla hay un menú con todas las secciones. Para abrirlo o cerrarlo, pulsa el icono de **tres barras (≡)** en la parte superior izquierda. El menú también se cierra automáticamente si haces clic en cualquier otro lugar de la página.

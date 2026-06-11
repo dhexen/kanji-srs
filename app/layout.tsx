@@ -1,12 +1,26 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { StoreProvider } from '@/lib/store'
 import Toast from '@/components/ui/Toast'
 import AuthShell from '@/components/ui/AuthShell'
+import InstallPWA from '@/components/ui/InstallPWA'
 
 export const metadata: Metadata = {
   title: '栞',
   description: 'Aprende kanjis con repetición espaciada e IA',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: '栞', statusBarStyle: 'default' },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#7c3aed',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthShell>
             {children}
           </AuthShell>
+          <InstallPWA />
         </StoreProvider>
       </body>
     </html>
