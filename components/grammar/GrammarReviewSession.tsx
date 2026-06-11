@@ -372,8 +372,15 @@ export default function GrammarReviewSession({
     } else {
       wrongCountsRef.current.set(id, (wrongCountsRef.current.get(id) ?? 0) + 1)
       if (!completedRef.current.has(id)) {
-        queueRef.current = [...queueRef.current, id]
-        setQueueLen(queueRef.current.length)
+        // Re-insert at a random spot ahead (WaniKani-style) instead of at the very
+        // end, so the failed point comes back sooner — somewhere within the review.
+        const q = queueRef.current
+        const minPos = idx + 1
+        const pos = minPos + Math.floor(Math.random() * (q.length - minPos + 1))
+        const copy = [...q]
+        copy.splice(pos, 0, id)
+        queueRef.current = copy
+        setQueueLen(copy.length)
         didAppend = true
       }
     }
