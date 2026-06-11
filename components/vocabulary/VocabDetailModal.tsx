@@ -6,7 +6,7 @@ import { t, getStageName, type Lang } from '@/lib/i18n'
 import {
   VocabItem, MODE_CONFIG, ALL_REVIEW_MODES, getModeLevelAndDue, SRS_MAX_LEVEL, migrateItem,
 } from '@/lib/srs'
-import { fetchVocabReadingSegments, type FullVocabEntry } from '@/lib/supabase'
+import { fetchVocabExtras, type FullVocabEntry } from '@/lib/supabase'
 import { buildFurigana, hasKanji, type FuriSegment } from '@/lib/furigana'
 import { upgradeVocabImage } from '@/lib/image'
 import KanjiStrokeOrder from '@/components/review/KanjiStrokeOrder'
@@ -28,17 +28,22 @@ export default function VocabDetailModal({ entry, userItem, lang, onClose }: Pro
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
   const [segments, setSegments] = useState<FuriSegment[] | null>(entry.reading_segments)
+  const [fullWord, setFullWord] = useState<string | null>(null)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true))
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Load curated per-kanji furigana on open (preferred over the heuristic).
+  // Load curated furigana + full spelling on open.
   useEffect(() => {
     let cancelled = false
-    fetchVocabReadingSegments(entry.word)
-      .then(segs => { if (!cancelled && segs) setSegments(segs) })
+    fetchVocabExtras(entry.word)
+      .then(({ segments: segs, full_word }) => {
+        if (cancelled) return
+        if (segs) setSegments(segs)
+        setFullWord(full_word)
+      })
       .catch(() => {})
     return () => { cancelled = true }
   }, [entry.word])
@@ -127,6 +132,20 @@ export default function VocabDetailModal({ entry, userItem, lang, onClose }: Pro
               </p>
             )}
           </div>
+
+          {/* Full real spelling (all kanji) — separate from the word to learn */}
+          {fullWord && (
+            <div className="text-center rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 py-2.5 px-3">
+              <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
+                {ui(lang, 'Escritura completa', 'Escriptura completa', 'Full spelling')}
+              </p>
+              <div className="kanji-font text-2xl font-bold text-slate-800 dark:text-slate-100">
+                {buildFurigana(fullWord, entry.reading).tokens.map((tk, i) => tk.ruby
+                  ? <ruby key={i}>{tk.text}<rt className="text-xs font-normal text-indigo-400 tracking-tight">{tk.ruby}</rt></ruby>
+                  : <span key={i}>{tk.text}</span>)}
+              </div>
+            </div>
+          )}
 
           {/* Meaning */}
           <p className="text-center text-lg text-slate-700 dark:text-slate-200 font-medium">{meaning}</p>

@@ -138,6 +138,7 @@ export interface VocabItem {
   due: number
   status: 'locked' | 'active'
   image_url?: string
+  full_word?: string    // real full-kanji spelling (word 草はら → full_word 草原); shown on answer reveal
   grade?: number        // Japanese school grade (1-9)
   category?: VocabCategory
   word_type?: VocabWordType

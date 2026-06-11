@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { showToast } from '@/components/ui/Toast'
 import { searchVocabulary } from '@/lib/supabase'
 import AdminFuriganaReview from './AdminFuriganaReview'
+import AdminFillFullWord from './AdminFillFullWord'
 import {
   deleteVocabWord,
   deleteVocabByGrade,
@@ -236,6 +237,12 @@ export default function AdminVocabTab() {
           Palabras cuya lectura por kanji no es fiable automáticamente. Fija la lectura de cada kanji (o marca lectura conjunta para 熟字訓). Se aplica a todos los usuarios.
         </p>
         <AdminFuriganaReview />
+      </div>
+
+      {/* ── Rellenar escritura completa (full_word) ───────────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🈶 Escritura completa</h3>
+        <AdminFillFullWord />
       </div>
 
       {/* ── Búsqueda y eliminación individual ─────────────────────────────────── */}

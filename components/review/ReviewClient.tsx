@@ -188,12 +188,12 @@ export default function ReviewClient() {
 
     setIsStarting(true)
     try {
-      const wordsMissingMeta = [...new Set(
-        seq.filter(s => !s.item.image_url || !s.item.grade).map(s => s.item.jp)
-      )]
+      // Fetch meta for ALL unique words so the full real spelling (full_word) is
+      // available on the answer reveal, plus fill any missing image/grade.
+      const allWords = [...new Set(seq.map(s => s.item.jp))]
       let finalSeq = seq
-      if (wordsMissingMeta.length > 0) {
-        const metaMap = await fetchVocabMeta(wordsMissingMeta)
+      if (allWords.length > 0) {
+        const metaMap = await fetchVocabMeta(allWords)
         if (metaMap.size > 0) {
           finalSeq = seq.map(s => {
             const meta = metaMap.get(s.item.jp)
@@ -201,6 +201,7 @@ export default function ReviewClient() {
             const updates: Partial<typeof s.item> = {}
             if (!s.item.image_url && meta.image_url) updates.image_url = meta.image_url
             if (!s.item.grade && meta.grade) updates.grade = meta.grade
+            if (!s.item.full_word && meta.full_word) updates.full_word = meta.full_word
             return Object.keys(updates).length > 0 ? { ...s, item: { ...s.item, ...updates } } : s
           })
         }

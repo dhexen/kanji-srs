@@ -121,6 +121,11 @@ export async function PATCH(
         : null
     }
 
+    // Full real spelling (all kanji). Empty string clears it.
+    if ('full_word' in body) {
+      patch.full_word = typeof body.full_word === 'string' && body.full_word.trim() ? body.full_word.trim() : null
+    }
+
     if (typeof body.reading === 'string') {
       const v = body.reading.trim()
       if (!v) throw new AdminApiError('La lectura no puede estar vacía', 400)

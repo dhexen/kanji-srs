@@ -6,6 +6,7 @@ import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLa
 import { t, getStageName } from '@/lib/i18n'
 import { submitImageVote, submitVocabReport } from '@/lib/supabase'
 import { upgradeVocabImage } from '@/lib/image'
+import { buildFurigana } from '@/lib/furigana'
 import type { SessionItem } from './ReviewClient'
 import { vocabXpForResult } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
@@ -464,6 +465,21 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
               <span className="font-semibold tracking-wider">{inputValue}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Full real spelling (all kanji) — shown only on the reveal, as a separate
+          aid, so it never gives away the answer during the question. */}
+      {answerState !== 'waiting' && item.full_word && (
+        <div className="text-center rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 py-2 px-3">
+          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">
+            {lang === 'en' ? 'Full spelling' : lang === 'ca' ? 'Escriptura completa' : 'Escritura completa'}
+          </p>
+          <div className="kanji-font text-2xl font-bold text-slate-700 dark:text-slate-200">
+            {buildFurigana(item.full_word, item.reading).tokens.map((tk, i) => tk.ruby
+              ? <ruby key={i}>{tk.text}<rt className="text-xs font-normal text-indigo-400">{tk.ruby}</rt></ruby>
+              : <span key={i}>{tk.text}</span>)}
+          </div>
         </div>
       )}
 

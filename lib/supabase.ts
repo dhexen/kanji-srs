@@ -1110,6 +1110,31 @@ export async function fetchVocabReadingSegments(word: string): Promise<FuriSegme
   return Array.isArray(segs) && segs.length ? segs : null
 }
 
+/** Curated extras for one word (migrations 025/026): per-kanji furigana segments
+ *  and the full real spelling (all kanji). Tolerant of missing columns. */
+export async function fetchVocabExtras(word: string): Promise<{ segments: FuriSegment[] | null; full_word: string | null }> {
+  let { data, error } = await supabase
+    .from('vocabulary')
+    .select('reading_segments, full_word')
+    .eq('word', word)
+    .limit(1)
+    .maybeSingle()
+  if (error && isSchemaUnavailable(error)) {
+    ({ data, error } = await supabase
+      .from('vocabulary')
+      .select('reading_segments')
+      .eq('word', word)
+      .limit(1)
+      .maybeSingle())
+  }
+  if (error || !data) return { segments: null, full_word: null }
+  const d = data as { reading_segments?: FuriSegment[] | null; full_word?: string | null }
+  return {
+    segments: Array.isArray(d.reading_segments) && d.reading_segments.length ? d.reading_segments : null,
+    full_word: d.full_word && d.full_word !== word ? d.full_word : null,
+  }
+}
+
 /** Set of words that already have curated furigana — used by the admin review
  *  queue to skip them. Returns an empty set if the column doesn't exist yet. */
 export async function fetchWordsWithReadingSegments(): Promise<Set<string>> {
@@ -1212,6 +1237,7 @@ export async function insertUnofficialVocab(entry: {
 export interface VocabMeta {
   image_url?: string
   grade?: number
+  full_word?: string
 }
 
 /**
@@ -1222,17 +1248,26 @@ export interface VocabMeta {
 export async function fetchVocabMeta(words: string[]): Promise<Map<string, VocabMeta>> {
   if (words.length === 0) return new Map()
   try {
-    const { data } = await supabase
+    // Try with full_word (migration 026); fall back if the column doesn't exist.
+    let res = await supabase
       .from('vocabulary')
-      .select('word, image_url, grade')
+      .select('word, image_url, grade, full_word')
       .in('word', words)
+    if (res.error && isSchemaUnavailable(res.error)) {
+      res = await supabase
+        .from('vocabulary')
+        .select('word, image_url, grade')
+        .in('word', words) as typeof res
+    }
+    const data = res.data
     if (!data) return new Map()
     return new Map(
-      (data as { word: string; image_url?: string | null; grade?: number | null }[]).map(d => [
+      (data as { word: string; image_url?: string | null; grade?: number | null; full_word?: string | null }[]).map(d => [
         d.word,
         {
           ...(d.image_url ? { image_url: d.image_url } : {}),
           ...(d.grade ? { grade: d.grade } : {}),
+          ...(d.full_word ? { full_word: d.full_word } : {}),
         },
       ])
     )

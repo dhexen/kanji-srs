@@ -212,6 +212,24 @@ export async function updateVocabWord(
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
+export interface FillFullWordResult {
+  updated: number
+  with_kanji: number
+  fetched: number
+  done: boolean
+  next_offset: number
+}
+
+/** Fill the full real spelling (full_word) for a page of vocabulary via Gemini. */
+export async function runFillFullWord(opts: { offset?: number; model?: string; geminiApiKey?: string }): Promise<FillFullWordResult> {
+  const res = await fetch('/api/admin/vocab/fill-full-word', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<FillFullWordResult>(res)
+}
+
 /** Save (or clear with null) the curated per-kanji furigana for a word. */
 export async function saveVocabReadingSegments(
   word: string,

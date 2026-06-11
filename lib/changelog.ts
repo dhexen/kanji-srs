@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Escritura completa de las palabras (todos los kanji)',
+        description: 'Muchas palabras se aprenden con solo el kanji que toca y el resto en kana (p. ej. 草はら). Ahora, además, se muestra la escritura real con todos sus kanji y furigana (草原): siempre en la ficha del glosario, y al revelar la respuesta en los repasos (para no dar pistas durante la pregunta).',
+      },
+      {
+        type: 'new',
         title: 'Pista en los repasos de gramática',
         description: 'En el repaso de gramática hay un botón 💡 "Pista" que revela la respuesta letra a letra y muestra su longitud (con puntos). Útil cuando una frase admite varias formas (formal/informal, てしまいました vs pasado simple…) y no sabes cuál se espera.',
       },

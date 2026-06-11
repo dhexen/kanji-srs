@@ -104,7 +104,7 @@ function HelpVocabulary() {
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Las tres pestañas</h3>
         <div className="space-y-3">
           {[
-            { icon: '📖', label: 'Glosario', desc: 'Busca cualquier palabra del diccionario (por grado, kanji, lectura o significado). Cada palabra lleva su tipo y categoría y un punto de color con tu progreso (verde dominada · amarillo estudiando · gris no iniciada). Toca una palabra para ver su ficha grande con lectura, imagen, orden de trazos y tus niveles, y añadirla a tus repasos.' },
+            { icon: '📖', label: 'Glosario', desc: 'Busca cualquier palabra del diccionario (por grado, kanji, lectura o significado). Cada palabra lleva su tipo y categoría y un punto de color con tu progreso (verde dominada · amarillo estudiando · gris no iniciada). Toca una palabra para ver su ficha grande con lectura, imagen, orden de trazos, la escritura completa (con todos sus kanji y furigana) y tus niveles, y añadirla a tus repasos.' },
             { icon: '⇄', label: 'Antónimos', desc: 'Parejas de palabras con significado opuesto: alto ↔ bajo, frío ↔ caliente, comprar ↔ vender…' },
             { icon: '動', label: 'Transitivos', desc: 'Verbos clasificados por si tienen objeto directo (他動詞) o no (自動詞). Fundamental en japonés.' },
           ].map(s => (
