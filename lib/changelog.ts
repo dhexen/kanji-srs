@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Las palabras falladas reaparecen dentro del mismo tipo de repaso',
+        description: 'En los repasos, cuando fallas una palabra ya no espera al final de toda la sesión para volver: reaparece en una posición aleatoria (estilo WaniKani) pero siempre antes de terminar ese tipo de repaso. Así un fallo de opción múltiple vuelve dentro del bloque de opción múltiple, no después de haber acabado, por ejemplo, el inverso.',
+      },
+      {
         type: 'new',
         title: 'Instala 栞 como app (PWA)',
         description: 'Ahora puedes instalar la web como una app en tu PC o móvil: aparece un botón "Instalar" (o el icono de instalar del navegador) y la app se abre en su propia ventana con su icono, sin la barra del navegador. En iPhone/iPad se hace desde Compartir → "Añadir a pantalla de inicio".',

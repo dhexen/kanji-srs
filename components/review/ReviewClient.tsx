@@ -266,8 +266,21 @@ export default function ReviewClient() {
       const cur = wrongCountsRef.current.get(key) ?? 0
       wrongCountsRef.current.set(key, cur + 1)
       if (!completedRef.current.has(key)) {
-        // Append to end of queue so this item comes back before the session ends
-        setSequence(seq => [...seq, { item: sessionItem.item, mode: sessionItem.mode }])
+        // Re-insert the failed item at a random spot AHEAD but still within the
+        // same review-type (mode) block — so it always comes back before that
+        // type finishes, WaniKani-style (sometimes next, sometimes later).
+        const mode = sessionItem.mode
+        setSequence(seq => {
+          // The sequence is grouped by mode; find the end of this mode's block.
+          let blockEnd = index
+          while (blockEnd + 1 < seq.length && seq[blockEnd + 1].mode === mode) blockEnd++
+          const minPos = index + 1
+          const maxPos = blockEnd + 1  // just after the last item of this mode
+          const pos = minPos + Math.floor(Math.random() * (maxPos - minPos + 1))
+          const copy = [...seq]
+          copy.splice(pos, 0, { item: sessionItem.item, mode })
+          return copy
+        })
         didAppend = true
       }
     }
