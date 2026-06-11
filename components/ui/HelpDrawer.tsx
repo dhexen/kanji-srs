@@ -187,6 +187,7 @@ function HelpGrammar() {
       <Tip>Usa el filtro <strong>"📚 Estudiando"</strong> para ver solo los puntos que tienes activos en tu SRS.</Tip>
       <Tip>El botón <strong>🎲 Repaso libre</strong> te deja elegir lecciones (de lo que estudias) y repasar sin afectar a los niveles: 2-3 frases por punto en orden aleatorio. De vez en cuando, al azar, te pide escribir entera una frase que ya viste antes; se compara con la original y, si fallas, te marca el error.</Tip>
       <Tip>Si dominas casi toda la gramática que estudias y tienes pocos repasos próximos, aparece una tarjeta 🌱 sugiriéndote añadir más puntos. Es descartable.</Tip>
+      <Tip>En la lista, cada punto muestra tu nivel y tiene un botón <strong>➕</strong> para añadirlo a repasos sin entrar. Durante el repaso, el botón <strong>💡 Pista</strong> te va revelando la respuesta letra a letra si dudas qué forma se espera.</Tip>
     </div>
   )
 }

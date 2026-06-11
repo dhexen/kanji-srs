@@ -14,7 +14,7 @@ import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import GrammarReviewSession from './GrammarReviewSession'
 import { t } from '@/lib/i18n'
-import { type GrammarSrsStat, getGrammarForecast, formatNextReview, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
+import { type GrammarSrsStat, getGrammarForecast, formatNextReview, getSrsLevelLabel, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
 
 type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
 type BookFilter = 'all' | BookKey
@@ -51,6 +51,7 @@ function GrammarCard({
   known,
   srsStat,
   onToggleKnown,
+  onAddToSrs,
   onSelect,
   lang,
   showBook,
@@ -59,6 +60,7 @@ function GrammarCard({
   known: boolean
   srsStat?: GrammarSrsStat
   onToggleKnown: (id: string, val: boolean) => void
+  onAddToSrs: (id: string) => void
   onSelect: (g: GrammarPointWithBook) => void
   lang: string
   showBook: boolean
@@ -117,11 +119,16 @@ function GrammarCard({
               ⏰ {t(lang as any, 'gp_due')}
             </span>
           )}
-          {hasStarted && !isDue && !known && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-              {t(lang as any, 'grammar_studying')}
+          {/* User's SRS level for this grammar */}
+          {known ? (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400">
+              ⭐ {getSrsLevelLabel(srsStat?.level ?? 8, lang)}
             </span>
-          )}
+          ) : hasStarted && !isDue ? (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+              {getSrsLevelLabel(srsStat!.level, lang)}
+            </span>
+          ) : null}
         </div>
 
         {/* Pattern */}
@@ -140,6 +147,19 @@ function GrammarCard({
           })}
         </div>
       </div>
+
+      {/* Add to reviews (only if not yet in SRS and not known) */}
+      {!hasStarted && !known && (
+        <button
+          onClick={e => { e.stopPropagation(); onAddToSrs(grammar.id) }}
+          title={lang === 'en' ? 'Add to reviews' : lang === 'ca' ? 'Afegir als repassos' : 'Añadir a repasos'}
+          className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
 
       {/* Known toggle */}
       <button
@@ -570,6 +590,13 @@ export default function GrammarClient() {
       if (state.user) {
         void saveGrammarSrsResult(id, 8, enlightenedDue)
       }
+    } else {
+      // Unmarking "known" must NOT leave it at the Enlightened level — reset the
+      // SRS to Apprentice 1, due now, so it goes back into the learning queue.
+      const due = Date.now()
+      const stat: GrammarSrsStat = { grammar_id: id, level: 1, next_review: due }
+      setSrsStats(prev => new Map([...prev, [id, stat]]))
+      if (state.user) void saveGrammarSrsResult(id, 1, due)
     }
     if (state.user) await setGrammarKnown(id, val)
   }
@@ -1061,6 +1088,7 @@ export default function GrammarClient() {
                       known={knownIds.has(g.id)}
                       srsStat={srsStats.get(g.id)}
                       onToggleKnown={toggleKnown}
+                      onAddToSrs={handleAddToSrs}
                       onSelect={g => setView({ kind: 'detail', grammar: g })}
                       lang={lang}
                       showBook={bookFilter === 'all'}

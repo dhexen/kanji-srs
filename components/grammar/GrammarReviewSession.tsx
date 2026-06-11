@@ -137,6 +137,7 @@ export default function GrammarReviewSession({
   const freeWrittenRef = useRef(0)
   const freeWrittenOkRef = useRef(0)
   const [showHint, setShowHint] = useState(false)
+  const [hintChars, setHintChars] = useState(0)  // progressive answer reveal (Pista)
   const [showFurigana, setShowFurigana] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [reportSent, setReportSent] = useState(false)
@@ -177,6 +178,7 @@ export default function GrammarReviewSession({
     setFullInput('')
     setFullCorrect(false)
     setShowHint(false)
+    setHintChars(0)
     setReportOpen(false)
     setReportSent(false)
     setReportDesc('')
@@ -595,17 +597,42 @@ export default function GrammarReviewSession({
               </div>
             </div>
 
-            {showHint && translation ? (
-              <div className="px-5 pb-4 text-center">
+            {showHint && translation && (
+              <div className="px-5 pb-2 text-center">
                 <p className="text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>
               </div>
-            ) : translation ? (
-              <div className="flex justify-center pb-4">
+            )}
+
+            {/* Progressive answer hint: reveals one character at a time and shows
+                the length (dots), to disambiguate the expected form. */}
+            {(() => {
+              const answerChars = Array.from(s.answer)
+              return hintChars > 0 ? (
+                <div className="px-5 pb-3 text-center">
+                  <p className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wide mb-0.5">
+                    {ui(lang, 'Pista', 'Pista', 'Hint')}
+                  </p>
+                  <p className="kanji-font text-xl font-bold tracking-widest text-amber-600 dark:text-amber-400">
+                    {answerChars.map((c, i) => (i < hintChars ? c : '・')).join('')}
+                  </p>
+                </div>
+              ) : null
+            })()}
+
+            <div className="flex justify-center gap-4 pb-4">
+              {translation && !showHint && (
                 <button onClick={() => setShowHint(true)} className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition flex items-center gap-1">
-                  💡 {ui(lang, 'Ver traducción', 'Mostra traducció', 'Show translation')}
+                  💬 {ui(lang, 'Ver traducción', 'Mostra traducció', 'Show translation')}
                 </button>
-              </div>
-            ) : null}
+              )}
+              {hintChars < Array.from(s.answer).length && (
+                <button onClick={() => setHintChars(n => n + 1)} className="text-xs text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition flex items-center gap-1">
+                  💡 {hintChars === 0
+                    ? ui(lang, 'Pista', 'Pista', 'Hint')
+                    : ui(lang, 'Otra letra', 'Una altra lletra', 'Another letter')}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">

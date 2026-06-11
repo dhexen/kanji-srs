@@ -230,7 +230,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         {/* SRS status badge (add button only — remove is at the bottom of the page) */}
         {onAddToSrs && onRemoveFromSrs && (
           srsStat ? (
-            <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-lg">
+            <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-lg">
               📚 {getSrsLevelLabel(srsStat.level, lang)}
             </span>
           ) : (

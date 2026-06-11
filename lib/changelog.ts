@@ -20,6 +20,21 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Pista en los repasos de gramática',
+        description: 'En el repaso de gramática hay un botón 💡 "Pista" que revela la respuesta letra a letra y muestra su longitud (con puntos). Útil cuando una frase admite varias formas (formal/informal, てしまいました vs pasado simple…) y no sabes cuál se espera.',
+      },
+      {
+        type: 'new',
+        title: 'Gramática: añadir a repasos y ver nivel desde la lista',
+        description: 'Cada punto de gramática muestra ahora tu nivel SRS (Aprendiz, Gurú, etc.) en la lista y en su ficha, y tiene un botón ➕ para añadirlo a tus repasos directamente sin entrar en él.',
+      },
+      {
+        type: 'fix',
+        title: 'Desmarcar "dominada" en gramática vuelve a nivel 1',
+        description: 'Antes, si marcabas un punto de gramática como dominado y luego lo desmarcabas, se quedaba como dominado por dentro. Ahora vuelve correctamente al nivel 1 del SRS y entra de nuevo en tus repasos.',
+      },
+      {
         type: 'improvement',
         title: 'Las palabras falladas reaparecen dentro del mismo tipo de repaso',
         description: 'En los repasos, cuando fallas una palabra ya no espera al final de toda la sesión para volver: reaparece en una posición aleatoria (estilo WaniKani) pero siempre antes de terminar ese tipo de repaso. Así un fallo de opción múltiple vuelve dentro del bloque de opción múltiple, no después de haber acabado, por ejemplo, el inverso.',
