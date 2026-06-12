@@ -175,6 +175,8 @@ En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**.
 
 > **Importante:** practicar un punto desde su ficha es solo para **entrenar**: no cambia su nivel SRS a menos que esa gramática ya estuviera vencida. Para subir de nivel de forma normal, usa el **repaso** (botón "▶ Empezar repaso"), que solo incluye las gramáticas que toca repasar.
 
+> **Formal e informal:** el corrector acepta ambos registros cuando son la misma estructura (por ejemplo, `…ですか` y `…`), así que escribir la forma llana no cuenta como error. Cuando el hueco espera una forma educada, verás una etiqueta **🎩 formal** que te indica en qué registro escribir.
+
 #### El sistema de repaso de gramática
 
 Al igual que el vocabulario, la gramática tiene su propio sistema de niveles. El banner **"⏰ N puntos de gramática vencidos hoy"** te avisará cuando toca repasar.

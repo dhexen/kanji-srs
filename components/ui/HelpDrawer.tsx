@@ -144,6 +144,9 @@ function HelpGrammar() {
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
           Practicar desde la ficha es solo para entrenar: <strong>no sube de nivel</strong> salvo que la gramática ya esté vencida. El nivel avanza con el <strong>repaso</strong> (solo gramáticas vencidas).
         </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          Se aceptan la <strong>forma formal y la informal</strong> cuando son la misma estructura (p. ej. …ですか y …). Si el hueco espera una forma educada, verás una etiqueta <strong>🎩 formal</strong> que te indica el registro.
+        </p>
       </div>
 
       <div>

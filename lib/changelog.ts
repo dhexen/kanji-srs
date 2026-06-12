@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'Gramática: se aceptan forma formal e informal',
+        description: 'En los repasos y prácticas de gramática, si la respuesta esperada es educada (…ですか) pero escribes la forma llana equivalente (…), ya no cuenta como error: se aceptan ambos registros cuando son la misma estructura. Además, cuando el hueco espera una forma educada, aparece una etiqueta 🎩 "formal" para que sepas en qué registro escribir.',
+      },
+      {
+        type: 'improvement',
         title: 'Kanji con trazo más fino y escritura completa más visible',
         description: 'Los kanji se ven con un trazo más fino en toda la app, para que no se solapen los caracteres con muchos trazos. Además, en los repasos, la "escritura completa" (la palabra con todos sus kanji) aparece ahora destacada en un recuadro al revelar la respuesta.',
       },

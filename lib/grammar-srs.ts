@@ -152,8 +152,28 @@ export function normalizeAnswer(s: string): string {
 }
 
 /**
- * Returns true if the user's input matches the correct answer or
- * any of the acceptable alternatives (after normalisation).
+ * Strip trailing polite copula / question markers so the plain and polite
+ * forms of the same pattern compare equal (e.g. てもいい ≡ てもいいです ≡
+ * てもいいですか). Only removes additive politeness suffixes — it does NOT
+ * conjugate, so ます-verbs (持っていきます vs 持っていく) are left untouched.
+ */
+function plainCore(s: string): string {
+  let x = s
+  for (let i = 0; i < 4; i++) {
+    const stripped = x
+      .replace(/(でしょうか|でしょう|ですか|でした|です)$/, '')
+      .replace(/か$/, '')
+    if (stripped === x) break
+    x = stripped
+  }
+  return x
+}
+
+/**
+ * Returns true if the user's input matches the correct answer or any of the
+ * acceptable alternatives (after normalisation). It is register-tolerant: a
+ * plain answer is accepted where a polite one is expected and vice versa, as
+ * long as they share the same plain core (so both 丁寧 and 普通 forms pass).
  */
 export function checkAnswer(
   userInput: string,
@@ -162,7 +182,21 @@ export function checkAnswer(
 ): boolean {
   const norm = normalizeAnswer(userInput)
   if (!norm) return false
-  return [correct, ...alts].map(normalizeAnswer).includes(norm)
+  const candidates = [correct, ...alts].map(normalizeAnswer)
+  if (candidates.includes(norm)) return true
+  // Register-tolerant fallback: compare the plain cores.
+  const userCore = plainCore(norm)
+  if (!userCore) return false
+  return candidates.some(c => { const cc = plainCore(c); return !!cc && cc === userCore })
+}
+
+/**
+ * Detects whether the expected answer is in polite (formal) register, so the
+ * UI can show a "formal" hint. Returns null when there is no clear register
+ * (e.g. a bare particle), to avoid mislabelling.
+ */
+export function getAnswerRegister(answer: string): 'formal' | null {
+  return /(です|ます|ました|ません|でした|でしょう)/.test(answer) ? 'formal' : null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

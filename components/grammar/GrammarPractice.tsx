@@ -11,6 +11,7 @@ import {
   checkAnswer,
   formatNextReview,
   getSrsLevelLabel,
+  getAnswerRegister,
 } from '@/lib/grammar-srs'
 import {
   supabase,
@@ -986,9 +987,16 @@ export default function GrammarPractice({
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             {/* Controls row */}
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                {lang === 'en' ? 'Fill in the blank' : lang === 'ca' ? 'Omple el buit' : 'Rellena el hueco'}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                  {lang === 'en' ? 'Fill in the blank' : lang === 'ca' ? 'Omple el buit' : 'Rellena el hueco'}
+                </span>
+                {currentSentence && getAnswerRegister(currentSentence.answer) === 'formal' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 shrink-0">
+                    🎩 {lang === 'en' ? 'polite' : 'formal'}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {hasFurigana && (
                   <button

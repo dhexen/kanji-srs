@@ -11,6 +11,7 @@ import {
   checkAnswer,
   checkFullSentence,
   getSrsLevelLabel,
+  getAnswerRegister,
 } from '@/lib/grammar-srs'
 import {
   fetchGrammarSentences,
@@ -568,9 +569,16 @@ export default function GrammarReviewSession({
         <>
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                {ui(lang, 'Rellena el hueco', 'Omple el buit', 'Fill in the blank')}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                  {ui(lang, 'Rellena el hueco', 'Omple el buit', 'Fill in the blank')}
+                </span>
+                {getAnswerRegister(s.answer) === 'formal' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 shrink-0">
+                    🎩 {ui(lang, 'formal', 'formal', 'polite')}
+                  </span>
+                )}
+              </div>
               {hasFurigana && (
                 <button
                   onClick={() => setShowFurigana(v => !v)}
