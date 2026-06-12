@@ -471,13 +471,14 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       {/* Full real spelling (all kanji) — shown only on the reveal, as a separate
           aid, so it never gives away the answer during the question. */}
       {answerState !== 'waiting' && item.full_word && (
-        <div className="text-center rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 py-2 px-3">
-          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">
+        <div className="text-center rounded-xl bg-indigo-50 dark:bg-indigo-900/25 border-2 border-indigo-200 dark:border-indigo-700/60 py-3 px-3">
+          <p className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-500 dark:text-indigo-300 uppercase tracking-wide mb-1">
+            <span aria-hidden>🈶</span>
             {lang === 'en' ? 'Full spelling' : lang === 'ca' ? 'Escriptura completa' : 'Escritura completa'}
           </p>
-          <div className="kanji-font text-2xl font-bold text-slate-700 dark:text-slate-200">
+          <div className="kanji-font text-3xl text-slate-800 dark:text-slate-100">
             {buildFurigana(item.full_word, item.reading).tokens.map((tk, i) => tk.ruby
-              ? <ruby key={i}>{tk.text}<rt className="text-xs font-normal text-indigo-400">{tk.ruby}</rt></ruby>
+              ? <ruby key={i}>{tk.text}<rt className="text-sm text-indigo-400">{tk.ruby}</rt></ruby>
               : <span key={i}>{tk.text}</span>)}
           </div>
         </div>

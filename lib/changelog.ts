@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Kanji con trazo más fino y escritura completa más visible',
+        description: 'Los kanji se ven con un trazo más fino en toda la app, para que no se solapen los caracteres con muchos trazos. Además, en los repasos, la "escritura completa" (la palabra con todos sus kanji) aparece ahora destacada en un recuadro al revelar la respuesta.',
+      },
+      {
         type: 'new',
         title: 'Nueva sección JLPT en Gramática',
         description: 'Dentro de Gramática hay ahora un selector "Minna no Nihongo / JLPT". La sección JLPT reúne cientos de puntos gramaticales (N5 a N1) que puedes consultar y practicar. De momento está en pruebas: practicarla NO afecta a tu SRS ni a tu calendario. Cada punto trae una explicación ampliada y varios ejemplos.',
