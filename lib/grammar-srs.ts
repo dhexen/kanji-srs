@@ -169,25 +169,43 @@ function plainCore(s: string): string {
   return x
 }
 
+/** True if the normalised input equals a candidate, allowing register variants. */
+function matchesCandidate(norm: string, candidates: string[]): boolean {
+  if (candidates.includes(norm)) return true
+  const core = plainCore(norm)
+  return !!core && candidates.some(c => { const cc = plainCore(c); return !!cc && cc === core })
+}
+
 /**
  * Returns true if the user's input matches the correct answer or any of the
- * acceptable alternatives (after normalisation). It is register-tolerant: a
- * plain answer is accepted where a polite one is expected and vice versa, as
- * long as they share the same plain core (so both 丁寧 and 普通 forms pass).
+ * acceptable alternatives (after normalisation). Two tolerances apply:
+ *  - register: a plain answer passes where a polite one is expected and vice
+ *    versa, as long as they share the same plain core (丁寧 ⇄ 普通).
+ *  - boundary: when `before` is given, the student may re-type the trailing
+ *    characters of the text before the blank that belong to the conjugation
+ *    (e.g. before ends 飼っ and they type ってはいけません for てはいけません).
  */
 export function checkAnswer(
   userInput: string,
   correct: string,
   alts: string[] = [],
+  before = '',
 ): boolean {
   const norm = normalizeAnswer(userInput)
   if (!norm) return false
   const candidates = [correct, ...alts].map(normalizeAnswer)
-  if (candidates.includes(norm)) return true
-  // Register-tolerant fallback: compare the plain cores.
-  const userCore = plainCore(norm)
-  if (!userCore) return false
-  return candidates.some(c => { const cc = plainCore(c); return !!cc && cc === userCore })
+  if (matchesCandidate(norm, candidates)) return true
+  // Boundary-tolerant: strip a prefix of the answer that repeats the tail of
+  // `before`, then re-check. Accepts re-typed context without accepting any
+  // other extra characters.
+  if (before) {
+    const b = normalizeAnswer(before)
+    for (let k = 1; k <= Math.min(b.length, norm.length - 1); k++) {
+      if (norm.slice(0, k) !== b.slice(b.length - k)) continue
+      if (matchesCandidate(norm.slice(k), candidates)) return true
+    }
+  }
+  return false
 }
 
 /**

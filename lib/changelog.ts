@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'fix',
+        title: 'Gramática: no penaliza repetir el contexto en el hueco',
+        description: 'Cuando el hueco corta una conjugación a medias (p. ej. la frase ya muestra 飼っ y escribes ってはいけません en vez de てはいけません), el corrector ya no lo cuenta como error: acepta que reescribas los caracteres del contexto que ya aparecían.',
+      },
+      {
+        type: 'fix',
         title: 'Gramática: frases mal formadas filtradas',
         description: 'Algunas frases generadas por IA metían en el hueco el verbo en lugar de la gramática (p. ej. para "V てみます" salía しらべ sin la て, dejando la frase rota). Ahora se descartan las frases cuyo hueco no contiene el patrón, tanto al generarlas como al mostrarlas, así no aparecen en repasos ni prácticas.',
       },

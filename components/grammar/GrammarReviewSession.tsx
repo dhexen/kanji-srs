@@ -296,7 +296,7 @@ export default function GrammarReviewSession({
     if (!userInput.trim() || phase !== 'asking' || !currentSentence) return
     submittedAtRef.current = Date.now()
     // Always show fill-in feedback (the writing challenge comes later, at random).
-    setIsCorrect(checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts))
+    setIsCorrect(checkAnswer(userInput.trim(), currentSentence.answer, currentSentence.answer_alts, currentSentence.sentence_before))
     setPhase('answered')
   }
 

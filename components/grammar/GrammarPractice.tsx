@@ -546,7 +546,7 @@ export default function GrammarPractice({
     if (!userInput.trim() || phase !== 'asking') return
     const sentence = sentences[sessionQueue[currentPos]]
     if (!sentence) return
-    const correct = checkAnswer(userInput.trim(), sentence.answer, sentence.answer_alts)
+    const correct = checkAnswer(userInput.trim(), sentence.answer, sentence.answer_alts, sentence.sentence_before)
     setIsCorrect(correct)
     setSessionResults(prev => [...prev, correct])
     setPhase('answered')
