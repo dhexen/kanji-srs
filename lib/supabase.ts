@@ -1517,6 +1517,66 @@ export async function setGrammarKnown(grammarId: string, known: boolean): Promis
 }
 
 // ---------------------------------------------------------------------------
+// JLPT grammar — enriched content + progress (independent from the SRS/calendar)
+// ---------------------------------------------------------------------------
+
+import type { JlptDetail, JlptStatus } from './grammar-bunpro'
+
+/** AI-enriched explanation + examples per JLPT point. Empty Map if unavailable. */
+export async function fetchJlptDetails(): Promise<Map<string, JlptDetail>> {
+  try {
+    const { data, error } = await supabase
+      .from('jlpt_grammar_details')
+      .select('point_id, explanation_es, explanation_en, examples')
+      .limit(2000)
+    if (error) { console.warn('jlpt details:', error.message); return new Map() }
+    const map = new Map<string, JlptDetail>()
+    for (const r of (data ?? []) as Array<{ point_id: string; explanation_es: string | null; explanation_en: string | null; examples: unknown }>) {
+      map.set(r.point_id, {
+        point_id: r.point_id,
+        explanation_es: r.explanation_es ?? undefined,
+        explanation_en: r.explanation_en ?? undefined,
+        examples: Array.isArray(r.examples) ? (r.examples as JlptDetail['examples']) : [],
+      })
+    }
+    return map
+  } catch { return new Map() }
+}
+
+/** Per-user JLPT progress (studying/known). Stored apart from grammar_srs. */
+export async function fetchJlptProgress(): Promise<Map<string, JlptStatus>> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_jlpt_progress')
+      .select('point_id, status')
+      .eq('user_id', user.id)
+    if (error) { console.warn('jlpt progress:', error.message); return new Map() }
+    const map = new Map<string, JlptStatus>()
+    for (const r of (data ?? []) as Array<{ point_id: string; status: JlptStatus }>) map.set(r.point_id, r.status)
+    return map
+  } catch { return new Map() }
+}
+
+/** Upsert (or clear, when status === null) a single JLPT point's progress. */
+export async function setJlptProgress(pointId: string, status: JlptStatus | null): Promise<void> {
+  try {
+    const user = await requireUser()
+    if (status === null) {
+      const { error } = await supabase
+        .from('user_jlpt_progress')
+        .delete().eq('user_id', user.id).eq('point_id', pointId)
+      if (error) console.error('setJlptProgress delete:', error.message)
+      return
+    }
+    const { error } = await supabase
+      .from('user_jlpt_progress')
+      .upsert({ user_id: user.id, point_id: pointId, status, updated_at: new Date().toISOString() })
+    if (error) console.error('setJlptProgress:', error.message)
+  } catch (e) { console.error('setJlptProgress:', e) }
+}
+
+// ---------------------------------------------------------------------------
 // Grammar SRS — sentences pool
 // ---------------------------------------------------------------------------
 

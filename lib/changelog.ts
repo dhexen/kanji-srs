@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Nueva sección JLPT en Gramática',
+        description: 'Dentro de Gramática hay ahora un selector "Minna no Nihongo / JLPT". La sección JLPT reúne cientos de puntos gramaticales (N5 a N1) que puedes consultar y practicar. De momento está en pruebas: practicarla NO afecta a tu SRS ni a tu calendario. Cada punto trae una explicación ampliada y varios ejemplos.',
+      },
+      {
         type: 'improvement',
         title: 'Menú de administración reorganizado',
         description: 'Las herramientas de administración ya no ocupan la barra lateral: ahora están en un desplegable "🔧 Admin" arriba a la derecha, junto a tu perfil, ordenadas por grupos (Gestión, Contenido, Revisión, Sistema) para encontrarlas más rápido. La simulación de rol también vive ahí.',

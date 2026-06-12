@@ -1,3 +1,17 @@
+// ── Enriched JLPT content (stored in jlpt_grammar_details, filled by admin) ──
+export interface JlptExample {
+  jp: string
+  es: string
+  reading?: string
+}
+export interface JlptDetail {
+  point_id: string
+  explanation_es?: string
+  explanation_en?: string
+  examples: JlptExample[]
+}
+export type JlptStatus = 'studying' | 'known'
+
 export interface BunproGrammarPoint {
   id: string
   jlpt: 'N5' | 'N4' | 'N3' | 'N2' | 'N1'

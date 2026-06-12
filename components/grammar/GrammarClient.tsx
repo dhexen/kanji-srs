@@ -13,6 +13,7 @@ import { showToast } from '@/components/ui/Toast'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import GrammarReviewSession from './GrammarReviewSession'
+import JlptSection from './JlptSection'
 import { t } from '@/lib/i18n'
 import { type GrammarSrsStat, getGrammarForecast, formatNextReview, getSrsLevelLabel, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
 
@@ -519,10 +520,41 @@ function FreeReviewSelect({
 // Main GrammarClient
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Top-level source switch: Minna no Nihongo (SRS) vs JLPT (practice-only).
+function SectionToggle({ section, onChange }: { section: 'mnn' | 'jlpt'; onChange: (s: 'mnn' | 'jlpt') => void }) {
+  return (
+    <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+      <button
+        type="button"
+        onClick={() => onChange('mnn')}
+        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          section === 'mnn'
+            ? 'bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+        }`}
+      >
+        📗 Minna no Nihongo
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('jlpt')}
+        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          section === 'jlpt'
+            ? 'bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+        }`}
+      >
+        🗾 JLPT
+      </button>
+    </div>
+  )
+}
+
 export default function GrammarClient() {
   const { state, addXP } = useStore()
   const lang = state.lang
 
+  const [section, setSection] = useState<'mnn' | 'jlpt'>('mnn')
   const [bookFilter, setBookFilter] = useState<BookFilter>('all')
   const [search, setSearch] = useState('')
   const [jlptFilter, setJlptFilter] = useState<JlptFilter>('all')
@@ -706,6 +738,24 @@ export default function GrammarClient() {
   const effectiveRole = state.simulatedRole ?? state.role
   const canEdit = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
+  // ── JLPT section (practice-only, independent from the SRS/calendar) ──────────
+  if (section === 'jlpt') {
+    return (
+      <div className="space-y-4">
+        <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          ← Dashboard
+        </Link>
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'grammar_title')}</h1>
+            <SectionToggle section={section} onChange={setSection} />
+          </div>
+        </div>
+        <JlptSection />
+      </div>
+    )
+  }
+
   // ── Sub-views ────────────────────────────────────────────────────────────
 
   if (view.kind === 'detail') {
@@ -821,8 +871,9 @@ export default function GrammarClient() {
 
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'grammar_title')}</h1>
+          <SectionToggle section={section} onChange={setSection} />
         </div>
         <p className="text-sm text-slate-500 mt-0.5">{subtitleText}</p>
       </div>

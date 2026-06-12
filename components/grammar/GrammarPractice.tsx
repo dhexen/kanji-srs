@@ -70,6 +70,8 @@ interface Props {
   onSrsUpdate?: (stat: GrammarSrsStat) => void
   onSessionEnd?: (grammarId: string, hadWrongs: boolean) => void
   canEdit?: boolean
+  /** JLPT drill mode: never touches the SRS/calendar (no fetch, no persist). */
+  ephemeral?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -162,6 +164,7 @@ export default function GrammarPractice({
   onSrsUpdate,
   onSessionEnd,
   canEdit,
+  ephemeral = false,
 }: Props) {
   const { addXP, state } = useStore()
   const hasWaniKani = Boolean(state.waniKaniApiKey)
@@ -325,7 +328,7 @@ export default function GrammarPractice({
     try {
       const [storedSentences, stat] = await Promise.all([
         fetchGrammarSentences(grammar.id),
-        fetchGrammarSrsStat(grammar.id),
+        ephemeral ? Promise.resolve(null) : fetchGrammarSrsStat(grammar.id),
       ])
       setSentences(storedSentences)
       setSrsStat(stat)
@@ -596,7 +599,7 @@ export default function GrammarPractice({
       // Only advance the SRS schedule when this grammar is part of the SRS AND
       // is actually due. Practising a not-yet-due grammar (or one not in the
       // SRS queue) is allowed for drilling but must NOT level it up early.
-      const dueNow = !!srsStat && srsStat.next_review <= Date.now()
+      const dueNow = !ephemeral && !!srsStat && srsStat.next_review <= Date.now()
       if (dueNow) {
         const currentLevel = srsStat!.level
         const { newLevel, nextReview } = applyGrammarResult(currentLevel, wrongCount)

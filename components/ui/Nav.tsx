@@ -82,8 +82,6 @@ function NavInner() {
   const { state, setSimulatedRole, refreshData } = useStore()
   const { collapsed, toggle, close } = useSidebar()
   const isRealAdmin = state.role === 'admin'
-  const effectiveRole = state.simulatedRole ?? state.role
-  const isAdmin = effectiveRole === 'admin'
   const lang = state.lang
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
@@ -230,12 +228,7 @@ function NavInner() {
           href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
           badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
         />
-        {isAdmin && (
-          <NavItem
-            href="/grammar-test" icon="🧪" label="Gramática Test"
-            badge={0} progress={null} pathname={pathname} isAdmin
-          />
-        )}
+        {/* JLPT grammar is now a section inside /grammar (toggle in its header). */}
         {/* Admin tools + role simulation moved to the top-right "🔧 Admin" dropdown (Header). */}
       </nav>
 

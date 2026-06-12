@@ -1,19 +1,17 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats } from '@/lib/supabase'
+import { fetchJlptDetails, fetchJlptProgress, setJlptProgress } from '@/lib/supabase'
 import {
   BUNPRO_GRAMMAR,
   BUNPRO_JLPT_LEVELS,
   bunproToGrammarPoint,
   type BunproGrammarPoint,
+  type JlptDetail,
+  type JlptStatus,
 } from '@/lib/grammar-bunpro'
-import { type GrammarSrsStat } from '@/lib/grammar-srs'
 import { ROLE_COLORS } from '@/lib/grammar-mnn1'
-import GrammarClient from '@/components/grammar/GrammarClient'
-import GrammarDetail from '@/components/grammar/GrammarDetail'
 import GrammarPractice from '@/components/grammar/GrammarPractice'
 
 // ── JLPT level badge colors ───────────────────────────────────────────────────
@@ -25,32 +23,26 @@ const LEVEL_PILL: Record<BunproGrammarPoint['jlpt'], string> = {
   N1: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 }
 
-// ── JLPT view states ──────────────────────────────────────────────────────────
-type JlptView =
+type JlptViewState =
   | { kind: 'list' }
   | { kind: 'detail'; point: BunproGrammarPoint }
   | { kind: 'practice'; point: BunproGrammarPoint }
 
-// ── Single grammar card for the JLPT tab ─────────────────────────────────────
+// ── Single card ───────────────────────────────────────────────────────────────
 function JlptCard({
-  point,
-  known,
-  srsStat,
-  onToggleKnown,
-  onSelect,
+  point, status, onToggleKnown, onSelect,
 }: {
   point: BunproGrammarPoint
-  known: boolean
-  srsStat?: GrammarSrsStat
-  onToggleKnown: (id: string, val: boolean) => void
+  status?: JlptStatus
+  onToggleKnown: (id: string, known: boolean) => void
   onSelect: (p: BunproGrammarPoint) => void
 }) {
-  const isDue     = srsStat && srsStat.next_review <= Date.now()
-  const hasStarted = !!srsStat
+  const known = status === 'known'
+  const studying = status === 'studying'
 
   const cardBg = known
     ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 opacity-70 hover:opacity-90'
-    : hasStarted
+    : studying
       ? 'bg-amber-50 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800/60 hover:border-amber-300 dark:hover:border-amber-600'
       : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-sm'
 
@@ -61,15 +53,8 @@ function JlptCard({
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${LEVEL_PILL[point.jlpt]}`}>
-            {point.jlpt}
-          </span>
-          {isDue && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600 animate-pulse">
-              ⏰ Pendiente
-            </span>
-          )}
-          {hasStarted && !isDue && !known && (
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${LEVEL_PILL[point.jlpt]}`}>{point.jlpt}</span>
+          {studying && !known && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
               Estudiando
             </span>
@@ -80,7 +65,6 @@ function JlptCard({
         <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-1">{point.meaning_es}</p>
       </div>
 
-      {/* Known toggle */}
       <button
         type="button"
         onClick={e => { e.stopPropagation(); onToggleKnown(point.id, !known) }}
@@ -97,43 +81,27 @@ function JlptCard({
   )
 }
 
-// ── JLPT detail panel ─────────────────────────────────────────────────────────
+// ── Detail panel ──────────────────────────────────────────────────────────────
 function JlptDetailPanel({
-  point,
-  lang,
-  geminiKey,
-  sessionToken,
-  activeVocab,
-  canEdit,
-  onBack,
-  onPractice,
+  point, detail, onBack, onPractice,
 }: {
   point: BunproGrammarPoint
-  lang: string
-  geminiKey: string
-  sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
-  canEdit: boolean
+  detail?: JlptDetail
   onBack: () => void
   onPractice: () => void
 }) {
+  const examples = detail?.examples ?? []
   return (
     <div className="space-y-5">
-      {/* Back */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-        >
+        <button onClick={onBack} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_PILL[point.jlpt]}`}>
-              {point.jlpt}
-            </span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_PILL[point.jlpt]}`}>{point.jlpt}</span>
           </div>
           <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{point.pattern}</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">{point.name_es}</p>
@@ -154,34 +122,39 @@ function JlptDetailPanel({
           {point.structure.split(/\s+/).map((part, i) => {
             const c = ROLE_COLORS['key']
             return (
-              <span key={i} className={`${c.bg} ${c.text} border ${c.border} text-sm font-bold rounded-md px-2 py-0.5`}>
-                {part}
-              </span>
+              <span key={i} className={`${c.bg} ${c.text} border ${c.border} text-sm font-bold rounded-md px-2 py-0.5`}>{part}</span>
             )
           })}
         </div>
       </div>
 
-      {/* Explanation */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Explicación (ES)</p>
-          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{point.meaning_es}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Explanation (EN)</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{point.meaning_en}</p>
-        </div>
+      {/* Explanation — enriched if available, otherwise the built-in short one */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Explicación</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+          {detail?.explanation_es || point.meaning_es}
+        </p>
       </div>
 
-      {/* Example */}
-      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Ejemplo</p>
-        <p className="text-lg font-medium text-slate-800 dark:text-slate-100 mb-1">{point.example_jp}</p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{point.example_es}</p>
+      {/* Examples */}
+      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Ejemplos</p>
+        {examples.length > 0 ? (
+          examples.map((ex, i) => (
+            <div key={i} className="pb-2 border-b border-slate-200/70 dark:border-slate-700/70 last:border-0 last:pb-0">
+              <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{ex.jp}</p>
+              {ex.reading && <p className="text-xs text-slate-400 dark:text-slate-500">{ex.reading}</p>}
+              <p className="text-sm text-slate-500 dark:text-slate-400">{ex.es}</p>
+            </div>
+          ))
+        ) : (
+          <div>
+            <p className="text-lg font-medium text-slate-800 dark:text-slate-100">{point.example_jp}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{point.example_es}</p>
+          </div>
+        )}
       </div>
 
-      {/* Notes */}
       {point.notes && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-4">
           <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">Nota</p>
@@ -192,32 +165,35 @@ function JlptDetailPanel({
   )
 }
 
-// ── JLPT tab full view ────────────────────────────────────────────────────────
-function JlptView() {
+// ── JLPT section (embedded inside the Grammar page) ───────────────────────────
+export default function JlptSection() {
   const { state } = useStore()
-  const lang           = state.lang
-  const effectiveRole  = state.simulatedRole ?? state.role
-  const canEdit        = effectiveRole === 'admin' || effectiveRole === 'contributor'
+  const lang          = state.lang
+  const effectiveRole = state.simulatedRole ?? state.role
+  const canEdit       = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
-  const [view, setView]             = useState<JlptView>({ kind: 'list' })
+  const [view, setView]             = useState<JlptViewState>({ kind: 'list' })
   const [levelFilter, setLevelFilter] = useState<BunproGrammarPoint['jlpt'] | 'all'>('all')
   const [search, setSearch]         = useState('')
-  const [knownIds, setKnownIds]     = useState<Set<string>>(new Set())
+  const [progress, setProgress]     = useState<Map<string, JlptStatus>>(new Map())
+  const [details, setDetails]       = useState<Map<string, JlptDetail>>(new Map())
   const [hideKnown, setHideKnown]   = useState(false)
-  const [srsStats, setSrsStats]     = useState<Map<string, GrammarSrsStat>>(new Map())
   const [sessionToken, setSessionToken] = useState('')
 
   useEffect(() => {
+    fetchJlptDetails().then(setDetails)
+  }, [])
+
+  useEffect(() => {
     if (!state.user) return
-    fetchKnownGrammar().then(ids => setKnownIds(ids))
-    fetchAllGrammarSrsStats().then(stats => setSrsStats(new Map(stats.map(s => [s.grammar_id, s]))))
+    fetchJlptProgress().then(setProgress)
     supabase.auth.getSession().then(({ data: { session } }) => setSessionToken(session?.access_token ?? ''))
   }, [state.user])
 
   const filtered = useMemo(() => {
     let list = BUNPRO_GRAMMAR
     if (levelFilter !== 'all') list = list.filter(g => g.jlpt === levelFilter)
-    if (hideKnown) list = list.filter(g => !knownIds.has(g.id))
+    if (hideKnown) list = list.filter(g => progress.get(g.id) !== 'known')
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(g =>
@@ -228,26 +204,35 @@ function JlptView() {
       )
     }
     return list
-  }, [levelFilter, search, hideKnown, knownIds])
-
-  const dueCount = useMemo(() => {
-    const now = Date.now()
-    return BUNPRO_GRAMMAR.filter(g => !knownIds.has(g.id) && (srsStats.get(g.id)?.next_review ?? Infinity) <= now).length
-  }, [srsStats, knownIds])
+  }, [levelFilter, search, hideKnown, progress])
 
   const countByLevel = useMemo(() =>
     Object.fromEntries(BUNPRO_JLPT_LEVELS.map(l => [l, BUNPRO_GRAMMAR.filter(g => g.jlpt === l).length])),
   [])
 
   const activeVocab = state.db.filter(i => i.status === 'active')
+  const knownCount = useMemo(() => [...progress.values()].filter(s => s === 'known').length, [progress])
 
-  async function toggleKnown(id: string, val: boolean) {
-    setKnownIds(prev => { const n = new Set(prev); val ? n.add(id) : n.delete(id); return n })
-    if (state.user) await setGrammarKnown(id, val)
+  function updateProgress(id: string, status: JlptStatus | null) {
+    setProgress(prev => {
+      const n = new Map(prev)
+      if (status === null) n.delete(id); else n.set(id, status)
+      return n
+    })
+    if (state.user) void setJlptProgress(id, status)
   }
 
-  // ── Sub-views ────────────────────────────────────────────────────────────
+  function toggleKnown(id: string, known: boolean) {
+    updateProgress(id, known ? 'known' : null)
+  }
 
+  // Opening practice marks the point as "studying" (unless already known).
+  function startPractice(point: BunproGrammarPoint) {
+    if (progress.get(point.id) !== 'known') updateProgress(point.id, 'studying')
+    setView({ kind: 'practice', point })
+  }
+
+  // ── Sub-views ───────────────────────────────────────────────────────────────
   if (view.kind === 'practice') {
     return (
       <GrammarPractice
@@ -256,8 +241,8 @@ function JlptView() {
         geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
         activeVocab={activeVocab}
+        ephemeral
         onBack={() => setView({ kind: 'detail', point: view.point })}
-        onSrsUpdate={stat => setSrsStats(prev => { const m = new Map(prev); m.set(stat.grammar_id, stat); return m })}
         canEdit={canEdit}
       />
     )
@@ -267,39 +252,31 @@ function JlptView() {
     return (
       <JlptDetailPanel
         point={view.point}
-        lang={lang}
-        geminiKey={state.geminiApiKey}
-        sessionToken={sessionToken}
-        activeVocab={activeVocab}
-        canEdit={canEdit}
+        detail={details.get(view.point.id)}
         onBack={() => setView({ kind: 'list' })}
-        onPractice={() => setView({ kind: 'practice', point: view.point })}
+        onPractice={() => startPractice(view.point)}
       />
     )
   }
 
   // ── List view ─────────────────────────────────────────────────────────────
-
-  const knownCount = knownIds.size
-
   return (
     <div className="space-y-4">
+      {/* Practice-only notice */}
+      <div className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg px-3 py-2">
+        <span>🗾</span>
+        <p>Sección <strong>JLPT</strong> en pruebas: puedes consultarla y practicarla, pero <strong>no cuenta para tu SRS ni tu calendario</strong>.</p>
+      </div>
+
       {/* Stats row */}
       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
         <span>{filtered.length} puntos</span>
         <span className="text-slate-200 dark:text-slate-700">|</span>
         <span className="text-emerald-600 dark:text-emerald-400">{knownCount} conocidos</span>
-        {dueCount > 0 && (
-          <>
-            <span className="text-slate-200 dark:text-slate-700">|</span>
-            <span className="text-rose-500 font-semibold animate-pulse">{dueCount} pendientes ⏰</span>
-          </>
-        )}
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Level filter */}
         <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={() => setLevelFilter('all')}
@@ -326,7 +303,6 @@ function JlptView() {
           ))}
         </div>
 
-        {/* Hide known toggle */}
         <button
           onClick={() => setHideKnown(h => !h)}
           className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
@@ -338,7 +314,6 @@ function JlptView() {
           {hideKnown ? '✓' : ''} Ocultar conocidos
         </button>
 
-        {/* Search */}
         <input
           type="text"
           value={search}
@@ -361,14 +336,7 @@ function JlptView() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {items.map(g => (
-                    <JlptCard
-                      key={g.id}
-                      point={g}
-                      known={knownIds.has(g.id)}
-                      srsStat={srsStats.get(g.id)}
-                      onToggleKnown={toggleKnown}
-                      onSelect={p => setView({ kind: 'detail', point: p })}
-                    />
+                    <JlptCard key={g.id} point={g} status={progress.get(g.id)} onToggleKnown={toggleKnown} onSelect={p => setView({ kind: 'detail', point: p })} />
                   ))}
                 </div>
               </section>
@@ -377,14 +345,7 @@ function JlptView() {
         : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {filtered.map(g => (
-              <JlptCard
-                key={g.id}
-                point={g}
-                known={knownIds.has(g.id)}
-                srsStat={srsStats.get(g.id)}
-                onToggleKnown={toggleKnown}
-                onSelect={p => setView({ kind: 'detail', point: p })}
-              />
+              <JlptCard key={g.id} point={g} status={progress.get(g.id)} onToggleKnown={toggleKnown} onSelect={p => setView({ kind: 'detail', point: p })} />
             ))}
           </div>
         )
@@ -396,66 +357,6 @@ function JlptView() {
           <p className="text-sm">No se encontraron puntos gramaticales.</p>
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Main GrammarTestClient ────────────────────────────────────────────────────
-export default function GrammarTestClient() {
-  const { state } = useStore()
-  const router = useRouter()
-  const effectiveRole = state.simulatedRole ?? state.role
-  const [source, setSource] = useState<'mnn' | 'jlpt'>('mnn')
-
-  if (state.loaded && effectiveRole !== 'admin') {
-    router.replace('/review')
-    return null
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Source selector header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm px-4 py-2">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <h1 className="text-sm font-bold text-slate-700 dark:text-slate-300 shrink-0">🧪 Gramática Test</h1>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shrink-0">
-            ADMIN
-          </span>
-
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 ml-auto">
-            <button
-              type="button"
-              onClick={() => setSource('mnn')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                source === 'mnn'
-                  ? 'bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              📗 Minna no Nihongo
-            </button>
-            <button
-              type="button"
-              onClick={() => setSource('jlpt')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                source === 'jlpt'
-                  ? 'bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              🗾 JLPT (BunPro)
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        {source === 'mnn'
-          ? <GrammarClient />
-          : <JlptView />
-        }
-      </div>
     </div>
   )
 }

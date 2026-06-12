@@ -151,6 +151,14 @@ Lista de verbos clasificados por si son transitivos (tienen objeto directo, como
 
 Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 y Chūkyū I), organizados por lecciones y nivel JLPT.
 
+En la cabecera hay un selector **"Minna no Nihongo / JLPT"** para cambiar entre las dos fuentes.
+
+#### Sección JLPT
+
+La sección **JLPT** reúne cientos de puntos gramaticales agrupados por nivel (N5 a N1). Puedes consultarlos, marcarlos como conocidos y practicarlos igual que el resto, con una explicación ampliada y varios ejemplos por punto.
+
+> **En pruebas:** de momento la sección JLPT es solo para consultar y practicar. **No cuenta para tu SRS ni para tu calendario** de repasos: practicar un punto JLPT no programa repasos ni cambia tu progreso de gramática.
+
 #### Añadir gramática a tus repasos
 
 En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**. Al pulsarlo, ese punto entra en tu cola SRS y aparecerá en los repasos periódicos. Si ya lo tienes en repasos, verás su nivel actual en la parte superior. Para quitarlo, al final de la ficha hay una opción **"Quitar de repasos"** que te pedirá confirmación antes de hacerlo (así evitas quitarlo sin querer). En los repasos te saldrá **una sola frase por punto gramatical**; si fallas, ese punto volverá a aparecer al final de la sesión.

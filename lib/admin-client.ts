@@ -240,6 +240,24 @@ export async function runFillFullWord(opts: { offset?: number; model?: string; g
   return parseAdminResponse<FillFullWordResult>(res)
 }
 
+export interface EnrichJlptResult {
+  updated: number
+  fetched: number
+  done: boolean
+  next_offset: number
+  total: number
+}
+
+/** Enrich a page of JLPT grammar points (explanation + examples) via Gemini. */
+export async function runEnrichJlpt(opts: { offset?: number; force?: boolean; model?: string; geminiApiKey?: string }): Promise<EnrichJlptResult> {
+  const res = await fetch('/api/admin/jlpt/enrich', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<EnrichJlptResult>(res)
+}
+
 /** Save (or clear with null) the curated per-kanji furigana for a word. */
 export async function saveVocabReadingSegments(
   word: string,

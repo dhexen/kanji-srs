@@ -147,6 +147,16 @@ function HelpGrammar() {
       </div>
 
       <div>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Sección JLPT (en pruebas)</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          En la cabecera de Gramática hay un selector <strong>"Minna no Nihongo / JLPT"</strong>. La sección <strong>JLPT</strong> reúne cientos de puntos por nivel (N5–N1), con explicación ampliada y varios ejemplos, que puedes consultar y practicar.
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          De momento es solo para consultar y practicar: <strong>no cuenta para tu SRS ni tu calendario</strong> de repasos.
+        </p>
+      </div>
+
+      <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">El banco compartido de frases</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           Las frases generadas por la IA se <strong>comparten entre todos los usuarios</strong>.
