@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'Gramática: frases mal formadas filtradas',
+        description: 'Algunas frases generadas por IA metían en el hueco el verbo en lugar de la gramática (p. ej. para "V てみます" salía しらべ sin la て, dejando la frase rota). Ahora se descartan las frases cuyo hueco no contiene el patrón, tanto al generarlas como al mostrarlas, así no aparecen en repasos ni prácticas.',
+      },
+      {
         type: 'improvement',
         title: 'Gramática: se aceptan forma formal e informal',
         description: 'En los repasos y prácticas de gramática, si la respuesta esperada es educada (…ですか) pero escribes la forma llana equivalente (…), ya no cuenta como error: se aceptan ambos registros cuando son la misma estructura. Además, cuando el hueco espera una forma educada, aparece una etiqueta 🎩 "formal" para que sepas en qué registro escribir.',

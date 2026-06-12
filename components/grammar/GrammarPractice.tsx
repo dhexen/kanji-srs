@@ -12,6 +12,7 @@ import {
   formatNextReview,
   getSrsLevelLabel,
   getAnswerRegister,
+  answerFitsPattern,
 } from '@/lib/grammar-srs'
 import {
   supabase,
@@ -505,9 +506,11 @@ export default function GrammarPractice({
     // explicitly via the "📚 Añadir a repasos" button. Practice here is pure drill.
 
     // Merge auto-generated pool with community shared sentences (if enabled)
-    const allSentences: GrammarSentence[] = showShared && sharedSentences.length > 0
+    const merged: GrammarSentence[] = showShared && sharedSentences.length > 0
       ? [...sentences, ...sharedSentences.filter(sh => !sentences.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer))]
       : sentences
+    // Hide malformed cached sentences whose blank doesn't match the pattern.
+    const allSentences = merged.filter(s => answerFitsPattern(s.answer, grammar.pattern))
     if (allSentences.length === 0) return
 
     // Sync merged sentences into state so session indices are valid

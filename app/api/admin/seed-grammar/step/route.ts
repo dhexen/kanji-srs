@@ -7,6 +7,7 @@ import { MNN2_GRAMMAR_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '@/lib/grammar-bunpro'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import { answerFitsPattern } from '@/lib/grammar-srs'
 
 const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
@@ -54,7 +55,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola.
 2. El sujeto debe ser claro. Usa contextos cotidianos realistas.
 
-⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji.
+⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji. Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte completa (la て, ます…), NUNCA solo la raíz del verbo. Ej. patrón てみます → answer "しらべてみます" ✓, NO "しらべ" (sin て) ✗.
 
 ⚠️ REGLAS sobre traducciones: oraciones COMPLETAS y NATURALES en cada idioma.
 
@@ -214,6 +215,8 @@ export async function POST(req: NextRequest) {
     const needed = TARGET - currentCount
     const passing = sentences
       .filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
+      // Drop malformed sentences whose blank doesn't contain the grammar pattern.
+      .filter(s => answerFitsPattern(String(s.answer ?? ''), next.pattern))
       .slice(0, needed)
 
     if (passing.length === 0) {

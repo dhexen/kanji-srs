@@ -6,6 +6,7 @@ import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
 import type { GrammarSentence } from '@/lib/grammar-srs'
+import { answerFitsPattern } from '@/lib/grammar-srs'
 import {
   supabase,
   saveGrammarSentences,
@@ -164,7 +165,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 - Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
 - NUNCA incluyas sustantivos, verbos de contenido, adjetivos ni números en el answer
 - NUNCA uses kanji en el answer — solo hiragana o katakana
+- El "answer" debe contener la gramática del patrón "${grammar.pattern}". Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte conjugada completa (la て, ます, etc.), NUNCA solo la raíz del verbo.
 - Ejemplo CORRECTO → before:"私は学生", answer:"です", after:"。"  → frase: "私は学生です。" = "Soy estudiante."
+- Ejemplo CORRECTO (patrón てみます) → before:"話を疑って", answer:"しらべてみます", after:"。" → frase: "話を疑ってしらべてみます。" (el answer lleva la て)
+- Ejemplo INCORRECTO (patrón てみます) → before:"話を疑って", answer:"しらべ", after:"みます。" ← MAL: falta la て y el answer es solo el verbo, la frase queda rota "しらべみます"
 - Ejemplo INCORRECTO → before:"今月", answer:"は七月です" ← MAL: incluye vocabulario con kanji
 - Ejemplo INCORRECTO → before:"りんご", answer:"は", after:"" ← MAL: la frase queda incompleta "りんごは"
 
@@ -215,7 +219,12 @@ Otras reglas:
       if (!parsed.sentences?.length) throw new GrammarGenerateError('no_sentences', 'no_sentences')
 
       const allRaw  = parsed.sentences as any[]
-      const passing = allRaw.filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
+      const passing = allRaw
+        .filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
+        // Drop sentences whose blank doesn't actually contain the grammar (e.g. a
+        // content verb stuffed into the answer for a て-form pattern), which would
+        // produce a broken sentence and a misleading correction.
+        .filter(s => answerFitsPattern(String(s.answer ?? ''), grammar.pattern))
 
       const newSentences: Omit<GrammarSentence, 'id'>[] = passing.slice(0, TARGET_POOL).map(s => ({
         grammar_id:                     grammar.id,

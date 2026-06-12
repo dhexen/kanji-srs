@@ -12,6 +12,7 @@ import {
   checkFullSentence,
   getSrsLevelLabel,
   getAnswerRegister,
+  answerFitsPattern,
 } from '@/lib/grammar-srs'
 import {
   fetchGrammarSentences,
@@ -227,7 +228,8 @@ export default function GrammarReviewSession({
         const merged = [
           ...own,
           ...sharedMapped.filter(sh => !own.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer)),
-        ]
+        // Hide malformed cached sentences whose blank doesn't match the pattern.
+        ].filter(s => answerFitsPattern(s.answer, g.pattern))
         if (merged.length > 0) pools.set(g.id, merged)
       }
       if (cancelled) return

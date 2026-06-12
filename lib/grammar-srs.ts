@@ -199,6 +199,28 @@ export function getAnswerRegister(answer: string): 'formal' | null {
   return /(です|ます|ました|ません|でした|でしょう)/.test(answer) ? 'formal' : null
 }
 
+/** Hiragana characters of a string (katakana folded to hiragana via normalise). */
+function hiraganaChars(s: string): string[] {
+  return [...normalizeAnswer(s)].filter(ch => ch >= 'ぁ' && ch <= 'ゖ')
+}
+
+/**
+ * Sanity check that the fill-in `answer` actually belongs to the grammar
+ * `pattern`: it must share at least one kana with the pattern's kana core.
+ * Catches malformed sentences where a content word was put in the blank
+ * (e.g. answer しらべ for the pattern "V てみます", which drops the て and
+ * leaves a broken sentence). When the pattern has no kana (only placeholders /
+ * kanji) or the answer has no kana, it can't judge and returns true.
+ */
+export function answerFitsPattern(answer: string, pattern: string): boolean {
+  const pat = hiraganaChars(pattern)
+  if (pat.length === 0) return true
+  const ans = hiraganaChars(answer)
+  if (ans.length === 0) return true
+  const pset = new Set(pat)
+  return ans.some(ch => pset.has(ch))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
