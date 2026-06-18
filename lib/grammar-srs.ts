@@ -1,6 +1,8 @@
 // lib/grammar-srs.ts
 // SRS utilities for grammar practice (BunPro-style fill-in-the-blank)
 
+import { toRomaji } from 'wanakana'
+
 // WaniKani-style 9-level SRS (index = level; index 0 unused; level 9 = Burned = ∞)
 export const GRAMMAR_SRS_INTERVALS = [
   0,                              // 0: unused
@@ -169,9 +171,27 @@ function plainCore(s: string): string {
   return x
 }
 
-/** True if the normalised input equals a candidate, allowing register variants. */
+/**
+ * Canonical kana key: tolerant to hiragana vs katakana and to long-vowel
+ * notation (コーヒー ≡ こうひい ≡ こおひい). normalizeAnswer already folds
+ * katakana → hiragana; here we go to romaji and collapse long vowels, so a
+ * katakana word typed in hiragana (or vice versa) still matches.
+ */
+function kanaKey(normalized: string): string {
+  if (!normalized) return ''
+  let r = toRomaji(normalized).toLowerCase()
+  r = r
+    .replace(/[ōôõ]/g, 'o').replace(/[ūûũ]/g, 'u').replace(/[ēêẽ]/g, 'e').replace(/[āâã]/g, 'a').replace(/[īîĩ]/g, 'i')
+    .replace(/ou|oo/g, 'o').replace(/uu/g, 'u').replace(/ei|ee/g, 'e').replace(/aa/g, 'a').replace(/ii/g, 'i')
+  return r
+}
+
+/** True if the normalised input equals a candidate, allowing register/kana variants. */
 function matchesCandidate(norm: string, candidates: string[]): boolean {
   if (candidates.includes(norm)) return true
+  // Kana-form tolerant (katakana ⇄ hiragana, long vowels).
+  const key = kanaKey(norm)
+  if (key && candidates.some(c => kanaKey(c) === key)) return true
   const core = plainCore(norm)
   return !!core && candidates.some(c => { const cc = plainCore(c); return !!cc && cc === core })
 }

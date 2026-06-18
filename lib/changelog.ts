@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'Gramática: acepta katakana e hiragana indistintamente',
+        description: 'Si el hueco pide una palabra en katakana (p. ej. コーヒー) y la escribes en hiragana —o al revés—, ahora cuenta como correcta siempre que la lectura sea la misma. También tolera las vocales largas (la marca ー frente a おう/おお).',
+      },
+      {
         type: 'new',
         title: 'Guía para quien empieza de cero',
         description: 'Si aún no tienes vocabulario, el dashboard muestra un aviso que te lleva a la sección de kana. Allí, una introducción explica qué son el hiragana, el katakana y el kanji, y cómo se combinan para formar las palabras japonesas. Lo primero: aprender a leer los silabarios.',
