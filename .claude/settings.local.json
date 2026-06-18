@@ -79,7 +79,11 @@
       "Bash(convert -background none public/icon.svg -resize 512x512 public/icon-512.png)",
       "Bash(convert -background none public/icon-maskable.svg -resize 512x512 public/icon-maskable-512.png)",
       "Bash(convert -background \"#7c3aed\" public/icon.svg -resize 180x180 public/apple-touch-icon.png)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(openssl rand *)",
+      "Bash(echo \"openssl:   $\\(openssl rand -hex 32\\)\")",
+      "Bash(uuidgen)",
+      "Bash(echo \"uuidgen:   $\\(uuidgen 2>/dev/null || echo 'no uuidgen'\\)\")"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
