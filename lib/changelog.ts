@@ -26,6 +26,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       },
       {
         type: 'new',
+        title: 'Tu progreso de kana se guarda',
+        description: 'La sección de kana ahora recuerda qué caracteres has aprendido: se marcan al verlos en el modo guiado y al acertarlos en el test. Verás una barra de progreso por silabario (hiragana y katakana) y se guarda en tu cuenta entre dispositivos.',
+      },
+      {
+        type: 'new',
         title: 'Esquemas de conjugación en la gramática',
         description: 'Cada punto de gramática (Minna no Nihongo y JLPT) puede mostrar ahora un esquema visual: a qué se une (verbo, adjetivo い/な, sustantivo) y sus formas conjugadas (no pasado, negativo, pasado, forma て…), traducido al castellano, catalán e inglés. Aparece en la ficha de la gramática, debajo de la explicación.',
       },

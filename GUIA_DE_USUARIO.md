@@ -238,6 +238,8 @@ Hay dos modos:
 
 Se recomienda aprender primero el hiragana completo y luego el katakana.
 
+**Tu progreso se guarda:** cada carácter se marca como aprendido al verlo en el modo guiado o al acertarlo en el test. En la parte superior verás una **barra de progreso** por silabario (hiragana y katakana), y queda guardado en tu cuenta (lo recuperas en cualquier dispositivo).
+
 ---
 
 ### Lecturas IA

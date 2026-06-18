@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import type { KanaChar, KanaScript } from '@/lib/kana-data'
 import { getAllKana, getKanaByGroup, GOJUUON_ORDER, DAKUTEN_ORDER, BASIC_GROUPS, DAKUTEN_GROUPS, strokeOrderUrl } from '@/lib/kana-data'
+import type { OnLearned } from './KanaClient'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stroke-order animation (Wikimedia). Hides itself gracefully if it can't load.
@@ -73,10 +74,11 @@ function MnemonicPanel({ kana, onClose }: { kana: KanaChar; onClose: () => void 
 // ─────────────────────────────────────────────────────────────────────────────
 // Guided learning: flashcards in gojūon order (a,i,u,e,o → ka,ki,ku…)
 // ─────────────────────────────────────────────────────────────────────────────
-function GuidedLearn({ script, includeDakuten, onExit }: {
+function GuidedLearn({ script, includeDakuten, onExit, onLearned }: {
   script: KanaScript
   includeDakuten: boolean
   onExit: () => void
+  onLearned?: OnLearned
 }) {
   // Build ordered deck following the gojūon table order
   const groupsInOrder = includeDakuten ? [...BASIC_GROUPS, ...DAKUTEN_GROUPS] : BASIC_GROUPS
@@ -90,6 +92,11 @@ function GuidedLearn({ script, includeDakuten, onExit }: {
   const isLast = idx === deck.length - 1
 
   useEffect(() => { setShowStory(false) }, [idx])
+
+  // Mark the character as learned once the user views it in the guided flow.
+  useEffect(() => {
+    if (kana) onLearned?.([{ kana: kana.kana, script }])
+  }, [kana, script, onLearned])
 
   // Keyboard navigation
   useEffect(() => {
@@ -268,7 +275,7 @@ function KanaTable({ chars, order, onSelect }: {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main KanaLearn component
 // ─────────────────────────────────────────────────────────────────────────────
-export default function KanaLearn({ script }: { script: KanaScript }) {
+export default function KanaLearn({ script, onLearned }: { script: KanaScript; onLearned?: OnLearned }) {
   const [selected, setSelected] = useState<KanaChar | null>(null)
   const [showDakuten, setShowDakuten] = useState(false)
   const [guided, setGuided] = useState<null | { includeDakuten: boolean }>(null)
@@ -278,7 +285,7 @@ export default function KanaLearn({ script }: { script: KanaScript }) {
 
   // ── Guided learning mode ────────────────────────────────────────────────────
   if (guided) {
-    return <GuidedLearn script={script} includeDakuten={guided.includeDakuten} onExit={() => setGuided(null)} />
+    return <GuidedLearn script={script} includeDakuten={guided.includeDakuten} onExit={() => setGuided(null)} onLearned={onLearned} />
   }
 
   // ── Reference + start CTA ───────────────────────────────────────────────────

@@ -1577,6 +1577,38 @@ export async function fetchJlptProgress(): Promise<Map<string, JlptStatus>> {
   } catch { return new Map() }
 }
 
+// ---------------------------------------------------------------------------
+// Kana progress — which hiragana/katakana characters the user has learned
+// ---------------------------------------------------------------------------
+
+/** Set of kana characters the user has learned. Empty if unavailable. */
+export async function fetchKanaProgress(): Promise<Set<string>> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_kana_progress')
+      .select('kana')
+      .eq('user_id', user.id)
+    if (error) { console.warn('kana progress:', error.message); return new Set() }
+    return new Set((data ?? []).map((r: { kana: string }) => r.kana))
+  } catch {
+    return new Set()
+  }
+}
+
+/** Mark one or more kana characters as learned (idempotent upsert). */
+export async function markKanaLearned(items: { kana: string; script: string }[]): Promise<void> {
+  if (items.length === 0) return
+  try {
+    const user = await requireUser()
+    const rows = items.map(i => ({ user_id: user.id, kana: i.kana, script: i.script }))
+    const { error } = await supabase
+      .from('user_kana_progress')
+      .upsert(rows, { onConflict: 'user_id,kana', ignoreDuplicates: true })
+    if (error) console.error('markKanaLearned:', error.message)
+  } catch (e) { console.error('markKanaLearned:', e) }
+}
+
 /** Upsert (or clear, when status === null) a single JLPT point's progress. */
 export async function setJlptProgress(pointId: string, status: JlptStatus | null): Promise<void> {
   try {

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useHelp } from '@/lib/help-context'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
-import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar } from '@/lib/supabase'
+import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress } from '@/lib/supabase'
 import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
@@ -73,6 +73,7 @@ export default function ReviewClient() {
   const [isStarting, setIsStarting] = useState(false)
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
   const [grammarDue, setGrammarDue] = useState(0)
+  const [kanaLearnedCount, setKanaLearnedCount] = useState(0)
 
   // Pending grammar reviews (for the section tile badge)
   useEffect(() => {
@@ -87,6 +88,14 @@ export default function ReviewClient() {
         ).length)
       })
       .catch(() => {})
+    return () => { cancelled = true }
+  }, [state.user, phase])
+
+  // Kana progress (to know whether a beginner still needs the kana nudge)
+  useEffect(() => {
+    if (!state.user) { setKanaLearnedCount(0); return }
+    let cancelled = false
+    fetchKanaProgress().then(set => { if (!cancelled) setKanaLearnedCount(set.size) }).catch(() => {})
     return () => { cancelled = true }
   }, [state.user, phase])
 
@@ -171,7 +180,9 @@ export default function ReviewClient() {
     try { return localStorage.getItem('beginner_banner_dismissed') === '1' }
     catch { return false }
   })
-  const showBeginner = state.loaded && activeWords.length === 0 && !beginnerDismissed
+  // Show the kana nudge only to true beginners: no vocabulary yet AND barely
+  // any kana learned (once they engage with kana, the nudge stops).
+  const showBeginner = state.loaded && activeWords.length === 0 && kanaLearnedCount < 10 && !beginnerDismissed
   const dismissBeginner = () => {
     try { localStorage.setItem('beginner_banner_dismissed', '1') } catch { /* incognito */ }
     setBeginnerDismissed(true)
