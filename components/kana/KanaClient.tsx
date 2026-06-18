@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import KanaLearn from './KanaLearn'
 import KanaTest from './KanaTest'
+import KanaIntro from './KanaIntro'
 
 type Script = 'hiragana' | 'katakana'
 type Tab = 'learn' | 'test'
@@ -27,6 +28,9 @@ export default function KanaClient() {
           Aprende los dos silabarios japoneses con nemotécnica visual y pon a prueba tus conocimientos.
         </p>
       </div>
+
+      {/* Beginner intro to the writing system */}
+      <KanaIntro />
 
       {/* Script switcher */}
       <div className="flex gap-2">

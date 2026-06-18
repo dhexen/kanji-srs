@@ -230,6 +230,8 @@ Para generar las frases de práctica, la app necesita conectarse a Google Gemini
 
 Aprende los dos silabarios japoneses: **hiragana** y **katakana**. Cada uno tiene 46 caracteres básicos.
 
+> **¿Empiezas de cero?** Si todavía no tienes vocabulario, el dashboard te mostrará un aviso para venir aquí primero. En la parte superior de esta sección hay una introducción desplegable (**"¿Cómo funciona la escritura japonesa?"**) que explica qué son el hiragana, el katakana y el kanji, y cómo se combinan para formar las palabras. Sin saber leer kana no podrás avanzar con el vocabulario.
+
 Hay dos modos:
 - **Aprender** — Tarjetas con imagen mnemotécnica para memorizar cada carácter
 - **Test** — Ejercicios para comprobar que los recuerdas

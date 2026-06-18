@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Guía para quien empieza de cero',
+        description: 'Si aún no tienes vocabulario, el dashboard muestra un aviso que te lleva a la sección de kana. Allí, una introducción explica qué son el hiragana, el katakana y el kanji, y cómo se combinan para formar las palabras japonesas. Lo primero: aprender a leer los silabarios.',
+      },
+      {
+        type: 'new',
         title: 'Esquemas de conjugación en la gramática',
         description: 'Cada punto de gramática (Minna no Nihongo y JLPT) puede mostrar ahora un esquema visual: a qué se une (verbo, adjetivo い/な, sustantivo) y sus formas conjugadas (no pasado, negativo, pasado, forma て…), traducido al castellano, catalán e inglés. Aparece en la ficha de la gramática, debajo de la explicación.',
       },

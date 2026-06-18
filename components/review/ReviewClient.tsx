@@ -165,6 +165,18 @@ export default function ReviewClient() {
     setLoadMoreDismissed(true)
   }
 
+  // Beginner banner: shown to users who haven't started yet (no active vocab),
+  // guiding them to the kana section first. Dismissable.
+  const [beginnerDismissed, setBeginnerDismissed] = useState(() => {
+    try { return localStorage.getItem('beginner_banner_dismissed') === '1' }
+    catch { return false }
+  })
+  const showBeginner = state.loaded && activeWords.length === 0 && !beginnerDismissed
+  const dismissBeginner = () => {
+    try { localStorage.setItem('beginner_banner_dismissed', '1') } catch { /* incognito */ }
+    setBeginnerDismissed(true)
+  }
+
   function buildSequence(practice: boolean): SessionItem[] {
     const now = Date.now()
     const items: SessionItem[] = []
@@ -385,6 +397,41 @@ export default function ReviewClient() {
             ?
           </button>
         </div>
+
+        {/* ── Beginner welcome: guide brand-new users to the kana section ── */}
+        {showBeginner && (
+          <div className="relative bg-gradient-to-br from-violet-50 to-pink-50 dark:from-violet-900/20 dark:to-pink-900/10 border border-violet-200 dark:border-violet-800/50 rounded-2xl p-5 shadow-sm">
+            <button
+              onClick={dismissBeginner}
+              aria-label="Descartar"
+              className="absolute top-3 right-3 text-violet-300 hover:text-violet-600 dark:hover:text-violet-300 font-bold text-lg leading-none transition"
+            >
+              ✕
+            </button>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">🌸</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-violet-800 dark:text-violet-200">
+                  {({ es: '¿Empiezas con el japonés?', en: 'New to Japanese?', ca: 'Comences amb el japonès?', ja: '日本語は初めて？' } as Record<string, string>)[lang] ?? '¿Empiezas con el japonés?'}
+                </p>
+                <p className="text-sm text-violet-700/90 dark:text-violet-300/80 mt-1">
+                  {({
+                    es: 'Antes de estudiar vocabulario, necesitas saber leer los silabarios. Empieza por la sección de kana: te explicamos qué son el hiragana, el katakana y el kanji, y cómo se forman las palabras.',
+                    en: 'Before studying vocabulary you need to read the syllabaries. Start with the kana section: we explain hiragana, katakana and kanji, and how words are formed.',
+                    ca: 'Abans d’estudiar vocabulari, has de saber llegir els sil·labaris. Comença per la secció de kana: t’expliquem què són l’hiragana, el katakana i el kanji, i com es formen les paraules.',
+                    ja: '語彙の前に、まずは仮名を読めるように。仮名セクションから始めましょう。',
+                  } as Record<string, string>)[lang] ?? ''}
+                </p>
+                <Link
+                  href="/kana"
+                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-sm transition shadow-sm"
+                >
+                  あ {({ es: 'Empezar por el kana', en: 'Start with kana', ca: 'Comença pel kana', ja: '仮名から始める' } as Record<string, string>)[lang] ?? 'Empezar por el kana'} →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── "Load more vocab" suggestion ──────────────────────────── */}
         {showLoadMore && (
