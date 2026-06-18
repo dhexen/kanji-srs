@@ -1648,16 +1648,22 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
     // Filter out legacy sentences where the answer contains kanji —
     // these were generated before the prompt fix and have content words in the answer.
     const KANJI_RE = /[一-鿿㐀-䶿]/
+    const parseSegs = (v: unknown) => Array.isArray(v)
+      ? (v as unknown[]).filter(x => x && typeof (x as { t?: unknown }).t === 'string')
+          .map(x => { const o = x as { t: string; f?: unknown }; return o.f ? { t: o.t, f: String(o.f) } : { t: o.t } })
+      : []
     return (data ?? [])
       .map(r => ({
         id: r.id,
         grammar_id: r.grammar_id,
         sentence_before: r.sentence_before ?? '',
         sentence_before_reading: r.sentence_before_reading ?? '',
+        sentence_before_segments: parseSegs(r.sentence_before_segments),
         sentence_before_alts: Array.isArray(r.sentence_before_alts) ? r.sentence_before_alts : [],
         sentence_before_reading_alts: Array.isArray(r.sentence_before_reading_alts) ? r.sentence_before_reading_alts : [],
         sentence_after: r.sentence_after ?? '',
         sentence_after_reading: r.sentence_after_reading ?? '',
+        sentence_after_segments: parseSegs(r.sentence_after_segments),
         answer: r.answer ?? '',
         answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
         translation_es: r.translation_es ?? '',
@@ -1713,10 +1719,12 @@ export async function saveGrammarSentences(
       grammar_id: grammarId,
       sentence_before: s.sentence_before,
       sentence_before_reading: s.sentence_before_reading,
+      sentence_before_segments: s.sentence_before_segments ?? [],
       sentence_before_alts: s.sentence_before_alts ?? [],
       sentence_before_reading_alts: s.sentence_before_reading_alts ?? [],
       sentence_after: s.sentence_after,
       sentence_after_reading: s.sentence_after_reading,
+      sentence_after_segments: s.sentence_after_segments ?? [],
       answer: s.answer,
       answer_alts: s.answer_alts,
       translation_es: s.translation_es,

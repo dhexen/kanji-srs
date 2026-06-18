@@ -24,15 +24,20 @@ export interface GrammarSrsStat {
   next_review: number  // Unix ms timestamp
 }
 
+/** One furigana token: `t` is the text, `f` the reading (only for kanji groups). */
+export interface FuriganaSegment { t: string; f?: string }
+
 export interface GrammarSentence {
   id?: string
   grammar_id: string
   sentence_before: string          // kanji/kana text before the blank
   sentence_before_reading: string  // pure kana reading of the before part
+  sentence_before_segments?: FuriganaSegment[] // per-token furigana (exact placement)
   sentence_before_alts: string[]   // up to 4 alternative before-blank texts (jp)
   sentence_before_reading_alts: string[] // readings for each alternative
   sentence_after: string           // kanji/kana text after the blank
   sentence_after_reading: string   // pure kana reading of the after part
+  sentence_after_segments?: FuriganaSegment[] // per-token furigana (exact placement)
   answer: string                   // correct grammar pattern
   answer_alts: string[]            // other acceptable answers
   translation_es: string

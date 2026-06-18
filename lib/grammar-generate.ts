@@ -5,8 +5,36 @@
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
-import type { GrammarSentence } from '@/lib/grammar-srs'
+import type { GrammarSentence, FuriganaSegment } from '@/lib/grammar-srs'
 import { answerFitsPattern } from '@/lib/grammar-srs'
+
+// ── Furigana segment helpers ────────────────────────────────────────────────
+function isKanji(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0
+  return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf)
+}
+function hasKanji(s: string): boolean { return [...s].some(isKanji) }
+
+/**
+ * Parse the AI's segment array into clean `{t,f?}` tokens. Returns null when
+ * malformed (a kanji token without a reading), so such sentences are dropped
+ * rather than shown with wrong/missing furigana.
+ */
+function parseSegments(raw: unknown): FuriganaSegment[] | null {
+  if (!Array.isArray(raw)) return null
+  const segs: FuriganaSegment[] = []
+  for (const x of raw) {
+    const t = x && typeof (x as { t?: unknown }).t === 'string' ? String((x as { t: string }).t) : ''
+    if (!t) continue
+    const fRaw = (x as { f?: unknown }).f
+    const f = fRaw != null && String(fRaw).trim() ? String(fRaw).trim() : undefined
+    if (hasKanji(t) && !f) return null   // kanji must carry its reading
+    segs.push(f ? { t, f } : { t })
+  }
+  return segs
+}
+const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
+const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
 import {
   supabase,
   saveGrammarSentences,
@@ -140,12 +168,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 {
   "sentences": [
     {
-      "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
-      "before_reading": "lectura completa del before en kana puro, sin kanji",
+      "before": [{"t":"私","f":"わたし"},{"t":"は"}],
       "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
       "answer_alts": ["variante hiragana aceptable"],
-      "after_jp": "texto después del hueco",
-      "after_reading": "lectura completa del after en kana puro, sin kanji",
+      "after": [{"t":"パン"},{"t":"を"},{"t":"食","f":"た"},{"t":"べます"}],
       "translation_es": "traducción COMPLETA y NATURAL al español",
       "translation_ca": "traducció COMPLETA i NATURAL al català",
       "translation_en": "COMPLETE and NATURAL English translation",
@@ -155,6 +181,14 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
     }
   ]
 }
+
+⚠️ REGLAS CRÍTICAS sobre "before" y "after" (la frase troceada con furigana):
+- "before" y "after" son ARRAYS de tokens. Cada token es {"t": texto} y, SOLO si el texto lleva kanji, también {"t": kanji, "f": lectura en hiragana de ESE kanji o grupo de kanji}.
+- Escribe las palabras con sus KANJI normales (no las dejes en kana si normalmente se escriben con kanji). Cada token con kanji DEBE llevar su "f" con la lectura EXACTA.
+- Separa en tokens de forma natural: un grupo de kanji con su lectura conjunta en un token, y la kana que le sigue en otro token sin "f". Ej. 食べます → {"t":"食","f":"た"},{"t":"べます"}; 学生 → {"t":"学生","f":"がくせい"}.
+- La kana (hiragana/katakana, partículas, okurigana) va en tokens SIN "f".
+- "f" debe ser SIEMPRE hiragana (la lectura), nunca romaji ni katakana.
+- Las partículas en su forma ORTOGRÁFICA: は (no わ), を (no お), へ (no え).
 
 ⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
 1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
@@ -190,8 +224,6 @@ Sé HONESTO: no todas las frases pueden ser 4-5.
 Otras reglas:
 - Frases naturales y correctas, nivel ${grammar.jlpt}
 - Varía sujetos, contextos y vocabulario; usa el vocabulario disponible cuando encaje
-- before_reading y after_reading: solo kana (para mostrar furigana al alumno)
-- ⚠️ REGLA CRÍTICA de lectura: escribe SIEMPRE las partículas con su forma ORTOGRÁFICA, NO fonética: は (no わ), を (no お), へ (no え). Ejemplo: "私は学生" → before_reading:"わたしはがくせい" ✓, NO "わたしわがくせい" ✗
 - answer_alts: variantes aceptables en hiragana (p.ej. forma informal) o array vacío []
 - Genera exactamente ${GENERATE_SIZE} frases distintas con sujetos y vocabulario variados`
 
@@ -226,22 +258,33 @@ Otras reglas:
         // produce a broken sentence and a misleading correction.
         .filter(s => answerFitsPattern(String(s.answer ?? ''), grammar.pattern))
 
-      const newSentences: Omit<GrammarSentence, 'id'>[] = passing.slice(0, TARGET_POOL).map(s => ({
-        grammar_id:                     grammar.id,
-        sentence_before:                String(s.before_jp          ?? ''),
-        sentence_before_reading:        String(s.before_reading     ?? ''),
-        sentence_before_alts:           [],
-        sentence_before_reading_alts:   [],
-        sentence_after:                 String(s.after_jp           ?? ''),
-        sentence_after_reading:         String(s.after_reading      ?? ''),
-        answer:                         String(s.answer             ?? grammar.pattern),
-        answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
-        translation_es:                 String(s.translation_es     ?? ''),
-        translation_ca:                 String(s.translation_ca     ?? ''),
-        translation_en:                 String(s.translation_en     ?? ''),
-        topic:                          typeof s.topic === 'string' ? s.topic : undefined,
-        vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
-      }))
+      const newSentences: Omit<GrammarSentence, 'id'>[] = passing
+        .map(s => {
+          const before = parseSegments(s.before)
+          const after  = parseSegments(s.after)
+          // Drop sentences whose furigana is malformed (kanji without reading).
+          if (before === null || after === null) return null
+          return {
+            grammar_id:                     grammar.id,
+            sentence_before:                segText(before),
+            sentence_before_reading:        segReading(before),
+            sentence_before_segments:       before,
+            sentence_before_alts:           [],
+            sentence_before_reading_alts:   [],
+            sentence_after:                 segText(after),
+            sentence_after_reading:         segReading(after),
+            sentence_after_segments:        after,
+            answer:                         String(s.answer             ?? grammar.pattern),
+            answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
+            translation_es:                 String(s.translation_es     ?? ''),
+            translation_ca:                 String(s.translation_ca     ?? ''),
+            translation_en:                 String(s.translation_en     ?? ''),
+            topic:                          typeof s.topic === 'string' ? s.topic : undefined,
+            vocab_used:                     Array.isArray(s.vocab_used) ? (s.vocab_used as unknown[]).map(String) : [],
+          } as Omit<GrammarSentence, 'id'>
+        })
+        .filter((x): x is Omit<GrammarSentence, 'id'> => x !== null)
+        .slice(0, TARGET_POOL)
 
       // Sentences generated with WaniKani vocab are private — not visible in the community pool
       const isPrivate = useWkVocab && wkVocab.length > 0

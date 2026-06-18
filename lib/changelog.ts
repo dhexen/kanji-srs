@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Gramática: frases con kanji y furigana exacto',
+        description: 'Las frases de gramática se generan ahora con las palabras escritas en kanji y con el furigana colocado exactamente sobre cada kanji (la IA devuelve la lectura por token, sin adivinar la posición). Esto elimina frases a las que les faltaban kanji o con el furigana descolocado. Las frases antiguas se pueden regenerar desde el panel de administración.',
+      },
+      {
         type: 'fix',
         title: 'Gramática: acepta katakana e hiragana indistintamente',
         description: 'Si el hueco pide una palabra en katakana (p. ej. コーヒー) y la escribes en hiragana —o al revés—, ahora cuenta como correcta siempre que la lectura sea la misma. También tolera las vocales largas (la marca ー frente a おう/おお).',

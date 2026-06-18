@@ -7,7 +7,31 @@ import { MNN2_GRAMMAR_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '@/lib/grammar-bunpro'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import type { FuriganaSegment } from '@/lib/grammar-srs'
 import { answerFitsPattern } from '@/lib/grammar-srs'
+
+// ── Furigana segment helpers (mirror lib/grammar-generate.ts) ───────────────
+function hasKanji(s: string): boolean {
+  return [...s].some(ch => {
+    const cp = ch.codePointAt(0) ?? 0
+    return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf)
+  })
+}
+function parseSegments(raw: unknown): FuriganaSegment[] | null {
+  if (!Array.isArray(raw)) return null
+  const segs: FuriganaSegment[] = []
+  for (const x of raw) {
+    const t = x && typeof (x as { t?: unknown }).t === 'string' ? String((x as { t: string }).t) : ''
+    if (!t) continue
+    const fRaw = (x as { f?: unknown }).f
+    const f = fRaw != null && String(fRaw).trim() ? String(fRaw).trim() : undefined
+    if (hasKanji(t) && !f) return null
+    segs.push(f ? { t, f } : { t })
+  }
+  return segs
+}
+const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
+const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
 
 const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
@@ -37,12 +61,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 {
   "sentences": [
     {
-      "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
-      "before_reading": "lectura completa del before en kana puro, sin kanji",
+      "before": [{"t":"私","f":"わたし"},{"t":"は"}],
       "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
       "answer_alts": ["variante hiragana aceptable"],
-      "after_jp": "texto después del hueco",
-      "after_reading": "lectura completa del after en kana puro, sin kanji",
+      "after": [{"t":"パン"},{"t":"を"},{"t":"食","f":"た"},{"t":"べます"}],
       "translation_es": "traducción COMPLETA y NATURAL al español",
       "translation_ca": "traducció COMPLETA i NATURAL al català",
       "translation_en": "COMPLETE and NATURAL English translation",
@@ -50,6 +72,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
     }
   ]
 }
+
+⚠️ "before" y "after" son ARRAYS de tokens {"t":texto} con furigana: si el texto lleva kanji añade {"t":kanji,"f":lectura en hiragana de ESE kanji}. Usa los KANJI normales (no dejes en kana lo que se escribe con kanji). Cada token con kanji DEBE llevar "f". La kana va en tokens sin "f". Ej. 食べます → {"t":"食","f":"た"},{"t":"べます"}; 学生 → {"t":"学生","f":"がくせい"}. "f" siempre en hiragana.
 
 ⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
 1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola.
@@ -224,23 +248,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'Quality filter rejected all sentences', retry_after_ms: 5_000 })
     }
 
-    // 10. Insert into Supabase
-    const rows = passing.map((s: any) => ({
-      grammar_id:                   next.id,
-      sentence_before:              String(s.before_jp        ?? ''),
-      sentence_before_reading:      String(s.before_reading   ?? ''),
-      sentence_before_alts:         [],
-      sentence_before_reading_alts: [],
-      sentence_after:               String(s.after_jp         ?? ''),
-      sentence_after_reading:       String(s.after_reading    ?? ''),
-      answer:                       String(s.answer           ?? ''),
-      answer_alts:                  Array.isArray(s.answer_alts) ? s.answer_alts.map(String) : [],
-      translation_es:               String(s.translation_es   ?? ''),
-      translation_ca:               String(s.translation_ca   ?? ''),
-      translation_en:               String(s.translation_en   ?? ''),
-      is_private:                   false,
-      private_user_id:              null,
-    }))
+    // 10. Insert into Supabase (build text/reading/segments from the AI tokens;
+    //     drop sentences whose furigana is malformed — a kanji without reading)
+    const rows = passing.map((s: any) => {
+      const before = parseSegments(s.before)
+      const after  = parseSegments(s.after)
+      if (before === null || after === null) return null
+      return {
+        grammar_id:                   next.id,
+        sentence_before:              segText(before),
+        sentence_before_reading:      segReading(before),
+        sentence_before_segments:     before,
+        sentence_before_alts:         [],
+        sentence_before_reading_alts: [],
+        sentence_after:               segText(after),
+        sentence_after_reading:       segReading(after),
+        sentence_after_segments:      after,
+        answer:                       String(s.answer           ?? ''),
+        answer_alts:                  Array.isArray(s.answer_alts) ? s.answer_alts.map(String) : [],
+        translation_es:               String(s.translation_es   ?? ''),
+        translation_ca:               String(s.translation_ca   ?? ''),
+        translation_en:               String(s.translation_en   ?? ''),
+        is_private:                   false,
+        private_user_id:              null,
+      }
+    }).filter((r): r is NonNullable<typeof r> => r !== null)
+
+    if (rows.length === 0) {
+      await upsertError(service, next.id, 'Ninguna frase con furigana válido', false)
+      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'No valid furigana', retry_after_ms: 5_000 })
+    }
 
     const { error: insertError } = await service.from('grammar_sentences').insert(rows)
     if (insertError) {

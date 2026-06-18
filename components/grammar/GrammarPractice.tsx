@@ -1031,7 +1031,7 @@ export default function GrammarPractice({
                 {currentSentence.sentence_before && (
                   <span>
                     {showFurigana && hasFurigana
-                      ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
+                      ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} segments={currentSentence.sentence_before_segments} />
                       : currentSentence.sentence_before}
                   </span>
                 )}
@@ -1042,7 +1042,7 @@ export default function GrammarPractice({
                 {currentSentence.sentence_after && (
                   <span>
                     {showFurigana && hasFurigana
-                      ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
+                      ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} segments={currentSentence.sentence_after_segments} />
                       : currentSentence.sentence_after}
                   </span>
                 )}
@@ -1170,7 +1170,7 @@ export default function GrammarPractice({
                   {currentSentence.sentence_before && (
                     <span>
                       {showFurigana && hasFurigana
-                        ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} />
+                        ? <RubyText text={currentSentence.sentence_before} reading={currentSentence.sentence_before_reading} segments={currentSentence.sentence_before_segments} />
                         : currentSentence.sentence_before}
                     </span>
                   )}
@@ -1184,7 +1184,7 @@ export default function GrammarPractice({
                   {currentSentence.sentence_after && (
                     <span>
                       {showFurigana && hasFurigana
-                        ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} />
+                        ? <RubyText text={currentSentence.sentence_after} reading={currentSentence.sentence_after_reading} segments={currentSentence.sentence_after_segments} />
                         : currentSentence.sentence_after}
                     </span>
                   )}
