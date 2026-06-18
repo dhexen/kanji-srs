@@ -78,7 +78,8 @@
       "Bash(convert -background none public/icon.svg -resize 192x192 public/icon-192.png)",
       "Bash(convert -background none public/icon.svg -resize 512x512 public/icon-512.png)",
       "Bash(convert -background none public/icon-maskable.svg -resize 512x512 public/icon-maskable-512.png)",
-      "Bash(convert -background \"#7c3aed\" public/icon.svg -resize 180x180 public/apple-touch-icon.png)"
+      "Bash(convert -background \"#7c3aed\" public/icon.svg -resize 180x180 public/apple-touch-icon.png)",
+      "Bash(git commit -q -m ' *)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
