@@ -258,6 +258,24 @@ export async function runEnrichJlpt(opts: { offset?: number; force?: boolean; mo
   return parseAdminResponse<EnrichJlptResult>(res)
 }
 
+export interface GenerateSchemesResult {
+  updated: number
+  fetched: number
+  done: boolean
+  next_offset: number
+  total: number
+}
+
+/** Generate conjugation/usage schemes for a page of grammar points (MNN + JLPT). */
+export async function runGenerateSchemes(opts: { offset?: number; force?: boolean; model?: string; geminiApiKey?: string }): Promise<GenerateSchemesResult> {
+  const res = await fetch('/api/admin/grammar/scheme', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<GenerateSchemesResult>(res)
+}
+
 /** Save (or clear with null) the curated per-kanji furigana for a word. */
 export async function saveVocabReadingSegments(
   word: string,

@@ -153,6 +153,10 @@ Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 
 
 En la cabecera hay un selector **"Minna no Nihongo / JLPT"** para cambiar entre las dos fuentes.
 
+#### Esquema de conjugación
+
+La ficha de cada punto de gramática puede mostrar, debajo de la explicación, un **esquema de uso y conjugación** en dos tablas: **Cómo se usa** (a qué se une: verbo, adjetivo い/な o sustantivo) y **Formas** (no pasado, negativo, pasado, forma て…). Las etiquetas están traducidas a tu idioma (castellano, catalán o inglés).
+
 #### Sección JLPT
 
 La sección **JLPT** reúne cientos de puntos gramaticales agrupados por nivel (N5 a N1). Puedes consultarlos, marcarlos como conocidos y practicarlos igual que el resto, con una explicación ampliada y varios ejemplos por punto.

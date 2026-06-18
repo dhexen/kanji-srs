@@ -1,15 +1,17 @@
 'use client'
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { GrammarPoint, ExampleToken, StructurePart } from '@/lib/grammar-mnn1'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
-import type { GrammarSrsStat } from '@/lib/grammar-srs'
+import type { GrammarSrsStat, GrammarScheme } from '@/lib/grammar-srs'
 import { getSrsLevelLabel } from '@/lib/grammar-srs'
+import { fetchGrammarScheme } from '@/lib/supabase'
 import GrammarExamples from './GrammarExamples'
 import GrammarPractice from './GrammarPractice'
 import GrammarSentenceExamples from './GrammarSentenceExamples'
+import GrammarSchemeView from './GrammarSchemeView'
 
 function getLang3<T extends { es: T[keyof T]; ca: T[keyof T]; en: T[keyof T] }>(obj: T, lang: Lang) {
   if (lang === 'ca') return obj.ca
@@ -138,6 +140,14 @@ interface Props {
 export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit, srsStat, onAddToSrs, onRemoveFromSrs, prevGrammar, nextGrammar, onNavigate }: Props) {
   const [practiceMode, setPracticeMode] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [scheme, setScheme] = useState<GrammarScheme | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setScheme(null)
+    fetchGrammarScheme(grammar.id).then(s => { if (!cancelled) setScheme(s) })
+    return () => { cancelled = true }
+  }, [grammar.id])
 
   // ── Practice mode: render GrammarPractice in place of the detail ──────────
   if (practiceMode) {
@@ -282,6 +292,9 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
       <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4">
         <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
       </div>
+
+      {/* Conjugation / usage scheme */}
+      {scheme && <GrammarSchemeView scheme={scheme} lang={lang} />}
 
       {/* Built-in example */}
       <ExampleDisplay tokens={grammar.example} lang={lang} />

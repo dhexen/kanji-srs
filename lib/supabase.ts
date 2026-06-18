@@ -1521,6 +1521,25 @@ export async function setGrammarKnown(grammarId: string, known: boolean): Promis
 // ---------------------------------------------------------------------------
 
 import type { JlptDetail, JlptStatus } from './grammar-bunpro'
+import type { GrammarScheme } from './grammar-srs'
+
+/** Conjugation/usage scheme for a grammar point. Null if none stored yet. */
+export async function fetchGrammarScheme(pointId: string): Promise<GrammarScheme | null> {
+  try {
+    const { data, error } = await supabase
+      .from('grammar_schemes')
+      .select('scheme')
+      .eq('point_id', pointId)
+      .maybeSingle()
+    if (error || !data) return null
+    const s = (data as { scheme: unknown }).scheme as Partial<GrammarScheme> | null
+    if (!s || typeof s !== 'object') return null
+    const formation = Array.isArray(s.formation) ? s.formation : []
+    const conjugations = Array.isArray(s.conjugations) ? s.conjugations : []
+    if (formation.length === 0 && conjugations.length === 0) return null
+    return { formation, conjugations }
+  } catch { return null }
+}
 
 /** AI-enriched explanation + examples per JLPT point. Empty Map if unavailable. */
 export async function fetchJlptDetails(): Promise<Map<string, JlptDetail>> {

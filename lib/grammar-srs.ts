@@ -217,6 +217,24 @@ export function getAnswerRegister(answer: string): 'formal' | null {
   return /(です|ます|ました|ません|でした|でしょう)/.test(answer) ? 'formal' : null
 }
 
+// ── Conjugation / usage scheme (stored in grammar_schemes, filled by admin) ──
+/** A label translated into the three supported UI languages. */
+export interface I18nLabel { es: string; ca: string; en: string }
+export interface GrammarScheme {
+  /** How the pattern attaches to each part of speech (e.g. な-adj → なAdj + がる). */
+  formation: { type: I18nLabel; pattern: string; example?: string }[]
+  /** The inflected forms of the pattern (non-past, negative, past, te-form…). */
+  conjugations: { form: I18nLabel; pattern: string; reading?: string }[]
+}
+
+/** Pick the label in the given language, falling back to Spanish then English. */
+export function pickLabel(l: I18nLabel | undefined, lang: string): string {
+  if (!l) return ''
+  if (lang === 'ca') return l.ca || l.es || l.en
+  if (lang === 'en') return l.en || l.es || l.ca
+  return l.es || l.en || l.ca
+}
+
 /** Hiragana characters of a string (katakana folded to hiragana via normalise). */
 function hiraganaChars(s: string): string[] {
   return [...normalizeAnswer(s)].filter(ch => ch >= 'ぁ' && ch <= 'ゖ')

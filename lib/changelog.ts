@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Esquemas de conjugación en la gramática',
+        description: 'Cada punto de gramática (Minna no Nihongo y JLPT) puede mostrar ahora un esquema visual: a qué se une (verbo, adjetivo い/な, sustantivo) y sus formas conjugadas (no pasado, negativo, pasado, forma て…), traducido al castellano, catalán e inglés. Aparece en la ficha de la gramática, debajo de la explicación.',
+      },
+      {
         type: 'fix',
         title: 'Gramática: no penaliza repetir el contexto en el hueco',
         description: 'Cuando el hueco corta una conjugación a medias (p. ej. la frase ya muestra 飼っ y escribes ってはいけません en vez de てはいけません), el corrector ya no lo cuenta como error: acepta que reescribas los caracteres del contexto que ya aparecían.',

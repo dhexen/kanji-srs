@@ -160,6 +160,13 @@ function HelpGrammar() {
       </div>
 
       <div>
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Esquema de conjugación</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          La ficha de cada punto puede mostrar, bajo la explicación, un esquema en dos tablas: <strong>Cómo se usa</strong> (a qué se une: verbo, adjetivo い/な, sustantivo) y <strong>Formas</strong> (no pasado, negativo, pasado, forma て…), con las etiquetas en tu idioma.
+        </p>
+      </div>
+
+      <div>
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">El banco compartido de frases</h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           Las frases generadas por la IA se <strong>comparten entre todos los usuarios</strong>.
