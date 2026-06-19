@@ -276,6 +276,32 @@ export async function runGenerateSchemes(opts: { offset?: number; force?: boolea
   return parseAdminResponse<GenerateSchemesResult>(res)
 }
 
+export interface GrammarRefreshStatus {
+  total_points: number
+  nightly_target: number
+  total_sentences: number
+  state: { processed_today: number; run_date: string | null; remaining_in_cycle: number; processed_in_cycle: number; updated_at: string | null }
+  next_up: { id: string; name: string; jlpt: string; pattern: string }[]
+  runs: { id: number; ran_at: string; trigger: string; processed: number; added: number; remaining: number; stopped: string | null; error: string | null; duration_ms: number }[]
+  errors: { id: string; name: string; jlpt: string; pattern: string; error_msg: string; is_permanent: boolean; updated_at: string }[]
+}
+
+/** Monitoring data for the weekly grammar refresh cron. */
+export async function fetchGrammarRefreshStatus(): Promise<GrammarRefreshStatus> {
+  const res = await fetch('/api/admin/grammar-refresh', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<GrammarRefreshStatus>(res)
+}
+
+/** Manually trigger one refresh batch (or restart the cycle). */
+export async function runGrammarRefresh(action: 'run' | 'restart'): Promise<{ ok: boolean; summary?: unknown }> {
+  const res = await fetch('/api/admin/grammar-refresh', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ action }),
+  })
+  return parseAdminResponse<{ ok: boolean; summary?: unknown }>(res)
+}
+
 /** Save (or clear with null) the curated per-kanji furigana for a word. */
 export async function saveVocabReadingSegments(
   word: string,
