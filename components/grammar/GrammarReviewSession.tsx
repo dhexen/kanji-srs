@@ -610,6 +610,16 @@ export default function GrammarReviewSession({
             {showHint && translation && (
               <div className="px-5 pb-2 text-center">
                 <p className="text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>
+                {s.answer_hint && s.answer_hint.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {ui(lang, 'Palabra', 'Paraula', 'Word')}:{' '}
+                    {s.answer_hint.map((h, i) => (
+                      <span key={i} className="kanji-font font-semibold text-slate-700 dark:text-slate-200">
+                        {i > 0 && '、'}{h.w}{h.r ? <span className="font-normal text-slate-400">（{h.r}）</span> : null}
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
             )}
 

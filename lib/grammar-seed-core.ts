@@ -27,6 +27,7 @@ export interface SentenceRow {
   sentence_after_segments: FuriganaSegment[]
   answer: string
   answer_alts: string[]
+  answer_hint: { w: string; r?: string }[]
   translation_es: string
   translation_ca: string
   translation_en: string
@@ -60,6 +61,13 @@ function parseSegments(raw: unknown): FuriganaSegment[] | null {
 }
 const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
 const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
+function parseAnswerHint(raw: unknown): { w: string; r?: string }[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter(x => x && typeof (x as { w?: unknown }).w === 'string' && (x as { w: string }).w.trim())
+    .map(x => { const o = x as { w: string; r?: unknown }; const r = o.r != null && String(o.r).trim() ? String(o.r).trim() : undefined; return r ? { w: o.w.trim(), r } : { w: o.w.trim() } })
+    .slice(0, 4)
+}
 
 export function parseRetryAfterMs(errorMsg: string, status: number): number {
   const match = errorMsg.match(/retry in (\d+(?:\.\d+)?)s/i)
@@ -88,6 +96,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
       "before": [{"t":"私","f":"わたし"},{"t":"は"}],
       "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
       "answer_alts": ["variante hiragana aceptable"],
+      "answer_hint": [{"w":"調べる","r":"しらべる"}],
       "after": [{"t":"パン"},{"t":"を"},{"t":"食","f":"た"},{"t":"べます"}],
       "translation_es": "traducción COMPLETA y NATURAL al español",
       "translation_ca": "traducció COMPLETA i NATURAL al català",
@@ -104,6 +113,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 2. El sujeto debe ser claro. Usa contextos cotidianos realistas.
 
 ⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji. Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte completa (la て, ます…), NUNCA solo la raíz del verbo. Ej. patrón てみます → answer "しらべてみます" ✓, NO "しらべ" (sin て) ✗.
+
+⚠️ "answer_hint": si el answer incluye una PALABRA DE CONTENIDO (verbo, sustantivo, adjetivo) que el alumno debe escribir conjugada, ponla aquí en FORMA DE DICCIONARIO (verbos en forma diccionario, no conjugada): {"w":forma de diccionario con kanji, "r":lectura en hiragana}. Solo las palabras de contenido que estén DENTRO del answer (las del before/after ya se ven). Si el answer es solo gramática (partículas/conjugación sin palabra de contenido), devuelve []. Ej. answer "しらべてみます" → [{"w":"調べる","r":"しらべる"}]; answer "てはいけません" → [].
 
 ⚠️ REGLAS sobre traducciones: oraciones COMPLETAS y NATURALES en cada idioma.
 
@@ -176,6 +187,7 @@ export async function generatePointRows(
         sentence_after_segments:      after,
         answer:                       String(s.answer ?? ''),
         answer_alts:                  Array.isArray(s.answer_alts) ? s.answer_alts.map(String) : [],
+        answer_hint:                  parseAnswerHint(s.answer_hint),
         translation_es:               String(s.translation_es ?? ''),
         translation_ca:               String(s.translation_ca ?? ''),
         translation_en:               String(s.translation_en ?? ''),

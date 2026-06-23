@@ -40,6 +40,7 @@ export interface GrammarSentence {
   sentence_after_segments?: FuriganaSegment[] // per-token furigana (exact placement)
   answer: string                   // correct grammar pattern
   answer_alts: string[]            // other acceptable answers
+  answer_hint?: { w: string; r?: string }[]  // dict-form content words inside the answer
   translation_es: string
   translation_ca: string
   translation_en: string

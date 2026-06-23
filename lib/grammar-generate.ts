@@ -35,6 +35,13 @@ function parseSegments(raw: unknown): FuriganaSegment[] | null {
 }
 const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
 const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
+function parseAnswerHint(raw: unknown): { w: string; r?: string }[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter(x => x && typeof (x as { w?: unknown }).w === 'string' && (x as { w: string }).w.trim())
+    .map(x => { const o = x as { w: string; r?: unknown }; const r = o.r != null && String(o.r).trim() ? String(o.r).trim() : undefined; return r ? { w: o.w.trim(), r } : { w: o.w.trim() } })
+    .slice(0, 4)
+}
 import {
   supabase,
   saveGrammarSentences,
@@ -171,6 +178,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
       "before": [{"t":"私","f":"わたし"},{"t":"は"}],
       "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
       "answer_alts": ["variante hiragana aceptable"],
+      "answer_hint": [{"w":"調べる","r":"しらべる"}],
       "after": [{"t":"パン"},{"t":"を"},{"t":"食","f":"た"},{"t":"べます"}],
       "translation_es": "traducción COMPLETA y NATURAL al español",
       "translation_ca": "traducció COMPLETA i NATURAL al català",
@@ -205,6 +213,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 - Ejemplo INCORRECTO (patrón てみます) → before:"話を疑って", answer:"しらべ", after:"みます。" ← MAL: falta la て y el answer es solo el verbo, la frase queda rota "しらべみます"
 - Ejemplo INCORRECTO → before:"今月", answer:"は七月です" ← MAL: incluye vocabulario con kanji
 - Ejemplo INCORRECTO → before:"りんご", answer:"は", after:"" ← MAL: la frase queda incompleta "りんごは"
+
+⚠️ "answer_hint": si el answer incluye una PALABRA DE CONTENIDO (verbo, sustantivo, adjetivo) que el alumno debe escribir conjugada, ponla en FORMA DE DICCIONARIO: {"w":forma de diccionario con kanji, "r":lectura en hiragana}. Solo palabras DENTRO del answer (las del before/after ya se ven). Si el answer es solo gramática, []. Ej. answer "しらべてみます" → [{"w":"調べる","r":"しらべる"}].
 
 ⚠️ REGLAS CRÍTICAS sobre las traducciones:
 - Cada traducción debe ser una oración COMPLETA y NATURAL en el idioma destino
@@ -276,6 +286,7 @@ Otras reglas:
             sentence_after_segments:        after,
             answer:                         String(s.answer             ?? grammar.pattern),
             answer_alts:                    Array.isArray(s.answer_alts) ? (s.answer_alts as unknown[]).map(String) : [],
+            answer_hint:                    parseAnswerHint(s.answer_hint),
             translation_es:                 String(s.translation_es     ?? ''),
             translation_ca:                 String(s.translation_ca     ?? ''),
             translation_en:                 String(s.translation_en     ?? ''),

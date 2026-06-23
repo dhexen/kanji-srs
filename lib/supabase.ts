@@ -1665,6 +1665,10 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
         sentence_after_reading: r.sentence_after_reading ?? '',
         sentence_after_segments: parseSegs(r.sentence_after_segments),
         answer: r.answer ?? '',
+        answer_hint: Array.isArray(r.answer_hint)
+          ? (r.answer_hint as unknown[]).filter(x => x && typeof (x as { w?: unknown }).w === 'string')
+              .map(x => { const o = x as { w: string; r?: unknown }; return o.r ? { w: o.w, r: String(o.r) } : { w: o.w } })
+          : [],
         answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
         translation_es: r.translation_es ?? '',
         translation_ca: r.translation_ca ?? '',
@@ -1727,6 +1731,7 @@ export async function saveGrammarSentences(
       sentence_after_segments: s.sentence_after_segments ?? [],
       answer: s.answer,
       answer_alts: s.answer_alts,
+      answer_hint: s.answer_hint ?? [],
       translation_es: s.translation_es,
       translation_ca: s.translation_ca,
       translation_en: s.translation_en,

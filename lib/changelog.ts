@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'new',
+        title: 'Pista de la palabra en los repasos de gramática',
+        description: 'En el repaso de gramática, al pulsar "Ver traducción", si la respuesta incluye una palabra o verbo que debes escribir, ahora aparece esa palabra en japonés en forma de diccionario (con su lectura) entre paréntesis. Así puedes practicar la conjugación y la gramática aunque no recuerdes la palabra exacta — la conjugas tú para que cuadre.',
+      },
+      {
+        type: 'new',
         title: 'Las frases de gramática se renuevan solas',
         description: 'Cada semana se generan frases nuevas para los puntos de gramática (repartidas a lo largo de la semana). Cada banco mantiene hasta 100 frases: al añadir nuevas, las más antiguas se van retirando. Así siempre hay variedad fresca sin tener que regenerar a mano.',
       },
