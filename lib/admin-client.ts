@@ -10,7 +10,18 @@ async function adminAuthHeaders(): Promise<HeadersInit> {
 }
 
 async function parseAdminResponse<T>(res: Response): Promise<T> {
-  const data = await res.json()
+  const text = await res.text()
+  let data: any
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    // Non-JSON response (e.g. a Vercel function timeout returns an HTML/text
+    // page). Surface a readable message instead of a JSON parse error.
+    if (res.status === 504 || /timeout|FUNCTION_INVOCATION/i.test(text)) {
+      throw new Error('La operación tardó demasiado y se cortó (timeout). Inténtalo de nuevo.')
+    }
+    throw new Error(`Respuesta no válida del servidor (${res.status}).`)
+  }
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
   return data as T
 }

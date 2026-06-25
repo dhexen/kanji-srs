@@ -61,8 +61,11 @@ export async function runRefreshBatch(
   service: SupabaseClient,
   apiKey: string,
   trigger: 'cron' | 'manual' = 'cron',
+  opts?: { maxPoints?: number; budgetMs?: number },
 ): Promise<RefreshSummary> {
   const start = Date.now()
+  const budgetMs = opts?.budgetMs ?? BUDGET_MS
+  const maxPerCall = opts?.maxPoints ?? MAX_PER_CALL
 
   const { data: row } = await service.from('grammar_refresh').select('*').eq('id', 1).maybeSingle()
   const today = new Date().toISOString().slice(0, 10)
@@ -78,9 +81,9 @@ export async function runRefreshBatch(
   let stopped = 'target_reached'
   let error: string | null = null
 
-  while (queue.length > 0 && processedToday < NIGHTLY_TARGET && processed < MAX_PER_CALL) {
-    if (Date.now() - start >= BUDGET_MS) { stopped = 'time_budget'; break }
-    if (processed >= MAX_PER_CALL) { stopped = 'max_per_call'; break }
+  while (queue.length > 0 && processedToday < NIGHTLY_TARGET && processed < maxPerCall) {
+    if (Date.now() - start >= budgetMs) { stopped = 'time_budget'; break }
+    if (processed >= maxPerCall) { stopped = 'max_per_call'; break }
 
     const id = queue[0]
     const grammar = BY_ID.get(id)
