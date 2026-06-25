@@ -268,7 +268,7 @@ export default function GrammarSeedClient() {
   }
 
   async function handleWipeSentences() {
-    if (!confirm('¿Borrar TODAS las frases generadas? Esto vacía el banco para regenerarlo desde cero (con kanji y furigana por token). No se puede deshacer.')) return
+    if (!confirm('¿Borrar las frases generadas para regenerarlas desde cero? Las frases VALIDADAS por profesor se conservan (nunca se borran). No se puede deshacer.')) return
     const token = await getToken()
     await fetch('/api/admin/seed-grammar', {
       method: 'POST',

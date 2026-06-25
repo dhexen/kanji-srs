@@ -102,9 +102,9 @@ export async function POST(req: NextRequest) {
     } else if (action === 'clear_all_errors') {
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     } else if (action === 'wipe_sentences') {
-      // Delete the whole generated pool so it can be regenerated from scratch
-      // (e.g. after changing the generation format to per-token furigana).
-      await service.from('grammar_sentences').delete().neq('grammar_id', '')
+      // Regenerate the pool from scratch, but NEVER delete teacher-validated
+      // sentences — those are permanent (only unvalidated ones are wiped).
+      await service.from('grammar_sentences').delete().eq('validated', false)
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     }
 

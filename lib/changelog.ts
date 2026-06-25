@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Las frases validadas por profesor son permanentes',
+        description: 'Las frases de gramática marcadas como validadas por un profesor ya no se eliminan nunca al renovar el banco: ocupan un sitio fijo. Así, con el tiempo, cada punto de gramática irá acumulando frases revisadas y de confianza.',
+      },
+      {
         type: 'new',
         title: 'Pista de la palabra en los repasos de gramática',
         description: 'En el repaso de gramática, al pulsar "Ver traducción", si la respuesta incluye una palabra o verbo que debes escribir, ahora aparece esa palabra en japonés en forma de diccionario (con su lectura) entre paréntesis. Así puedes practicar la conjugación y la gramática aunque no recuerdes la palabra exacta — la conjugas tú para que cuadre.',

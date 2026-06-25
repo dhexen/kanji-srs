@@ -1785,11 +1785,13 @@ export async function trimGrammarSentencesPool(
 
     const excess = count - maxSize
 
-    // 2. Fetch the IDs of the oldest `excess` sentences
+    // 2. Fetch the IDs of the oldest `excess` UNVALIDATED sentences.
+    //    Teacher-validated sentences are never trimmed — they stay permanently.
     const { data, error: fetchErr } = await supabase
       .from('grammar_sentences')
       .select('id')
       .eq('grammar_id', grammarId)
+      .eq('validated', false)
       .order('created_at', { ascending: true })
       .limit(excess)
 

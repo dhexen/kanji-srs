@@ -33,7 +33,12 @@ export interface RefreshSummary {
   moreTonight: boolean    // whether there's more to do for tonight's quota
 }
 
-/** Trim a point's pool to MAX_POOL, deleting the oldest rows. */
+/**
+ * Trim a point's pool to MAX_POOL, deleting the oldest UNVALIDATED sentences.
+ * Teacher-validated sentences are never deleted — they stay permanently and
+ * occupy a slot, so over time each point fills up with trusted, reviewed
+ * sentences. (If validated alone exceed MAX_POOL, the pool stays above the cap.)
+ */
 async function trim(service: SupabaseClient, grammarId: string) {
   const { count } = await service
     .from('grammar_sentences')
@@ -46,6 +51,7 @@ async function trim(service: SupabaseClient, grammarId: string) {
     .select('id')
     .eq('grammar_id', grammarId)
     .eq('is_private', false)
+    .eq('validated', false)                       // never trim validated ones
     .order('created_at', { ascending: true })
     .limit(count - MAX_POOL)
   const ids = (data ?? []).map(r => r.id as string)
