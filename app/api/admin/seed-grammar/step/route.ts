@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60  // generation + verification = two Gemini calls
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError } from '@/lib/admin-server'

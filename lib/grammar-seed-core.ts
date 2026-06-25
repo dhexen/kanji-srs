@@ -20,6 +20,11 @@ export const MAX_POOL = 100      // rolling cap; oldest are trimmed beyond this
 // (gemini-3.1-flash-preview was retired by Google → removed).
 export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
 
+// A higher-quality model used to VERIFY the lite-generated candidates: it
+// confirms each sentence is correct/natural, uses the pattern, has accurate
+// furigana (it may correct readings) and a good translation.
+export const VERIFY_MODEL = 'gemini-2.5-flash'
+
 export interface SentenceRow {
   grammar_id: string
   sentence_before: string
@@ -130,15 +135,87 @@ Genera exactamente ${GENERATE_SIZE} frases distintas.`
 }
 
 /**
+ * Second pass: a quality model reviews the lite-generated candidates. It drops
+ * sentences with real errors (grammar/pattern/translation) and may correct
+ * furigana readings. Robust by design: on any failure it returns the input rows
+ * unchanged (we keep the unverified candidates rather than lose the work).
+ * Corrections are only applied when the corrected segments keep the SAME text
+ * (only the reading `f` may change), so the verifier can't rewrite sentences.
+ */
+async function verifyRows(rows: SentenceRow[], grammar: GrammarPoint, apiKey: string): Promise<SentenceRow[]> {
+  if (rows.length === 0) return rows
+  const items = rows.map((r, i) => ({ i, before: r.sentence_before_segments, answer: r.answer, after: r.sentence_after_segments, es: r.translation_es }))
+  const prompt = `Eres un profesor de japonés MUY estricto. Revisa estas frases candidatas para el patrón "${grammar.pattern}" (${grammar.name_es}). Cada frase es before + answer + after; los segmentos son tokens {"t":texto,"f":lectura en hiragana del kanji}.
+
+Para CADA frase comprueba:
+1. La frase completa (before+answer+after) es gramaticalmente correcta y natural.
+2. Usa CORRECTAMENTE el patrón "${grammar.pattern}".
+3. La lectura "f" de cada kanji es CORRECTA.
+4. La traducción al español (es) es correcta y natural.
+
+Devuelve SOLO JSON, un objeto por frase con su índice "i":
+[{"i":0,"keep":true},{"i":1,"keep":false},{"i":2,"keep":true,"before":[...],"after":[...]}]
+Reglas:
+- keep=false SOLO si hay un error REAL (gramática incorrecta, mal uso del patrón, sin sentido, traducción muy mala). No rechaces por preferencias de estilo.
+- Si solo una LECTURA de furigana está mal, pon keep=true y devuelve "before"/"after" con los MISMOS textos "t" y la "f" corregida (no cambies el texto de la frase).
+
+Frases:
+${JSON.stringify(items)}`
+
+  let text = ''
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${VERIFY_MODEL}:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }) },
+    )
+    if (!res.ok) return rows  // quota/overload/etc → keep unverified candidates
+    const data = await res.json()
+    text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  } catch { return rows }
+
+  let verdicts: any[]
+  try {
+    const clean = text.replace(/```json|```/g, '').trim()
+    verdicts = JSON.parse(clean.match(/\[[\s\S]*\]/)?.[0] ?? clean)
+    if (!Array.isArray(verdicts)) return rows
+  } catch { return rows }
+
+  const byIndex = new Map<number, any>(verdicts.filter(v => v && typeof v.i === 'number').map(v => [v.i, v]))
+  const out: SentenceRow[] = []
+  rows.forEach((row, i) => {
+    const v = byIndex.get(i)
+    if (!v) { out.push(row); return }            // no verdict → keep (lenient)
+    if (v.keep === false) return                 // dropped by the verifier
+    // Apply corrected readings only if the text is unchanged.
+    const fixed = { ...row }
+    const cb = parseSegments(v.before)
+    if (cb && cb.length && segText(cb) === row.sentence_before) {
+      fixed.sentence_before_segments = cb; fixed.sentence_before_reading = segReading(cb)
+    }
+    const ca = parseSegments(v.after)
+    if (ca && ca.length && segText(ca) === row.sentence_after) {
+      fixed.sentence_after_segments = ca; fixed.sentence_after_reading = segReading(ca)
+    }
+    out.push(fixed)
+  })
+  // Safety: if the verifier rejected everything, keep the originals rather than
+  // produce nothing (avoids an over-strict model emptying the pool).
+  return out.length > 0 ? out : rows
+}
+
+/**
  * Generate sentences for one grammar point and return up to `keep` valid rows.
  * Tries the models in order, parses, filters by quality + pattern fit, and
- * builds per-token furigana rows (dropping malformed ones). No DB access.
+ * builds per-token furigana rows (dropping malformed ones). With `verify` (the
+ * default for the seed/cron pipeline), a quality model reviews the candidates.
+ * No DB access.
  */
 export async function generatePointRows(
   grammar: GrammarPoint,
   vocab: { jp: string; reading: string; meaning: string }[],
   apiKey: string,
   keep: number,
+  opts?: { verify?: boolean },
 ): Promise<GenResult> {
   const prompt = buildSeedPrompt(grammar, vocab)
   let res!: Response
@@ -205,5 +282,10 @@ export async function generatePointRows(
     .filter((r): r is SentenceRow => r !== null)
     .slice(0, Math.max(0, keep))
 
-  return { ok: true, rows, usedModel }
+  // Optional quality verification pass (lite generates → flash confirms/corrects).
+  const verified = (opts?.verify !== false && rows.length > 0)
+    ? await verifyRows(rows, grammar, apiKey)
+    : rows
+
+  return { ok: true, rows: verified, usedModel }
 }

@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
       apiKey = apiKey || process.env.GEMINI_API_KEY || ''
       if (!apiKey) return NextResponse.json({ error: 'No hay clave de Gemini configurada.' }, { status: 400 })
 
-      // Small batch so the request returns well under the function timeout
-      // (a single Gemini generation can take ~15-30s).
-      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 3, budgetMs: 30_000 })
+      // One point per manual run: generation + verification (two Gemini calls)
+      // can take ~40-50s, so a single point keeps us under the function timeout.
+      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000 })
       return NextResponse.json({ ok: true, summary })
     }
 
