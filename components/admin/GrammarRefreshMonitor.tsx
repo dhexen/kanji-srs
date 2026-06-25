@@ -187,7 +187,19 @@ export default function GrammarRefreshMonitor() {
       {/* Errors */}
       {errs.length > 0 && (
         <div>
-          <h2 className="text-sm font-bold text-rose-700 dark:text-rose-400 mb-2">Puntos con error ({errs.length})</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-bold text-rose-700 dark:text-rose-400">Puntos con error ({errs.length})</h2>
+            <button
+              onClick={async () => {
+                if (!confirm('¿Limpiar todos los errores? Los puntos marcados (incluidos los permanentes) volverán a intentarse en la próxima generación.')) return
+                try { await runGrammarRefresh('clear_errors'); showToast('Errores limpiados', 'success'); await load() }
+                catch (e) { showToast(e instanceof Error ? e.message : 'Error', 'error') }
+              }}
+              className="text-xs px-2.5 py-1 border border-rose-300 text-rose-600 rounded-lg hover:bg-rose-50"
+            >
+              Limpiar errores y reintentar
+            </button>
+          </div>
           <div className="space-y-1.5">
             {errs.map(e => (
               <div key={e.id} className="flex items-start gap-2 text-sm bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800/40 rounded-lg px-3 py-2">

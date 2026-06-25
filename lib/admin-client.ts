@@ -310,8 +310,8 @@ export async function fetchGrammarRefreshStatus(): Promise<GrammarRefreshStatus>
   return parseAdminResponse<GrammarRefreshStatus>(res)
 }
 
-/** Manually trigger one refresh batch (or restart the cycle). */
-export async function runGrammarRefresh(action: 'run' | 'restart'): Promise<{ ok: boolean; summary?: unknown }> {
+/** Manually trigger one refresh batch, restart the cycle, or clear point errors. */
+export async function runGrammarRefresh(action: 'run' | 'restart' | 'clear_errors'): Promise<{ ok: boolean; summary?: unknown }> {
   const res = await fetch('/api/admin/grammar-refresh', {
     method: 'POST',
     headers: await adminAuthHeaders(),

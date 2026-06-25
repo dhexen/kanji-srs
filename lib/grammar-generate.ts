@@ -9,11 +9,6 @@ import type { GrammarSentence, FuriganaSegment } from '@/lib/grammar-srs'
 import { answerFitsPattern } from '@/lib/grammar-srs'
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
-function isKanji(ch: string): boolean {
-  const cp = ch.codePointAt(0) ?? 0
-  return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf)
-}
-function hasKanji(s: string): boolean { return [...s].some(isKanji) }
 
 /**
  * Parse the AI's segment array into clean `{t,f?}` tokens. Returns null when
@@ -28,10 +23,11 @@ function parseSegments(raw: unknown): FuriganaSegment[] | null {
     if (!t) continue
     const fRaw = (x as { f?: unknown }).f
     const f = fRaw != null && String(fRaw).trim() ? String(fRaw).trim() : undefined
-    if (hasKanji(t) && !f) return null   // kanji must carry its reading
+    // Lenient: keep a kanji token without reading (renders plain) instead of
+    // discarding the whole sentence.
     segs.push(f ? { t, f } : { t })
   }
-  return segs
+  return segs.length ? segs : null
 }
 const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
 const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')

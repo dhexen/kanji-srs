@@ -50,12 +50,6 @@ export type GenResult =
   | { ok: false; usedModel: string; error: string; permanent: boolean; retryAfterMs: number }
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
-function hasKanji(s: string): boolean {
-  return [...s].some(ch => {
-    const cp = ch.codePointAt(0) ?? 0
-    return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf)
-  })
-}
 function parseSegments(raw: unknown): FuriganaSegment[] | null {
   if (!Array.isArray(raw)) return null
   const segs: FuriganaSegment[] = []
@@ -64,10 +58,13 @@ function parseSegments(raw: unknown): FuriganaSegment[] | null {
     if (!t) continue
     const fRaw = (x as { f?: unknown }).f
     const f = fRaw != null && String(fRaw).trim() ? String(fRaw).trim() : undefined
-    if (hasKanji(t) && !f) return null
+    // Lenient: a kanji token without a reading is kept WITHOUT furigana (renders
+    // plain) instead of discarding the whole sentence. The flash verify pass
+    // fills/corrects the missing readings. Avoids zero-yield when the lite model
+    // occasionally forgets one reading.
     segs.push(f ? { t, f } : { t })
   }
-  return segs
+  return segs.length ? segs : null
 }
 const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
 const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
@@ -150,14 +147,14 @@ async function verifyRows(rows: SentenceRow[], grammar: GrammarPoint, apiKey: st
 Para CADA frase comprueba:
 1. La frase completa (before+answer+after) es gramaticalmente correcta y natural.
 2. Usa CORRECTAMENTE el patrón "${grammar.pattern}".
-3. La lectura "f" de cada kanji es CORRECTA.
+3. La lectura "f" de cada kanji es CORRECTA y está PRESENTE (cada token con kanji debe tener su "f").
 4. La traducción al español (es) es correcta y natural.
 
 Devuelve SOLO JSON, un objeto por frase con su índice "i":
 [{"i":0,"keep":true},{"i":1,"keep":false},{"i":2,"keep":true,"before":[...],"after":[...]}]
 Reglas:
 - keep=false SOLO si hay un error REAL (gramática incorrecta, mal uso del patrón, sin sentido, traducción muy mala). No rechaces por preferencias de estilo.
-- Si solo una LECTURA de furigana está mal, pon keep=true y devuelve "before"/"after" con los MISMOS textos "t" y la "f" corregida (no cambies el texto de la frase).
+- Si alguna LECTURA de furigana está mal O FALTA en un token con kanji, pon keep=true y devuelve "before"/"after" con los MISMOS textos "t" y la "f" correcta en cada kanji (no cambies el texto de la frase).
 
 Frases:
 ${JSON.stringify(items)}`

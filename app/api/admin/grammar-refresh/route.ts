@@ -75,6 +75,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    if (action === 'clear_errors') {
+      // Unblock points whose errors were marked permanent (e.g. a now-removed model).
+      await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
+      return NextResponse.json({ ok: true })
+    }
+
     if (action === 'run') {
       // Admin's Gemini key (settings → legacy → env), same resolution as the seed.
       const { data: settings } = await service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle()
