@@ -15,11 +15,12 @@ export async function GET(req: NextRequest) {
   try {
     const { service } = await requireAdmin(req)
 
-    const [stateRes, runsRes, errorsRes, countRes] = await Promise.all([
+    const [stateRes, runsRes, errorsRes, countRes, validatedRes] = await Promise.all([
       service.from('grammar_refresh').select('*').eq('id', 1).maybeSingle(),
       service.from('grammar_refresh_runs').select('*').order('ran_at', { ascending: false }).limit(50),
       service.from('grammar_seed_errors').select('*').order('updated_at', { ascending: false }).limit(100),
       service.from('grammar_sentences').select('*', { count: 'exact', head: true }).eq('is_private', false),
+      service.rpc('grammar_validated_counts'),
     ])
 
     const state = stateRes.data
@@ -28,10 +29,26 @@ export async function GET(req: NextRequest) {
 
     const errors = (errorsRes.data ?? []).map((e: any) => ({ ...nameOf(e.grammar_id), error_msg: e.error_msg, is_permanent: e.is_permanent, updated_at: e.updated_at }))
 
+    // Validated-sentence progress per point (toward the 100/point goal).
+    const VALIDATED_GOAL = 100
+    const vCounts = new Map<string, number>((validatedRes.data ?? []).map((r: any) => [String(r.grammar_id), Number(r.n)]))
+    const validatedTotal = [...vCounts.values()].reduce((a, b) => a + b, 0)
+    const pointsComplete = [...vCounts.values()].filter(n => n >= VALIDATED_GOAL).length
+    const validatedPerPoint = [...vCounts.entries()]
+      .map(([id, n]) => ({ ...nameOf(id), validated: n }))
+      .sort((a, b) => b.validated - a.validated)
+
     return NextResponse.json({
       total_points: ALL_GRAMMAR.length,
       nightly_target: NIGHTLY_TARGET,
       total_sentences: countRes.count ?? 0,
+      validated: {
+        goal: VALIDATED_GOAL,
+        total: validatedTotal,
+        points_with_any: vCounts.size,
+        points_complete: pointsComplete,
+        per_point: validatedPerPoint,
+      },
       state: {
         processed_today: state?.processed_today ?? 0,
         run_date: state?.run_date ?? null,

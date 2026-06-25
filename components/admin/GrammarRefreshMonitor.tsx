@@ -101,6 +101,38 @@ export default function GrammarRefreshMonitor() {
         </div>
       </div>
 
+      {/* Validated-by-teacher progress (toward 100/point) */}
+      <div>
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">✓ Validadas por profesor</h2>
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          <Stat label="Validadas" value={data.validated.total.toLocaleString('es-ES')} sub={`objetivo ${(data.total_points * data.validated.goal).toLocaleString('es-ES')}`} />
+          <Stat label={`Puntos al ${data.validated.goal}`} value={`${data.validated.points_complete}/${data.total_points}`} sub="completos" />
+          <Stat label="Puntos con validadas" value={`${data.validated.points_with_any}/${data.total_points}`} sub="empezados" />
+        </div>
+        {data.validated.per_point.length === 0 ? (
+          <p className="text-sm text-slate-400">Aún no hay frases validadas por profesor.</p>
+        ) : (
+          <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60">
+            {data.validated.per_point.map(p => {
+              const pct = Math.min(100, Math.round((p.validated / data.validated.goal) * 100))
+              const done = p.validated >= data.validated.goal
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-3 py-2">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${LEVEL_PILL[p.jlpt] ?? 'bg-slate-100 text-slate-600'}`}>{p.jlpt || '—'}</span>
+                  <span className="kanji-font text-sm font-semibold text-slate-700 dark:text-slate-200 truncate w-40 shrink-0">{p.pattern}</span>
+                  <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${done ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className={`text-xs tabular-nums shrink-0 w-14 text-right ${done ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {p.validated}/{data.validated.goal}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Recent runs */}
       <div>
         <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Ejecuciones recientes</h2>

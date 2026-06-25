@@ -295,6 +295,13 @@ export interface GrammarRefreshStatus {
   next_up: { id: string; name: string; jlpt: string; pattern: string }[]
   runs: { id: number; ran_at: string; trigger: string; processed: number; added: number; remaining: number; stopped: string | null; error: string | null; duration_ms: number }[]
   errors: { id: string; name: string; jlpt: string; pattern: string; error_msg: string; is_permanent: boolean; updated_at: string }[]
+  validated: {
+    goal: number
+    total: number
+    points_with_any: number
+    points_complete: number
+    per_point: { id: string; name: string; jlpt: string; pattern: string; validated: number }[]
+  }
 }
 
 /** Monitoring data for the weekly grammar refresh cron. */
