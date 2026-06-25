@@ -8,8 +8,8 @@ const LEVEL_PILL: Record<string, string> = {
   N2: 'bg-amber-100 text-amber-700', N1: 'bg-rose-100 text-rose-700',
 }
 const STOPPED_LABEL: Record<string, string> = {
-  target_reached: 'Cupo alcanzado', time_budget: 'Límite de tiempo', max_per_call: 'Tope por ejecución',
-  gemini_throttled: 'Gemini saturado', cycle_complete: 'Ciclo completado',
+  target_reached: 'Cupo de la noche', time_budget: 'Límite de tiempo', max_per_call: 'Lote completado',
+  batch_done: 'Lote completado', gemini_throttled: 'Gemini saturado', cycle_complete: 'Ciclo completado',
 }
 
 function fmtTime(iso: string) {

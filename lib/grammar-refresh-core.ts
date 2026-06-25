@@ -88,12 +88,11 @@ export async function runRefreshBatch(
   const vocab = (vocabRows ?? []).map((d: any) => ({ jp: d.word, reading: d.reading, meaning: d.meaning_es ?? '' }))
 
   let added = 0, processed = 0
-  let stopped = 'target_reached'
+  let stopped = ''
   let error: string | null = null
 
   while (queue.length > 0 && underCap() && processed < maxPerCall) {
     if (Date.now() - start >= budgetMs) { stopped = 'time_budget'; break }
-    if (processed >= maxPerCall) { stopped = 'max_per_call'; break }
 
     const id = queue[0]
     const grammar = BY_ID.get(id)
@@ -121,7 +120,12 @@ export async function runRefreshBatch(
     if (queue.length === 0 && !unlimited && processedToday < NIGHTLY_TARGET) queue = ALL_GRAMMAR.map(g => g.id)
   }
 
-  if (queue.length === 0) stopped = 'cycle_complete'
+  // Determine why the run ended (unless a break already set it).
+  if (!stopped) {
+    if (queue.length === 0) stopped = 'cycle_complete'
+    else if (!unlimited && processedToday >= NIGHTLY_TARGET) stopped = 'target_reached'
+    else stopped = 'batch_done'   // hit this invocation's point budget (maxPerCall)
+  }
 
   await service.from('grammar_refresh').upsert({
     id: 1, queue, processed_today: processedToday, run_date: today, updated_at: new Date().toISOString(),
