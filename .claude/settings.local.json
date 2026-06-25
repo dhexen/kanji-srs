@@ -83,7 +83,8 @@
       "Bash(openssl rand *)",
       "Bash(echo \"openssl:   $\\(openssl rand -hex 32\\)\")",
       "Bash(uuidgen)",
-      "Bash(echo \"uuidgen:   $\\(uuidgen 2>/dev/null || echo 'no uuidgen'\\)\")"
+      "Bash(echo \"uuidgen:   $\\(uuidgen 2>/dev/null || echo 'no uuidgen'\\)\")",
+      "WebFetch(domain:ai.google.dev)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
