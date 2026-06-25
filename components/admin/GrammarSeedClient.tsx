@@ -26,8 +26,11 @@ interface JobState {
 const TARGET = 25
 const STEP_DELAY_MS = 5_000
 
+// Approximate free-tier daily request caps (for the local usage gauge only;
+// real limits are dynamic in Google AI Studio).
 const MODEL_LIMITS: Record<string, number> = {
   'gemini-3.1-flash-lite-preview': 500,
+  'gemini-2.5-flash-lite': 1000,
   'gemini-2.5-flash': 20,
 }
 const ALL_MODELS = Object.keys(MODEL_LIMITS)

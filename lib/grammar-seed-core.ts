@@ -12,9 +12,13 @@ export const TARGET = 25         // sentences kept per point when filling
 export const REFRESH_BATCH = 25  // new sentences added per weekly refresh
 export const MAX_POOL = 100      // rolling cap; oldest are trimmed beyond this
 
-// 3.1-flash-lite: 500 RPD, 2.5-flash: 20 RPD (last resort).
-// (gemini-3.1-flash-preview was retired by Google → removed.)
-export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']
+// Fallback chain for generation: flash-LITE first (cheaper, higher free daily
+// quota), then a quality flash as last resort. The loop advances to the next
+// model on overload (503) or a retired model (404). Real per-model limits live
+// in Google AI Studio (the docs no longer publish fixed numbers).
+// Valid model IDs per https://ai.google.dev/gemini-api/docs/rate-limits
+// (gemini-3.1-flash-preview was retired by Google → removed).
+export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
 
 export interface SentenceRow {
   grammar_id: string
