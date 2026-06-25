@@ -66,8 +66,18 @@ export default function GrammarRefreshMonitor() {
   if (loading && !data) return <p className="text-sm text-slate-500">Cargando…</p>
   if (!data) return <p className="text-sm text-rose-500">No se pudo cargar el estado.</p>
 
-  const cyclePct = data.total_points > 0 ? Math.round((data.state.processed_in_cycle / data.total_points) * 100) : 0
-  const todayPct = data.nightly_target > 0 ? Math.min(100, Math.round((data.state.processed_today / data.nightly_target) * 100)) : 0
+  // Defensive defaults so a partial/old API response can never crash the page.
+  const totalPoints = data.total_points ?? 0
+  const nightlyTarget = data.nightly_target ?? 0
+  const totalSentences = data.total_sentences ?? 0
+  const st = data.state ?? { processed_today: 0, run_date: null, remaining_in_cycle: 0, processed_in_cycle: 0, updated_at: null }
+  const runs = data.runs ?? []
+  const errs = data.errors ?? []
+  const nextUp = data.next_up ?? []
+  const validated = data.validated ?? { goal: 100, total: 0, points_with_any: 0, points_complete: 0, per_point: [] }
+
+  const cyclePct = totalPoints > 0 ? Math.round((st.processed_in_cycle / totalPoints) * 100) : 0
+  const todayPct = nightlyTarget > 0 ? Math.min(100, Math.round((st.processed_today / nightlyTarget) * 100)) : 0
 
   return (
     <div className="space-y-6">
@@ -87,10 +97,10 @@ export default function GrammarRefreshMonitor() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Ciclo (semana)" value={`${data.state.processed_in_cycle}/${data.total_points}`} sub={`${cyclePct}% · faltan ${data.state.remaining_in_cycle}`} />
-        <Stat label="Hoy" value={`${data.state.processed_today}/${data.nightly_target}`} sub={`${todayPct}% del cupo diario`} />
-        <Stat label="Frases totales" value={data.total_sentences.toLocaleString('es-ES')} sub="en el banco" />
-        <Stat label="Últim. actividad" value={data.state.updated_at ? fmtTime(data.state.updated_at).split(' ')[1] ?? '—' : '—'} sub={data.state.run_date ?? ''} />
+        <Stat label="Ciclo (semana)" value={`${st.processed_in_cycle}/${totalPoints}`} sub={`${cyclePct}% · faltan ${st.remaining_in_cycle}`} />
+        <Stat label="Hoy" value={`${st.processed_today}/${nightlyTarget}`} sub={`${todayPct}% del cupo diario`} />
+        <Stat label="Frases totales" value={totalSentences.toLocaleString('es-ES')} sub="en el banco" />
+        <Stat label="Últim. actividad" value={st.updated_at ? fmtTime(st.updated_at).split(' ')[1] ?? '—' : '—'} sub={st.run_date ?? ''} />
       </div>
 
       {/* Progress bars */}
@@ -105,17 +115,17 @@ export default function GrammarRefreshMonitor() {
       <div>
         <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">✓ Validadas por profesor</h2>
         <div className="grid grid-cols-3 gap-3 mb-3">
-          <Stat label="Validadas" value={data.validated.total.toLocaleString('es-ES')} sub={`objetivo ${(data.total_points * data.validated.goal).toLocaleString('es-ES')}`} />
-          <Stat label={`Puntos al ${data.validated.goal}`} value={`${data.validated.points_complete}/${data.total_points}`} sub="completos" />
-          <Stat label="Puntos con validadas" value={`${data.validated.points_with_any}/${data.total_points}`} sub="empezados" />
+          <Stat label="Validadas" value={validated.total.toLocaleString('es-ES')} sub={`objetivo ${(totalPoints * validated.goal).toLocaleString('es-ES')}`} />
+          <Stat label={`Puntos al ${validated.goal}`} value={`${validated.points_complete}/${totalPoints}`} sub="completos" />
+          <Stat label="Puntos con validadas" value={`${validated.points_with_any}/${totalPoints}`} sub="empezados" />
         </div>
-        {data.validated.per_point.length === 0 ? (
+        {validated.per_point.length === 0 ? (
           <p className="text-sm text-slate-400">Aún no hay frases validadas por profesor.</p>
         ) : (
           <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60">
-            {data.validated.per_point.map(p => {
-              const pct = Math.min(100, Math.round((p.validated / data.validated.goal) * 100))
-              const done = p.validated >= data.validated.goal
+            {validated.per_point.map(p => {
+              const pct = Math.min(100, Math.round((p.validated / validated.goal) * 100))
+              const done = p.validated >= validated.goal
               return (
                 <div key={p.id} className="flex items-center gap-3 px-3 py-2">
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${LEVEL_PILL[p.jlpt] ?? 'bg-slate-100 text-slate-600'}`}>{p.jlpt || '—'}</span>
@@ -124,7 +134,7 @@ export default function GrammarRefreshMonitor() {
                     <div className={`h-full rounded-full ${done ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className={`text-xs tabular-nums shrink-0 w-14 text-right ${done ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {p.validated}/{data.validated.goal}
+                    {p.validated}/{validated.goal}
                   </span>
                 </div>
               )
@@ -150,10 +160,10 @@ export default function GrammarRefreshMonitor() {
               </tr>
             </thead>
             <tbody>
-              {data.runs.length === 0 && (
+              {runs.length === 0 && (
                 <tr><td colSpan={7} className="px-3 py-4 text-center text-slate-400">Sin ejecuciones todavía.</td></tr>
               )}
-              {data.runs.map(r => (
+              {runs.map(r => (
                 <tr key={r.id} className={`border-t border-slate-100 dark:border-slate-700/60 ${r.error ? 'bg-rose-50/60 dark:bg-rose-900/10' : ''}`}>
                   <td className="px-3 py-1.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtTime(r.ran_at)}</td>
                   <td className="px-3 py-1.5 text-slate-400">{r.trigger === 'manual' ? '👤 manual' : '⏰ cron'}</td>
@@ -175,11 +185,11 @@ export default function GrammarRefreshMonitor() {
       </div>
 
       {/* Errors */}
-      {data.errors.length > 0 && (
+      {errs.length > 0 && (
         <div>
-          <h2 className="text-sm font-bold text-rose-700 dark:text-rose-400 mb-2">Puntos con error ({data.errors.length})</h2>
+          <h2 className="text-sm font-bold text-rose-700 dark:text-rose-400 mb-2">Puntos con error ({errs.length})</h2>
           <div className="space-y-1.5">
-            {data.errors.map(e => (
+            {errs.map(e => (
               <div key={e.id} className="flex items-start gap-2 text-sm bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800/40 rounded-lg px-3 py-2">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${LEVEL_PILL[e.jlpt] ?? 'bg-slate-100 text-slate-600'}`}>{e.jlpt || '—'}</span>
                 <div className="min-w-0">
@@ -194,19 +204,19 @@ export default function GrammarRefreshMonitor() {
 
       {/* Next up */}
       <div>
-        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Próximos en la cola ({data.state.remaining_in_cycle})</h2>
-        {data.next_up.length === 0 ? (
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Próximos en la cola ({st.remaining_in_cycle})</h2>
+        {nextUp.length === 0 ? (
           <p className="text-sm text-emerald-600 dark:text-emerald-400">✓ Ciclo completado; la próxima ejecución empezará uno nuevo.</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            {data.next_up.map(p => (
+            {nextUp.map(p => (
               <span key={p.id} className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
                 <span className={`text-[9px] font-bold px-1 rounded ${LEVEL_PILL[p.jlpt] ?? 'bg-slate-200 text-slate-600'}`}>{p.jlpt || '—'}</span>
                 {p.pattern}
               </span>
             ))}
-            {data.state.remaining_in_cycle > data.next_up.length && (
-              <span className="text-xs text-slate-400 self-center">+{data.state.remaining_in_cycle - data.next_up.length} más…</span>
+            {st.remaining_in_cycle > nextUp.length && (
+              <span className="text-xs text-slate-400 self-center">+{st.remaining_in_cycle - nextUp.length} más…</span>
             )}
           </div>
         )}
