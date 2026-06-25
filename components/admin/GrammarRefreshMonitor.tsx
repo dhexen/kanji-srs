@@ -65,8 +65,8 @@ export default function GrammarRefreshMonitor() {
         totalAdded += summary.added
         totalPoints += summary.processed
         setProgress(`Procesando… ${totalPoints} puntos · +${totalAdded} frases (faltan ${summary.remaining} en el ciclo)`)
-        if (summary.stopped === 'gemini_throttled') { setProgress(`Gemini saturado, parado: ${summary.error ?? ''}`); break }
-        if (!summary.moreTonight) { setProgress(`✓ Tope del día alcanzado · ${totalPoints} puntos · +${totalAdded} frases`); break }
+        if (summary.stopped === 'gemini_throttled') { setProgress(`⏸ Gemini saturado, parado tras ${totalPoints} puntos (+${totalAdded} frases). Reanuda más tarde.`); break }
+        if (summary.remaining === 0 || !summary.moreTonight) { setProgress(`✓ Ciclo completado · ${totalPoints} puntos · +${totalAdded} frases`); break }
         await new Promise(r => setTimeout(r, 400))
       }
     } catch (e) {

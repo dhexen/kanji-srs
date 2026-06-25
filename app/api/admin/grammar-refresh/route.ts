@@ -93,7 +93,10 @@ export async function POST(req: NextRequest) {
       }
       apiKey = apiKey || process.env.GEMINI_API_KEY || ''
       if (!apiKey) return NextResponse.json({ error: 'No hay clave de Gemini configurada.' }, { status: 400 })
-      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000 })
+      // Manual = no daily cap (unlimited): the client loop keeps calling this
+      // until the whole cycle is done (or the user stops). One point per call
+      // keeps each request under the timeout.
+      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000, unlimited: true })
       return NextResponse.json({ ok: true, summary })
     }
 
