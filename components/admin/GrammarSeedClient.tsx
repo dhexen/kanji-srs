@@ -28,7 +28,6 @@ const STEP_DELAY_MS = 5_000
 
 const MODEL_LIMITS: Record<string, number> = {
   'gemini-3.1-flash-lite-preview': 500,
-  'gemini-3.1-flash-preview': 500,
   'gemini-2.5-flash': 20,
 }
 const ALL_MODELS = Object.keys(MODEL_LIMITS)

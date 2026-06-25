@@ -12,8 +12,9 @@ export const TARGET = 25         // sentences kept per point when filling
 export const REFRESH_BATCH = 25  // new sentences added per weekly refresh
 export const MAX_POOL = 100      // rolling cap; oldest are trimmed beyond this
 
-// 3.1-flash-lite: 500 RPD, 3.1-flash: 500 RPD, 2.5-flash: 20 RPD (last resort)
-export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-3.1-flash-preview', 'gemini-2.5-flash']
+// 3.1-flash-lite: 500 RPD, 2.5-flash: 20 RPD (last resort).
+// (gemini-3.1-flash-preview was retired by Google → removed.)
+export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']
 
 export interface SentenceRow {
   grammar_id: string
@@ -148,7 +149,9 @@ export async function generatePointRows(
       )
       data = await res.json()
       usedModel = model
-      if (res.status !== 503) break
+      // Advance to the next model on overload (503) or a retired model (404);
+      // otherwise (success or a real error like 429/400) stop here.
+      if (res.ok || (res.status !== 503 && res.status !== 404)) break
     } catch (networkErr: any) {
       return { ok: false, usedModel, error: `Network error: ${networkErr.message}`, permanent: false, retryAfterMs: 10_000 }
     }
