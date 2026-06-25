@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
 
   const service = createServiceClient()
-  // Automatic runs have no nightly cap: drain the whole cycle (chained across
-  // invocations), bounded only per-invocation by the time budget.
-  const summary = await runRefreshBatch(service, apiKey, 'cron', { unlimited: true })
+  // Automatic runs keep the nightly ~1/7 cap (spread over the week). Only manual
+  // runs ignore it.
+  const summary = await runRefreshBatch(service, apiKey, 'cron')
 
   // Best-effort self-continuation to drain the rest of tonight's slice.
   if (summary.moreTonight && process.env.VERCEL_URL && secret) {
