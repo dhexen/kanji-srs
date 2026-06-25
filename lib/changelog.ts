@@ -21,6 +21,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'El aviso para añadir vocabulario aparece antes',
+        description: 'La tarjeta 🌱 que sugiere añadir más vocabulario ahora aparece con menos exigencia (dominas la mitad de tus palabras y tienes una carga de repasos moderada), en vez de esperar a ir muy sobrado. Así te anima a crecer el pool más a menudo.',
+      },
+      {
+        type: 'improvement',
         title: 'Las frases validadas por profesor son permanentes',
         description: 'Las frases de gramática marcadas como validadas por un profesor ya no se eliminan nunca al renovar el banco: ocupan un sitio fijo. Así, con el tiempo, cada punto de gramática irá acumulando frases revisadas y de confianza.',
       },

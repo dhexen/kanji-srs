@@ -154,8 +154,8 @@ export default function ReviewClient() {
   // Personal stats
   const masteredCount = useMemo(() => activeWords.filter(w => w.srsLevel >= 5).length, [activeWords])
 
-  // "Load more vocab" suggestion: shown when the learner has clearly caught up —
-  // most active words are Guru+ and the upcoming daily review load is low.
+  // "Load more vocab" suggestion: shown when the learner is keeping up — a good
+  // share of active words are Guru+ and the upcoming daily review load is modest.
   const avgDailyReviews = useMemo(
     () => Math.round(forecast.reduce((s, d) => s + d.newDue, 0) / Math.max(1, forecast.length)),
     [forecast],
@@ -167,8 +167,8 @@ export default function ReviewClient() {
   const masteredRatio = activeWords.length > 0 ? masteredCount / activeWords.length : 0
   const showLoadMore = !loadMoreDismissed
     && activeWords.length >= 15
-    && masteredRatio >= 0.70
-    && avgDailyReviews <= 15
+    && masteredRatio >= 0.50
+    && avgDailyReviews <= 30
   const dismissLoadMore = () => {
     try { localStorage.setItem('vocab_load_more_dismissed', String(Date.now())) } catch { /* incognito */ }
     setLoadMoreDismissed(true)
