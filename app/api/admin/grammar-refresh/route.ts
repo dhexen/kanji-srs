@@ -82,7 +82,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'run') {
-      // Admin's Gemini key (settings → legacy → env), same resolution as the seed.
+      // "Ejecutar ahora" should fill up to the day's cap, not just one point.
+      // One serverless request can't do ~78 points (timeout), so we delegate to
+      // the cron endpoint, which processes a batch AND self-chains until the cap
+      // is reached. We await the first batch (so the UI gets immediate feedback);
+      // the chain then continues in the background.
+      const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+      if (base) {
+        const secret = process.env.CRON_SECRET
+        const url = `${base}/api/cron/grammar-refresh${secret ? `?key=${encodeURIComponent(secret)}` : ''}`
+        const r = await fetch(url, { headers: secret ? { authorization: `Bearer ${secret}` } : {} })
+        const summary = await r.json().catch(() => ({}))
+        return NextResponse.json({ ok: true, summary })
+      }
+
+      // Fallback (local/dev, no VERCEL_URL): one inline batch with the admin key.
       const { data: settings } = await service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle()
       let apiKey = settings?.gemini_api_key || ''
       if (!apiKey) {
@@ -91,12 +105,7 @@ export async function POST(req: NextRequest) {
       }
       apiKey = apiKey || process.env.GEMINI_API_KEY || ''
       if (!apiKey) return NextResponse.json({ error: 'No hay clave de Gemini configurada.' }, { status: 400 })
-
-      // One point per manual run: generation + verification (two Gemini calls)
-      // can take ~40-50s, so a single point keeps us under the function timeout.
-      // No nightly cap on a manual click either (it'd otherwise hit "Cupo
-      // alcanzado" once the cron filled the day); still one point for timeout safety.
-      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000, unlimited: true })
+      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 2, budgetMs: 45_000 })
       return NextResponse.json({ ok: true, summary })
     }
 

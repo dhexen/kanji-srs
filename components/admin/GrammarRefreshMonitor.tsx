@@ -50,7 +50,7 @@ export default function GrammarRefreshMonitor() {
     setRunning(true)
     try {
       await runGrammarRefresh('run')
-      showToast('Ejecución lanzada', 'success')
+      showToast('Renovación lanzada · rellenando hasta el tope del día', 'success')
       await load()
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Error', 'error')
