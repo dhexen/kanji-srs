@@ -82,21 +82,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'run') {
-      // "Ejecutar ahora" should fill up to the day's cap, not just one point.
-      // One serverless request can't do ~78 points (timeout), so we delegate to
-      // the cron endpoint, which processes a batch AND self-chains until the cap
-      // is reached. We await the first batch (so the UI gets immediate feedback);
-      // the chain then continues in the background.
-      const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
-      if (base) {
-        const secret = process.env.CRON_SECRET
-        const url = `${base}/api/cron/grammar-refresh${secret ? `?key=${encodeURIComponent(secret)}` : ''}`
-        const r = await fetch(url, { headers: secret ? { authorization: `Bearer ${secret}` } : {} })
-        const summary = await r.json().catch(() => ({}))
-        return NextResponse.json({ ok: true, summary })
-      }
-
-      // Fallback (local/dev, no VERCEL_URL): one inline batch with the admin key.
+      // One short batch and return fast (well under the timeout). The CLIENT
+      // drives the loop, calling this repeatedly until the day's cap is reached,
+      // so progress is visible and reliable (no fragile serverless self-chaining).
       const { data: settings } = await service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle()
       let apiKey = settings?.gemini_api_key || ''
       if (!apiKey) {
@@ -105,7 +93,7 @@ export async function POST(req: NextRequest) {
       }
       apiKey = apiKey || process.env.GEMINI_API_KEY || ''
       if (!apiKey) return NextResponse.json({ error: 'No hay clave de Gemini configurada.' }, { status: 400 })
-      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 2, budgetMs: 45_000 })
+      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000 })
       return NextResponse.json({ ok: true, summary })
     }
 

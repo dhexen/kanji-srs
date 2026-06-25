@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { showToast } from '@/components/ui/Toast'
 import { fetchGrammarRefreshStatus, runGrammarRefresh, type GrammarRefreshStatus } from '@/lib/admin-client'
 
@@ -31,6 +31,8 @@ export default function GrammarRefreshMonitor() {
   const [data, setData] = useState<GrammarRefreshStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState('')   // live status during a manual run
+  const stopRef = useRef(false)
 
   const load = useCallback(async () => {
     try { setData(await fetchGrammarRefreshStatus()) }
@@ -39,22 +41,40 @@ export default function GrammarRefreshMonitor() {
   }, [])
 
   useEffect(() => { load() }, [load])
-  // Auto-refresh every 10s
+  // Auto-refresh every 10s (paused while a manual run drives its own refreshes)
   useEffect(() => {
+    if (running) return
     const id = setInterval(load, 10_000)
     return () => clearInterval(id)
-  }, [load])
+  }, [load, running])
 
+  // Client-driven loop: repeatedly run one short batch until the day's cap is
+  // reached (or the user stops / an error occurs). Reliable + visible — no
+  // fragile serverless self-chaining; progress updates live after each batch.
   async function handleRun() {
     if (running) return
     setRunning(true)
+    stopRef.current = false
+    let totalAdded = 0, totalPoints = 0
     try {
-      await runGrammarRefresh('run')
-      showToast('Renovación lanzada · rellenando hasta el tope del día', 'success')
-      await load()
+      for (let i = 0; i < 500; i++) {
+        if (stopRef.current) { setProgress('Detenido.'); break }
+        const { summary } = await runGrammarRefresh('run')
+        await load()
+        if (!summary) break
+        totalAdded += summary.added
+        totalPoints += summary.processed
+        setProgress(`Procesando… ${totalPoints} puntos · +${totalAdded} frases (faltan ${summary.remaining} en el ciclo)`)
+        if (summary.stopped === 'gemini_throttled') { setProgress(`Gemini saturado, parado: ${summary.error ?? ''}`); break }
+        if (!summary.moreTonight) { setProgress(`✓ Tope del día alcanzado · ${totalPoints} puntos · +${totalAdded} frases`); break }
+        await new Promise(r => setTimeout(r, 400))
+      }
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error', 'error')
-    } finally { setRunning(false) }
+      setProgress(`⚠️ ${e instanceof Error ? e.message : 'Error'}`)
+    } finally {
+      setRunning(false)
+      await load()
+    }
   }
 
   async function handleRestart() {
@@ -82,17 +102,30 @@ export default function GrammarRefreshMonitor() {
     <div className="space-y-6">
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button onClick={handleRun} disabled={running}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition">
-          {running ? '⏳ Ejecutando…' : '▶ Ejecutar ahora'}
-        </button>
-        <button onClick={load} className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        {running ? (
+          <button onClick={() => { stopRef.current = true }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm transition">
+            ⏹ Detener
+          </button>
+        ) : (
+          <button onClick={handleRun}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition">
+            ▶ Ejecutar ahora
+          </button>
+        )}
+        <button onClick={load} disabled={running} className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50">
           ↻ Actualizar
         </button>
-        <button onClick={handleRestart} className="px-3 py-2 border border-rose-300 text-rose-700 rounded-xl text-sm hover:bg-rose-50 ml-auto">
+        <button onClick={handleRestart} disabled={running} className="px-3 py-2 border border-rose-300 text-rose-700 rounded-xl text-sm hover:bg-rose-50 ml-auto disabled:opacity-50">
           Reiniciar ciclo
         </button>
       </div>
+
+      {progress && (
+        <p className={`text-sm ${running ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
+          {running && <span className="inline-block animate-spin mr-1">⏳</span>}{progress}
+        </p>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

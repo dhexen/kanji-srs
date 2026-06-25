@@ -310,14 +310,26 @@ export async function fetchGrammarRefreshStatus(): Promise<GrammarRefreshStatus>
   return parseAdminResponse<GrammarRefreshStatus>(res)
 }
 
+export interface RefreshRunSummary {
+  processed: number
+  added: number
+  remaining: number
+  processedToday: number
+  nightlyTarget: number
+  stopped: string
+  error: string | null
+  durationMs: number
+  moreTonight: boolean
+}
+
 /** Manually trigger one refresh batch, restart the cycle, or clear point errors. */
-export async function runGrammarRefresh(action: 'run' | 'restart' | 'clear_errors'): Promise<{ ok: boolean; summary?: unknown }> {
+export async function runGrammarRefresh(action: 'run' | 'restart' | 'clear_errors'): Promise<{ ok: boolean; summary?: RefreshRunSummary }> {
   const res = await fetch('/api/admin/grammar-refresh', {
     method: 'POST',
     headers: await adminAuthHeaders(),
     body: JSON.stringify({ action }),
   })
-  return parseAdminResponse<{ ok: boolean; summary?: unknown }>(res)
+  return parseAdminResponse<{ ok: boolean; summary?: RefreshRunSummary }>(res)
 }
 
 /** Save (or clear with null) the curated per-kanji furigana for a word. */
