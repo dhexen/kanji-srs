@@ -94,7 +94,9 @@ export async function POST(req: NextRequest) {
 
       // One point per manual run: generation + verification (two Gemini calls)
       // can take ~40-50s, so a single point keeps us under the function timeout.
-      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000 })
+      // No nightly cap on a manual click either (it'd otherwise hit "Cupo
+      // alcanzado" once the cron filled the day); still one point for timeout safety.
+      const summary = await runRefreshBatch(service, apiKey, 'manual', { maxPoints: 1, budgetMs: 45_000, unlimited: true })
       return NextResponse.json({ ok: true, summary })
     }
 

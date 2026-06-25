@@ -68,7 +68,6 @@ export default function GrammarRefreshMonitor() {
 
   // Defensive defaults so a partial/old API response can never crash the page.
   const totalPoints = data.total_points ?? 0
-  const nightlyTarget = data.nightly_target ?? 0
   const totalSentences = data.total_sentences ?? 0
   const st = data.state ?? { processed_today: 0, run_date: null, remaining_in_cycle: 0, processed_in_cycle: 0, updated_at: null }
   const runs = data.runs ?? []
@@ -77,7 +76,6 @@ export default function GrammarRefreshMonitor() {
   const validated = data.validated ?? { goal: 100, total: 0, points_with_any: 0, points_complete: 0, per_point: [] }
 
   const cyclePct = totalPoints > 0 ? Math.round((st.processed_in_cycle / totalPoints) * 100) : 0
-  const todayPct = nightlyTarget > 0 ? Math.min(100, Math.round((st.processed_today / nightlyTarget) * 100)) : 0
 
   return (
     <div className="space-y-6">
@@ -97,8 +95,8 @@ export default function GrammarRefreshMonitor() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Ciclo (semana)" value={`${st.processed_in_cycle}/${totalPoints}`} sub={`${cyclePct}% · faltan ${st.remaining_in_cycle}`} />
-        <Stat label="Hoy" value={`${st.processed_today}/${nightlyTarget}`} sub={`${todayPct}% del cupo diario`} />
+        <Stat label="Ciclo actual" value={`${st.processed_in_cycle}/${totalPoints}`} sub={`${cyclePct}% · faltan ${st.remaining_in_cycle}`} />
+        <Stat label="Procesados hoy" value={`${st.processed_today}`} sub="sin tope" />
         <Stat label="Frases totales" value={totalSentences.toLocaleString('es-ES')} sub="en el banco" />
         <Stat label="Últim. actividad" value={st.updated_at ? fmtTime(st.updated_at).split(' ')[1] ?? '—' : '—'} sub={st.run_date ?? ''} />
       </div>

@@ -67,11 +67,15 @@ export async function runRefreshBatch(
   service: SupabaseClient,
   apiKey: string,
   trigger: 'cron' | 'manual' = 'cron',
-  opts?: { maxPoints?: number; budgetMs?: number },
+  opts?: { maxPoints?: number; budgetMs?: number; unlimited?: boolean },
 ): Promise<RefreshSummary> {
   const start = Date.now()
   const budgetMs = opts?.budgetMs ?? BUDGET_MS
   const maxPerCall = opts?.maxPoints ?? MAX_PER_CALL
+  // unlimited = ignore the nightly ~1/7 cap; drain the whole cycle (still bounded
+  // per-invocation by time/maxPerCall, and chained across invocations).
+  const unlimited = opts?.unlimited === true
+  const underCap = () => unlimited || processedToday < NIGHTLY_TARGET
 
   const { data: row } = await service.from('grammar_refresh').select('*').eq('id', 1).maybeSingle()
   const today = new Date().toISOString().slice(0, 10)
@@ -87,7 +91,7 @@ export async function runRefreshBatch(
   let stopped = 'target_reached'
   let error: string | null = null
 
-  while (queue.length > 0 && processedToday < NIGHTLY_TARGET && processed < maxPerCall) {
+  while (queue.length > 0 && underCap() && processed < maxPerCall) {
     if (Date.now() - start >= budgetMs) { stopped = 'time_budget'; break }
     if (processed >= maxPerCall) { stopped = 'max_per_call'; break }
 
@@ -112,7 +116,9 @@ export async function runRefreshBatch(
       if (insErr) { error = insErr.message } else { added += result.rows.length; await trim(service, id) }
     }
     queue.shift(); processedToday++; processed++
-    if (queue.length === 0 && processedToday < NIGHTLY_TARGET) queue = ALL_GRAMMAR.map(g => g.id)
+    // Refill mid-run only when still under the nightly cap (capped mode). In
+    // unlimited mode an empty queue means the full cycle is done → stop here.
+    if (queue.length === 0 && !unlimited && processedToday < NIGHTLY_TARGET) queue = ALL_GRAMMAR.map(g => g.id)
   }
 
   if (queue.length === 0) stopped = 'cycle_complete'
@@ -122,7 +128,7 @@ export async function runRefreshBatch(
   })
 
   const durationMs = Date.now() - start
-  const moreTonight = queue.length > 0 && processedToday < NIGHTLY_TARGET && stopped !== 'gemini_throttled'
+  const moreTonight = queue.length > 0 && underCap() && stopped !== 'gemini_throttled'
 
   await service.from('grammar_refresh_runs').insert({
     trigger, processed, added, remaining: queue.length, stopped, error, duration_ms: durationMs,
