@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useHelp } from '@/lib/help-context'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
-import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress } from '@/lib/supabase'
+import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress, fetchReadingDistractorPool, ReadingDistractorCandidate } from '@/lib/supabase'
 import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
@@ -30,6 +30,14 @@ function orderByMode(items: SessionItem[]): SessionItem[] {
 
 function strip(s: string) {
   return s.replace(/^\p{Emoji_Presentation}\s*/u, '').replace(/^[^\w　-鿿]/u, '').trim()
+}
+
+// Unique kanji characters across a set of words — used to fetch a richer
+// "Lectura múltiple" distractor pool (real alternate readings of these kanjis).
+function uniqueKanjiChars(words: string[]): string[] {
+  const set = new Set<string>()
+  for (const w of words) for (const c of w) if (/[一-龯㐀-䶿々]/.test(c)) set.add(c)
+  return [...set]
 }
 
 function IconMode() {
@@ -72,6 +80,7 @@ export default function ReviewClient() {
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
+  const [distractorPool, setDistractorPool] = useState<ReadingDistractorCandidate[]>([])
   const [grammarDue, setGrammarDue] = useState(0)
   const [kanaLearnedCount, setKanaLearnedCount] = useState(0)
 
@@ -213,10 +222,18 @@ export default function ReviewClient() {
     try {
       // Fetch meta for ALL unique words so the full real spelling (full_word) is
       // available on the answer reveal, plus fill any missing image/grade.
+      // In parallel, fetch a richer "Lectura múltiple" distractor pool: every
+      // official word (any grade) that shares a kanji with this session, so
+      // wrong options can be real alternate readings of the same kanji.
       const allWords = [...new Set(seq.map(s => s.item.jp))]
+      const kanjis = uniqueKanjiChars(allWords)
       let finalSeq = seq
       if (allWords.length > 0) {
-        const metaMap = await fetchVocabMeta(allWords)
+        const [metaMap, pool] = await Promise.all([
+          fetchVocabMeta(allWords),
+          kanjis.length > 0 ? fetchReadingDistractorPool(kanjis) : Promise.resolve([]),
+        ])
+        setDistractorPool(pool)
         if (metaMap.size > 0) {
           finalSeq = seq.map(s => {
             const meta = metaMap.get(s.item.jp)
@@ -250,6 +267,10 @@ export default function ReviewClient() {
       newItems.forEach(item => {
         modesActive.forEach(mode => seq.push({ item, mode }))
       })
+      const kanjis = uniqueKanjiChars(newItems.map(i => i.jp))
+      if (kanjis.length > 0) {
+        fetchReadingDistractorPool(kanjis).then(setDistractorPool).catch(() => {})
+      }
       wrongCountsRef.current.clear()
       completedRef.current.clear()
       setIsPractice(false)
@@ -690,6 +711,7 @@ export default function ReviewClient() {
       key={`${current.item.jp}-${current.mode}-${index}`}
       sessionItem={current}
       allItems={state.db}
+      distractorPool={distractorPool}
       index={completedRef.current.size}
       total={uniqueTotal}
       isPractice={isPractice}

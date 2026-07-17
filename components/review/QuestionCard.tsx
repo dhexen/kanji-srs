@@ -4,9 +4,10 @@ import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType, SRS_MAX_LEVEL } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
-import { submitImageVote, submitVocabReport } from '@/lib/supabase'
+import { submitImageVote, submitVocabReport, type ReadingDistractorCandidate } from '@/lib/supabase'
 import { upgradeVocabImage } from '@/lib/image'
 import { buildFurigana } from '@/lib/furigana'
+import { generateFakeReading } from '@/lib/reading-mutate'
 import type { SessionItem } from './ReviewClient'
 import { vocabXpForResult } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
@@ -15,6 +16,10 @@ import KanjiStrokeOrder from './KanjiStrokeOrder'
 interface Props {
   sessionItem: SessionItem
   allItems: VocabItem[]
+  /** Extra real candidates (any grade, global catalog) sharing a kanji with the
+   *  session's words — enriches "Lectura múltiple" distractors beyond the
+   *  user's own vocab. Optional so other callers don't need to supply it. */
+  distractorPool?: ReadingDistractorCandidate[]
   index: number
   total: number
   isPractice: boolean
@@ -74,7 +79,7 @@ function LevelChangeToast({ dir, newLevel, lang }: { dir: 'up' | 'down'; newLeve
   )
 }
 
-export default function QuestionCard({ sessionItem, allItems, index, total, isPractice, priorWrongCount, onAnswer, onMaster, onQuit }: Props) {
+export default function QuestionCard({ sessionItem, allItems, distractorPool = [], index, total, isPractice, priorWrongCount, onAnswer, onMaster, onQuit }: Props) {
   const { masterVocabItem, addXP, state } = useStore()
   const { item, mode } = sessionItem
   const cfg = MODE_CONFIG[mode]
@@ -169,9 +174,21 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
       return sharedKanji * 10 + rSim + typeBonus
     }
 
+    // "Lectura múltiple" gets a much richer candidate pool: every official
+    // word (any grade) sharing a kanji with the target, not just the user's
+    // own vocab — real alternate readings of a shared kanji are far more
+    // confusing than an unrelated random word. "meaning" is untouched.
+    const pool: VocabItem[] = field === 'reading'
+      ? [...allItems, ...distractorPool.map((d): VocabItem => ({
+          kanji: d.kanji, jp: d.jp, reading: d.reading, meaning: '',
+          srsLevel: 0, due: 0, status: 'locked',
+          word_type: (d.word_type ?? undefined) as VocabItem['word_type'],
+        }))]
+      : allItems
+
     // Dedupe candidate option texts (keep the highest-scoring word per text).
     const byText = new Map<string, { text: string; score: number }>()
-    for (const w of allItems) {
+    for (const w of pool) {
       if (w.jp === item.jp) continue
       const text = optText(w)
       if (!text || text === correct) continue
@@ -189,8 +206,22 @@ export default function QuestionCard({ sessionItem, allItems, index, total, isPr
     const filler = unrelated.sort(() => Math.random() - 0.5)
 
     const distractors = [...topRelated, ...filler].slice(0, count - 1).map(c => c.text)
+
+    // Last resort for "Lectura múltiple": when there still aren't enough real
+    // candidates, synthesize a fake-but-phonetically-plausible reading so the
+    // question never falls back to trivially-obvious wrong options.
+    if (field === 'reading') {
+      const used = new Set([correct, ...distractors])
+      let guard = 0
+      while (distractors.length < count - 1 && guard++ < 10) {
+        const fake = generateFakeReading(correct, used)
+        used.add(fake)
+        distractors.push(fake)
+      }
+    }
+
     return [correct, ...distractors].sort(() => Math.random() - 0.5)
-  }, [item.jp, mode, lang]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [item.jp, mode, lang, distractorPool]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResult = (isCorrect: boolean) => {
     submittedAtRef.current = Date.now()

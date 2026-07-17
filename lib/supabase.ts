@@ -1384,6 +1384,31 @@ export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, 
  * @param includeNonOfficial – if false (default) only official words are returned.
  *   Pass true to also include community-added unofficial words.
  */
+export interface ReadingDistractorCandidate {
+  jp: string
+  kanji: string
+  reading: string
+  word_type: string | null
+}
+
+/**
+ * All official words (any grade) that contain any of `kanjiChars` — used to
+ * build a richer multiple-choice distractor pool than the user's own vocab
+ * alone (QuestionCard's "Lectura múltiple" mode). Real alternate readings of
+ * a shared kanji are far more confusing than an unrelated random word.
+ */
+export async function fetchReadingDistractorPool(kanjiChars: string[]): Promise<ReadingDistractorCandidate[]> {
+  const kanjis = [...new Set(kanjiChars)].filter(Boolean)
+  if (kanjis.length === 0) return []
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select('word, kanji, reading, word_type')
+    .in('kanji', kanjis)
+    .eq('is_official', true)
+  if (error) return []
+  return (data ?? []).map(r => ({ jp: r.word, kanji: r.kanji, reading: r.reading, word_type: r.word_type ?? null }))
+}
+
 export async function getVocabularyByKanjis(
   kanjis: string[],
   grade = 1,
