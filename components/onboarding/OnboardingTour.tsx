@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useStore } from '@/lib/store'
@@ -115,10 +115,8 @@ export default function OnboardingTour() {
     }
   }, [active, targetId, stage])
 
-  const startedFinishRef = useRef(false)
   function finish(completed: boolean) {
-    if (startedFinishRef.current) return
-    startedFinishRef.current = true
+    if (!active) return
     setOnboardingDoneLocally()
     markHelpSeen('onboarding')
     setActive(false)

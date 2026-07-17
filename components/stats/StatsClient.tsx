@@ -519,8 +519,12 @@ export default function StatsClient() {
       localStorage.removeItem('help_done_v1')
       localStorage.removeItem('onboarding_done_v1')
       if (state.user) await resetHelpSeen()
+      // Update local state directly instead of reloading the page — a reload
+      // would also wipe any active role simulation (in-memory only), which
+      // otherwise makes it impossible for an admin to test the student
+      // onboarding tour without a separate 'user'-role account.
+      dispatch({ type: 'SET_HELP_SEEN', payload: [] })
       showToast(t(lang, 'stats_tutorials_reset_btn') + ' ✓', 'success')
-      setTimeout(() => window.location.reload(), 800)
     } catch {
       showToast('Error', 'error')
     }
