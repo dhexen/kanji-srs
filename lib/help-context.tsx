@@ -55,6 +55,16 @@ export function HelpProvider({ children }: { children: ReactNode }) {
     if (!section) return
     if (!state.loaded) return
 
+    // Brand-new 'user'-role (student) accounts get the guided OnboardingTour
+    // instead of this drawer — it owns the "first time ever" moment for them.
+    const effectiveRole = state.simulatedRole ?? state.role
+    if (effectiveRole === 'user') return
+
+    // helpSeen starts empty and is only populated once syncDown resolves —
+    // wait for that (or a fresh same-session signup, which has nothing to
+    // wait for) before trusting an empty array as "confirmed empty".
+    if (!state.helpSeenLoaded && !state.justSignedUp) return
+
     // Same-device guard (most reliable — always works)
     if (isHelpDoneLocally()) return
 
@@ -71,7 +81,7 @@ export function HelpProvider({ children }: { children: ReactNode }) {
 
     const timer = setTimeout(() => setIsOpen(true), 600)
     return () => clearTimeout(timer)
-  }, [section, state.loaded, state.helpSeen.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [section, state.loaded, state.helpSeen.length, state.helpSeenLoaded, state.justSignedUp, state.role, state.simulatedRole]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close when navigating away
   useEffect(() => { setIsOpen(false) }, [pathname])

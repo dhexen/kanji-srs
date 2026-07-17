@@ -325,6 +325,8 @@ export default function ReviewClient() {
 
   if (phase === 'select') {
     const sectionsLabel = ({ es: 'Secciones', ca: 'Seccions', en: 'Sections', ja: 'セクション' } as Record<string, string>)[lang] ?? 'Secciones'
+    const effectiveRole = state.simulatedRole ?? state.role
+    const isStaff = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
     const SECTIONS = [
       {
@@ -363,7 +365,7 @@ export default function ReviewClient() {
         href: '/context',
         badge: 0,
       },
-    ]
+    ].filter(tile => isStaff || (tile.id !== 'grammar' && tile.id !== 'context'))
 
     return (
       <div className="space-y-4">
@@ -414,7 +416,7 @@ export default function ReviewClient() {
         )}
 
         {/* ── Forecast card ─────────────────────────────────────────── */}
-        <div className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+        <div data-tutorial-id="forecast-card" className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
@@ -513,7 +515,7 @@ export default function ReviewClient() {
         </div>
 
         {/* ── Selector de modos (pills en fila) ─────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+        <div data-tutorial-id="mode-selector" className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
           <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
             {t(lang, 'review_subtitle')}
           </p>
@@ -567,6 +569,7 @@ export default function ReviewClient() {
                 <Link
                   key={tile.id}
                   href={tile.href}
+                  {...(tile.id === 'kana' ? { 'data-tutorial-id': 'kana-tile' } : {})}
                   className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
                 >
                   {tile.badge > 0 && (

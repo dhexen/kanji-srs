@@ -27,7 +27,7 @@ Audio:      Google Cloud Text-to-Speech
 Imágenes:   Pexels API
 WaniKani:   WaniKani API v2
 Japonés:    Wanakana (conversión kana ↔ romaji)
-Tour:       Driver.js
+Tour:       Componentes propios (sin librería) — ver HelpDrawer y OnboardingTour en docs/03-components.md
 ```
 
 ## Estructura de carpetas
@@ -114,6 +114,8 @@ PEXELS_API_KEY=...
 
 | Rol | Acceso |
 |-----|--------|
-| `user` | Repasos, gramática, vocabulario, estadísticas propias |
-| `contributor` | Todo lo anterior + editar/validar oraciones de gramática |
+| `user` | Repasos, vocabulario, kana, estadísticas propias. **No ve Gramática ni Lecturas IA** (secciones aún no pulidas, ocultas de la navegación y del dashboard, y bloqueadas si se accede directamente por URL — ver `RoleGate` en `docs/03-components.md`) |
+| `contributor` | Todo lo anterior + Gramática y Lecturas IA + editar/validar oraciones de gramática |
 | `admin` | Todo lo anterior + panel de administración completo (requiere MFA) |
+
+Un `admin` puede "Simular rol" (menú 🔧 Admin del Header) para previsualizar la navegación y el dashboard tal como los ve `contributor` o `user`, incluyendo el ocultado de Gramática/Lecturas IA.

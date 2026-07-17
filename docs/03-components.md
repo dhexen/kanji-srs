@@ -59,7 +59,7 @@ Tiene tres pestañas:
 ---
 
 ### `/grammar` — Práctica de gramática
-**Componente principal:** `components/grammar/GrammarClient.tsx`
+**Componente principal:** `components/grammar/GrammarClient.tsx`, protegido por `RoleGate` (solo `admin`/`contributor` — ver más abajo)
 
 Lista más de 120 puntos gramaticales de Minna no Nihongo (MNN1, MNN2, MNNChūkyū) clasificados por nivel JLPT (N5, N4, N3).
 
@@ -80,7 +80,7 @@ Lista más de 120 puntos gramaticales de Minna no Nihongo (MNN1, MNN2, MNNChūky
 ---
 
 ### `/context` — Lectura en contexto con IA
-**Componente:** `components/context/ContextClient.tsx`
+**Componente:** `components/context/ContextClient.tsx`, protegido por `RoleGate` (solo `admin`/`contributor` — ver más abajo)
 
 Genera textos de lectura en japonés usando el vocabulario que el usuario domina como contexto. Usa Google Gemini. Los textos generados se guardan en `user_settings.context_texts` (máx 10).
 
@@ -151,19 +151,22 @@ showToast('3 palabras importadas', 'info')
 
 ---
 
-### `ProductTour` (`components/ui/ProductTour.tsx`)
-Tour interactivo con [driver.js](https://driverjs.com/) que guía al usuario en su primer uso. 4 fases:
-1. `dashboard-init` — Bienvenida + señala el panel de añadir palabras
-2. `await-study` — Espera a que el usuario inicie una sesión
-3. `study-intro` — Explica los botones durante la sesión
-4. `dashboard-full` — Muestra las secciones del dashboard
+### `HelpDrawer` + `HelpProvider` (`components/ui/HelpDrawer.tsx`, `lib/help-context.tsx`)
+Drawer lateral de ayuda contextual, con contenido distinto según la sección activa (review, vocabulary, grammar, kana, context, stats, progress, study, import). Se abre automáticamente **una sola vez por cuenta, para siempre** (no una vez por sección) la primera vez que un `admin`/`contributor` usa la app, mediante un doble guard: `localStorage['help_done_v1']` (mismo dispositivo) + `user_settings.help_seen` (Supabase, cross-device). Reabrible en cualquier momento con el botón "?" del Header o del dashboard.
 
-El estado de completado se guarda en `localStorage` Y en `user_settings.tour_v3_done` (para que no se repita en otros navegadores del mismo usuario).
+Para cuentas nuevas con rol `user`, este auto-open se desactiva a propósito — en su lugar se muestra `OnboardingTour` (ver abajo).
 
 ---
 
-### `SectionHelp` (`components/ui/SectionHelp.tsx`)
-Modales de ayuda contextual por sección (review, vocabulary, grammar, context, progress, profile). Se abre automáticamente una sola vez por sección después de que el tour principal se haya completado. Tiene botón "?" para reabrirlo manualmente.
+### `OnboardingTour` (`components/onboarding/OnboardingTour.tsx`, `lib/onboarding.ts`)
+Tutorial guiado paso a paso, hecho a mano (sin librería de terceros), que se muestra automáticamente solo a cuentas **nuevas con rol `user`** al aterrizar en `/review` (la misma señal "cuenta nunca ha visto ayuda" que usa `HelpProvider`: `helpSeen.length === 0` + flag local `onboarding_done_v1` sin marcar). Sustituye, para esas cuentas, tanto el `WhatsNewModal` de novedades como el `HelpDrawer` automático.
+
+Pasos: 0) prompt "¿ya sabes hiragana/katakana?" con rama opcional explicando la sección Kana; 1) calendario "repasos para hoy" (`data-tutorial-id="forecast-card"`); 2) cómo añadir vocabulario y los ritmos normal/rápido/súper rápido (`data-tutorial-id="quick-add-panel"`); 3) selección de tipos de repaso (`data-tutorial-id="mode-selector"`); 4) niveles SRS de las palabras (informativo). Saltar o completar el tour lo marca como visto (`markHelpSeen('onboarding')` + `onboarding_done_v1`); no vuelve a aparecer solo, pero es reiniciable manualmente desde Mi Perfil → Configuración → "Reiniciar tutoriales".
+
+---
+
+### `RoleGate` (`components/ui/RoleGate.tsx`)
+Wrapper de página que restringe el acceso a `admin`/`contributor` (rol efectivo = `simulatedRole ?? role`), redirigiendo a `/review` en cualquier otro caso. Usado por `/grammar` y `/context`, que además ya están ocultas de `Nav` y del dashboard para el rol `user`.
 
 ---
 
@@ -195,7 +198,7 @@ Sidebar colapsable para todos los usuarios (no solo admin). Contiene:
 - Info del usuario (avatar, email, estado de red)
 - Banner de cambios pendientes (si los hay)
 - LevelWidget
-- Navegación por secciones
+- Navegación por secciones — los enlaces a Gramática y Lecturas IA solo se muestran si el rol efectivo (`simulatedRole ?? role`) es `admin` o `contributor`
 - Controles de simulación de rol (solo admin)
 
 **Comportamiento:**

@@ -154,7 +154,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
   return (
     <>
-    <div className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
+    <div data-tutorial-id="quick-add-panel" className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
 
       {/* Header */}
       <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-3">

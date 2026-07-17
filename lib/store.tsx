@@ -56,6 +56,8 @@ interface State {
   isOnline: boolean      // browser network status
   pendingWrites: number  // count of vocab items waiting to be synced
   helpSeen: string[]     // help sections the user has already seen (per-account)
+  helpSeenLoaded: boolean // true once helpSeen has been confirmed from the DB (avoids treating "still loading" as "confirmed empty")
+  justSignedUp: boolean   // true for a brand-new account created this session via an immediate-session signup (never went through syncDown)
 }
 
 type Action =
@@ -83,6 +85,7 @@ type Action =
   | { type: 'SET_PENDING_WRITES'; payload: number }
   | { type: 'SET_HELP_SEEN'; payload: string[] }
   | { type: 'ADD_HELP_SEEN'; payload: string }
+  | { type: 'SET_JUST_SIGNED_UP'; payload: boolean }
   | { type: 'RESET' }
 
 function appReducer(state: State, action: Action): State {
@@ -107,11 +110,12 @@ function appReducer(state: State, action: Action): State {
     case 'CLEAR_LEVEL_UP': return { ...state, pendingLevelUp: null }
     case 'SET_ONLINE': return { ...state, isOnline: action.payload }
     case 'SET_PENDING_WRITES': return { ...state, pendingWrites: action.payload }
-    case 'SET_HELP_SEEN': return { ...state, helpSeen: action.payload }
+    case 'SET_HELP_SEEN': return { ...state, helpSeen: action.payload, helpSeenLoaded: true }
     case 'ADD_HELP_SEEN':
       return state.helpSeen.includes(action.payload)
         ? state
         : { ...state, helpSeen: [...state.helpSeen, action.payload] }
+    case 'SET_JUST_SIGNED_UP': return { ...state, justSignedUp: action.payload }
     case 'ADD_ITEMS': {
       const existing = new Set(state.db.map(i => i.jp))
       const newItems = action.payload.filter(i => !existing.has(i.jp))
@@ -232,6 +236,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     pendingWrites: 0,
     helpSeen: [],
+    helpSeenLoaded: false,
+    justSignedUp: false,
   })
 
   const dbRef = useRef<VocabItem[]>([])
@@ -654,6 +660,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (error) throw error
     const user = { email: data.user.email!, id: data.user.id }
     dispatch({ type: 'SET_USER', payload: user })
+    dispatch({ type: 'SET_JUST_SIGNED_UP', payload: false })
     userRef.current = user
     getUserRole(data.user.id)
       .then(role => dispatch({ type: 'SET_ROLE', payload: role }))
@@ -673,6 +680,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       hydratingRef.current = false
       loadedRef.current = true
       dispatch({ type: 'SET_ROLE', payload: 'user' })
+      // This account was just created and never went through syncDown, so
+      // helpSeen is trivially empty (no race to guard against here).
+      dispatch({ type: 'SET_JUST_SIGNED_UP', payload: true })
       dispatch({ type: 'SET_LOADED' })
     }
     return 'ok'
@@ -717,6 +727,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LANG', payload: 'es' })
     dispatch({ type: 'SET_PROGRESSION', payload: DEFAULT_PROGRESSION })
     dispatch({ type: 'CLEAR_LEVEL_UP' })
+    dispatch({ type: 'SET_HELP_SEEN', payload: [] })
+    dispatch({ type: 'SET_JUST_SIGNED_UP', payload: false })
     dispatch({ type: 'SET_LOADED' })
     userRef.current = null
     dbRef.current = []

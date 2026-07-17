@@ -147,6 +147,8 @@ Lista de verbos clasificados por si son transitivos (tienen objeto directo, como
 
 ### Gramática
 
+> **Nota:** esta sección está visible solo para roles `admin` y `contributor` mientras se termina de pulir.
+
 **Cómo acceder:** En la barra lateral, haz clic en **"Gramática"**
 
 Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 y Chūkyū I), organizados por lecciones y nivel JLPT.
@@ -235,6 +237,8 @@ Se recomienda aprender primero el hiragana completo y luego el katakana.
 ---
 
 ### Lecturas IA
+
+> **Nota:** esta sección está visible solo para roles `admin` y `contributor` mientras se termina de pulir.
 
 **Cómo acceder:** En la barra lateral, haz clic en **"Lecturas IA"**
 

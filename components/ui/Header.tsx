@@ -8,6 +8,7 @@ import FeedbackModal from './FeedbackModal'
 import { useState, useEffect, useRef } from 'react'
 import { fetchPendingReportsCount } from '@/lib/admin-client'
 import { hasUnseenChanges } from '@/lib/changelog'
+import { isPendingOnboarding } from '@/lib/onboarding'
 import { t } from '@/lib/i18n'
 import WhatsNewModal from './WhatsNewModal'
 
@@ -77,13 +78,18 @@ export default function Header() {
     { href: '/stats?tab=account',  icon: '👤', label: stripEmoji(t(lang, 'stats_tab_account')) },
   ]
 
-  // Check for unseen changelog entries and auto-open once per version
+  // Check for unseen changelog entries and auto-open once per version.
+  // Skipped for brand-new student accounts — OnboardingTour takes priority
+  // over the changelog on their first ever visit.
   useEffect(() => {
     if (!user) return
+    const effectiveRole = state.simulatedRole ?? state.role
+    const helpSeenConfirmed = state.helpSeenLoaded || state.justSignedUp
+    if (isPendingOnboarding(effectiveRole, state.helpSeen, helpSeenConfirmed)) return
     const unseen = hasUnseenChanges()
     setHasUnseen(unseen)
     if (unseen) setWhatsNewOpen(true)
-  }, [user])
+  }, [user, state.role, state.simulatedRole, state.helpSeen, state.helpSeenLoaded, state.justSignedUp])
 
   // Poll the count of open reports for the admin badge
   useEffect(() => {

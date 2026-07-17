@@ -455,6 +455,18 @@ export async function markHelpSeen(_section: string): Promise<void> {
   }
 }
 
+/** Clears help_seen in the DB so the help drawer / onboarding tour can be replayed. */
+export async function resetHelpSeen(): Promise<void> {
+  try {
+    const userId = await ensureUserSettingsRow()
+    await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, help_seen: [] }, { onConflict: 'user_id' })
+  } catch {
+    // Non-critical — localStorage flags still get cleared by the caller
+  }
+}
+
 async function ensureUserSettingsRow(): Promise<string> {
   const user = await requireUser()
   const { data, error } = await supabase

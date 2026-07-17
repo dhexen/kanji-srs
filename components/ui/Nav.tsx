@@ -82,6 +82,8 @@ function NavInner() {
   const { state, setSimulatedRole, refreshData } = useStore()
   const { collapsed, toggle, close } = useSidebar()
   const isRealAdmin = state.role === 'admin'
+  const effectiveRole = state.simulatedRole ?? state.role
+  const isStaff = effectiveRole === 'admin' || effectiveRole === 'contributor'
   const lang = state.lang
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
@@ -216,18 +218,22 @@ function NavInner() {
           progress={hasActiveVocab ? vocabPct : null}
           pathname={pathname} onNavigate={refreshData}
         />
-        <NavItem
-          href="/grammar" icon="📖" label={stripEmoji(t(lang, 'nav_grammar'))}
-          badge={0} progress={grammarPct} pathname={pathname} onNavigate={refreshData}
-        />
+        {isStaff && (
+          <NavItem
+            href="/grammar" icon="📖" label={stripEmoji(t(lang, 'nav_grammar'))}
+            badge={0} progress={grammarPct} pathname={pathname} onNavigate={refreshData}
+          />
+        )}
         <NavItem
           href="/kana" icon="🔤" label={stripEmoji(t(lang, 'nav_kana'))}
           badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
         />
-        <NavItem
-          href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
-          badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
-        />
+        {isStaff && (
+          <NavItem
+            href="/context" icon="💬" label={stripEmoji(t(lang, 'nav_context'))}
+            badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
+          />
+        )}
         {/* JLPT grammar is now a section inside /grammar (toggle in its header). */}
         {/* Admin tools + role simulation moved to the top-right "🔧 Admin" dropdown (Header). */}
       </nav>

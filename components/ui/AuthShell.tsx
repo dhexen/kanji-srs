@@ -7,6 +7,7 @@ import { HelpProvider } from '@/lib/help-context'
 import Nav from './Nav'
 import LayoutShell from './LayoutShell'
 import HelpDrawer from './HelpDrawer'
+import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 // Páginas de autenticación: sin sidebar, sin AuthGuard
 const AUTH_PAGES = ['/login', '/auth/callback', '/guia-usuario']
@@ -52,6 +53,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
           {children}
         </LayoutShell>
         <HelpDrawer />
+        <OnboardingTour />
       </HelpProvider>
     </SidebarProvider>
   )
