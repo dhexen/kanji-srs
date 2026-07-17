@@ -20,6 +20,51 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Junio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'El aviso para añadir vocabulario aparece antes',
+        description: 'La tarjeta 🌱 que sugiere añadir más vocabulario ahora aparece con menos exigencia (dominas la mitad de tus palabras y tienes una carga de repasos moderada), en vez de esperar a ir muy sobrado. Así te anima a crecer el pool más a menudo.',
+      },
+      {
+        type: 'improvement',
+        title: 'Las frases validadas por profesor son permanentes',
+        description: 'Las frases de gramática marcadas como validadas por un profesor ya no se eliminan nunca al renovar el banco: ocupan un sitio fijo. Así, con el tiempo, cada punto de gramática irá acumulando frases revisadas y de confianza.',
+      },
+      {
+        type: 'new',
+        title: 'Pista de la palabra en los repasos de gramática',
+        description: 'En el repaso de gramática, al pulsar "Ver traducción", si la respuesta incluye una palabra o verbo que debes escribir, ahora aparece esa palabra en japonés en forma de diccionario (con su lectura) entre paréntesis. Así puedes practicar la conjugación y la gramática aunque no recuerdes la palabra exacta — la conjugas tú para que cuadre.',
+      },
+      {
+        type: 'new',
+        title: 'Las frases de gramática se renuevan solas',
+        description: 'Cada semana se generan frases nuevas para los puntos de gramática (repartidas a lo largo de la semana). Cada banco mantiene hasta 100 frases: al añadir nuevas, las más antiguas se van retirando. Así siempre hay variedad fresca sin tener que regenerar a mano.',
+      },
+      {
+        type: 'improvement',
+        title: 'Gramática: frases con kanji y furigana exacto',
+        description: 'Las frases de gramática se generan ahora con las palabras escritas en kanji y con el furigana colocado exactamente sobre cada kanji (la IA devuelve la lectura por token, sin adivinar la posición). Esto elimina frases a las que les faltaban kanji o con el furigana descolocado. Las frases antiguas se pueden regenerar desde el panel de administración.',
+      },
+      {
+        type: 'fix',
+        title: 'Gramática: acepta katakana e hiragana indistintamente',
+        description: 'Si el hueco pide una palabra en katakana (p. ej. コーヒー) y la escribes en hiragana —o al revés—, ahora cuenta como correcta siempre que la lectura sea la misma. También tolera las vocales largas (la marca ー frente a おう/おお).',
+      },
+      {
+        type: 'new',
+        title: 'Guía para quien empieza de cero',
+        description: 'Si aún no tienes vocabulario, el dashboard muestra un aviso que te lleva a la sección de kana. Allí, una introducción explica qué son el hiragana, el katakana y el kanji, y cómo se combinan para formar las palabras japonesas. Lo primero: aprender a leer los silabarios.',
+      },
+      {
+        type: 'new',
+        title: 'Tu progreso de kana se guarda',
+        description: 'La sección de kana ahora recuerda qué caracteres has aprendido: se marcan al verlos en el modo guiado y al acertarlos en el test. Verás una barra de progreso por silabario (hiragana y katakana) y se guarda en tu cuenta entre dispositivos.',
+      },
+      {
+        type: 'new',
+        title: 'Esquemas de conjugación en la gramática',
+        description: 'Cada punto de gramática (Minna no Nihongo y JLPT) puede mostrar ahora un esquema visual: a qué se une (verbo, adjetivo い/な, sustantivo) y sus formas conjugadas (no pasado, negativo, pasado, forma て…), traducido al castellano, catalán e inglés. Aparece en la ficha de la gramática, debajo de la explicación.',
+      },
+      {
         type: 'fix',
         title: 'Gramática: no penaliza repetir el contexto en el hueco',
         description: 'Cuando el hueco corta una conjugación a medias (p. ej. la frase ya muestra 飼っ y escribes ってはいけません en vez de てはいけません), el corrector ya no lo cuenta como error: acepta que reescribas los caracteres del contexto que ya aparecían.',

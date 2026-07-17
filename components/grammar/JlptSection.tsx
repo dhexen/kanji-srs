@@ -2,7 +2,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
-import { fetchJlptDetails, fetchJlptProgress, setJlptProgress } from '@/lib/supabase'
+import { fetchJlptDetails, fetchJlptProgress, setJlptProgress, fetchGrammarScheme } from '@/lib/supabase'
+import type { GrammarScheme } from '@/lib/grammar-srs'
+import GrammarSchemeView from '@/components/grammar/GrammarSchemeView'
 import {
   BUNPRO_GRAMMAR,
   BUNPRO_JLPT_LEVELS,
@@ -83,14 +85,21 @@ function JlptCard({
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 function JlptDetailPanel({
-  point, detail, onBack, onPractice,
+  point, detail, lang, onBack, onPractice,
 }: {
   point: BunproGrammarPoint
   detail?: JlptDetail
+  lang: string
   onBack: () => void
   onPractice: () => void
 }) {
   const examples = detail?.examples ?? []
+  const [scheme, setScheme] = useState<GrammarScheme | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetchGrammarScheme(point.id).then(s => { if (!cancelled) setScheme(s) })
+    return () => { cancelled = true }
+  }, [point.id])
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -135,6 +144,9 @@ function JlptDetailPanel({
           {detail?.explanation_es || point.meaning_es}
         </p>
       </div>
+
+      {/* Conjugation / usage scheme */}
+      {scheme && <GrammarSchemeView scheme={scheme} lang={lang} />}
 
       {/* Examples */}
       <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
@@ -253,6 +265,7 @@ export default function JlptSection() {
       <JlptDetailPanel
         point={view.point}
         detail={details.get(view.point.id)}
+        lang={lang}
         onBack={() => setView({ kind: 'list' })}
         onPractice={() => startPractice(view.point)}
       />

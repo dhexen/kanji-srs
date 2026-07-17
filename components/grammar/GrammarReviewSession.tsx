@@ -598,11 +598,11 @@ export default function GrammarReviewSession({
             <div className="px-5 py-6 text-center">
               <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                 {s.sentence_before && (
-                  <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
+                  <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} segments={s.sentence_before_segments} /> : s.sentence_before}</span>
                 )}
                 <span className="mx-1 inline-flex items-center justify-center min-w-[4ch] px-2 border-b-4 border-indigo-400 dark:border-indigo-500 text-indigo-300 dark:text-indigo-600 select-none">　</span>
                 {s.sentence_after && (
-                  <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} /> : s.sentence_after}</span>
+                  <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} segments={s.sentence_after_segments} /> : s.sentence_after}</span>
                 )}
               </div>
             </div>
@@ -610,6 +610,16 @@ export default function GrammarReviewSession({
             {showHint && translation && (
               <div className="px-5 pb-2 text-center">
                 <p className="text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>
+                {s.answer_hint && s.answer_hint.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {ui(lang, 'Palabra', 'Paraula', 'Word')}:{' '}
+                    {s.answer_hint.map((h, i) => (
+                      <span key={i} className="kanji-font font-semibold text-slate-700 dark:text-slate-200">
+                        {i > 0 && '、'}{h.w}{h.r ? <span className="font-normal text-slate-400">（{h.r}）</span> : null}
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
             )}
 
@@ -750,11 +760,11 @@ export default function GrammarReviewSession({
                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
                     <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                       {ws.sentence_before && (
-                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_before} reading={ws.sentence_before_reading} /> : ws.sentence_before}</span>
+                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_before} reading={ws.sentence_before_reading} segments={ws.sentence_before_segments} /> : ws.sentence_before}</span>
                       )}
                       <span className="mx-0.5 px-1.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{ws.answer}</span>
                       {ws.sentence_after && (
-                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_after} reading={ws.sentence_after_reading} /> : ws.sentence_after}</span>
+                        <span>{showFurigana && hasFurigana ? <RubyText text={ws.sentence_after} reading={ws.sentence_after_reading} segments={ws.sentence_after_segments} /> : ws.sentence_after}</span>
                       )}
                     </div>
                     {wsTranslation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{wsTranslation}</p>}
@@ -789,13 +799,13 @@ export default function GrammarReviewSession({
                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{t(lang, 'gp_correct_sentence')}</p>
                     <div className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 leading-loose">
                       {s.sentence_before && (
-                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} /> : s.sentence_before}</span>
+                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_before} reading={s.sentence_before_reading} segments={s.sentence_before_segments} /> : s.sentence_before}</span>
                       )}
                       <span className={`mx-0.5 px-1.5 py-0.5 rounded-lg ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'}`}>
                         {s.answer}
                       </span>
                       {s.sentence_after && (
-                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} /> : s.sentence_after}</span>
+                        <span>{showFurigana && hasFurigana ? <RubyText text={s.sentence_after} reading={s.sentence_after_reading} segments={s.sentence_after_segments} /> : s.sentence_after}</span>
                       )}
                     </div>
                     {translation && <p className="mt-2 text-sm italic text-slate-400 dark:text-slate-500">{translation}</p>}

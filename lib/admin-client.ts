@@ -10,7 +10,18 @@ async function adminAuthHeaders(): Promise<HeadersInit> {
 }
 
 async function parseAdminResponse<T>(res: Response): Promise<T> {
-  const data = await res.json()
+  const text = await res.text()
+  let data: any
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    // Non-JSON response (e.g. a Vercel function timeout returns an HTML/text
+    // page). Surface a readable message instead of a JSON parse error.
+    if (res.status === 504 || /timeout|FUNCTION_INVOCATION/i.test(text)) {
+      throw new Error('La operación tardó demasiado y se cortó (timeout). Inténtalo de nuevo.')
+    }
+    throw new Error(`Respuesta no válida del servidor (${res.status}).`)
+  }
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
   return data as T
 }
@@ -256,6 +267,69 @@ export async function runEnrichJlpt(opts: { offset?: number; force?: boolean; mo
     body: JSON.stringify(opts),
   })
   return parseAdminResponse<EnrichJlptResult>(res)
+}
+
+export interface GenerateSchemesResult {
+  updated: number
+  fetched: number
+  done: boolean
+  next_offset: number
+  total: number
+}
+
+/** Generate conjugation/usage schemes for a page of grammar points (MNN + JLPT). */
+export async function runGenerateSchemes(opts: { offset?: number; force?: boolean; model?: string; geminiApiKey?: string }): Promise<GenerateSchemesResult> {
+  const res = await fetch('/api/admin/grammar/scheme', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<GenerateSchemesResult>(res)
+}
+
+export interface GrammarRefreshStatus {
+  total_points: number
+  nightly_target: number
+  total_sentences: number
+  state: { processed_today: number; run_date: string | null; remaining_in_cycle: number; processed_in_cycle: number; updated_at: string | null }
+  next_up: { id: string; name: string; jlpt: string; pattern: string }[]
+  runs: { id: number; ran_at: string; trigger: string; processed: number; added: number; remaining: number; stopped: string | null; error: string | null; duration_ms: number }[]
+  errors: { id: string; name: string; jlpt: string; pattern: string; error_msg: string; is_permanent: boolean; updated_at: string }[]
+  validated: {
+    goal: number
+    total: number
+    points_with_any: number
+    points_complete: number
+    per_point: { id: string; name: string; jlpt: string; pattern: string; validated: number }[]
+  }
+}
+
+/** Monitoring data for the weekly grammar refresh cron. */
+export async function fetchGrammarRefreshStatus(): Promise<GrammarRefreshStatus> {
+  const res = await fetch('/api/admin/grammar-refresh', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<GrammarRefreshStatus>(res)
+}
+
+export interface RefreshRunSummary {
+  processed: number
+  added: number
+  remaining: number
+  processedToday: number
+  nightlyTarget: number
+  stopped: string
+  error: string | null
+  durationMs: number
+  moreTonight: boolean
+}
+
+/** Manually trigger one refresh batch, restart the cycle, or clear point errors. */
+export async function runGrammarRefresh(action: 'run' | 'restart' | 'clear_errors'): Promise<{ ok: boolean; summary?: RefreshRunSummary }> {
+  const res = await fetch('/api/admin/grammar-refresh', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ action }),
+  })
+  return parseAdminResponse<{ ok: boolean; summary?: RefreshRunSummary }>(res)
 }
 
 /** Save (or clear with null) the curated per-kanji furigana for a word. */

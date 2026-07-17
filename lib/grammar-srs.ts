@@ -1,6 +1,8 @@
 // lib/grammar-srs.ts
 // SRS utilities for grammar practice (BunPro-style fill-in-the-blank)
 
+import { toRomaji } from 'wanakana'
+
 // WaniKani-style 9-level SRS (index = level; index 0 unused; level 9 = Burned = ∞)
 export const GRAMMAR_SRS_INTERVALS = [
   0,                              // 0: unused
@@ -22,17 +24,23 @@ export interface GrammarSrsStat {
   next_review: number  // Unix ms timestamp
 }
 
+/** One furigana token: `t` is the text, `f` the reading (only for kanji groups). */
+export interface FuriganaSegment { t: string; f?: string }
+
 export interface GrammarSentence {
   id?: string
   grammar_id: string
   sentence_before: string          // kanji/kana text before the blank
   sentence_before_reading: string  // pure kana reading of the before part
+  sentence_before_segments?: FuriganaSegment[] // per-token furigana (exact placement)
   sentence_before_alts: string[]   // up to 4 alternative before-blank texts (jp)
   sentence_before_reading_alts: string[] // readings for each alternative
   sentence_after: string           // kanji/kana text after the blank
   sentence_after_reading: string   // pure kana reading of the after part
+  sentence_after_segments?: FuriganaSegment[] // per-token furigana (exact placement)
   answer: string                   // correct grammar pattern
   answer_alts: string[]            // other acceptable answers
+  answer_hint?: { w: string; r?: string }[]  // dict-form content words inside the answer
   translation_es: string
   translation_ca: string
   translation_en: string
@@ -169,9 +177,27 @@ function plainCore(s: string): string {
   return x
 }
 
-/** True if the normalised input equals a candidate, allowing register variants. */
+/**
+ * Canonical kana key: tolerant to hiragana vs katakana and to long-vowel
+ * notation (コーヒー ≡ こうひい ≡ こおひい). normalizeAnswer already folds
+ * katakana → hiragana; here we go to romaji and collapse long vowels, so a
+ * katakana word typed in hiragana (or vice versa) still matches.
+ */
+function kanaKey(normalized: string): string {
+  if (!normalized) return ''
+  let r = toRomaji(normalized).toLowerCase()
+  r = r
+    .replace(/[ōôõ]/g, 'o').replace(/[ūûũ]/g, 'u').replace(/[ēêẽ]/g, 'e').replace(/[āâã]/g, 'a').replace(/[īîĩ]/g, 'i')
+    .replace(/ou|oo/g, 'o').replace(/uu/g, 'u').replace(/ei|ee/g, 'e').replace(/aa/g, 'a').replace(/ii/g, 'i')
+  return r
+}
+
+/** True if the normalised input equals a candidate, allowing register/kana variants. */
 function matchesCandidate(norm: string, candidates: string[]): boolean {
   if (candidates.includes(norm)) return true
+  // Kana-form tolerant (katakana ⇄ hiragana, long vowels).
+  const key = kanaKey(norm)
+  if (key && candidates.some(c => kanaKey(c) === key)) return true
   const core = plainCore(norm)
   return !!core && candidates.some(c => { const cc = plainCore(c); return !!cc && cc === core })
 }
@@ -215,6 +241,24 @@ export function checkAnswer(
  */
 export function getAnswerRegister(answer: string): 'formal' | null {
   return /(です|ます|ました|ません|でした|でしょう)/.test(answer) ? 'formal' : null
+}
+
+// ── Conjugation / usage scheme (stored in grammar_schemes, filled by admin) ──
+/** A label translated into the three supported UI languages. */
+export interface I18nLabel { es: string; ca: string; en: string }
+export interface GrammarScheme {
+  /** How the pattern attaches to each part of speech (e.g. な-adj → なAdj + がる). */
+  formation: { type: I18nLabel; pattern: string; example?: string }[]
+  /** The inflected forms of the pattern (non-past, negative, past, te-form…). */
+  conjugations: { form: I18nLabel; pattern: string; reading?: string }[]
+}
+
+/** Pick the label in the given language, falling back to Spanish then English. */
+export function pickLabel(l: I18nLabel | undefined, lang: string): string {
+  if (!l) return ''
+  if (lang === 'ca') return l.ca || l.es || l.en
+  if (lang === 'en') return l.en || l.es || l.ca
+  return l.es || l.en || l.ca
 }
 
 /** Hiragana characters of a string (katakana folded to hiragana via normalise). */

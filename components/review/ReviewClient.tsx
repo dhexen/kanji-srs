@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useHelp } from '@/lib/help-context'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
-import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar } from '@/lib/supabase'
+import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress } from '@/lib/supabase'
 import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
@@ -73,6 +73,7 @@ export default function ReviewClient() {
   const [isStarting, setIsStarting] = useState(false)
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
   const [grammarDue, setGrammarDue] = useState(0)
+  const [kanaLearnedCount, setKanaLearnedCount] = useState(0)
 
   // Pending grammar reviews (for the section tile badge)
   useEffect(() => {
@@ -87,6 +88,14 @@ export default function ReviewClient() {
         ).length)
       })
       .catch(() => {})
+    return () => { cancelled = true }
+  }, [state.user, phase])
+
+  // Kana progress (to know whether a beginner still needs the kana nudge)
+  useEffect(() => {
+    if (!state.user) { setKanaLearnedCount(0); return }
+    let cancelled = false
+    fetchKanaProgress().then(set => { if (!cancelled) setKanaLearnedCount(set.size) }).catch(() => {})
     return () => { cancelled = true }
   }, [state.user, phase])
 
@@ -145,8 +154,8 @@ export default function ReviewClient() {
   // Personal stats
   const masteredCount = useMemo(() => activeWords.filter(w => w.srsLevel >= 5).length, [activeWords])
 
-  // "Load more vocab" suggestion: shown when the learner has clearly caught up —
-  // most active words are Guru+ and the upcoming daily review load is low.
+  // "Load more vocab" suggestion: shown when the learner is keeping up — a good
+  // share of active words are Guru+ and the upcoming daily review load is modest.
   const avgDailyReviews = useMemo(
     () => Math.round(forecast.reduce((s, d) => s + d.newDue, 0) / Math.max(1, forecast.length)),
     [forecast],
@@ -158,11 +167,25 @@ export default function ReviewClient() {
   const masteredRatio = activeWords.length > 0 ? masteredCount / activeWords.length : 0
   const showLoadMore = !loadMoreDismissed
     && activeWords.length >= 15
-    && masteredRatio >= 0.70
-    && avgDailyReviews <= 15
+    && masteredRatio >= 0.50
+    && avgDailyReviews <= 30
   const dismissLoadMore = () => {
     try { localStorage.setItem('vocab_load_more_dismissed', String(Date.now())) } catch { /* incognito */ }
     setLoadMoreDismissed(true)
+  }
+
+  // Beginner banner: shown to users who haven't started yet (no active vocab),
+  // guiding them to the kana section first. Dismissable.
+  const [beginnerDismissed, setBeginnerDismissed] = useState(() => {
+    try { return localStorage.getItem('beginner_banner_dismissed') === '1' }
+    catch { return false }
+  })
+  // Show the kana nudge only to true beginners: no vocabulary yet AND barely
+  // any kana learned (once they engage with kana, the nudge stops).
+  const showBeginner = state.loaded && activeWords.length === 0 && kanaLearnedCount < 10 && !beginnerDismissed
+  const dismissBeginner = () => {
+    try { localStorage.setItem('beginner_banner_dismissed', '1') } catch { /* incognito */ }
+    setBeginnerDismissed(true)
   }
 
   function buildSequence(practice: boolean): SessionItem[] {
@@ -387,6 +410,41 @@ export default function ReviewClient() {
             ?
           </button>
         </div>
+
+        {/* ── Beginner welcome: guide brand-new users to the kana section ── */}
+        {showBeginner && (
+          <div className="relative bg-gradient-to-br from-violet-50 to-pink-50 dark:from-violet-900/20 dark:to-pink-900/10 border border-violet-200 dark:border-violet-800/50 rounded-2xl p-5 shadow-sm">
+            <button
+              onClick={dismissBeginner}
+              aria-label="Descartar"
+              className="absolute top-3 right-3 text-violet-300 hover:text-violet-600 dark:hover:text-violet-300 font-bold text-lg leading-none transition"
+            >
+              ✕
+            </button>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">🌸</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-violet-800 dark:text-violet-200">
+                  {({ es: '¿Empiezas con el japonés?', en: 'New to Japanese?', ca: 'Comences amb el japonès?', ja: '日本語は初めて？' } as Record<string, string>)[lang] ?? '¿Empiezas con el japonés?'}
+                </p>
+                <p className="text-sm text-violet-700/90 dark:text-violet-300/80 mt-1">
+                  {({
+                    es: 'Antes de estudiar vocabulario, necesitas saber leer los silabarios. Empieza por la sección de kana: te explicamos qué son el hiragana, el katakana y el kanji, y cómo se forman las palabras.',
+                    en: 'Before studying vocabulary you need to read the syllabaries. Start with the kana section: we explain hiragana, katakana and kanji, and how words are formed.',
+                    ca: 'Abans d’estudiar vocabulari, has de saber llegir els sil·labaris. Comença per la secció de kana: t’expliquem què són l’hiragana, el katakana i el kanji, i com es formen les paraules.',
+                    ja: '語彙の前に、まずは仮名を読めるように。仮名セクションから始めましょう。',
+                  } as Record<string, string>)[lang] ?? ''}
+                </p>
+                <Link
+                  href="/kana"
+                  className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-sm transition shadow-sm"
+                >
+                  あ {({ es: 'Empezar por el kana', en: 'Start with kana', ca: 'Comença pel kana', ja: '仮名から始める' } as Record<string, string>)[lang] ?? 'Empezar por el kana'} →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── "Load more vocab" suggestion ──────────────────────────── */}
         {showLoadMore && (

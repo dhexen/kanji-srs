@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60  // generation + verification = two Gemini calls
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError } from '@/lib/admin-server'
@@ -7,7 +8,7 @@ import { MNN2_GRAMMAR_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '@/lib/grammar-bunpro'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
-import { answerFitsPattern } from '@/lib/grammar-srs'
+import { TARGET, generatePointRows } from '@/lib/grammar-seed-core'
 
 const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
@@ -15,65 +16,6 @@ const ALL_GRAMMAR: GrammarPoint[] = [
   ...MNN_C1_GRAMMAR_POINTS,
   ...BUNPRO_GRAMMAR.map(bunproToGrammarPoint),
 ]
-
-const TARGET      = 25
-const GENERATE_SIZE = 38
-const QUALITY_MIN = 4
-
-function buildPrompt(grammar: GrammarPoint, vocab: { jp: string; reading: string; meaning: string }[]): string {
-  const sample = [...vocab]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 20)
-    .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
-    .join(', ')
-
-  return `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
-
-El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
-
-Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${sample || 'vocabulario básico N5'}
-
-Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
-{
-  "sentences": [
-    {
-      "before_jp": "texto antes del hueco (usa kanji donde corresponda)",
-      "before_reading": "lectura completa del before en kana puro, sin kanji",
-      "answer": "SOLO la gramática en hiragana/katakana, nunca kanji",
-      "answer_alts": ["variante hiragana aceptable"],
-      "after_jp": "texto después del hueco",
-      "after_reading": "lectura completa del after en kana puro, sin kanji",
-      "translation_es": "traducción COMPLETA y NATURAL al español",
-      "translation_ca": "traducció COMPLETA i NATURAL al català",
-      "translation_en": "COMPLETE and NATURAL English translation",
-      "quality": 5
-    }
-  ]
-}
-
-⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola.
-2. El sujeto debe ser claro. Usa contextos cotidianos realistas.
-
-⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji. Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte completa (la て, ます…), NUNCA solo la raíz del verbo. Ej. patrón てみます → answer "しらべてみます" ✓, NO "しらべ" (sin て) ✗.
-
-⚠️ REGLAS sobre traducciones: oraciones COMPLETAS y NATURALES en cada idioma.
-
-Campo "quality" 1–5 (estricto): 5=perfecto, 4=bueno, 3=aceptable, 2=deficiente, 1=incorrecto.
-
-Nivel ${grammar.jlpt}. Varía sujetos y contextos. Partículas ortográficas: は (no わ), を (no お), へ (no え).
-Genera exactamente ${GENERATE_SIZE} frases distintas.`
-}
-
-// 3.1-flash-lite: 500 RPD, 3.1-flash: 500 RPD, 2.5-flash: 20 RPD (last resort)
-const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-3.1-flash-preview', 'gemini-2.5-flash']
-
-function parseRetryAfterMs(errorMsg: string, status: number): number {
-  const match = errorMsg.match(/retry in (\d+(?:\.\d+)?)s/i)
-  if (match) return Math.ceil(parseFloat(match[1]) * 1000) + 2000
-  if (status === 503) return 15_000  // high demand — retry quickly
-  return 65_000
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -158,105 +100,41 @@ export async function POST(req: NextRequest) {
       jp: d.word, reading: d.reading, meaning: d.meaning_es ?? '',
     }))
 
-    // 7. Call Gemini directly (server-side — no EU restriction), try models in order
-    const prompt = buildPrompt(next, vocab)
-    let geminiRes!: Response
-    let geminiData: any = null
-    let usedModel = ''
+    // 7. Generate sentences (shared core: Gemini + parse + per-token furigana)
+    const currentCount = countMap.get(next.id) ?? 0
+    const result = await generatePointRows(next, vocab, apiKey, TARGET - currentCount)
 
-    for (const model of MODELS) {
-      try {
-        geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-          },
-        )
-        geminiData = await geminiRes.json()
-        usedModel = model
-        if (geminiRes.status !== 503) break  // only fall through on high-demand
-      } catch (networkErr: any) {
-        await upsertError(service, next.id, `Network error: ${networkErr.message}`, false)
-        return NextResponse.json({ status: 'retry', grammar_id: next.id, error: networkErr.message, retry_after_ms: 10_000 })
-      }
-    }
-
-    if (!geminiRes.ok) {
-      const errMsg: string = geminiData?.error?.message ?? `HTTP ${geminiRes.status}`
-      const isPermanent = geminiRes.status === 400 || geminiRes.status === 403 || geminiRes.status === 404
-      const retryAfterMs = parseRetryAfterMs(errMsg, geminiRes.status)
-
-      await upsertError(service, next.id, `[${usedModel}] ${errMsg}`, isPermanent)
+    if (!result.ok) {
+      await upsertError(service, next.id, result.error, result.permanent)
       return NextResponse.json({
-        status: isPermanent ? 'skip' : 'retry',
+        status: result.permanent ? 'skip' : 'retry',
         grammar_id: next.id,
-        error: `[${usedModel}] ${errMsg}`,
-        retry_after_ms: retryAfterMs,
-        model_used: usedModel,
+        error: result.error,
+        retry_after_ms: result.retryAfterMs,
+        model_used: result.usedModel,
       })
     }
 
-    // 8. Parse Gemini response
-    const rawText: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    let sentences: any[] = []
-    try {
-      const clean = rawText.replace(/```json|```/g, '').trim()
-      const parsed = JSON.parse(clean)
-      sentences = parsed.sentences ?? []
-    } catch {
-      await upsertError(service, next.id, 'Error al parsear respuesta de Gemini', false)
-      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'Parse error', retry_after_ms: 5_000 })
+    if (result.rows.length === 0) {
+      await upsertError(service, next.id, 'Ninguna frase pasó los filtros (calidad/furigana)', false)
+      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'No valid sentences', retry_after_ms: 5_000 })
     }
 
-    // 9. Filter by quality and limit to what's still needed
-    const currentCount = countMap.get(next.id) ?? 0
-    const needed = TARGET - currentCount
-    const passing = sentences
-      .filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
-      // Drop malformed sentences whose blank doesn't contain the grammar pattern.
-      .filter(s => answerFitsPattern(String(s.answer ?? ''), next.pattern))
-      .slice(0, needed)
-
-    if (passing.length === 0) {
-      await upsertError(service, next.id, 'Ninguna frase pasó el filtro de calidad', false)
-      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'Quality filter rejected all sentences', retry_after_ms: 5_000 })
-    }
-
-    // 10. Insert into Supabase
-    const rows = passing.map((s: any) => ({
-      grammar_id:                   next.id,
-      sentence_before:              String(s.before_jp        ?? ''),
-      sentence_before_reading:      String(s.before_reading   ?? ''),
-      sentence_before_alts:         [],
-      sentence_before_reading_alts: [],
-      sentence_after:               String(s.after_jp         ?? ''),
-      sentence_after_reading:       String(s.after_reading    ?? ''),
-      answer:                       String(s.answer           ?? ''),
-      answer_alts:                  Array.isArray(s.answer_alts) ? s.answer_alts.map(String) : [],
-      translation_es:               String(s.translation_es   ?? ''),
-      translation_ca:               String(s.translation_ca   ?? ''),
-      translation_en:               String(s.translation_en   ?? ''),
-      is_private:                   false,
-      private_user_id:              null,
-    }))
-
-    const { error: insertError } = await service.from('grammar_sentences').insert(rows)
+    // 8. Insert and clear any prior error
+    const { error: insertError } = await service.from('grammar_sentences').insert(result.rows)
     if (insertError) {
       await upsertError(service, next.id, `Insert error: ${insertError.message}`, false)
       return NextResponse.json({ status: 'retry', grammar_id: next.id, error: insertError.message, retry_after_ms: 5_000 })
     }
 
-    // 11. Clear error on success
     await service.from('grammar_seed_errors').delete().eq('grammar_id', next.id)
 
     return NextResponse.json({
       status: 'done',
       grammar_id: next.id,
-      sentences_added: rows.length,
-      new_count: currentCount + rows.length,
-      model_used: usedModel,
+      sentences_added: result.rows.length,
+      new_count: currentCount + result.rows.length,
+      model_used: result.usedModel,
     })
   } catch (e) {
     return adminJsonError(e)

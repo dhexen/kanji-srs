@@ -83,9 +83,20 @@ export function buildRubyTokens(text: string, reading: string): RubyToken[] {
   return tokens
 }
 
-/** Renders a Japanese string with ruby furigana above kanji. */
-export function RubyText({ text, reading }: { text: string; reading: string }) {
-  const tokens = buildRubyTokens(text, reading)
+/**
+ * Renders a Japanese string with ruby furigana above kanji.
+ *
+ * When `segments` (per-token `{ t, f? }` from the generator) are provided, they
+ * are rendered directly — furigana sits exactly over each kanji group, with no
+ * alignment guesswork. Otherwise it falls back to the `buildRubyTokens`
+ * heuristic over the flat `reading` (legacy sentences).
+ */
+export function RubyText(
+  { text, reading, segments }: { text: string; reading: string; segments?: { t: string; f?: string }[] },
+) {
+  const tokens: RubyToken[] = (segments && segments.length > 0)
+    ? segments.map(s => ({ base: s.t, ruby: s.f }))
+    : buildRubyTokens(text, reading)
   return (
     <>
       {tokens.map((tok, i) =>

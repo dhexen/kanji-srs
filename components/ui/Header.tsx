@@ -62,6 +62,7 @@ export default function Header() {
       { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario' },
       { href: '/admin?tab=images', icon: '✨', label: 'Clasificación e imágenes' },
       { href: '/admin/seed-grammar', icon: '🌱', label: 'Frases de gramática' },
+      { href: '/admin/grammar-refresh', icon: '🔄', label: 'Renovación de frases' },
     ] },
     { title: 'Revisión', items: [
       { href: '/admin?tab=feedback', icon: '🐛', label: 'Reportes y feedback' },

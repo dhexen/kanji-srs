@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import GrammarSeedClient from '@/components/admin/GrammarSeedClient'
 import AdminEnrichJlpt from '@/components/admin/AdminEnrichJlpt'
+import AdminGenerateSchemes from '@/components/admin/AdminGenerateSchemes'
 
 export const metadata = { title: 'Generar frases de gramática' }
 
@@ -19,6 +20,9 @@ export default function GrammarSeedPage() {
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
           <AdminEnrichJlpt />
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
+          <AdminGenerateSchemes />
         </div>
       </div>
     </div>

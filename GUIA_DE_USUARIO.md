@@ -155,6 +155,10 @@ Aquí puedes practicar los puntos gramaticales de Minna no Nihongo (libros 1, 2 
 
 En la cabecera hay un selector **"Minna no Nihongo / JLPT"** para cambiar entre las dos fuentes.
 
+#### Esquema de conjugación
+
+La ficha de cada punto de gramática puede mostrar, debajo de la explicación, un **esquema de uso y conjugación** en dos tablas: **Cómo se usa** (a qué se une: verbo, adjetivo い/な o sustantivo) y **Formas** (no pasado, negativo, pasado, forma て…). Las etiquetas están traducidas a tu idioma (castellano, catalán o inglés).
+
 #### Sección JLPT
 
 La sección **JLPT** reúne cientos de puntos gramaticales agrupados por nivel (N5 a N1). Puedes consultarlos, marcarlos como conocidos y practicarlos igual que el resto, con una explicación ampliada y varios ejemplos por punto.
@@ -228,11 +232,15 @@ Para generar las frases de práctica, la app necesita conectarse a Google Gemini
 
 Aprende los dos silabarios japoneses: **hiragana** y **katakana**. Cada uno tiene 46 caracteres básicos.
 
+> **¿Empiezas de cero?** Si todavía no tienes vocabulario, el dashboard te mostrará un aviso para venir aquí primero. En la parte superior de esta sección hay una introducción desplegable (**"¿Cómo funciona la escritura japonesa?"**) que explica qué son el hiragana, el katakana y el kanji, y cómo se combinan para formar las palabras. Sin saber leer kana no podrás avanzar con el vocabulario.
+
 Hay dos modos:
 - **Aprender** — Tarjetas con imagen mnemotécnica para memorizar cada carácter
 - **Test** — Ejercicios para comprobar que los recuerdas
 
 Se recomienda aprender primero el hiragana completo y luego el katakana.
+
+**Tu progreso se guarda:** cada carácter se marca como aprendido al verlo en el modo guiado o al acertarlo en el test. En la parte superior verás una **barra de progreso** por silabario (hiragana y katakana), y queda guardado en tu cuenta (lo recuperas en cualquier dispositivo).
 
 ---
 

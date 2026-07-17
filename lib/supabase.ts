@@ -1533,6 +1533,25 @@ export async function setGrammarKnown(grammarId: string, known: boolean): Promis
 // ---------------------------------------------------------------------------
 
 import type { JlptDetail, JlptStatus } from './grammar-bunpro'
+import type { GrammarScheme } from './grammar-srs'
+
+/** Conjugation/usage scheme for a grammar point. Null if none stored yet. */
+export async function fetchGrammarScheme(pointId: string): Promise<GrammarScheme | null> {
+  try {
+    const { data, error } = await supabase
+      .from('grammar_schemes')
+      .select('scheme')
+      .eq('point_id', pointId)
+      .maybeSingle()
+    if (error || !data) return null
+    const s = (data as { scheme: unknown }).scheme as Partial<GrammarScheme> | null
+    if (!s || typeof s !== 'object') return null
+    const formation = Array.isArray(s.formation) ? s.formation : []
+    const conjugations = Array.isArray(s.conjugations) ? s.conjugations : []
+    if (formation.length === 0 && conjugations.length === 0) return null
+    return { formation, conjugations }
+  } catch { return null }
+}
 
 /** AI-enriched explanation + examples per JLPT point. Empty Map if unavailable. */
 export async function fetchJlptDetails(): Promise<Map<string, JlptDetail>> {
@@ -1568,6 +1587,38 @@ export async function fetchJlptProgress(): Promise<Map<string, JlptStatus>> {
     for (const r of (data ?? []) as Array<{ point_id: string; status: JlptStatus }>) map.set(r.point_id, r.status)
     return map
   } catch { return new Map() }
+}
+
+// ---------------------------------------------------------------------------
+// Kana progress — which hiragana/katakana characters the user has learned
+// ---------------------------------------------------------------------------
+
+/** Set of kana characters the user has learned. Empty if unavailable. */
+export async function fetchKanaProgress(): Promise<Set<string>> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_kana_progress')
+      .select('kana')
+      .eq('user_id', user.id)
+    if (error) { console.warn('kana progress:', error.message); return new Set() }
+    return new Set((data ?? []).map((r: { kana: string }) => r.kana))
+  } catch {
+    return new Set()
+  }
+}
+
+/** Mark one or more kana characters as learned (idempotent upsert). */
+export async function markKanaLearned(items: { kana: string; script: string }[]): Promise<void> {
+  if (items.length === 0) return
+  try {
+    const user = await requireUser()
+    const rows = items.map(i => ({ user_id: user.id, kana: i.kana, script: i.script }))
+    const { error } = await supabase
+      .from('user_kana_progress')
+      .upsert(rows, { onConflict: 'user_id,kana', ignoreDuplicates: true })
+    if (error) console.error('markKanaLearned:', error.message)
+  } catch (e) { console.error('markKanaLearned:', e) }
 }
 
 /** Upsert (or clear, when status === null) a single JLPT point's progress. */
@@ -1609,17 +1660,27 @@ export async function fetchGrammarSentences(grammarId: string): Promise<GrammarS
     // Filter out legacy sentences where the answer contains kanji —
     // these were generated before the prompt fix and have content words in the answer.
     const KANJI_RE = /[一-鿿㐀-䶿]/
+    const parseSegs = (v: unknown) => Array.isArray(v)
+      ? (v as unknown[]).filter(x => x && typeof (x as { t?: unknown }).t === 'string')
+          .map(x => { const o = x as { t: string; f?: unknown }; return o.f ? { t: o.t, f: String(o.f) } : { t: o.t } })
+      : []
     return (data ?? [])
       .map(r => ({
         id: r.id,
         grammar_id: r.grammar_id,
         sentence_before: r.sentence_before ?? '',
         sentence_before_reading: r.sentence_before_reading ?? '',
+        sentence_before_segments: parseSegs(r.sentence_before_segments),
         sentence_before_alts: Array.isArray(r.sentence_before_alts) ? r.sentence_before_alts : [],
         sentence_before_reading_alts: Array.isArray(r.sentence_before_reading_alts) ? r.sentence_before_reading_alts : [],
         sentence_after: r.sentence_after ?? '',
         sentence_after_reading: r.sentence_after_reading ?? '',
+        sentence_after_segments: parseSegs(r.sentence_after_segments),
         answer: r.answer ?? '',
+        answer_hint: Array.isArray(r.answer_hint)
+          ? (r.answer_hint as unknown[]).filter(x => x && typeof (x as { w?: unknown }).w === 'string')
+              .map(x => { const o = x as { w: string; r?: unknown }; return o.r ? { w: o.w, r: String(o.r) } : { w: o.w } })
+          : [],
         answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
         translation_es: r.translation_es ?? '',
         translation_ca: r.translation_ca ?? '',
@@ -1674,12 +1735,15 @@ export async function saveGrammarSentences(
       grammar_id: grammarId,
       sentence_before: s.sentence_before,
       sentence_before_reading: s.sentence_before_reading,
+      sentence_before_segments: s.sentence_before_segments ?? [],
       sentence_before_alts: s.sentence_before_alts ?? [],
       sentence_before_reading_alts: s.sentence_before_reading_alts ?? [],
       sentence_after: s.sentence_after,
       sentence_after_reading: s.sentence_after_reading,
+      sentence_after_segments: s.sentence_after_segments ?? [],
       answer: s.answer,
       answer_alts: s.answer_alts,
+      answer_hint: s.answer_hint ?? [],
       translation_es: s.translation_es,
       translation_ca: s.translation_ca,
       translation_en: s.translation_en,
@@ -1733,11 +1797,13 @@ export async function trimGrammarSentencesPool(
 
     const excess = count - maxSize
 
-    // 2. Fetch the IDs of the oldest `excess` sentences
+    // 2. Fetch the IDs of the oldest `excess` UNVALIDATED sentences.
+    //    Teacher-validated sentences are never trimmed — they stay permanently.
     const { data, error: fetchErr } = await supabase
       .from('grammar_sentences')
       .select('id')
       .eq('grammar_id', grammarId)
+      .eq('validated', false)
       .order('created_at', { ascending: true })
       .limit(excess)
 

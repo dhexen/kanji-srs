@@ -101,6 +101,11 @@ export async function POST(req: NextRequest) {
       await service.from('grammar_seed_errors').delete().eq('is_permanent', true)
     } else if (action === 'clear_all_errors') {
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
+    } else if (action === 'wipe_sentences') {
+      // Regenerate the pool from scratch, but NEVER delete teacher-validated
+      // sentences — those are permanent (only unvalidated ones are wiped).
+      await service.from('grammar_sentences').delete().eq('validated', false)
+      await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     }
 
     return NextResponse.json({ ok: true })

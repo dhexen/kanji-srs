@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { toHiragana, toKatakana, toRomaji } from 'wanakana'
 import type { KanaScript, KanaTestItem } from '@/lib/kana-data'
 import { getSyllableItems, getWordItems, normalizeRomaji } from '@/lib/kana-data'
+import type { OnLearned } from './KanaClient'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -220,11 +221,13 @@ function QuizSession({
   testType,
   script,
   onFinish,
+  onLearned,
 }: {
   questions: Question[]
   testType: TestType
   script: KanaScript
   onFinish: (correct: number, total: number) => void
+  onLearned?: OnLearned
 }) {
   const [idx, setIdx] = useState(0)
   const [quizState, setQuizState] = useState<QuizState>({ phase: 'unanswered' })
@@ -238,9 +241,13 @@ function QuizSession({
     const isCorrect = testType === 'kana-to-romaji'
       ? romajiMatches(given, target.romaji)
       : kanaMatches(given, target.kana)
-    if (isCorrect) setScore(s => s + 1)
+    if (isCorrect) {
+      setScore(s => s + 1)
+      // A correct single-kana answer counts as learning that character.
+      if (target.kind === 'syllable') onLearned?.([{ kana: target.kana, script }])
+    }
     setQuizState({ phase: 'answered', given, isCorrect })
-  }, [question, testType])
+  }, [question, testType, script, onLearned])
 
   const handleNext = () => {
     if (isLast) {
@@ -364,7 +371,7 @@ const CONTENT_MIXES: Array<{ mix: ContentMix; label: string; desc: string }> = [
   { mix: 'words',     label: 'Solo palabras', desc: 'つくえ, みず…' },
 ]
 
-export default function KanaTest({ script }: { script: KanaScript }) {
+export default function KanaTest({ script, onLearned }: { script: KanaScript; onLearned?: OnLearned }) {
   const [testType, setTestType] = useState<TestType>('kana-to-romaji')
   const [contentMix, setContentMix] = useState<ContentMix>('mixed')
   const [questionCount, setCount] = useState(20)
@@ -473,7 +480,7 @@ export default function KanaTest({ script }: { script: KanaScript }) {
         >
           ← Salir del test
         </button>
-        <QuizSession questions={questions} testType={testType} script={script} onFinish={handleFinish} />
+        <QuizSession questions={questions} testType={testType} script={script} onFinish={handleFinish} onLearned={onLearned} />
       </div>
     )
   }

@@ -26,9 +26,11 @@ interface JobState {
 const TARGET = 25
 const STEP_DELAY_MS = 5_000
 
+// Approximate free-tier daily request caps (for the local usage gauge only;
+// real limits are dynamic in Google AI Studio).
 const MODEL_LIMITS: Record<string, number> = {
   'gemini-3.1-flash-lite-preview': 500,
-  'gemini-3.1-flash-preview': 500,
+  'gemini-2.5-flash-lite': 1000,
   'gemini-2.5-flash': 20,
 }
 const ALL_MODELS = Object.keys(MODEL_LIMITS)
@@ -267,6 +269,17 @@ export default function GrammarSeedClient() {
     })
   }
 
+  async function handleWipeSentences() {
+    if (!confirm('¿Borrar las frases generadas para regenerarlas desde cero? Las frases VALIDADAS por profesor se conservan (nunca se borran). No se puede deshacer.')) return
+    const token = await getToken()
+    await fetch('/api/admin/seed-grammar', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'wipe_sentences' }),
+    })
+    await fetchState()
+  }
+
   if (loading) return <div className="p-8 text-slate-500">Cargando…</div>
   if (!state) return <div className="p-8 text-red-500">Error al cargar datos.</div>
 
@@ -346,6 +359,15 @@ export default function GrammarSeedClient() {
               className="px-3 py-1.5 text-sm rounded border border-red-200 text-red-600 hover:bg-red-50"
             >
               Reintentar permanentes ({permErrors})
+            </button>
+          )}
+          {!state.running && (
+            <button
+              onClick={handleWipeSentences}
+              className="px-3 py-1.5 text-sm rounded border border-red-300 text-red-700 hover:bg-red-50"
+              title="Borra todas las frases para regenerarlas desde cero"
+            >
+              🗑 Borrar y regenerar todo
             </button>
           )}
           {state.running ? (
