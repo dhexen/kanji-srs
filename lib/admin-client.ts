@@ -223,6 +223,16 @@ export async function updateVocabWord(
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
+/** Rejects a pending student proposal: stays personal to whoever created it, never shown again in the review queue. */
+export async function rejectVocabWord(word: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/admin/vocab/${encodeURIComponent(word)}`, {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ action: 'reject' }),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
 export interface FillFullWordResult {
   updated: number
   with_kanji: number

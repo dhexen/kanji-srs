@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
-import { fetchAllVocabByGrade, fetchAllVocab, searchVocabGlossary, FullVocabEntry } from '@/lib/supabase'
-import { deleteVocabWord, updateVocabWord, addVocabWord, runFillAdjectives } from '@/lib/admin-client'
+import { fetchAllVocabByGrade, fetchAllVocab, searchVocabGlossary, fetchPendingVocabWords, proposeVocabWord, FullVocabEntry } from '@/lib/supabase'
+import { deleteVocabWord, updateVocabWord, addVocabWord, rejectVocabWord, runFillAdjectives } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 import { VocabItem, ALL_REVIEW_MODES, getModeLevelAndDue, SRS_MAX_LEVEL } from '@/lib/srs'
@@ -33,10 +34,45 @@ function detectKanji(str: string): string[] {
 }
 
 export default function VocabGlossary() {
-  const { state } = useStore()
+  const { state, addVocabItems } = useStore()
+  const searchParams = useSearchParams()
   const lang = state.lang
   const isAdmin    = state.role === 'admin'
   const canEdit    = state.role === 'admin' || state.role === 'contributor'
+
+  // Pending-review queue (admin/contributor only)
+  const [pendingWords, setPendingWords]   = useState<FullVocabEntry[]>([])
+  const [showPending, setShowPending]     = useState(false)
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [reviewingWord, setReviewingWord] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!canEdit) return
+    setPendingLoading(true)
+    fetchPendingVocabWords()
+      .then(setPendingWords)
+      .catch(() => setPendingWords([]))
+      .finally(() => setPendingLoading(false))
+  }, [canEdit])
+
+  useEffect(() => {
+    if (canEdit && searchParams.get('filter') === 'pending') setShowPending(true)
+  }, [canEdit, searchParams])
+
+  async function reviewPending(w: FullVocabEntry, approve: boolean) {
+    if (reviewingWord) return
+    setReviewingWord(w.word)
+    try {
+      if (approve) await updateVocabWord(w.word, { is_official: true })
+      else await rejectVocabWord(w.word)
+      setPendingWords(prev => prev.filter(p => p.word !== w.word))
+      showToast(approve ? t(lang, 'glossary_promoted') : t(lang, 'vocab_proposal_rejected'), 'success')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setReviewingWord(null)
+    }
+  }
 
   const [grade, setGrade] = useState(0)  // 0 = all grades
   const [words, setWords] = useState<FullVocabEntry[]>([])
@@ -85,6 +121,8 @@ export default function VocabGlossary() {
   const [addError,      setAddError]          = useState('')
   // Pre-selected kanji for the "+" icon inside a kanji section (hint only)
   const [addHintKanji,  setAddHintKanji]      = useState('')
+  // Non-staff only: "propose as official" checkbox — checked by default
+  const [addPromote,    setAddPromote]        = useState(true)
 
   // Promote/demote state
   const [promotingWord, setPromotingWord] = useState<string | null>(null)
@@ -212,6 +250,7 @@ export default function VocabGlossary() {
     setAddMeaningEn('')
     setAddError('')
     setAddHintKanji(hintKanji)
+    setAddPromote(true)
     setShowAddModal(true)
   }
 
@@ -226,36 +265,53 @@ export default function VocabGlossary() {
     setAddSaving(true)
     setAddError('')
     try {
-      const result = await addVocabWord({
-        word: trimWord, reading: trimReading, meaning_es: trimEs,
-        meaning_ca: addMeaningCa.trim() || undefined,
-        meaning_en: addMeaningEn.trim() || undefined,
-      })
-      // Add new entries to local state for the current grade view
-      const newEntries: FullVocabEntry[] = result.kanjis
-        .filter(k => k.grade === grade)
-        .map(k => ({
-          word: trimWord,
-          kanji: k.kanji,
-          reading: trimReading,
-          meaning_es: trimEs,
-          meaning_ca: addMeaningCa.trim() || null,
-          meaning_en: addMeaningEn.trim() || null,
-          is_official: false,
-          sort_order: 99999,
-          word_type: null,
-          category: null,
-          grade: k.grade ?? null,
-          image_url: null,
-          reading_segments: null,
-        }))
-      if (newEntries.length > 0) {
-        setWords(prev => [...prev, ...newEntries])
+      if (canEdit) {
+        // Admin/contributor: published directly as official.
+        const result = await addVocabWord({
+          word: trimWord, reading: trimReading, meaning_es: trimEs,
+          meaning_ca: addMeaningCa.trim() || undefined,
+          meaning_en: addMeaningEn.trim() || undefined,
+        })
+        const newEntries: FullVocabEntry[] = result.kanjis
+          .filter(k => k.grade === grade)
+          .map(k => ({
+            word: trimWord,
+            kanji: k.kanji,
+            reading: trimReading,
+            meaning_es: trimEs,
+            meaning_ca: addMeaningCa.trim() || null,
+            meaning_en: addMeaningEn.trim() || null,
+            is_official: true,
+            sort_order: 99999,
+            word_type: null,
+            category: null,
+            grade: k.grade ?? null,
+            image_url: null,
+            reading_segments: null,
+            promotion_status: 'promoted',
+            added_by: null,
+          }))
+        if (newEntries.length > 0) setWords(prev => [...prev, ...newEntries])
+        showToast(t(lang, 'glossary_add_success').replace('{n}', String(result.count)), 'success')
+      } else {
+        // Regular user: proposes the word, optionally into the review queue.
+        const result = await proposeVocabWord({
+          word: trimWord, reading: trimReading, meaning_es: trimEs, promote: addPromote,
+        })
+        if (result.count > 0) {
+          await addVocabItems([{
+            kanji: result.kanjis[0]?.kanji ?? '',
+            jp: trimWord, reading: trimReading, meaning: trimEs,
+            srsLevel: 1, due: Date.now(), status: 'active',
+          }])
+        }
+        showToast(
+          addPromote
+            ? t(lang, 'vocab_proposal_sent')
+            : t(lang, 'vocab_proposal_personal'),
+          'success',
+        )
       }
-      showToast(
-        t(lang, 'glossary_add_success').replace('{n}', String(result.count)),
-        'success',
-      )
       setShowAddModal(false)
     } catch (e: unknown) {
       setAddError(e instanceof Error ? e.message : 'Error añadiendo la palabra')
@@ -425,8 +481,22 @@ export default function VocabGlossary() {
           </button>
         )}
 
-        {/* Add word button (admin + contributor) */}
+        {/* Pending proposals queue (admin + contributor) */}
         {canEdit && (
+          <button
+            onClick={() => setShowPending(v => !v)}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all shrink-0 ${
+              showPending
+                ? 'bg-amber-500 border-amber-500 text-white'
+                : 'bg-white dark:bg-slate-800 border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 hover:bg-amber-50'
+            }`}
+          >
+            🕐 {t(lang, 'vocab_pending_tab')} ({pendingWords.length})
+          </button>
+        )}
+
+        {/* Add word button (any logged-in user — students propose, staff publish directly) */}
+        {state.user && (
           <button
             onClick={() => openAddModal()}
             className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
@@ -438,6 +508,52 @@ export default function VocabGlossary() {
           </button>
         )}
       </div>
+
+      {/* Pending proposals queue (admin + contributor) */}
+      {canEdit && showPending && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-amber-200 dark:border-amber-800/50 shadow-sm overflow-hidden">
+          <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-900/30">
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+              🕐 {t(lang, 'vocab_pending_title')}
+            </p>
+          </div>
+          {pendingLoading ? (
+            <p className="text-center text-slate-400 py-8 text-sm">{t(lang, 'glossary_loading')}</p>
+          ) : pendingWords.length === 0 ? (
+            <p className="text-center text-slate-400 py-8 text-sm">{t(lang, 'vocab_pending_empty')}</p>
+          ) : (
+            <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+              {pendingWords.map(w => (
+                <div key={`${w.word}-${w.kanji}`} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className="kanji-font text-base font-bold text-slate-800 dark:text-slate-100 leading-none min-w-[3.5rem] shrink-0">
+                    {w.word}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-lg font-medium min-w-[4rem] text-center shrink-0">
+                    {w.reading}
+                  </span>
+                  <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 leading-snug min-w-0">
+                    {meaning(w)}
+                  </span>
+                  <button
+                    onClick={() => reviewPending(w, true)}
+                    disabled={reviewingWord === w.word}
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-40"
+                  >
+                    {reviewingWord === w.word ? '…' : `✓ ${t(lang, 'glossary_promote_btn')}`}
+                  </button>
+                  <button
+                    onClick={() => reviewPending(w, false)}
+                    disabled={reviewingWord === w.word}
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 transition disabled:opacity-40"
+                  >
+                    ✗ {t(lang, 'vocab_reject_btn')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Fill adjectives result */}
       {fillAdjMsg && (
@@ -508,7 +624,7 @@ export default function VocabGlossary() {
                     {kanjiWords.length} {t(lang, 'study_words')}
                   </span>
                   {/* Per-kanji add word button */}
-                  {canEdit && (
+                  {state.user && (
                     <button
                       onClick={() => openAddModal(kanji)}
                       title={t(lang, 'glossary_add_btn')}
@@ -574,11 +690,21 @@ export default function VocabGlossary() {
                         </span>
                       )}
 
-                      {/* Unofficial badge + promote button */}
+                      {/* Unofficial badge (per promotion status) + promote button */}
                       {!w.is_official && (
                         <span className="flex items-center gap-1 shrink-0">
-                          <span className="text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 px-1.5 py-0.5 rounded">
-                            {t(lang, 'vocab_unofficial')}
+                          <span className={`text-xs font-medium border px-1.5 py-0.5 rounded ${
+                            w.promotion_status === 'pending'
+                              ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700/50'
+                              : w.promotion_status === 'rejected'
+                              ? 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-700/50'
+                              : 'text-slate-500 bg-slate-50 dark:bg-slate-700/40 border-slate-200 dark:border-slate-600'
+                          }`}>
+                            {w.promotion_status === 'pending'
+                              ? `🕐 ${t(lang, 'vocab_pending_tab')}`
+                              : w.promotion_status === 'rejected'
+                              ? `✗ ${t(lang, 'vocab_reject_btn')}`
+                              : `👤 ${t(lang, 'vocab_unofficial')}`}
                           </span>
                           {canEdit && (
                             <button
@@ -822,15 +948,33 @@ export default function VocabGlossary() {
               </button>
             </div>
 
-            {/* Note: non-official */}
-            <p className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
-              📝{' '}
-              {lang === 'en'
-                ? 'The word will be added as unofficial and will be visible to all users. Admins and contributors can promote it to official.'
-                : lang === 'ca'
-                ? "La paraula s'afegirà com a no oficial i serà visible per a tots els usuaris. Admins i contribuïdors poden promoure-la a oficial."
-                : 'La palabra se añadirá como no oficial y será visible para todos los usuarios. Admins y contribuidores pueden promoverla a oficial.'}
-            </p>
+            {/* Note: differs for staff vs regular users */}
+            {canEdit ? (
+              <p className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
+                📝 {lang === 'en'
+                  ? 'The word will be published directly as official, visible to everyone.'
+                  : lang === 'ca'
+                  ? "La paraula es publicarà directament com a oficial, visible per a tothom."
+                  : 'La palabra se publicará directamente como oficial, visible para todo el mundo.'}
+              </p>
+            ) : (
+              <>
+                <p className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
+                  📝 {t(lang, 'vocab_propose_note')}
+                </p>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={addPromote}
+                    onChange={e => setAddPromote(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded accent-emerald-600"
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                    {t(lang, 'vocab_propose_checkbox')}
+                  </span>
+                </label>
+              </>
+            )}
 
             {/* Word input */}
             <div className="space-y-1">

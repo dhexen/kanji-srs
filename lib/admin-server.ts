@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import type { VocabItem } from './srs'
+import { MODE_CONFIG, migrateItem, type VocabItem } from './srs'
 import { vocabItemToRow, UPSERT_CHUNK_SIZE } from './progress'
 
 export class AdminApiError extends Error {
@@ -8,6 +8,54 @@ export class AdminApiError extends Error {
     super(message)
     this.status = status
   }
+}
+
+/** Builds the VocabItem for a freshly-promoted word landing in a student's SRS:
+ *  level 1 in every mode, due immediately — same shape as QuickAddPanel's own
+ *  "add new word" flow, just replicated server-side for the bulk fan-out. */
+function newlyPromotedItem(kanji: string, jp: string, reading: string, meaning: string): VocabItem {
+  const now = Date.now()
+  const base: VocabItem = { kanji, jp, reading, meaning, srsLevel: 1, due: now, status: 'active' }
+  Object.values(MODE_CONFIG).forEach(cfg => {
+    ;(base as unknown as Record<string, number>)[`${cfg.key}_level`] = 0
+    ;(base as unknown as Record<string, number>)[`${cfg.key}_due`] = now
+  })
+  return migrateItem(base)
+}
+
+/**
+ * When a word becomes official, every student who already has at least one of
+ * its kanji active gets it added to their own review queue automatically
+ * (unless they already have that exact word some other way).
+ */
+export async function fanOutToStudents(
+  service: SupabaseClient,
+  word: string,
+  kanjis: string[],
+  reading: string,
+  meaningEs: string,
+) {
+  if (kanjis.length === 0) return
+
+  const { data: kanjiRows } = await service
+    .from('user_vocab_progress')
+    .select('user_id')
+    .in('kanji', kanjis)
+  const candidateIds = [...new Set((kanjiRows ?? []).map((r: { user_id: string }) => r.user_id))]
+  if (candidateIds.length === 0) return
+
+  const { data: alreadyHaveRows } = await service
+    .from('user_vocab_progress')
+    .select('user_id')
+    .eq('jp', word)
+    .in('user_id', candidateIds)
+  const alreadyHave = new Set((alreadyHaveRows ?? []).map((r: { user_id: string }) => r.user_id))
+  const targetIds = candidateIds.filter(id => !alreadyHave.has(id))
+  if (targetIds.length === 0) return
+
+  const item = newlyPromotedItem(kanjis[0], word, reading, meaningEs)
+  const rows = targetIds.map(uid => vocabItemToRow(uid, item))
+  await service.from('user_vocab_progress').upsert(rows, { onConflict: 'user_id,jp', ignoreDuplicates: true })
 }
 
 export function createServiceClient() {

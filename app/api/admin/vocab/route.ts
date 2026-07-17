@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, requireEditorRole, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { requireAdmin, requireEditorRole, adminJsonError, AdminApiError, fanOutToStudents } from '@/lib/admin-server'
 
 // Regex matching CJK Unified Ideographs (kanji)
 const KANJI_RE = /[\u4e00-\u9fff\u3400-\u4dbf]/gu
@@ -15,7 +15,7 @@ const KANJI_RE = /[\u4e00-\u9fff\u3400-\u4dbf]/gu
  */
 export async function POST(request: NextRequest) {
   try {
-    const { service } = await requireEditorRole(request)
+    const { service, userId } = await requireEditorRole(request)
     const body = await request.json()
 
     const word     = (body.word     ?? '').trim()
@@ -59,9 +59,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Insert one row per matching kanji (skip if duplicate word+kanji)
+    // 3. Insert one row per matching kanji (skip if duplicate word+kanji).
+    // Admin/contributor words are published directly (no review queue) —
+    // ordered right after the existing official curriculum for that kanji.
     const insertedKanjis: Array<{ kanji: string; grade: number }> = []
     for (const [kanji, grade] of kanjiGradeMap) {
+      const { data: maxRow } = await service
+        .from('vocabulary')
+        .select('sort_order')
+        .eq('kanji', kanji)
+        .eq('is_official', true)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const baseOrder = (maxRow?.sort_order ?? 0) < 90000 ? (maxRow?.sort_order ?? 0) : 0
+
       const { error: insErr } = await service.from('vocabulary').insert({
         word,
         kanji,
@@ -70,8 +82,11 @@ export async function POST(request: NextRequest) {
         meaning_ca: meaningCa,
         meaning_en: meaningEn,
         grade,
-        is_official: false,
-        sort_order: 99999,
+        is_official: true,
+        sort_order: baseOrder + 1000,
+        promotion_status: 'promoted',
+        promoted_by: userId,
+        promoted_at: new Date().toISOString(),
       })
 
       if (insErr?.code === '23505') {
@@ -88,6 +103,9 @@ export async function POST(request: NextRequest) {
         409,
       )
     }
+
+    // Published directly as official — give it to students who already study these kanjis.
+    await fanOutToStudents(service, word, insertedKanjis.map(k => k.kanji), reading, meaningEs)
 
     return NextResponse.json({ ok: true, kanjis: insertedKanjis, count: insertedKanjis.length })
   } catch (e) {

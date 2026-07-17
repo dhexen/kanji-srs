@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, requireEditorRole, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { requireAdmin, requireEditorRole, adminJsonError, AdminApiError, fanOutToStudents } from '@/lib/admin-server'
 
 /**
  * DELETE /api/admin/vocab/[word]
@@ -55,11 +55,21 @@ export async function PATCH(
   { params }: { params: { word: string } },
 ) {
   try {
-    const { service } = await requireEditorRole(request)
+    const { service, userId } = await requireEditorRole(request)
     const word = decodeURIComponent(params.word)
     if (!word) throw new AdminApiError('Palabra requerida', 400)
 
     const body = await request.json()
+
+    // ── Reject a pending proposal: stays personal to whoever created it ──
+    if (body.action === 'reject') {
+      const { error } = await service
+        .from('vocabulary')
+        .update({ promotion_status: 'rejected' })
+        .eq('word', word)
+      if (error) throw new AdminApiError(error.message, 500)
+      return NextResponse.json({ ok: true })
+    }
 
     // ── Handle is_official promotion/demotion separately (needs per-kanji logic) ──
     if (typeof body.is_official === 'boolean') {
@@ -67,11 +77,12 @@ export async function PATCH(
         // Promote: find the kanji rows for this word, recalculate sort_order per kanji
         const { data: wordRows, error: rowsErr } = await service
           .from('vocabulary')
-          .select('kanji')
+          .select('kanji, reading, meaning_es')
           .eq('word', word)
         if (rowsErr) throw new AdminApiError(rowsErr.message, 500)
+        if (!wordRows || wordRows.length === 0) throw new AdminApiError('Palabra no encontrada', 404)
 
-        for (const row of wordRows ?? []) {
+        for (const row of wordRows) {
           // Max sort_order among OFFICIAL words for this kanji (excluding the word being promoted)
           const { data: maxRow } = await service
             .from('vocabulary')
@@ -91,17 +102,33 @@ export async function PATCH(
 
           const { error: upErr } = await service
             .from('vocabulary')
-            .update({ is_official: true, sort_order: newOrder })
+            .update({
+              is_official: true,
+              sort_order: newOrder,
+              promotion_status: 'promoted',
+              promoted_by: userId,
+              promoted_at: new Date().toISOString(),
+            })
             .eq('word', word)
             .eq('kanji', row.kanji)
           if (upErr) throw new AdminApiError(upErr.message, 500)
         }
+
+        // Give the word to every student who already studies one of its kanjis.
+        await fanOutToStudents(
+          service,
+          word,
+          wordRows.map(r => r.kanji),
+          wordRows[0].reading,
+          wordRows[0].meaning_es,
+        )
+
         return NextResponse.json({ ok: true })
       } else {
         // Demote back to non-official
         const { error } = await service
           .from('vocabulary')
-          .update({ is_official: false, sort_order: 99999 })
+          .update({ is_official: false, sort_order: 99999, promotion_status: 'personal' })
           .eq('word', word)
         if (error) throw new AdminApiError(error.message, 500)
         return NextResponse.json({ ok: true })

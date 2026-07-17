@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { getPendingCount, ALL_REVIEW_MODES } from '@/lib/srs'
 import { t } from '@/lib/i18n'
-import { fetchKnownGrammar } from '@/lib/supabase'
+import { fetchKnownGrammar, fetchPendingVocabCount } from '@/lib/supabase'
 import { useSidebar } from '@/lib/sidebar-context'
 import FeedbackModal from './FeedbackModal'
 import LevelWidget from '@/components/progression/LevelWidget'
@@ -87,6 +87,7 @@ function NavInner() {
   const lang = state.lang
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [knownGrammarCount, setKnownGrammarCount] = useState(-1)
+  const [pendingVocabCount, setPendingVocabCount] = useState(0)
   const sidebarRef = useRef<HTMLElement>(null)
 
   // Close sidebar when navigating
@@ -120,6 +121,13 @@ function NavInner() {
     if (!state.user) { setKnownGrammarCount(0); return }
     fetchKnownGrammar().then(s => setKnownGrammarCount(s.size)).catch(() => setKnownGrammarCount(0))
   }, [state.user])
+
+  // Pending vocab proposals — only relevant to admin/contributor, who don't
+  // have another shared "you have something to review" surface for this.
+  useEffect(() => {
+    if (!isStaff) { setPendingVocabCount(0); return }
+    fetchPendingVocabCount().then(setPendingVocabCount).catch(() => setPendingVocabCount(0))
+  }, [isStaff, pathname])
 
   useEffect(() => {
     if (!state.user || !pathname.startsWith('/grammar')) return
@@ -214,7 +222,7 @@ function NavInner() {
         />
         <NavItem
           href="/vocabulary" icon="📚" label={stripEmoji(t(lang, 'nav_vocabulary'))}
-          badge={0} tutorialId="nav-vocabulary"
+          badge={isStaff ? pendingVocabCount : 0} tutorialId="nav-vocabulary"
           progress={hasActiveVocab ? vocabPct : null}
           pathname={pathname} onNavigate={refreshData}
         />

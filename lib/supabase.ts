@@ -1010,11 +1010,13 @@ export interface FullVocabEntry {
   grade: number | null
   image_url: string | null
   reading_segments: FuriSegment[] | null
+  promotion_status: 'personal' | 'pending' | 'promoted' | 'rejected'
+  added_by: string | null
 }
 
 // NB: reading_segments is fetched on demand (fetchVocabReadingSegments) so a
 // missing column (migration 025 not applied) never breaks the glossary list.
-const FULL_VOCAB_COLUMNS = 'word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order, word_type, category, grade, image_url'
+const FULL_VOCAB_COLUMNS = 'word, kanji, reading, meaning_es, meaning_ca, meaning_en, is_official, sort_order, word_type, category, grade, image_url, promotion_status, added_by'
 
 function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
   return {
@@ -1031,6 +1033,8 @@ function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
     grade: (d.grade as number) ?? null,
     image_url: (d.image_url as string) ?? null,
     reading_segments: (d.reading_segments as FuriSegment[]) ?? null,
+    promotion_status: (d.promotion_status as FullVocabEntry['promotion_status']) ?? 'promoted',
+    added_by: (d.added_by as string) ?? null,
   }
 }
 
@@ -1227,39 +1231,102 @@ export async function getKanjiGrade(kanji: string): Promise<number | null> {
   return data?.grade ?? null
 }
 
-/** Inserts a user-submitted word into the shared vocabulary table as unofficial.
- *  Client-side limits mirror the DB RLS policy — the DB is the authoritative check. */
-export async function insertUnofficialVocab(entry: {
-  kanji: string
+// Regex matching CJK Unified Ideographs (kanji) — mirrors POST /api/admin/vocab
+const VOCAB_PROPOSE_KANJI_RE = /[一-鿿㐀-䶿]/gu
+
+export interface ProposeVocabResult {
+  count: number
+  kanjis: Array<{ kanji: string; grade: number }>
+}
+
+/**
+ * A regular user proposes a new word for the shared vocabulary — e.g. the
+ * weekly "class rep" adding words the class researched for a kanji they're
+ * already studying. Always inserted as non-official; `promote` decides
+ * whether it enters the review queue ('pending') or stays purely personal
+ * ('personal', visible only to its creator). One row is inserted per kanji
+ * character in `word` that already exists in the curriculum (its grade is
+ * looked up from there) — mirrors the multi-kanji split in POST /api/admin/vocab.
+ * Client-side checks mirror the DB RLS policy (035_vocab_promotion.sql) — the
+ * DB is the authoritative check.
+ */
+export async function proposeVocabWord(entry: {
   word: string
   reading: string
   meaning_es: string
-  grade: number
-}): Promise<void> {
-  const { kanji, word, reading, meaning_es } = entry
-  if (!kanji || kanji.trim().length < 1 || kanji.trim().length > 5)
-    throw new Error('El kanji debe tener entre 1 y 5 caracteres.')
-  if (!word || word.trim().length < 1 || word.trim().length > 20)
+  promote: boolean
+}): Promise<ProposeVocabResult> {
+  const word = entry.word.trim()
+  const reading = entry.reading.trim()
+  const meaning_es = entry.meaning_es.trim()
+  if (!word || word.length > 20)
     throw new Error('La palabra debe tener entre 1 y 20 caracteres.')
-  if (!reading || reading.trim().length < 1 || reading.trim().length > 50)
+  if (!reading || reading.length > 50)
     throw new Error('La lectura debe tener entre 1 y 50 caracteres.')
-  if (!meaning_es || meaning_es.trim().length < 1 || meaning_es.trim().length > 300)
+  if (!meaning_es || meaning_es.length > 300)
     throw new Error('El significado debe tener entre 1 y 300 caracteres.')
 
-  const { error } = await supabase.from('vocabulary').insert({
-    kanji: kanji.trim(),
-    word: word.trim(),
-    reading: reading.trim(),
-    meaning_es: meaning_es.trim(),
-    grade: entry.grade,
-    is_official: false,
-    sort_order: 99999,
-    // added_by y created_at los pone el trigger del servidor — no los enviamos desde el cliente
-  })
-  if (error?.code === '23505') return           // duplicado: ya existe, no es un error
-  if (error?.message?.includes('check_vocab_insert_rate'))
-    throw new Error('Has alcanzado el límite de 20 palabras nuevas en 24 horas. Inténtalo mañana.')
+  const kanjiChars = Array.from(new Set(word.match(VOCAB_PROPOSE_KANJI_RE) ?? []))
+  if (kanjiChars.length === 0)
+    throw new Error('La palabra no contiene ningún kanji reconocido.')
+
+  const { data: existing, error: queryErr } = await supabase
+    .from('vocabulary')
+    .select('kanji, grade')
+    .in('kanji', kanjiChars)
+  if (queryErr) throw queryErr
+
+  const kanjiGradeMap = new Map<string, number>()
+  for (const row of existing ?? []) {
+    if (!kanjiGradeMap.has(row.kanji) || (row.grade ?? 0) > (kanjiGradeMap.get(row.kanji) ?? 0)) {
+      kanjiGradeMap.set(row.kanji, row.grade)
+    }
+  }
+  if (kanjiGradeMap.size === 0) {
+    throw new Error(
+      `Ninguno de los kanjis de "${word}" existe todavía en el vocabulario (${kanjiChars.join(', ')}). ` +
+      'Solo se pueden proponer palabras de kanjis que ya estéis estudiando.',
+    )
+  }
+
+  const promotion_status = entry.promote ? 'pending' : 'personal'
+  const inserted: Array<{ kanji: string; grade: number }> = []
+  for (const [kanji, grade] of kanjiGradeMap) {
+    const { error } = await supabase.from('vocabulary').insert({
+      word, kanji, reading, meaning_es, grade,
+      is_official: false,
+      promotion_status,
+      sort_order: 99999,
+      // added_by y created_at los pone el trigger del servidor — no los enviamos desde el cliente
+    })
+    if (error?.code === '23505') continue  // duplicado (word, kanji): ya existe, se ignora
+    if (error?.message?.includes('check_vocab_insert_rate'))
+      throw new Error('Has alcanzado el límite de 20 palabras nuevas en 24 horas. Inténtalo mañana.')
+    if (error) throw error
+    inserted.push({ kanji, grade })
+  }
+  return { count: inserted.length, kanjis: inserted }
+}
+
+/** Words proposed by any user and awaiting admin/contributor review. */
+export async function fetchPendingVocabWords(): Promise<FullVocabEntry[]> {
+  const { data, error } = await supabase
+    .from('vocabulary')
+    .select(FULL_VOCAB_COLUMNS)
+    .eq('promotion_status', 'pending')
+    .order('created_at', { ascending: true })
   if (error) throw error
+  return (data ?? []).map(mapFullVocab)
+}
+
+/** Lightweight count of pending proposals, for the admin/contributor badge. */
+export async function fetchPendingVocabCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('vocabulary')
+    .select('*', { count: 'exact', head: true })
+    .eq('promotion_status', 'pending')
+  if (error) return 0
+  return count ?? 0
 }
 
 export interface VocabMeta {

@@ -58,6 +58,27 @@ Tiene tres pestañas:
 
 ---
 
+### Propuesta y promoción de palabras (`VocabGlossary`)
+
+Cualquier usuario puede pulsar **"＋ Añadir palabra"** para proponer vocabulario nuevo sobre un kanji que ya exista en el currículo (p.ej. las palabras que una clase investiga sobre los kanjis que está estudiando). La palabra se añade siempre a sus propios repasos de inmediato.
+
+- **Rol `user`**: ve una casilla **"Proponer como palabra oficial"** (marcada por defecto).
+  - Marcada → la palabra queda `pending`: entra en la cola de revisión de admin/contributor y es visible solo para su creador hasta que se decida.
+  - Desmarcada → la palabra queda `personal`: solo la ve y estudia quien la creó, para siempre.
+- **Rol `admin`/`contributor`**: sus palabras se publican **directamente como oficiales** (`promoted`), sin pasar por la cola.
+
+La columna `vocabulary.promotion_status` (`personal | pending | promoted | rejected`, migración `035_vocab_promotion.sql`) sustituye al antiguo booleano suelto `is_official` para distinguir estos casos. Una política RLS `RESTRICTIVE` en `vocabulary` garantiza a nivel de base de datos que una fila no-oficial solo es visible para quien la creó o para `admin`/`contributor` — el resto de usuarios nunca ven las palabras personales o pendientes de otros.
+
+**Cola de revisión**: admin/contributor ven un botón **"🕐 Pendientes (N)"** en la barra de herramientas del glosario (y un badge del mismo número en el enlace "Vocabulario" de la barra lateral) que abre la lista de propuestas con dos acciones por palabra:
+- **✓ Promover** — la marca como oficial (`is_official: true`, `promotion_status: 'promoted'`) y dispara el reparto automático (ver abajo).
+- **✗ No promover** — la marca como `rejected`; sigue siendo personal de quien la propuso, y no vuelve a aparecer en la cola.
+
+**Reparto automático**: al promover una palabra (desde la cola o al añadirla directamente un admin/contributor), el servidor (`fanOutToStudents`, `lib/admin-server.ts`) busca en `user_vocab_progress` a todos los alumnos que ya tengan activo alguno de los kanjis de esa palabra y les añade la palabra nueva a su propia cola de repasos (nivel 1, disponible de inmediato) — sin que tengan que hacer nada.
+
+**Imagen y categoría**: las palabras propuestas no traen imagen ni categoría — se rellenan igual que cualquier palabra oficial nueva, la próxima vez que un admin ejecute el proceso batch de **Admin → Clasificación e imágenes** (`/api/admin/classify-vocab-full`), que ya procesa automáticamente cualquier fila con esos campos vacíos.
+
+---
+
 ### `/grammar` — Práctica de gramática
 **Componente principal:** `components/grammar/GrammarClient.tsx`, protegido por `RoleGate` (solo `admin`/`contributor` — ver más abajo)
 

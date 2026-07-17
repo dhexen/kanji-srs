@@ -135,6 +135,14 @@ Puedes buscar cualquier palabra del diccionario. Usa la barra de búsqueda para 
 
 Cada palabra muestra su **tipo** y **categoría**, y un **punto de color** con tu progreso: 🟢 verde = dominada (burned), 🟡 amarillo = estudiando, ⚪ gris = no iniciada. Al **tocar una palabra** se abre su ficha grande con la lectura (furigana), el significado, la imagen (si la hay), el **orden de trazos** de cada kanji y, si la estudias, tu **nivel en cada modo de repaso**. Desde la ficha puedes **añadir la palabra a tus repasos**. El furigana se reparte por kanji; cuando esa división no es del todo fiable, se avisa de que es aproximada (la lectura completa que se muestra arriba siempre es correcta).
 
+##### ＋ Proponer una palabra nueva
+
+Con el botón **"＋ Añadir palabra"** puedes proponer vocabulario que hayas investigado sobre un kanji que ya estés estudiando (por ejemplo, el vocabulario que trabajáis en clase). La palabra se añade **al momento** a tus propios repasos.
+
+Verás una casilla **"Proponer como palabra oficial"**, marcada por defecto:
+- **Marcada** → un profesor (admin o colaborador) la revisará. Si la aprueba, pasa a ser **oficial** y **todos los alumnos que ya estudian ese kanji la reciben automáticamente** en su cola de repasos. Si no la aprueba, queda como tuya en exclusiva.
+- **Desmarcada** → la palabra es **solo tuya**, nadie más la verá.
+
 #### ⇄ Antónimos
 Muestra palabras con significado opuesto (alto ↔ bajo, frío ↔ caliente, etc.). Puedes filtrar por verbos o adjetivos y buscar cualquier pareja.
 
@@ -374,6 +382,7 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 - Buscar y eliminar palabras del diccionario compartido
 - Importar vocabulario en masa desde un archivo CSV
 - Ver y gestionar los errores reportados por usuarios
+- **Revisar palabras propuestas por alumnos**: el botón "🕐 Pendientes" del Glosario (con un aviso numérico también en "Vocabulario" de la barra lateral) muestra las palabras que los alumnos han propuesto como oficiales. Para cada una puedes **✓ Promover** (pasa a ser oficial para todos, y se añade automáticamente a los repasos de quien ya estudie ese kanji) o **✗ No promover** (queda como palabra personal de quien la propuso)
 
 ### ⚙️ Sistema
 - Configurar los intervalos de tiempo del SRS (por defecto: 4h, 8h, 1d, etc.)
