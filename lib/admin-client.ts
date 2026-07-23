@@ -711,6 +711,8 @@ export interface PendingReportsCount {
   feedback: number
   vocab: number
   grammar: number
+  /** Words whose image got more downvotes than upvotes. Only the dashboard endpoint fills this. */
+  images?: number
   total: number
 }
 

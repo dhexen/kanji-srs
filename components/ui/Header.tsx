@@ -56,16 +56,16 @@ export default function Header() {
   // Admin menu, grouped so it isn't a long flat list.
   const adminGroups: { title: string; items: { href: string; icon: string; label: string }[] }[] = [
     { title: 'Gestión', items: [
-      { href: '/admin?tab=users', icon: '👥', label: 'Usuarios' },
+      { href: '/admin?tab=users-manage', icon: '👥', label: 'Usuarios' },
     ] },
     { title: 'Contenido', items: [
-      { href: '/admin?tab=vocab',  icon: '📚', label: 'Vocabulario' },
-      { href: '/admin?tab=images', icon: '✨', label: 'Clasificación e imágenes' },
+      { href: '/admin?tab=vocab-search',  icon: '📚', label: 'Vocabulario' },
+      { href: '/admin?tab=classify-full', icon: '✨', label: 'Clasificación e imágenes' },
       { href: '/admin/seed-grammar', icon: '🌱', label: 'Frases de gramática' },
       { href: '/admin/grammar-refresh', icon: '🔄', label: 'Renovación de frases' },
     ] },
     { title: 'Revisión', items: [
-      { href: '/admin?tab=feedback', icon: '🐛', label: 'Reportes y feedback' },
+      { href: '/admin?tab=reports-feedback', icon: '🐛', label: 'Reportes y feedback' },
     ] },
     { title: 'Sistema', items: [
       { href: '/admin?tab=system', icon: '⚙️', label: 'Configuración del sistema' },
@@ -176,7 +176,7 @@ export default function Header() {
                         >
                           <span className="w-5 text-center shrink-0">{item.icon}</span>
                           <span className="truncate">{item.label}</span>
-                          {item.href.includes('tab=feedback') && pendingReports > 0 && (
+                          {item.href.includes('tab=reports-feedback') && pendingReports > 0 && (
                             <span className="ml-auto min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold tabular-nums">{pendingReports > 9 ? '9+' : pendingReports}</span>
                           )}
                         </Link>

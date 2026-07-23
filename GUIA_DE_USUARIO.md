@@ -358,13 +358,13 @@ Añade palabras buscando por kanji o importando desde un archivo CSV.
 
 **Cómo acceder:** En la barra lateral, haz clic en **"Admin"**
 
-El panel de administración se abre en el **Panel** (vista de inicio) y desde ahí puedes saltar a las pestañas de cada área.
+El panel de administración es un **panel de mandos**: no hay menú de pestañas arriba, todo se hace desde las tarjetas del Panel. Al pulsar una tarjeta, la herramienta se abre en un **cajón lateral** (drawer) que se desliza desde la derecha, sin salir del panel. Para cerrarlo, pulsa la ✕, la tecla `Esc` o haz clic fuera.
 
 ### Panel
-Es la vista de inicio del área de administración, pensada como un panel de mandos:
-- **Cabecera fija** (siempre visible al hacer scroll) con lo que requiere tu atención (reportes de feedback, vocabulario y gramática pendientes) y dos indicadores de usuarios: **Registrados** (total de cuentas) y **Activos 7 días** (cuántos han entrado en la última semana), útil para ver si la web tiene uso entre los alumnos
+Es la única vista del área de administración:
+- **Cabecera fija** (siempre visible al hacer scroll) con lo que requiere tu atención y las bandejas de revisión pendientes: **Feedback**, **Gramática**, **Vocab** e **Imágenes** (imágenes con más votos negativos que positivos). Cada bandeja abre su propio cajón de reportes. Debajo, dos indicadores de usuarios: **Registrados** (total de cuentas) y **Activos 7 días** (cuántos han entrado en la última semana), útil para ver si la web tiene uso entre los alumnos
 - **Top de la semana**: ranking de los alumnos que más palabras han subido de nivel SRS en los últimos 7 días. Aquí, por ser vista de administrador, **sí se ven los nombres** (los alumnos ven el mismo ranking anónimo en su Perfil)
-- **Rejilla de herramientas** agrupadas por área. Cada tarjeta te lleva a la herramienta correspondiente y las que se ejecutan (escaneos, clasificación, gramática…) muestran **Última: …** con cuándo se lanzaron por última vez y quién
+- **Rejilla de herramientas** agrupadas por área. Cada tarjeta abre en el cajón lateral **solo esa herramienta** (no el área entera), y las que se ejecutan (escaneos, clasificación, gramática…) muestran **Última: …** con cuándo se lanzaron por última vez y quién
 
 ### 👥 Usuarios
 - Ver todos los usuarios registrados, sus roles y número de palabras
@@ -390,7 +390,7 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 - Importar vocabulario en masa desde un archivo CSV
 - Ver y gestionar los errores reportados por usuarios
 - **Revisar palabras propuestas por alumnos**: el botón "🕐 Pendientes" del Glosario (con un aviso numérico también en "Vocabulario" de la barra lateral) muestra las palabras que los alumnos han propuesto como oficiales. Para cada una puedes **✓ Promover** (pasa a ser oficial para todos, y se añade automáticamente a los repasos de quien ya estudie ese kanji) o **✗ No promover** (queda como palabra personal de quien la propuso)
-- **🚫 Kanji sueltos que no son palabra**: en la pestaña "Vocabulario" del panel de admin, el botón "🔎 Escanear y ocultar kanji sueltos (IA)" revisa con Gemini todas las entradas formadas por un solo kanji y **oculta automáticamente** las que no son una palabra real por sí mismas (p. ej. 休 con lectura やす: la palabra de verdad es 休む). Al ocultarse, desaparecen del Glosario para todos los usuarios y se eliminan del pool de repasos de quien las tuviera. Es **irreversible** (se pierde el progreso SRS de esa palabra). Debajo del botón queda la lista de "Ocultadas por la IA" por si quieres auditar y **Restaurar** alguna que se haya ocultado por error
+- **🚫 Kanji sueltos que no son palabra**: en el cajón "Kanji sueltos" del panel de admin, el botón "🔎 Escanear y ocultar kanji sueltos (IA)" revisa con Gemini todas las entradas formadas por un solo kanji y **oculta automáticamente** las que no son una palabra real por sí mismas (p. ej. 休 con lectura やす: la palabra de verdad es 休む). Al ocultarse, desaparecen del Glosario para todos los usuarios y se eliminan del pool de repasos de quien las tuviera. Es **irreversible** (se pierde el progreso SRS de esa palabra). Debajo del botón queda la lista de "Ocultadas por la IA" por si quieres auditar y **Restaurar** alguna que se haya ocultado por error
 
 ### ⚙️ Sistema
 - Configurar los intervalos de tiempo del SRS (por defecto: 4h, 8h, 1d, etc.)

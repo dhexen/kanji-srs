@@ -84,7 +84,11 @@ function parseCSV(text: string): { rows: VocabImportRow[]; errors: string[] } {
 const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function AdminVocabTab() {
+export type VocabSection = 'furigana' | 'fillword' | 'nonword' | 'search' | 'reset' | 'grade' | 'import' | 'reports'
+
+export default function AdminVocabTab({ section }: { section?: VocabSection } = {}) {
+  /** When a single section is requested (drawer mode), render only that one. */
+  const show = (s: VocabSection) => !section || section === s
   // ── Search ──────────────────────────────────────────────────────────────────
   const [query, setQuery]           = useState('')
   const [results, setResults]       = useState<any[]>([])
@@ -231,7 +235,7 @@ export default function AdminVocabTab() {
   return (
     <div className="space-y-6">
 
-      {/* ── Revisión de furigana ──────────────────────────────────────────────── */}
+      {show('furigana') && (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🈁 Revisión de furigana</h3>
         <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
@@ -239,20 +243,23 @@ export default function AdminVocabTab() {
         </p>
         <AdminFuriganaReview />
       </div>
+      )}
 
-      {/* ── Rellenar escritura completa (full_word) ───────────────────────────── */}
+      {show('fillword') && (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🈶 Escritura completa</h3>
         <AdminFillFullWord />
       </div>
+      )}
 
-      {/* ── Revisión de kanji sueltos que no son palabra ──────────────────────── */}
+      {show('nonword') && (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🚫 Kanji sueltos que no son palabra</h3>
         <AdminNonWordReview />
       </div>
+      )}
 
-      {/* ── Búsqueda y eliminación individual ─────────────────────────────────── */}
+      {show('search') && (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 mb-1">🔍 Buscar y eliminar palabras</h3>
         <p className="text-xs text-slate-400 mb-4">Busca por palabra, kanji, lectura o significado. Eliminar una palabra la borra para todos los usuarios.</p>
@@ -320,8 +327,9 @@ export default function AdminVocabTab() {
           </div>
         )}
       </div>
+      )}
 
-      {/* ── Reset completo ─────────────────────────────────────────────────────── */}
+      {show('reset') && (
       <div className="bg-white rounded-2xl shadow-sm border border-rose-200 p-5 md:p-6">
         <h3 className="font-bold text-rose-700 mb-1">🔴 Reset completo de vocabulario</h3>
         <p className="text-xs text-slate-500 mb-4">
@@ -338,8 +346,9 @@ export default function AdminVocabTab() {
           {resettingAll ? '⏳ Reseteando…' : '🔴 Resetear todo el vocabulario'}
         </button>
       </div>
+      )}
 
-      {/* ── Eliminar por grado ─────────────────────────────────────────────────── */}
+      {show('grade') && (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 mb-1">🗑️ Eliminar vocabulario por grado</h3>
         <p className="text-xs text-slate-400 mb-4">Elimina <strong>todas</strong> las palabras de un grado escolar del catálogo global. No se puede deshacer.</p>
@@ -366,8 +375,9 @@ export default function AdminVocabTab() {
           </button>
         </div>
       </div>
+      )}
 
-      {/* ── Importar CSV ───────────────────────────────────────────────────────── */}
+      {show('import') && (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 space-y-5">
         <div>
           <h3 className="font-bold text-slate-800 mb-1">📥 Importar vocabulario (CSV)</h3>
@@ -544,8 +554,9 @@ export default function AdminVocabTab() {
           </div>
         )}
       </div>
+      )}
 
-      {/* ── Vocab reports ─────────────────────────────────────────────── */}
+      {show('reports') && (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -719,6 +730,7 @@ export default function AdminVocabTab() {
           )
         })()}
       </div>
+      )}
     </div>
   )
 }

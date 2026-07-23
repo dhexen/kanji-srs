@@ -5,7 +5,12 @@ import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import AdminMfaGate from '@/components/ui/AdminMfaGate'
 import AdminVocabTab from './AdminVocabTab'
-import AdminDashboard from './AdminDashboard'
+import AdminDashboard, { type DrawerKey } from './AdminDashboard'
+import AdminDrawer from './AdminDrawer'
+import GrammarSeedClient from './GrammarSeedClient'
+import GrammarRefreshMonitor from './GrammarRefreshMonitor'
+import AdminEnrichJlpt from './AdminEnrichJlpt'
+import AdminGenerateSchemes from './AdminGenerateSchemes'
 import { getCurrentAal } from '@/lib/supabase'
 import {
   fetchAdminUsers,
@@ -81,14 +86,23 @@ export default function AdminClient() {
   const [autoRunning,    setAutoRunning]    = useState(false)
   const [autoMsg,        setAutoMsg]        = useState('')
   const autoRunningRef = useRef(false)
-  const [showLegacy,     setShowLegacy]     = useState(false)
 
-  // Tabs
+  // Panel de mandos: the dashboard is the only view; every tool opens in a
+  // lateral drawer. `drawerTool` is which drawer is open (null = none).
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'images' | 'vocab' | 'system' | 'feedback'>(
-    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : tabParam === 'users' ? 'users' : 'dashboard',
+  const DRAWER_KEYS: DrawerKey[] = [
+    'users-manage', 'users-create',
+    'classify-keys', 'classify-full', 'classify-images', 'classify-type',
+    'vocab-furigana', 'vocab-fillword', 'vocab-nonword', 'vocab-search', 'vocab-reset', 'vocab-grade', 'vocab-import',
+    'system',
+    'reports-feedback', 'reports-grammar', 'reports-vocab', 'reports-images',
+    'grammar-seed', 'grammar-refresh', 'grammar-enrich', 'grammar-schemes',
+  ]
+  const [drawerTool, setDrawerTool] = useState<DrawerKey | null>(
+    DRAWER_KEYS.includes(tabParam as DrawerKey) ? (tabParam as DrawerKey) : null,
   )
+  const closeDrawer = () => setDrawerTool(null)
 
   // Image vote reports
   const [imgReports, setImgReports] = useState<ImageReport[] | null>(null)
@@ -134,9 +148,8 @@ export default function AdminClient() {
   }, [isAdmin])
 
   useEffect(() => {
-    setActiveTab(
-      tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : 'users',
-    )
+    if (DRAWER_KEYS.includes(tabParam as DrawerKey)) setDrawerTool(tabParam as DrawerKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabParam])
 
   useEffect(() => {
@@ -602,15 +615,6 @@ export default function AdminClient() {
 
   const restoreTarget = users.find(u => u.user_id === restoreUserId)
 
-  const tabs = [
-    { key: 'dashboard' as const, label: '🏠 Panel' },
-    { key: 'users' as const,    label: '👥 Usuarios' },
-    { key: 'images' as const,   label: '✨ Clasificación' },
-    { key: 'vocab' as const,    label: '📚 Vocabulario' },
-    { key: 'system' as const,   label: '⚙️ Sistema' },
-    { key: 'feedback' as const, label: '🐛 Feedback' },
-  ]
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -619,37 +623,11 @@ export default function AdminClient() {
         <p className="text-amber-100 text-sm">Panel de control de la aplicación.</p>
       </div>
 
-      {/* Tab bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-1 flex gap-1 shadow-sm flex-wrap">
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 px-3 rounded-xl text-sm font-semibold transition ${
-              activeTab === tab.key
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-        <a
-          href="/admin/seed-grammar"
-          className="flex-1 py-2 px-3 rounded-xl text-sm font-semibold text-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition whitespace-nowrap"
-        >
-          🌱 Frases gramática
-        </a>
-      </div>
+      {/* ── PANEL DE MANDOS (única vista; cada tarjeta abre un drawer) ─── */}
+      <AdminDashboard onOpen={setDrawerTool} />
 
-      {/* ── TAB: PANEL ────────────────────────────────────────────────── */}
-      {activeTab === 'dashboard' && (
-        <AdminDashboard onNavigate={setActiveTab} />
-      )}
-
-      {/* ── TAB: USUARIOS ─────────────────────────────────────────────── */}
-      {activeTab === 'users' && (
+      {/* ── DRAWER: USUARIOS ──────────────────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'users-manage'} onClose={closeDrawer} title="Gestión de usuarios" icon="👥">
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
@@ -667,30 +645,6 @@ export default function AdminClient() {
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center col-span-2 md:col-span-1">
               <div className="text-3xl font-bold text-emerald-600">{users.reduce((s, u) => s + u.wordCount, 0)}</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Palabras totales</div>
-            </div>
-          </div>
-
-          {/* Crear usuario */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">➕ Crear usuario</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input type="email" placeholder="Email" value={newUser.email}
-                onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
-                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
-              <input type="password" placeholder="Contraseña (mín. 6)" value={newUser.password}
-                onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
-                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="new-password" />
-              <select value={newUser.role}
-                onChange={e => setNewUser(u => ({ ...u, role: e.target.value as 'admin' | 'contributor' | 'user' }))}
-                className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100">
-                <option value="user">👤 Usuario</option>
-                <option value="contributor">✏️ Contributor</option>
-                <option value="admin">👑 Administrador</option>
-              </select>
-              <button type="button" disabled={creating} onClick={handleCreate}
-                className="py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition">
-                {creating ? 'Creando…' : 'Crear cuenta'}
-              </button>
             </div>
           </div>
 
@@ -821,30 +775,60 @@ export default function AdminClient() {
             Crear/eliminar usuarios requiere <code className="bg-slate-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> en el servidor.
           </p>
         </>
-      )}
+      </AdminDrawer>
 
-      {/* ── TAB: CLASIFICACIÓN ───────────────────────────────────────── */}
-      {activeTab === 'images' && (
-        <>
-          {/* API keys */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">🔑 Claves API</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Gemini API Key</label>
-                <input type="password" placeholder="AIza… (opcional si hay clave en servidor)"
-                  value={imgGeminiKey} onChange={e => setImgGeminiKey(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Pexels API Key</label>
-                <input type="password" placeholder="pexels.com/api — clave gratuita inmediata"
-                  value={imgPexelsKey} onChange={e => setImgPexelsKey(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
-              </div>
+      {/* ── DRAWER: CREAR USUARIO ─────────────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'users-create'} onClose={closeDrawer} title="Crear usuario" icon="➕">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">➕ Crear usuario</h3>
+          <div className="grid grid-cols-1 gap-3">
+            <input type="email" placeholder="Email" value={newUser.email}
+              onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
+              className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
+            <input type="password" placeholder="Contraseña (mín. 6)" value={newUser.password}
+              onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
+              className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="new-password" />
+            <select value={newUser.role}
+              onChange={e => setNewUser(u => ({ ...u, role: e.target.value as 'admin' | 'contributor' | 'user' }))}
+              className="px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 dark:text-slate-100">
+              <option value="user">👤 Usuario</option>
+              <option value="contributor">✏️ Contributor</option>
+              <option value="admin">👑 Administrador</option>
+            </select>
+            <button type="button" disabled={creating} onClick={handleCreate}
+              className="py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition">
+              {creating ? 'Creando…' : 'Crear cuenta'}
+            </button>
+          </div>
+        </div>
+      </AdminDrawer>
+
+      {/* ── DRAWER: CLAVES API ────────────────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'classify-keys'} onClose={closeDrawer} title="Claves API" icon="🔑">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">🔑 Claves API</h3>
+          <p className="text-xs text-slate-400 mb-3">Se guardan mientras el panel está abierto y las usan el resto de herramientas de clasificación.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Gemini API Key</label>
+              <input type="password" placeholder="AIza… (opcional si hay clave en servidor)"
+                value={imgGeminiKey} onChange={e => setImgGeminiKey(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Pexels API Key</label>
+              <input type="password" placeholder="pexels.com/api — clave gratuita inmediata"
+                value={imgPexelsKey} onChange={e => setImgPexelsKey(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:bg-slate-700 dark:text-slate-100" autoComplete="off" />
             </div>
           </div>
+        </div>
+      </AdminDrawer>
 
+      {/* ── DRAWER: CLASIFICACIÓN COMPLETA ────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'classify-full'} onClose={closeDrawer} title="Clasificación completa" icon="✨">
+        <>
+          <p className="text-xs text-slate-400">Claves API en el cajón «Claves API». Sin clave se usa la del servidor.</p>
           {/* ── CLASIFICACIÓN UNIFICADA ─────────────────────────────────────── */}
           <div className="bg-gradient-to-br from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 rounded-2xl border border-indigo-100 p-5 md:p-6 space-y-4">
             <div>
@@ -939,82 +923,71 @@ export default function AdminClient() {
               )}
             </div>
           </div>
+        </>
+      </AdminDrawer>
 
-          {/* ── SECCIONES INDIVIDUALES (avanzado / legacy) ──────────────────── */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowLegacy(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-            >
-              <span>⚙️ Acciones individuales (avanzado)</span>
-              <span className="text-slate-400 text-xs">{showLegacy ? '▲ Ocultar' : '▼ Mostrar'}</span>
+      {/* ── DRAWER: SOLO IMÁGENES ─────────────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'classify-images'} onClose={closeDrawer} title="Solo imágenes" icon="🖼️">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+          <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🖼️ Solo imágenes (Gemini + Pexels)</h4>
+          <p className="text-xs text-slate-400 mb-3">Útil para reintentar palabras sin foto. Requiere Pexels Key (cajón «Claves API»).</p>
+          {imgStats && (
+            <div className="flex gap-4 text-xs text-slate-500 mb-3">
+              <span>Total: <strong>{imgStats.total}</strong></span>
+              <span className="text-emerald-600">Con imagen: <strong>{imgStats.with_image}</strong></span>
+              <span className="text-amber-600">Pendientes: <strong>{imgStats.pending}</strong></span>
+            </div>
+          )}
+          {imgLastResult && imgLastResult.processed > 0 && (
+            <p className="text-xs text-emerald-700 mb-3">
+              Último: {imgLastResult.processed} procesadas · {imgLastResult.new_images} nuevas
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={imgProcessing || imgStats?.pending === 0} onClick={handleProcessImages}
+              className="py-2 px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+              {imgProcessing ? 'Procesando…' : `Procesar lote imágenes (${Math.min(40, imgStats?.pending ?? 0)})`}
             </button>
-
-            {showLegacy && (
-              <div className="p-5 space-y-6 border-t border-slate-100 dark:border-slate-700">
-
-                {/* Imágenes sola */}
-                <div>
-                  <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🖼️ Solo imágenes (Gemini + Pexels)</h4>
-                  <p className="text-xs text-slate-400 mb-3">Útil para reintentar palabras sin foto. Requiere Pexels Key.</p>
-                  {imgStats && (
-                    <div className="flex gap-4 text-xs text-slate-500 mb-3">
-                      <span>Total: <strong>{imgStats.total}</strong></span>
-                      <span className="text-emerald-600">Con imagen: <strong>{imgStats.with_image}</strong></span>
-                      <span className="text-amber-600">Pendientes: <strong>{imgStats.pending}</strong></span>
-                    </div>
-                  )}
-                  {imgLastResult && imgLastResult.processed > 0 && (
-                    <p className="text-xs text-emerald-700 mb-3">
-                      Último: {imgLastResult.processed} procesadas · {imgLastResult.new_images} nuevas
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={imgProcessing || imgStats?.pending === 0} onClick={handleProcessImages}
-                      className="py-2 px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
-                      {imgProcessing ? 'Procesando…' : `Procesar lote imágenes (${Math.min(40, imgStats?.pending ?? 0)})`}
-                    </button>
-                    <button type="button" disabled={imgResetting || imgProcessing} onClick={handleResetNoImage}
-                      className="py-2 px-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
-                      {imgResetting ? 'Reseteando…' : '↺ Reintentar sin foto'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Clasificación solo tipo+categoría */}
-                <div>
-                  <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
-                  <p className="text-xs text-slate-400 mb-3">Sin imágenes ni antónimos.</p>
-                  {clsStats && (
-                    <div className="flex gap-4 text-xs text-slate-500 mb-3">
-                      <span>Total: <strong>{clsStats.total}</strong></span>
-                      <span className="text-emerald-600">Con tipo: <strong>{clsStats.with_type}</strong></span>
-                      <span className="text-amber-600">Sin clasificar: <strong>{clsStats.pending}</strong></span>
-                    </div>
-                  )}
-                  {clsLastResult && (
-                    <p className="text-xs text-indigo-700 mb-3">
-                      Último: {clsLastResult.processed} procesadas · {clsLastResult.updated} actualizadas
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mb-3">
-                    <input type="password" value={clsGeminiKey} onChange={e => setClsGeminiKey(e.target.value)}
-                      placeholder="Gemini API Key (deja vacío para usar la de arriba)"
-                      className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-slate-100" />
-                  </div>
-                  <button type="button" disabled={clsProcessing || clsStats?.pending === 0} onClick={handleClassifyBatch}
-                    className="py-2 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
-                    {clsProcessing ? 'Clasificando…' : `Clasificar lote tipo/cat. (${Math.min(50, clsStats?.pending ?? 0)})`}
-                  </button>
-                </div>
-
-              </div>
-            )}
+            <button type="button" disabled={imgResetting || imgProcessing} onClick={handleResetNoImage}
+              className="py-2 px-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold rounded-xl text-xs transition">
+              {imgResetting ? 'Reseteando…' : '↺ Reintentar sin foto'}
+            </button>
           </div>
+        </div>
+      </AdminDrawer>
 
-          {/* Reportes de votos negativos */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+      {/* ── DRAWER: SOLO TIPO GRAMATICAL ──────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'classify-type'} onClose={closeDrawer} title="Solo tipo gramatical" icon="🏷️">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+          <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-1">🏷️ Solo tipo gramatical + categoría</h4>
+          <p className="text-xs text-slate-400 mb-3">Sin imágenes ni antónimos.</p>
+          {clsStats && (
+            <div className="flex gap-4 text-xs text-slate-500 mb-3">
+              <span>Total: <strong>{clsStats.total}</strong></span>
+              <span className="text-emerald-600">Con tipo: <strong>{clsStats.with_type}</strong></span>
+              <span className="text-amber-600">Sin clasificar: <strong>{clsStats.pending}</strong></span>
+            </div>
+          )}
+          {clsLastResult && (
+            <p className="text-xs text-indigo-700 mb-3">
+              Último: {clsLastResult.processed} procesadas · {clsLastResult.updated} actualizadas
+            </p>
+          )}
+          <div className="flex items-center gap-2 mb-3">
+            <input type="password" value={clsGeminiKey} onChange={e => setClsGeminiKey(e.target.value)}
+              placeholder="Gemini API Key (deja vacío para usar la del cajón Claves API)"
+              className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-slate-100" />
+          </div>
+          <button type="button" disabled={clsProcessing || clsStats?.pending === 0} onClick={handleClassifyBatch}
+            className="py-2 px-4 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition">
+            {clsProcessing ? 'Clasificando…' : `Clasificar lote tipo/cat. (${Math.min(50, clsStats?.pending ?? 0)})`}
+          </button>
+        </div>
+      </AdminDrawer>
+
+      {/* ── DRAWER: IMÁGENES REPORTADAS ───────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'reports-images'} onClose={closeDrawer} title="Imágenes reportadas" icon="👎">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-slate-100">👎 Imágenes reportadas</h3>
@@ -1117,15 +1090,34 @@ export default function AdminClient() {
                 })}
               </div>
             )}
-          </div>
-        </>
-      )}
+        </div>
+      </AdminDrawer>
 
-      {/* ── TAB: VOCABULARIO ─────────────────────────────────────────── */}
-      {activeTab === 'vocab' && <AdminVocabTab />}
+      {/* ── DRAWERS: VOCABULARIO (uno por herramienta) ───────────────── */}
+      <AdminDrawer open={drawerTool === 'vocab-furigana'} onClose={closeDrawer} title="Revisar furigana" icon="🈴">
+        <AdminVocabTab section="furigana" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-fillword'} onClose={closeDrawer} title="Completar palabra" icon="✍️">
+        <AdminVocabTab section="fillword" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-nonword'} onClose={closeDrawer} title="Kanji sueltos" icon="🚫">
+        <AdminVocabTab section="nonword" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-search'} onClose={closeDrawer} title="Buscar y editar" icon="🔍">
+        <AdminVocabTab section="search" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-reset'} onClose={closeDrawer} title="Reiniciar vocabulario" icon="♻️">
+        <AdminVocabTab section="reset" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-grade'} onClose={closeDrawer} title="Nivel escolar" icon="🎓">
+        <AdminVocabTab section="grade" />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'vocab-import'} onClose={closeDrawer} title="Importar vocabulario" icon="📥">
+        <AdminVocabTab section="import" />
+      </AdminDrawer>
 
-      {/* ── TAB: SISTEMA ─────────────────────────────────────────────── */}
-      {activeTab === 'system' && (
+      {/* ── DRAWER: SISTEMA ──────────────────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'system'} onClose={closeDrawer} title="Sistema" icon="⚙️">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -1190,11 +1182,10 @@ export default function AdminClient() {
             </>
           )}
         </div>
-      )}
+      </AdminDrawer>
 
-      {/* ── TAB: FEEDBACK ────────────────────────────────────────────── */}
-      {activeTab === 'feedback' && (
-        <>
+      {/* ── DRAWER: FEEDBACK Y SUGERENCIAS ────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'reports-feedback'} onClose={closeDrawer} title="Feedback y sugerencias" icon="🐛">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -1343,8 +1334,10 @@ export default function AdminClient() {
             )
           })()}
         </div>
+      </AdminDrawer>
 
-        {/* ── GRAMMAR REPORTS ──────────────────────────────────────── */}
+      {/* ── DRAWER: ERRORES DE GRAMÁTICA ──────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'reports-grammar'} onClose={closeDrawer} title="Errores de gramática" icon="🔤">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -1462,8 +1455,10 @@ export default function AdminClient() {
             )
           })()}
         </div>
+      </AdminDrawer>
 
-        {/* ── VOCAB REPORTS ────────────────────────────────────────── */}
+      {/* ── DRAWER: ERRORES DE VOCABULARIO ────────────────────────────── */}
+      <AdminDrawer open={drawerTool === 'reports-vocab'} onClose={closeDrawer} title="Errores de vocabulario" icon="🚩">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -1574,64 +1569,23 @@ export default function AdminClient() {
             )
           })()}
         </div>
+      </AdminDrawer>
 
-        {/* ── IMAGE REPORTS ─────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">🖼️ Imágenes reportadas</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Imágenes con más votos negativos que positivos. Para gestión completa ve a la pestaña Imágenes.</p>
-            </div>
-            <button
-              type="button"
-              onClick={loadImgReports}
-              disabled={imgReportsLoading}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition disabled:opacity-50"
-            >
-              {imgReportsLoading ? 'Cargando…' : imgReports === null ? 'Cargar reportes' : '🔄 Actualizar'}
-            </button>
-          </div>
+      {/* ── DRAWERS: GRAMÁTICA (componentes autónomos) ────────────────── */}
+      <AdminDrawer open={drawerTool === 'grammar-seed'} onClose={closeDrawer} title="Frases de gramática" icon="🌱">
+        <GrammarSeedClient />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'grammar-refresh'} onClose={closeDrawer} title="Renovación de frases" icon="🔄">
+        <GrammarRefreshMonitor />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'grammar-enrich'} onClose={closeDrawer} title="Enriquecer JLPT" icon="📖">
+        <AdminEnrichJlpt />
+      </AdminDrawer>
+      <AdminDrawer open={drawerTool === 'grammar-schemes'} onClose={closeDrawer} title="Generar esquemas" icon="🧩">
+        <AdminGenerateSchemes />
+      </AdminDrawer>
 
-          {imgReports === null && !imgReportsLoading && (
-            <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Pulsa «Cargar reportes» para ver las imágenes con votos negativos.</p>
-          )}
-          {imgReports !== null && imgReports.length === 0 && (
-            <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center py-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">✓ No hay imágenes reportadas.</p>
-          )}
-          {imgReports !== null && imgReports.length > 0 && (
-            <div className="space-y-3">
-              {imgReports.map(r => {
-                const acting = imgReportActing === r.word
-                return (
-                  <div key={r.word} className="flex flex-col sm:flex-row gap-3 p-3 border border-slate-100 dark:border-slate-700 rounded-xl bg-slate-50/60 dark:bg-slate-700/30">
-                    <img src={r.image_url} alt={r.word} className="w-full sm:w-16 h-16 object-cover rounded-lg shrink-0 self-center sm:self-start" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="kanji-font text-lg font-bold text-slate-800 dark:text-slate-100">{r.word}</span>
-                        <span className="text-xs text-slate-400">{r.meaning_es}</span>
-                        <span className="ml-auto text-xs font-semibold text-rose-600">👍 {r.upvotes} · 👎 {r.downvotes}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <button
-                          type="button"
-                          disabled={acting}
-                          onClick={() => handleReportAction(r.word, 'remove')}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold disabled:opacity-50 transition"
-                        >
-                          {acting ? '…' : '🗑️ Quitar imagen'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-        </>
-      )}
-
-      {/* Backup restore modal — global (outside tabs) */}
+      {/* Backup restore modal — global (outside drawers) */}
       {restoreUserId && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 dark:border-slate-700 max-h-[85vh] flex flex-col">

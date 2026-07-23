@@ -38,14 +38,28 @@ export async function GET(request: NextRequest) {
     }).length
 
     // --- attention: open reports -----------------------------------------
-    const [fb, vr, gr] = await Promise.all([
+    const [fb, vr, gr, votesRes, imgVocabRes] = await Promise.all([
       service.from('feedback_reports').select('*', { count: 'exact', head: true }).eq('status', 'open'),
       service.from('vocab_reports').select('*', { count: 'exact', head: true }).eq('status', 'open'),
       service.from('grammar_reports').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      // Image "reports" are words whose image got more downvotes than upvotes.
+      service.from('vocab_image_votes').select('word, vote'),
+      service.from('vocabulary').select('word').not('image_url', 'is', null).neq('image_url', ''),
     ])
     const feedback = fb.error ? 0 : (fb.count ?? 0)
     const vocab    = vr.error ? 0 : (vr.count ?? 0)
     const grammar  = gr.error ? 0 : (gr.count ?? 0)
+
+    // words flagged: net-negative votes AND still holding an image
+    const withImage = new Set((imgVocabRes.error ? [] : imgVocabRes.data ?? []).map(r => r.word))
+    const voteTally = new Map<string, { up: number; down: number }>()
+    for (const v of votesRes.error ? [] : votesRes.data ?? []) {
+      const e = voteTally.get(v.word) ?? { up: 0, down: 0 }
+      if (v.vote === 1) e.up++; else e.down++
+      voteTally.set(v.word, e)
+    }
+    let images = 0
+    for (const [word, c] of voteTally) if (c.down > c.up && withImage.has(word)) images++
 
     // --- weekly ranking (with names, admin only) --------------------------
     const rawRanking = await computeWeeklyRanking(service, 7)
@@ -69,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       kpis: { registered, active7d },
-      attention: { feedback, vocab, grammar, total: feedback + vocab + grammar },
+      attention: { feedback, vocab, grammar, images, total: feedback + vocab + grammar + images },
       ranking,
       toolRuns,
     })

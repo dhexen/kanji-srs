@@ -3,14 +3,20 @@ import { useEffect, useState } from 'react'
 import { fetchAdminDashboard, type DashboardData } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 
-type AdminTab = 'users' | 'images' | 'vocab' | 'system' | 'feedback'
+export type DrawerKey =
+  | 'users-manage' | 'users-create'
+  | 'classify-keys' | 'classify-full' | 'classify-images' | 'classify-type'
+  | 'vocab-furigana' | 'vocab-fillword' | 'vocab-nonword' | 'vocab-search' | 'vocab-reset' | 'vocab-grade' | 'vocab-import'
+  | 'system'
+  | 'reports-feedback' | 'reports-grammar' | 'reports-vocab' | 'reports-images'
+  | 'grammar-seed' | 'grammar-refresh' | 'grammar-enrich' | 'grammar-schemes'
 
 interface Tile {
   icon: string
   name: string
   desc: string
-  tab?: AdminTab
-  href?: string
+  /** Which lateral drawer this card opens. */
+  drawer: DrawerKey
   /** Matches a key in DashboardData.toolRuns for the "última ejecución" foot. */
   toolKey?: string
   danger?: boolean
@@ -24,43 +30,42 @@ interface Group {
 
 const GROUPS: Group[] = [
   { title: 'Usuarios', tiles: [
-    { icon: '👥', name: 'Gestión de usuarios', desc: 'Roles, eliminar y restaurar cuentas.', tab: 'users' },
-    { icon: '➕', name: 'Crear usuario', desc: 'Alta manual de una cuenta.', tab: 'users' },
-    { icon: '💾', name: 'Snapshots', desc: 'Copias de seguridad del progreso por usuario.', tab: 'users' },
+    { icon: '👥', name: 'Gestión de usuarios', desc: 'Roles, eliminar y restaurar cuentas (backup por usuario en la tabla).', drawer: 'users-manage' },
+    { icon: '➕', name: 'Crear usuario', desc: 'Alta manual de una cuenta.', drawer: 'users-create' },
   ]},
   { title: 'Vocabulario', tiles: [
-    { icon: '🈁', name: 'Revisión de furigana', desc: 'Fija la lectura por kanji cuando el automático no es fiable.', tab: 'vocab' },
-    { icon: '🈶', name: 'Escritura completa', desc: 'Rellena la palabra con todos sus kanji (草はら → 草原).', tab: 'vocab' },
-    { icon: '🚫', name: 'Kanji sueltos que no son palabra', desc: 'Escanea con IA y oculta los que no son palabra real.', tab: 'vocab', toolKey: 'vocab-scan-non-words' },
-    { icon: '🔍', name: 'Buscar y eliminar', desc: 'Busca por palabra, kanji, lectura o significado.', tab: 'vocab' },
-    { icon: '📥', name: 'Importar CSV', desc: 'Alta masiva de vocabulario desde un archivo.', tab: 'vocab' },
+    { icon: '🈁', name: 'Revisión de furigana', desc: 'Fija la lectura por kanji cuando el automático no es fiable.', drawer: 'vocab-furigana' },
+    { icon: '🈶', name: 'Escritura completa', desc: 'Rellena la palabra con todos sus kanji (草はら → 草原).', drawer: 'vocab-fillword' },
+    { icon: '🚫', name: 'Kanji sueltos que no son palabra', desc: 'Escanea con IA y oculta los que no son palabra real.', drawer: 'vocab-nonword', toolKey: 'vocab-scan-non-words' },
+    { icon: '🔍', name: 'Buscar y eliminar', desc: 'Busca por palabra, kanji, lectura o significado.', drawer: 'vocab-search' },
+    { icon: '📥', name: 'Importar CSV', desc: 'Alta masiva de vocabulario desde un archivo.', drawer: 'vocab-import' },
   ]},
   { title: 'Clasificación e imágenes', tiles: [
-    { icon: '✨', name: 'Clasificación completa', desc: 'Tipo, categoría, imagen y antónimos en 1 llamada Gemini.', tab: 'images', toolKey: 'vocab-classify-full' },
-    { icon: '🖼️', name: 'Solo imágenes', desc: 'Genera imágenes (Gemini + Pexels) sin tocar el resto.', tab: 'images' },
-    { icon: '🏷️', name: 'Solo tipo y categoría', desc: 'Clasifica gramática y categoría semántica.', tab: 'images', toolKey: 'vocab-classify' },
-    { icon: '🔑', name: 'Claves API', desc: 'Gemini y Pexels para las tareas con IA.', tab: 'images' },
+    { icon: '✨', name: 'Clasificación completa', desc: 'Tipo, categoría, imagen y antónimos en 1 llamada Gemini.', drawer: 'classify-full', toolKey: 'vocab-classify-full' },
+    { icon: '🖼️', name: 'Solo imágenes', desc: 'Genera imágenes (Gemini + Pexels) sin tocar el resto.', drawer: 'classify-images' },
+    { icon: '🏷️', name: 'Solo tipo y categoría', desc: 'Clasifica gramática y categoría semántica.', drawer: 'classify-type', toolKey: 'vocab-classify' },
+    { icon: '🔑', name: 'Claves API', desc: 'Gemini y Pexels para las tareas con IA.', drawer: 'classify-keys' },
   ]},
   { title: 'Gramática', tiles: [
-    { icon: '🌱', name: 'Frases de gramática', desc: 'Genera el banco de frases de cada punto (seed).', href: '/admin/seed-grammar', toolKey: 'grammar-seed' },
-    { icon: '🔄', name: 'Renovación de frases', desc: 'Refresco semanal automático del banco.', href: '/admin/grammar-refresh', toolKey: 'grammar-refresh' },
-    { icon: '📖', name: 'Enriquecer JLPT', desc: 'Explicación y ejemplos de los puntos JLPT.', href: '/admin/seed-grammar' },
-    { icon: '🧩', name: 'Generar esquemas', desc: 'Esquemas de conjugación y uso (MNN + JLPT).', href: '/admin/seed-grammar' },
+    { icon: '🌱', name: 'Frases de gramática', desc: 'Genera el banco de frases de cada punto (seed).', drawer: 'grammar-seed', toolKey: 'grammar-seed' },
+    { icon: '🔄', name: 'Renovación de frases', desc: 'Refresco semanal automático del banco.', drawer: 'grammar-refresh', toolKey: 'grammar-refresh' },
+    { icon: '📖', name: 'Enriquecer JLPT', desc: 'Explicación y ejemplos de los puntos JLPT.', drawer: 'grammar-enrich' },
+    { icon: '🧩', name: 'Generar esquemas', desc: 'Esquemas de conjugación y uso (MNN + JLPT).', drawer: 'grammar-schemes' },
   ]},
   { title: 'Sistema', tiles: [
-    { icon: '⏱️', name: 'Intervalos SRS', desc: 'Tiempos de repaso por nivel (4h, 8h, 1d…).', tab: 'system' },
-    { icon: '♻️', name: 'Restaurar backup', desc: 'Recupera el progreso desde un snapshot.', tab: 'users' },
+    { icon: '⏱️', name: 'Intervalos SRS', desc: 'Tiempos de repaso por nivel (4h, 8h, 1d…).', drawer: 'system' },
   ]},
   { title: 'Zona peligrosa', danger: true, tiles: [
-    { icon: '🔴', name: 'Reset completo de vocabulario', desc: 'Borra todo el vocabulario y su progreso para todos.', tab: 'vocab', danger: true },
-    { icon: '🗑️', name: 'Eliminar por grado', desc: 'Elimina el vocabulario de un grado concreto.', tab: 'vocab', danger: true },
+    { icon: '🔴', name: 'Reset completo de vocabulario', desc: 'Borra todo el vocabulario y su progreso para todos.', drawer: 'vocab-reset', danger: true },
+    { icon: '🗑️', name: 'Eliminar por grado', desc: 'Elimina el vocabulario de un grado concreto.', drawer: 'vocab-grade', danger: true },
   ]},
 ]
 
-const TRAYS: Array<{ icon: string; short: string; key: 'feedback' | 'grammar' | 'vocab' }> = [
-  { icon: '🐛', short: 'Feedback', key: 'feedback' },
-  { icon: '🔤', short: 'Gramática', key: 'grammar' },
-  { icon: '🚩', short: 'Vocab', key: 'vocab' },
+const TRAYS: Array<{ icon: string; short: string; key: 'feedback' | 'grammar' | 'vocab' | 'images'; drawer: DrawerKey }> = [
+  { icon: '🐛', short: 'Feedback', key: 'feedback', drawer: 'reports-feedback' },
+  { icon: '🔤', short: 'Gramática', key: 'grammar', drawer: 'reports-grammar' },
+  { icon: '🚩', short: 'Vocab', key: 'vocab', drawer: 'reports-vocab' },
+  { icon: '🖼️', short: 'Imágenes', key: 'images', drawer: 'reports-images' },
 ]
 
 function timeAgo(iso: string | undefined): string {
@@ -90,7 +95,7 @@ function displayName(email: string): string {
   return email && email.includes('@') ? email.split('@')[0] : (email || '—')
 }
 
-export default function AdminDashboard({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
+export default function AdminDashboard({ onOpen }: { onOpen: (key: DrawerKey) => void }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -109,10 +114,7 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (tab: Admin
     return () => { alive = false }
   }, [])
 
-  function go(tile: Tile) {
-    if (tile.href) window.location.href = tile.href
-    else if (tile.tab) onNavigate(tile.tab)
-  }
+  const go = (tile: Tile) => onOpen(tile.drawer)
 
   const attention = data?.attention.total ?? 0
   const ranking = data?.ranking ?? []
@@ -145,7 +147,7 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (tab: Admin
             {TRAYS.map(t => (
               <button
                 key={t.key}
-                onClick={() => onNavigate('feedback')}
+                onClick={() => onOpen(t.drawer)}
                 className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500 hover:-translate-y-px transition px-2.5 py-1.5 rounded-xl"
               >
                 <span>{t.icon}</span>

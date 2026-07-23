@@ -85,7 +85,9 @@
       "Bash(uuidgen)",
       "Bash(echo \"uuidgen:   $\\(uuidgen 2>/dev/null || echo 'no uuidgen'\\)\")",
       "WebFetch(domain:ai.google.dev)",
-      "Bash(perl -0pi -e 's/\\\\bdata\\\\.validated\\\\b/validated/g; s/\\\\bdata\\\\.runs\\\\b/runs/g; s/\\\\bdata\\\\.errors\\\\b/errs/g; s/\\\\bdata\\\\.next_up\\\\b/nextUp/g; s/\\\\bdata\\\\.state\\\\b/st/g; s/\\\\bdata\\\\.total_points\\\\b/totalPoints/g; s/\\\\bdata\\\\.nightly_target\\\\b/nightlyTarget/g; s/\\\\bdata\\\\.total_sentences\\\\b/totalSentences/g' components/admin/GrammarRefreshMonitor.tsx)"
+      "Bash(perl -0pi -e 's/\\\\bdata\\\\.validated\\\\b/validated/g; s/\\\\bdata\\\\.runs\\\\b/runs/g; s/\\\\bdata\\\\.errors\\\\b/errs/g; s/\\\\bdata\\\\.next_up\\\\b/nextUp/g; s/\\\\bdata\\\\.state\\\\b/st/g; s/\\\\bdata\\\\.total_points\\\\b/totalPoints/g; s/\\\\bdata\\\\.nightly_target\\\\b/nightlyTarget/g; s/\\\\bdata\\\\.total_sentences\\\\b/totalSentences/g' components/admin/GrammarRefreshMonitor.tsx)",
+      "Bash(grep -n \"^  \\)$\\\\|^}$\\\\|^function \\\\|^  return \\(\\\\|^const \\\\|^export \" components/admin/AdminClient.tsx)",
+      "Bash(grep -n \"from\\('\\\\|\\\\.from\\(\\\\`\\\\|status\\\\|count\" app/api/admin/image-reports/route.ts)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
