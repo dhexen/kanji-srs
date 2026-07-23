@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import AdminMfaGate from '@/components/ui/AdminMfaGate'
 import AdminVocabTab from './AdminVocabTab'
+import AdminDashboard from './AdminDashboard'
 import { getCurrentAal } from '@/lib/supabase'
 import {
   fetchAdminUsers,
@@ -85,8 +86,8 @@ export default function AdminClient() {
   // Tabs
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState<'users' | 'images' | 'vocab' | 'system' | 'feedback'>(
-    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : 'users',
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'images' | 'vocab' | 'system' | 'feedback'>(
+    tabParam === 'images' ? 'images' : tabParam === 'vocab' ? 'vocab' : tabParam === 'system' ? 'system' : tabParam === 'feedback' ? 'feedback' : tabParam === 'users' ? 'users' : 'dashboard',
   )
 
   // Image vote reports
@@ -602,6 +603,7 @@ export default function AdminClient() {
   const restoreTarget = users.find(u => u.user_id === restoreUserId)
 
   const tabs = [
+    { key: 'dashboard' as const, label: 'Panel' },
     { key: 'users' as const,    label: '👥 Usuarios' },
     { key: 'images' as const,   label: '✨ Clasificación' },
     { key: 'vocab' as const,    label: '📚 Vocabulario' },
@@ -640,6 +642,11 @@ export default function AdminClient() {
           🌱 Frases gramática
         </a>
       </div>
+
+      {/* ── TAB: PANEL ────────────────────────────────────────────────── */}
+      {activeTab === 'dashboard' && (
+        <AdminDashboard onNavigate={setActiveTab} />
+      )}
 
       {/* ── TAB: USUARIOS ─────────────────────────────────────────────── */}
       {activeTab === 'users' && (

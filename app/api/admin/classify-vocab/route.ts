@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { requireAdmin, adminJsonError, AdminApiError, recordToolRun } from '@/lib/admin-server'
 
 const DEFAULT_BATCH = 50
 
@@ -119,7 +119,8 @@ export async function GET(request: NextRequest) {
 // POST — classify a batch of unclassified words
 export async function POST(request: NextRequest) {
   try {
-    const { service } = await requireAdmin(request)
+    const { service, adminId } = await requireAdmin(request)
+    void recordToolRun(service, 'vocab-classify', adminId)
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const limit = Math.min(Math.max(1, Number(body.limit) || DEFAULT_BATCH), 200)

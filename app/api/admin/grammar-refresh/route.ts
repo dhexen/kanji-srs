@@ -8,7 +8,7 @@ export const maxDuration = 60
  *  POST { action: 'restart' } → reset the cycle (clear queue + today's counter).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminJsonError } from '@/lib/admin-server'
+import { requireAdmin, adminJsonError, recordToolRun } from '@/lib/admin-server'
 import { runRefreshBatch, ALL_GRAMMAR, BY_ID, NIGHTLY_TARGET } from '@/lib/grammar-refresh-core'
 
 export async function GET(req: NextRequest) {
@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { adminId, service } = await requireAdmin(req)
+    void recordToolRun(service, 'grammar-refresh', adminId)
     const { action } = await req.json().catch(() => ({})) as { action?: string }
 
     if (action === 'restart') {

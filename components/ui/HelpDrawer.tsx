@@ -281,7 +281,7 @@ function HelpStats() {
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Las pestañas</h3>
         <div className="space-y-2.5">
           {[
-            { icon: '📊', label: 'Estadísticas', desc: 'Distribución de niveles SRS, racha de estudio, pronóstico de repasos para los próximos 7 días' },
+            { icon: '📊', label: 'Estadísticas', desc: 'Distribución de niveles SRS, racha de estudio, pronóstico de repasos para los próximos 7 días y el ranking semanal anónimo (podio de palabras que suben de nivel, con tu propio puesto)' },
             { icon: '⭐', label: 'Progresión', desc: 'XP acumulado, nivel estimado de JLPT, niveles separados para vocabulario y gramática' },
             { icon: '⚙️', label: 'Configuración', desc: 'API Keys de Gemini y WaniKani, elección del modelo de Gemini (2.5 Flash o 3.1 Flash Lite), idioma de la interfaz, toggle de oraciones compartidas' },
             { icon: '👤', label: 'Cuenta', desc: 'Copias de seguridad del progreso, sincronización y clasificación del vocabulario de WaniKani, cerrar sesión' },

@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
  *          status ∈ 'hidden' (ocultar) | 'ok' (es válida) | 'flagged' | 'pending'
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { requireAdmin, adminJsonError, AdminApiError, recordToolRun } from '@/lib/admin-server'
 import { normalizeGeminiModel } from '@/lib/gemini-models'
 
 const DEFAULT_LIMIT = 100
@@ -87,10 +87,11 @@ ${wordList}`
 // ── POST: escanear una página ────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
-    const { service } = await requireAdmin(request)
+    const { service, adminId } = await requireAdmin(request)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const limit = Math.min(Math.max(1, Number(body.limit) || DEFAULT_LIMIT), 300)
     const offset = Math.max(0, Number(body.offset) || 0)
+    if (offset === 0) void recordToolRun(service, 'vocab-scan-non-words', adminId)
     const geminiApiKey = (typeof body.geminiApiKey === 'string' && body.geminiApiKey.trim())
       ? body.geminiApiKey.trim()
       : process.env.GEMINI_API_KEY

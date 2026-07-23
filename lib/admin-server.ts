@@ -177,6 +177,94 @@ export async function requireEditorRole(request: Request): Promise<{
   return { userId: user.id, role: effectiveRole, service }
 }
 
+/**
+ * Verifies the bearer token belongs to a logged-in user (any role) and returns
+ * their id plus a service client. Use for endpoints every student may call
+ * (e.g. the anonymous ranking), where we still need service-role reads across
+ * all users but no admin privilege.
+ */
+export async function requireAuthUser(request: Request): Promise<{
+  userId: string
+  service: SupabaseClient
+}> {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new AdminApiError('No autenticado', 401)
+  }
+  const token = authHeader.slice(7)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const userClient = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  const { data: { user }, error } = await userClient.auth.getUser(token)
+  if (error || !user) throw new AdminApiError('Sesión inválida', 401)
+  return { userId: user.id, service: createServiceClient() }
+}
+
+/**
+ * Upserts the last-execution timestamp of an admin tool. Best-effort: never
+ * throws (a missing table just means the dashboard shows "Nunca"), so callers
+ * can fire-and-forget without wrapping in try/catch.
+ */
+export async function recordToolRun(
+  service: SupabaseClient,
+  toolKey: string,
+  userId?: string | null,
+): Promise<void> {
+  try {
+    await service.from('admin_tool_runs').upsert(
+      { tool_key: toolKey, last_run_at: new Date().toISOString(), last_run_by: userId ?? null },
+      { onConflict: 'tool_key' },
+    )
+  } catch {
+    /* table may not exist yet — ignore */
+  }
+}
+
+/**
+ * Weekly SRS level-up ranking: for each user, how many distinct words raised
+ * their SRS level (in any mode) in the last `days` days. Reads the append-only
+ * srs_review_log, which already records level_before/level_after per review.
+ * Returns [{ user_id, count }] sorted desc. Empty if the table is unavailable.
+ */
+export async function computeWeeklyRanking(
+  service: SupabaseClient,
+  days = 7,
+): Promise<Array<{ user_id: string; count: number }>> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+  // distinct (user_id, jp) pairs that leveled up — a word counts once even if it
+  // rose in several modes or several times this week.
+  const seen = new Set<string>()
+  const counts = new Map<string, number>()
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await service
+        .from('srs_review_log')
+        .select('user_id, jp, level_before, level_after')
+        .gte('created_at', cutoff)
+        .order('id', { ascending: true })
+        .range(from, from + 999)
+      if (error) return []
+      if (!data || data.length === 0) break
+      for (const r of data) {
+        if (r.level_after == null || r.level_before == null) continue
+        if (r.level_after <= r.level_before) continue
+        const key = `${r.user_id}|${r.jp}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        counts.set(r.user_id, (counts.get(r.user_id) ?? 0) + 1)
+      }
+      if (data.length < 1000) break
+    }
+  } catch {
+    return []
+  }
+  return [...counts.entries()]
+    .map(([user_id, count]) => ({ user_id, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))

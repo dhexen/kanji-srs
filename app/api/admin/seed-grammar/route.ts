@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminJsonError } from '@/lib/admin-server'
+import { requireAdmin, adminJsonError, recordToolRun } from '@/lib/admin-server'
 import { GRAMMAR_POINTS } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
@@ -83,7 +83,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { service } = await requireAdmin(req)
+    const { service, adminId } = await requireAdmin(req)
+    void recordToolRun(service, 'grammar-seed', adminId)
     const { action } = await req.json()
 
     if (action === 'start') {

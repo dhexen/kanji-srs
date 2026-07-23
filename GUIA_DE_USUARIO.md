@@ -328,6 +328,7 @@ Tiene varias pestañas:
 - Racha de días de estudio
 - Pronóstico de repasos para los próximos 7 días
 - Nivel JLPT estimado según tu progreso
+- **🏆 Ranking semanal** — un podio, **anónimo**, con las palabras que más gente ha subido de nivel SRS en los últimos 7 días. No se muestran nombres: solo verás tu propio puesto y en qué porcentaje del grupo estás. Haz repasos a lo largo de la semana para escalar posiciones (el ranking se calcula sobre los últimos 7 días en todo momento)
 
 #### ⭐ Progresión
 - Tu nivel general y el XP acumulado
@@ -357,7 +358,13 @@ Añade palabras buscando por kanji o importando desde un archivo CSV.
 
 **Cómo acceder:** En la barra lateral, haz clic en **"Admin"**
 
-El panel de administración tiene 5 pestañas:
+El panel de administración se abre en el **Panel** (vista de inicio) y desde ahí puedes saltar a las pestañas de cada área.
+
+### Panel
+Es la vista de inicio del área de administración, pensada como un panel de mandos:
+- **Cabecera fija** (siempre visible al hacer scroll) con lo que requiere tu atención (reportes de feedback, vocabulario y gramática pendientes) y dos indicadores de usuarios: **Registrados** (total de cuentas) y **Activos 7 días** (cuántos han entrado en la última semana), útil para ver si la web tiene uso entre los alumnos
+- **Top de la semana**: ranking de los alumnos que más palabras han subido de nivel SRS en los últimos 7 días. Aquí, por ser vista de administrador, **sí se ven los nombres** (los alumnos ven el mismo ranking anónimo en su Perfil)
+- **Rejilla de herramientas** agrupadas por área. Cada tarjeta te lleva a la herramienta correspondiente y las que se ejecutan (escaneos, clasificación, gramática…) muestran **Última: …** con cuándo se lanzaron por última vez y quién
 
 ### 👥 Usuarios
 - Ver todos los usuarios registrados, sus roles y número de palabras

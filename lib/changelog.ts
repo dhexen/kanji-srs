@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Julio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Ranking semanal en tu Perfil',
+        description: 'En Perfil → Estadísticas encontrarás un podio con las palabras que más gente ha subido de nivel SRS en los últimos 7 días. Es anónimo (no se ven nombres) y te muestra tu propio puesto y en qué porcentaje del grupo estás. Haz repasos durante la semana para escalar posiciones.',
+      },
+      {
         type: 'improvement',
         title: 'Glosario más limpio: fuera los kanji sueltos que no son palabra',
         description: 'Algunas entradas eran un kanji solo cuya lectura en realidad solo existe con okurigana (p. ej. 休 leído やす, cuando la palabra de verdad es 休む). Ahora un administrador puede escanear el diccionario con IA y esos kanji se ocultan automáticamente: desaparecen del Glosario y se quitan también del pool de repasos de quien los tuviera. Así el Glosario muestra solo palabras que de verdad funcionan por sí solas.',

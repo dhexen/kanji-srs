@@ -756,3 +756,18 @@ export async function updateGrammarReportStatus(id: string, status: 'open' | 're
   })
   await parseAdminResponse<{ ok: boolean }>(res)
 }
+
+// --- Admin dashboard (KPIs, attention, weekly ranking, tool timestamps) -----
+
+export interface DashboardData {
+  kpis: { registered: number; active7d: number }
+  attention: PendingReportsCount
+  ranking: Array<{ user_id: string; email: string; count: number }>
+  toolRuns: Record<string, { last_run_at: string; by: string | null }>
+}
+
+/** Everything the admin landing needs in one round-trip. */
+export async function fetchAdminDashboard(): Promise<DashboardData> {
+  const res = await fetch('/api/admin/dashboard', { headers: await adminAuthHeaders() })
+  return parseAdminResponse<DashboardData>(res)
+}

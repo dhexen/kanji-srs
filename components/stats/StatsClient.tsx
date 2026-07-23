@@ -7,6 +7,7 @@ import { showToast } from '@/components/ui/Toast'
 import { t, LANG_NAMES, Lang } from '@/lib/i18n'
 import { fetchKnownGrammar, getWaniKaniSyncStatus, fetchMyReports, resetHelpSeen, type MyTicket } from '@/lib/supabase'
 import ProgressClient from '@/components/progress/ProgressClient'
+import RankingWidget from '@/components/stats/RankingWidget'
 import { xpProgressInLevel, estimateJlpt, JLPT_COLORS } from '@/lib/progression'
 import { getOverallLevel } from '@/lib/srs'
 import { GEMINI_MODELS } from '@/lib/gemini-models'
@@ -574,6 +575,9 @@ export default function StatsClient() {
       {/* ── TAB: Estadísticas ──────────────────────────────────────────────── */}
       {activeTab === 'stats' && (
         <div className="space-y-6">
+          {/* Weekly anonymous ranking */}
+          <RankingWidget />
+
           {/* Progress overview */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
             <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-5">{t(lang, 'stats_prog_overview')}</h3>
