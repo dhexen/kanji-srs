@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchAdminDashboard, type DashboardData } from '@/lib/admin-client'
 import { showToast } from '@/components/ui/Toast'
 
@@ -98,21 +98,33 @@ function displayName(email: string): string {
 export default function AdminDashboard({ onOpen }: { onOpen: (key: DrawerKey) => void }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const d = await fetchAdminDashboard()
-        if (alive) setData(d)
-      } catch (e) {
-        if (alive) showToast(e instanceof Error ? e.message : 'Error al cargar el panel', 'error')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => { alive = false }
+  const load = useCallback(async (opts: { silent?: boolean } = {}) => {
+    if (opts.silent) setRefreshing(true)
+    try {
+      setData(await fetchAdminDashboard())
+    } catch (e) {
+      if (!opts.silent) showToast(e instanceof Error ? e.message : 'Error al cargar el panel', 'error')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  // The panel is a long-lived tab: re-fetch when the admin returns to it (e.g.
+  // after doing reviews elsewhere) so the weekly ranking reflects fresh level-ups.
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') void load({ silent: true }) }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [load])
 
   const go = (tile: Tile) => onOpen(tile.drawer)
 
@@ -191,6 +203,14 @@ export default function AdminDashboard({ onOpen }: { onOpen: (key: DrawerKey) =>
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">🏆 Top de la semana</h3>
             <span className="text-[11.5px] text-slate-400 dark:text-slate-500">palabras que subieron de nivel SRS · últimos 7 días</span>
             <span className="ml-auto text-[10.5px] font-bold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md">solo admin</span>
+            <button
+              type="button"
+              onClick={() => void load({ silent: true })}
+              disabled={refreshing}
+              className="text-[11.5px] font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 disabled:opacity-50 transition"
+            >
+              {refreshing ? '⏳' : '🔄'} Actualizar
+            </button>
           </div>
 
           {loading ? (
