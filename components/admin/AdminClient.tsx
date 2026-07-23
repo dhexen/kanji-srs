@@ -603,7 +603,7 @@ export default function AdminClient() {
   const restoreTarget = users.find(u => u.user_id === restoreUserId)
 
   const tabs = [
-    { key: 'dashboard' as const, label: 'Panel' },
+    { key: 'dashboard' as const, label: '🏠 Panel' },
     { key: 'users' as const,    label: '👥 Usuarios' },
     { key: 'images' as const,   label: '✨ Clasificación' },
     { key: 'vocab' as const,    label: '📚 Vocabulario' },
