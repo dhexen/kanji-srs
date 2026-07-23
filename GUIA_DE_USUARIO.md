@@ -356,7 +356,7 @@ Añade palabras buscando por kanji o importando desde un archivo CSV.
 
 > Esta sección es solo para usuarios con rol de administrador. Requiere verificación en dos pasos (MFA).
 
-**Cómo acceder:** En la barra lateral, haz clic en **"Admin"**
+**Cómo acceder:** En la barra superior, pulsa el botón **🔧 Admin**, que lleva directamente al panel (ya no es un menú desplegable). Para simular otro rol y ver la web como un alumno, ve a **Perfil → Cuenta → 👁 Simular rol**.
 
 El panel de administración es un **panel de mandos**: no hay menú de pestañas arriba, todo se hace desde las tarjetas del Panel. Al pulsar una tarjeta, la herramienta se abre en un **cajón lateral** (drawer) que se desliza desde la derecha, sin salir del panel. Para cerrarlo, pulsa la ✕, la tecla `Esc` o haz clic fuera.
 
