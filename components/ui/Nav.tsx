@@ -232,6 +232,12 @@ function NavInner() {
             badge={0} progress={grammarPct} pathname={pathname} onNavigate={refreshData}
           />
         )}
+        {effectiveRole === 'admin' && (
+          <NavItem
+            href="/grammar-test" icon="🧪" label="Gramàtica TEST" isAdmin
+            badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
+          />
+        )}
         <NavItem
           href="/kana" icon="🔤" label={stripEmoji(t(lang, 'nav_kana'))}
           badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
