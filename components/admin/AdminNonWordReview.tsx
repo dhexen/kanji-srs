@@ -16,6 +16,7 @@ export default function AdminNonWordReview() {
   const [items, setItems] = useState<HiddenNonWord[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
 
   async function loadQueue() {
     setLoading(true)
@@ -90,15 +91,19 @@ export default function AdminNonWordReview() {
       {msg && <p className="text-xs text-slate-500 dark:text-slate-400">{msg}</p>}
 
       <div className="pt-2">
-        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition"
+        >
+          <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
           Ocultadas por la IA {loading ? '' : `(${items.length})`}
-        </p>
-        {loading ? (
-          <p className="text-xs text-slate-400">Cargando…</p>
+        </button>
+        {open && (loading ? (
+          <p className="mt-2 text-xs text-slate-400">Cargando…</p>
         ) : items.length === 0 ? (
-          <p className="text-xs text-slate-400">Nada ocultado todavía. Ejecuta el escaneo.</p>
+          <p className="mt-2 text-xs text-slate-400">Nada ocultado todavía. Ejecuta el escaneo.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="mt-2 space-y-2">
             {items.map(item => {
               const key = `${item.word}|${item.kanji}`
               return (
@@ -125,7 +130,7 @@ export default function AdminNonWordReview() {
               )
             })}
           </ul>
-        )}
+        ))}
       </div>
     </div>
   )
