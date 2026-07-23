@@ -79,6 +79,50 @@ function confusablesFor(ch: string): string[] {
  * mutation is possible (e.g. a reading with no matching hiragana, like a
  * pure katakana loanword).
  */
+/** Number of mora (kana beats) in a reading — small yōon count as one. */
+export function moraCount(reading: string): number {
+  return tokenizeMora(reading).length
+}
+
+/**
+ * A slice of a reading, flagged as `mutable` (a kanji's reading, safe to alter)
+ * or fixed (visible okurigana / kana the learner can already read on screen).
+ * The concatenation of every `text` must equal the full correct reading.
+ */
+export interface ReadingSegment { text: string; mutable: boolean }
+
+/**
+ * Like `generateFakeReading`, but only mutates mora inside `mutable` segments,
+ * leaving the visible okurigana untouched. For a word like 目つき (めつき) this
+ * keeps つき fixed and varies only め → みつき / もつき, so the wrong options are
+ * the same length and share the on-screen kana — a real test, not one the
+ * learner can eliminate at a glance. Falls back to whole-word mutation when the
+ * template has no mutable region.
+ */
+export function generateFakeReadingSegmented(segments: ReadingSegment[], avoid: Set<string> = new Set()): string {
+  const full = segments.map(s => s.text).join('')
+  const segTokens = segments.map(s => ({ tokens: tokenizeMora(s.text), mutable: s.mutable }))
+  const mutablePos: Array<[number, number]> = []
+  segTokens.forEach((seg, si) => { if (seg.mutable) seg.tokens.forEach((_, mi) => mutablePos.push([si, mi])) })
+  if (mutablePos.length === 0) return generateFakeReading(full, avoid)
+
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const [si, mi] = mutablePos[Math.floor(Math.random() * mutablePos.length)]
+    const token = segTokens[si].tokens[mi]
+    const base = token[0]
+    const suffix = token.slice(1)
+    const options = confusablesFor(base)
+    if (options.length === 0) continue
+    const replacement = options[Math.floor(Math.random() * options.length)]
+    const candidate = segTokens
+      .map((seg, si2) => seg.tokens.map((tk, mi2) => (si2 === si && mi2 === mi) ? replacement + suffix : tk).join(''))
+      .join('')
+    if (candidate !== full && !avoid.has(candidate)) return candidate
+  }
+  // Couldn't find a distinct in-region mutation → fall back to whole-word.
+  return generateFakeReading(full, avoid)
+}
+
 export function generateFakeReading(reading: string, avoid: Set<string> = new Set()): string {
   const tokens = tokenizeMora(reading)
   if (tokens.length === 0) return reading

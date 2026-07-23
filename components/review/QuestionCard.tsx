@@ -7,7 +7,7 @@ import { t, getStageName } from '@/lib/i18n'
 import { submitImageVote, submitVocabReport, type ReadingDistractorCandidate } from '@/lib/supabase'
 import { upgradeVocabImage } from '@/lib/image'
 import { buildFurigana } from '@/lib/furigana'
-import { generateFakeReading } from '@/lib/reading-mutate'
+import { generateFakeReading, generateFakeReadingSegmented, moraCount, type ReadingSegment } from '@/lib/reading-mutate'
 import type { SessionItem } from './ReviewClient'
 import { vocabXpForResult } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
@@ -197,24 +197,52 @@ export default function QuestionCard({ sessionItem, allItems, distractorPool = [
       if (!existing || s > existing.score) byText.set(text, { text, score: s })
     }
 
-    const candidates = [...byText.values()]
-    // Challenging pool: candidates related to the target (shared kanji / similar
-    // sound / same type). Shuffle within the pool for variety across sessions.
-    const related = candidates.filter(c => c.score > 0).sort((a, b) => b.score - a.score)
-    const unrelated = candidates.filter(c => c.score === 0)
-    const topRelated = related.slice(0, Math.max(count * 2, 8)).sort(() => Math.random() - 0.5)
-    const filler = unrelated.sort(() => Math.random() - 0.5)
+    // For "Lectura múltiple", split the on-screen word into fixed okurigana
+    // (kana the learner already sees, e.g. つき in 目つき) and the kanji reading
+    // that actually varies. When the word has visible okurigana we make EVERY
+    // distractor share that kana and length, varying only the kanji reading —
+    // real alternate-kanji words almost never keep the same okurigana, so they'd
+    // be eliminable at a glance; a synthesized めつき→みつき is a genuine test.
+    const readingTemplate: ReadingSegment[] | null = (() => {
+      if (field !== 'reading') return null
+      const segs: ReadingSegment[] = buildFurigana(item.jp, item.reading).tokens
+        .map(tk => ({ text: tk.ruby ?? tk.text, mutable: !!tk.ruby }))
+      const joins = segs.map(s => s.text).join('') === item.reading
+      const hasOkurigana = segs.some(s => !s.mutable) && segs.some(s => s.mutable)
+      return joins && segs.every(s => s.text) && hasOkurigana ? segs : null
+    })()
 
-    const distractors = [...topRelated, ...filler].slice(0, count - 1).map(c => c.text)
+    // A distractor is "too obvious" if it's a prefix/substring of the answer
+    // (め vs めつき) or a very different length. Skip for okurigana words, which
+    // are filled entirely by synthesis below.
+    const correctMora = moraCount(correct)
+    const tooObvious = (text: string) =>
+      field === 'reading' &&
+      (correct.includes(text) || text.includes(correct) || Math.abs(moraCount(text) - correctMora) > 1)
 
-    // Last resort for "Lectura múltiple": when there still aren't enough real
-    // candidates, synthesize a fake-but-phonetically-plausible reading so the
-    // question never falls back to trivially-obvious wrong options.
+    let distractors: string[] = []
+    if (!readingTemplate) {
+      const candidates = [...byText.values()].filter(c => !tooObvious(c.text))
+      // Challenging pool: candidates related to the target (shared kanji / similar
+      // sound / same type). Shuffle within the pool for variety across sessions.
+      const related = candidates.filter(c => c.score > 0).sort((a, b) => b.score - a.score)
+      const unrelated = candidates.filter(c => c.score === 0)
+      const topRelated = related.slice(0, Math.max(count * 2, 8)).sort(() => Math.random() - 0.5)
+      const filler = unrelated.sort(() => Math.random() - 0.5)
+      distractors = [...topRelated, ...filler].slice(0, count - 1).map(c => c.text)
+    }
+
+    // Fill remaining slots (or every slot, for okurigana words) with a
+    // fake-but-phonetically-plausible reading so the question never falls back
+    // to trivially-obvious wrong options.
     if (field === 'reading') {
       const used = new Set([correct, ...distractors])
       let guard = 0
-      while (distractors.length < count - 1 && guard++ < 10) {
-        const fake = generateFakeReading(correct, used)
+      while (distractors.length < count - 1 && guard++ < 12) {
+        const fake = readingTemplate
+          ? generateFakeReadingSegmented(readingTemplate, used)
+          : generateFakeReading(correct, used)
+        if (used.has(fake)) continue
         used.add(fake)
         distractors.push(fake)
       }

@@ -74,7 +74,7 @@ function HelpReview() {
           Tu selección de tipos de repaso se recuerda y se mantiene hasta que elijas otra.
         </p>
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 leading-snug">
-          En opción múltiple, las respuestas incorrectas son palabras parecidas (comparten un kanji, suenan similar o son del mismo tipo) para que elegir bien sea un reto.
+          En opción múltiple, las respuestas incorrectas son palabras parecidas (comparten un kanji, suenan similar o son del mismo tipo) para que elegir bien sea un reto. En las lecturas con kana a la vista (p. ej. 目つき) todas las opciones conservan ese kana y la misma longitud, variando solo la lectura del kanji.
         </p>
       </div>
 

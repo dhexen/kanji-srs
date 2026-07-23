@@ -96,7 +96,7 @@ La app te puede preguntar cada palabra de 5 formas diferentes:
 4. **Escritura de kanji** — Ves el significado y escribes el kanji en papel (la app te pregunta si lo has hecho bien)
 5. **Inverso** — Ves el kanji y su significado, y escribes todo en papel
 
-En los modos de opción múltiple, las opciones incorrectas no son aleatorias: son palabras parecidas a la correcta (que comparten un kanji, suenan de forma similar o son del mismo tipo), para que elegir bien suponga un reto y no puedas descartarlas a simple vista.
+En los modos de opción múltiple, las opciones incorrectas no son aleatorias: son palabras parecidas a la correcta (que comparten un kanji, suenan de forma similar o son del mismo tipo), para que elegir bien suponga un reto y no puedas descartarlas a simple vista. En las preguntas de **lectura**, cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese kana visible y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき); además nunca aparece una opción que sea un simple trozo de la respuesta correcta.
 
 #### Botón "Ya me lo sé"
 

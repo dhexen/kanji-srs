@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Julio 2026',
     entries: [
       {
+        type: 'improvement',
+        title: 'Lectura múltiple más difícil de adivinar',
+        description: 'En las preguntas de lectura con opción múltiple, las opciones falsas ya no se descartan de un vistazo. Cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese つき y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき). Además nunca aparece una opción que sea un trozo de la respuesta correcta. Ahora hay que fijarse de verdad.',
+      },
+      {
         type: 'new',
         title: 'Ranking semanal en tu Perfil',
         description: 'En Perfil → Estadísticas encontrarás un podio con las palabras que más gente ha subido de nivel SRS en los últimos 7 días. Es anónimo (no se ven nombres) y te muestra tu propio puesto y en qué porcentaje del grupo estás. Haz repasos durante la semana para escalar posiciones.',
