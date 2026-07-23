@@ -137,7 +137,7 @@ function HelpGrammar() {
         <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">Cómo practicar</h3>
         <ol className="space-y-2">
           <Step n={1}>Elige un punto gramatical y pulsa <strong>"Practicar"</strong></Step>
-          <Step n={2}>Verás la frase japonesa con un <strong>hueco (___)</strong> — escribe solo la gramática que falta</Step>
+          <Step n={2}>Verás la frase japonesa con un <strong>hueco (___)</strong> — escribe solo la gramática que falta. Cada punto tiene un <strong>hueco fijo</strong>: en は・です siempre completas です, no cambia de una frase a otra</Step>
           <Step n={3}>La traducción está oculta por defecto; pulsa <strong>"Ver traducción"</strong> si la necesitas</Step>
           <Step n={4}>Al fallar verás la respuesta correcta y una nota con la explicación del patrón</Step>
         </ol>

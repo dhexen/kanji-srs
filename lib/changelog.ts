@@ -21,6 +21,16 @@ export const CHANGELOG: ChangelogVersion[] = [
     entries: [
       {
         type: 'improvement',
+        title: 'Práctica de gramática: hueco siempre coherente y mejores frases',
+        description: 'En rellenar huecos, cada punto de gramática tiene ahora un hueco fijo y coherente: en la frase copulativa は・です siempre completas です (nunca unas veces は y otras です). La IA recibe instrucciones más estrictas para que las frases sean japonés natural y correcto, y se descartan automáticamente las frases sin sentido y las que dejaban el hueco equivocado. Las frases raras que ya tenías guardadas dejan de aparecer.',
+      },
+      {
+        type: 'fix',
+        title: 'Detalle de gramática legible en modo oscuro',
+        description: 'Las etiquetas de color bajo cada pieza de la estructura (tema, cópula, partícula…) se veían oscuras sobre fondo oscuro y casi no se leían. Ahora todas las etiquetas y bloques de color tienen su versión de modo oscuro y se leen bien.',
+      },
+      {
+        type: 'improvement',
         title: 'Lectura múltiple más difícil de adivinar',
         description: 'En las preguntas de lectura con opción múltiple, las opciones falsas ya no se descartan de un vistazo. Cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese つき y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき). Además nunca aparece una opción que sea un trozo de la respuesta correcta. Ahora hay que fijarse de verdad.',
       },

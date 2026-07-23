@@ -6,7 +6,7 @@ import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
 import type { GrammarSentence, FuriganaSegment } from '@/lib/grammar-srs'
-import { answerFitsPattern } from '@/lib/grammar-srs'
+import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
 
@@ -161,9 +161,23 @@ export async function generateGrammarSentences(opts: GenerateGrammarOptions): Pr
     ? `Vocabulario disponible:\n- Del currículo escolar japonés (primaria y secundaria): ${schoolSample}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
     : `Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${schoolSample || 'vocabulario básico N5'}`
 
+  // Canonical blank: when the point has one, EVERY sentence must blank exactly
+  // this token (so the student always completes the same grammar, never a random
+  // particle from the pattern). Null → conjugation pattern with a variable blank.
+  const canonicalBlank = getCanonicalBlank(grammar)
+  const blankRule = canonicalBlank
+    ? `⚠️ REGLA ABSOLUTA sobre el HUECO: el campo "answer" (el hueco) es SIEMPRE EXACTAMENTE «${canonicalBlank}» en TODAS las frases, sin excepción.
+- "before" = todo lo que va ANTES de «${canonicalBlank}»; "after" = todo lo que va DESPUÉS.
+- La frase completa (before + «${canonicalBlank}» + after) debe ser japonés natural y correcto.
+- NUNCA pongas otra cosa en el hueco (ni otra partícula, ni la cópula si no toca): SIEMPRE «${canonicalBlank}».
+- answer_alts: solo variantes ortográficas válidas del MISMO hueco (o []). No metas huecos distintos.`
+    : `⚠️ REGLA sobre el HUECO ("answer"): contiene la gramática conjugada del patrón "${grammar.pattern}". Para formas て o conjugaciones, el answer DEBE incluir esa parte conjugada COMPLETA (la て, ます, etc.), NUNCA solo la raíz del verbo. Usa SIEMPRE la misma parte gramatical del patrón como hueco, no partículas sueltas de otras partes de la frase.`
+
   const prompt = `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
 El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
+
+${blankRule}
 
 ${vocabSection}
 
@@ -195,9 +209,11 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 - Las partículas en su forma ORTOGRÁFICA: は (no わ), を (no お), へ (no え).
 
 ⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola. NUNCA generes frases incompletas.
-2. El sujeto debe ser claro. Ejemplos de frases INCORRECTAS: "La manzana es una" (incompleta), "Ayer es mañana" (sin sentido), "El teléfono come" (ilógica).
-3. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
+1. La frase COMPLETA (before + answer + after) debe ser japonés REAL, natural y gramaticalmente correcto, con sentido lógico por sí sola. Léela mentalmente entera antes de aceptarla. NUNCA generes frases incompletas.
+2. PROHIBIDO el japonés basura: secuencias de palabras sin orden ni sentido (p.ej. "次です番", "本を空きます", palabras pegadas al azar). Si no formarías esa frase hablando con un japonés, DESCÁRTALA (quality 1) y genera otra.
+3. El sujeto debe ser claro. Ejemplos de frases INCORRECTAS: "La manzana es una" (incompleta), "Ayer es mañana" (sin sentido), "El teléfono come" (ilógica).
+4. El orden de las palabras japonés debe ser correcto (Sujeto → Complementos → Verbo/Predicado). No inviertas el orden.
+5. Usa contextos cotidianos realistas: casa, escuela, trabajo, tiendas, familia, clima, tiempo libre.
 
 ⚠️ REGLA CRÍTICA sobre el campo "answer":
 - Debe contener ÚNICAMENTE el marcador gramatical: partículas (は、が、を、に、で…), cópulas (です、だ), conjugaciones (ます、ました、て…), patrones fijos (〜てください、〜ている…)
@@ -259,10 +275,10 @@ Otras reglas:
       const allRaw  = parsed.sentences as any[]
       const passing = allRaw
         .filter(s => (Number(s.quality) || 5) >= QUALITY_THRESHOLD)
-        // Drop sentences whose blank doesn't actually contain the grammar (e.g. a
-        // content verb stuffed into the answer for a て-form pattern), which would
-        // produce a broken sentence and a misleading correction.
-        .filter(s => answerFitsPattern(String(s.answer ?? ''), grammar.pattern))
+        // Drop sentences whose blank isn't the point's canonical fill-in (a wrong
+        // particle, a content verb stuffed into the answer…), which would produce
+        // an inconsistent or broken exercise.
+        .filter(s => answerMatchesBlank(String(s.answer ?? ''), grammar))
 
       const newSentences: Omit<GrammarSentence, 'id'>[] = passing
         .map(s => {

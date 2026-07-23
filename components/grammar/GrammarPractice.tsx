@@ -12,7 +12,7 @@ import {
   formatNextReview,
   getSrsLevelLabel,
   getAnswerRegister,
-  answerFitsPattern,
+  answerMatchesBlank,
 } from '@/lib/grammar-srs'
 import {
   supabase,
@@ -509,8 +509,9 @@ export default function GrammarPractice({
     const merged: GrammarSentence[] = showShared && sharedSentences.length > 0
       ? [...sentences, ...sharedSentences.filter(sh => !sentences.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer))]
       : sentences
-    // Hide malformed cached sentences whose blank doesn't match the pattern.
-    const allSentences = merged.filter(s => answerFitsPattern(s.answer, grammar.pattern))
+    // Hide cached sentences whose blank isn't the point's canonical fill-in
+    // (wrong particle, broken conjugation…), so practice stays consistent.
+    const allSentences = merged.filter(s => answerMatchesBlank(s.answer, grammar))
     if (allSentences.length === 0) return
 
     // Sync merged sentences into state so session indices are valid

@@ -12,7 +12,7 @@ import {
   checkFullSentence,
   getSrsLevelLabel,
   getAnswerRegister,
-  answerFitsPattern,
+  answerMatchesBlank,
 } from '@/lib/grammar-srs'
 import {
   fetchGrammarSentences,
@@ -228,8 +228,8 @@ export default function GrammarReviewSession({
         const merged = [
           ...own,
           ...sharedMapped.filter(sh => !own.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer)),
-        // Hide malformed cached sentences whose blank doesn't match the pattern.
-        ].filter(s => answerFitsPattern(s.answer, g.pattern))
+        // Hide cached sentences whose blank isn't the point's canonical fill-in.
+        ].filter(s => answerMatchesBlank(s.answer, g))
         if (merged.length > 0) pools.set(g.id, merged)
       }
       if (cancelled) return

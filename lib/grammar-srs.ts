@@ -283,6 +283,82 @@ export function answerFitsPattern(answer: string, pattern: string): boolean {
   return ans.some(ch => pset.has(ch))
 }
 
+/** Minimal shape of a grammar point needed to resolve its canonical blank. */
+export interface BlankableGrammar {
+  blank?: string
+  pattern: string
+  structure: { text: string; isSlot: boolean; role: string }[]
+}
+
+/** Structure-token roles that hold plain content going verbatim into `before`
+ * (nouns, clauses, adverbials). Grammar attached to these keeps a fixed blank. */
+const NOUN_SLOT_ROLES = new Set(['noun', 'topic', 'subject', 'object', 'location', 'direction', 'time', 'conjunction'])
+
+/**
+ * The canonical fill-in-the-blank for a grammar point, in kana — the SAME token
+ * every generated sentence should blank, so the student always completes the
+ * same grammar (e.g. always です for the copula, never は).
+ *
+ * Resolution:
+ *  1. An explicit `blank` on the point wins (set on the important early points).
+ *  2. Otherwise derive it as the LAST contiguous run of fixed (non-slot) tokens
+ *     in `structure`: N₁ は N₂ です → です, N も … → も.
+ *
+ * Deliberately CONSERVATIVE: it only returns a fixed blank when that run is pure
+ * kana AND attaches to a plain noun/clause slot (or nothing). It returns null —
+ * meaning "variable blank, keep the flexible pattern matching" — whenever the run
+ * contains kanji, is empty, or is preceded by a verb/adjective/other slot that
+ * conjugates into the blank (て/た/ない/ます forms…). A false null is harmless
+ * (no behaviour change); a false fixed blank would break conjugation practice, so
+ * anything ambiguous falls through to null.
+ */
+export function getCanonicalBlank(g: BlankableGrammar): string | null {
+  if (g.blank && g.blank.trim()) return g.blank.trim()
+  const parts = g.structure ?? []
+  if (parts.length === 0) return null
+
+  // A slot the learner conjugates into the blank (verb/adjective), as opposed to
+  // a plain content slot (noun/clause) they just drop a vocab word into. Tagged
+  // by role, or by a placeholder mentioning a verb/adjective (V…, …adj…).
+  const isConjugatableSlot = (p: { text: string; role: string }) =>
+    !NOUN_SLOT_ROLES.has(p.role) || /adj/i.test(p.text) || /(^|[\s/[(（])V/.test(p.text)
+
+  // Last contiguous run of non-slot (fixed grammar) tokens. Trailing slots (the
+  // N in "N も", the following clause in "…から、S₂", the V in "N しか V ません")
+  // are given context; the blank is the particle/copula the learner types.
+  let end = parts.length - 1
+  while (end >= 0 && parts[end].isSlot) end--
+  if (end < 0) return null
+  let start = end
+  while (start - 1 >= 0 && !parts[start - 1].isSlot) start--
+
+  const text = parts.slice(start, end + 1).map(p => p.text).join('')
+  // Answer must be pure kana; a run with kanji isn't a fixed blank.
+  if (!text || [...text].some(isKanji)) return null
+  // A run listing alternatives (この/その/あの, があります／います) is not a single
+  // answer — normalizeAnswer keeps the slash, so no input could ever match it.
+  if (/[/／]/.test(text)) return null
+
+  // The token before the run is either nothing or a slot. A fixed blank is only
+  // safe when that slot is plain content — a conjugatable slot flows into the blank.
+  const prev = start - 1 >= 0 ? parts[start - 1] : null
+  if (prev && isConjugatableSlot(prev)) return null
+  return text
+}
+
+/**
+ * True when `answer` is the fill-in the grammar point expects. For points with a
+ * canonical blank it must equal that blank exactly (after normalisation) — this
+ * both filters generation and hides cached sentences that blanked the wrong token.
+ * For variable-blank points it falls back to answerFitsPattern.
+ */
+export function answerMatchesBlank(answer: string, grammar: BlankableGrammar): boolean {
+  const blank = getCanonicalBlank(grammar)
+  if (blank == null) return answerFitsPattern(answer, grammar.pattern)
+  const norm = normalizeAnswer(answer)
+  return !!norm && normalizeAnswer(blank) === norm
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────

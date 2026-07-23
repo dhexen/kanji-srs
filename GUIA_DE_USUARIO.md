@@ -182,7 +182,7 @@ En la ficha de cada punto gramatical hay un botón **"📚 Añadir a repasos"**.
 1. Elige un punto gramatical de la lista (por ejemplo, "は — Partícula de tema")
 2. Lee la explicación y los ejemplos
 3. Pulsa **"Practicar"**
-4. Verás una frase japonesa con un **hueco (\_\_\_)** — solo tienes que escribir la gramática que falta
+4. Verás una frase japonesa con un **hueco (\_\_\_)** — solo tienes que escribir la gramática que falta. Cada punto gramatical tiene un **hueco fijo y coherente**: por ejemplo, en la frase copulativa は・です siempre completas です (no unas veces は y otras です). Las frases las genera la IA con instrucciones estrictas para que sean japonés natural y correcto
 5. No se muestra la traducción por defecto (para no dar pistas). Pulsa **"Ver traducción"** si necesitas ayuda
 6. Al responder verás la frase completa correcta. Si fallas, también verás una nota con la explicación gramatical
 7. Puedes activar el furigana con el botón **ふ** en la tarjeta

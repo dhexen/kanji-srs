@@ -20,20 +20,20 @@ export type GrammarRole =
 export interface RoleColor { bg: string; text: string; border: string }
 
 export const ROLE_COLORS: Record<GrammarRole, RoleColor> = {
-  topic:       { bg: 'bg-indigo-100',  text: 'text-indigo-800',  border: 'border-indigo-400' },
-  subject:     { bg: 'bg-blue-100',    text: 'text-blue-800',    border: 'border-blue-400' },
-  object:      { bg: 'bg-orange-100',  text: 'text-orange-800',  border: 'border-orange-400' },
-  location:    { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-400' },
-  direction:   { bg: 'bg-teal-100',    text: 'text-teal-800',    border: 'border-teal-400' },
-  time:        { bg: 'bg-sky-100',     text: 'text-sky-800',     border: 'border-sky-400' },
-  verb:        { bg: 'bg-purple-100',  text: 'text-purple-800',  border: 'border-purple-400' },
-  key:         { bg: 'bg-rose-100',    text: 'text-rose-800',    border: 'border-rose-400' },
-  copula:      { bg: 'bg-violet-100',  text: 'text-violet-800',  border: 'border-violet-400' },
-  particle:    { bg: 'bg-amber-100',   text: 'text-amber-800',   border: 'border-amber-400' },
-  noun:        { bg: 'bg-slate-100',   text: 'text-slate-700',   border: 'border-slate-400' },
-  adjective:   { bg: 'bg-pink-100',    text: 'text-pink-800',    border: 'border-pink-400' },
-  conjunction: { bg: 'bg-gray-100',    text: 'text-gray-700',    border: 'border-gray-400' },
-  auxiliary:   { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-400' },
+  topic:       { bg: 'bg-indigo-100 dark:bg-indigo-900/40',   text: 'text-indigo-800 dark:text-indigo-300',   border: 'border-indigo-400 dark:border-indigo-600' },
+  subject:     { bg: 'bg-blue-100 dark:bg-blue-900/40',       text: 'text-blue-800 dark:text-blue-300',       border: 'border-blue-400 dark:border-blue-600' },
+  object:      { bg: 'bg-orange-100 dark:bg-orange-900/40',   text: 'text-orange-800 dark:text-orange-300',   border: 'border-orange-400 dark:border-orange-600' },
+  location:    { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-800 dark:text-emerald-300', border: 'border-emerald-400 dark:border-emerald-600' },
+  direction:   { bg: 'bg-teal-100 dark:bg-teal-900/40',       text: 'text-teal-800 dark:text-teal-300',       border: 'border-teal-400 dark:border-teal-600' },
+  time:        { bg: 'bg-sky-100 dark:bg-sky-900/40',         text: 'text-sky-800 dark:text-sky-300',         border: 'border-sky-400 dark:border-sky-600' },
+  verb:        { bg: 'bg-purple-100 dark:bg-purple-900/40',   text: 'text-purple-800 dark:text-purple-300',   border: 'border-purple-400 dark:border-purple-600' },
+  key:         { bg: 'bg-rose-100 dark:bg-rose-900/40',       text: 'text-rose-800 dark:text-rose-300',       border: 'border-rose-400 dark:border-rose-600' },
+  copula:      { bg: 'bg-violet-100 dark:bg-violet-900/40',   text: 'text-violet-800 dark:text-violet-300',   border: 'border-violet-400 dark:border-violet-600' },
+  particle:    { bg: 'bg-amber-100 dark:bg-amber-900/40',     text: 'text-amber-800 dark:text-amber-300',     border: 'border-amber-400 dark:border-amber-600' },
+  noun:        { bg: 'bg-slate-100 dark:bg-slate-700',        text: 'text-slate-700 dark:text-slate-200',     border: 'border-slate-400 dark:border-slate-500' },
+  adjective:   { bg: 'bg-pink-100 dark:bg-pink-900/40',       text: 'text-pink-800 dark:text-pink-300',       border: 'border-pink-400 dark:border-pink-600' },
+  conjunction: { bg: 'bg-gray-100 dark:bg-gray-700',          text: 'text-gray-700 dark:text-gray-200',       border: 'border-gray-400 dark:border-gray-500' },
+  auxiliary:   { bg: 'bg-fuchsia-100 dark:bg-fuchsia-900/40', text: 'text-fuchsia-800 dark:text-fuchsia-300', border: 'border-fuchsia-400 dark:border-fuchsia-600' },
 }
 
 export const ROLE_LABELS: Record<GrammarRole, { es: string; ca: string; en: string }> = {
@@ -77,6 +77,14 @@ export interface GrammarPoint {
   number: number       // sequential overall
   jlpt: 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
   pattern: string      // "N₁ は N₂ です"
+  /**
+   * Canonical fill-in-the-blank for practice, in kana. When set, EVERY generated
+   * sentence blanks exactly this string, so the student always completes the same
+   * grammar token for this point (e.g. always です for the copula, never は).
+   * Omit for conjugation patterns (て/た/ない forms…) where the blank varies with
+   * the verb — those fall back to pattern-based matching. See getCanonicalBlank().
+   */
+  blank?: string       // e.g. 'です', 'も', 'ですか'
   name_es: string
   name_ca: string
   name_en: string
@@ -99,6 +107,7 @@ const ch1: GrammarPoint[] = [
     id: 'mnn1-01-1',
     lesson: 1, number: 1, jlpt: 'N5',
     pattern: 'N₁ は N₂ です',
+    blank: 'です',
     name_es: 'Frase copulativa afirmativa',
     name_ca: 'Frase copulativa afirmativa',
     name_en: 'Affirmative copula sentence',
@@ -125,6 +134,7 @@ const ch1: GrammarPoint[] = [
     id: 'mnn1-01-2',
     lesson: 1, number: 2, jlpt: 'N5',
     pattern: 'N₁ は N₂ じゃ（では）ありません',
+    blank: 'じゃありません',
     name_es: 'Frase copulativa negativa',
     name_ca: 'Frase copulativa negativa',
     name_en: 'Negative copula sentence',
@@ -153,6 +163,7 @@ const ch1: GrammarPoint[] = [
     id: 'mnn1-01-3',
     lesson: 1, number: 3, jlpt: 'N5',
     pattern: 'N₁ は N₂ ですか',
+    blank: 'ですか',
     name_es: 'Pregunta con か',
     name_ca: 'Pregunta amb か',
     name_en: 'Question with か',
@@ -181,6 +192,7 @@ const ch1: GrammarPoint[] = [
     id: 'mnn1-01-4',
     lesson: 1, number: 4, jlpt: 'N5',
     pattern: 'N も ...',
+    blank: 'も',
     name_es: 'Partícula も (también)',
     name_ca: 'Partícula も (també)',
     name_en: 'Particle も (also/too)',
@@ -358,6 +370,7 @@ const ch3: GrammarPoint[] = [
     id: 'mnn1-03-10',
     lesson: 3, number: 10, jlpt: 'N5',
     pattern: 'N は どこ ですか',
+    blank: 'どこ',
     name_es: '¿Dónde está N? (どこ)',
     name_ca: 'On és N? (どこ)',
     name_en: 'Where is N? (どこ)',
@@ -448,6 +461,7 @@ const ch4: GrammarPoint[] = [
     id: 'mnn1-04-13',
     lesson: 4, number: 13, jlpt: 'N5',
     pattern: 'いくら ですか',
+    blank: 'いくら',
     name_es: '¿Cuánto cuesta? (いくら)',
     name_ca: 'Quant costa? (いくら)',
     name_en: 'How much is it? (いくら)',
@@ -742,6 +756,7 @@ const ch6: GrammarPoint[] = [
     id: 'mnn1-06-23',
     lesson: 6, number: 23, jlpt: 'N5',
     pattern: 'どのくらい かかりますか',
+    blank: 'どのくらい',
     name_es: '¿Cuánto tiempo/dinero se tarda?',
     name_ca: 'Quant de temps/diners es triga?',
     name_en: 'How long / how much does it take?',

@@ -4,7 +4,7 @@
 
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { FuriganaSegment } from '@/lib/grammar-srs'
-import { answerFitsPattern } from '@/lib/grammar-srs'
+import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
 
 export const GENERATE_SIZE = 38
 export const QUALITY_MIN = 4
@@ -90,9 +90,16 @@ export function buildSeedPrompt(grammar: GrammarPoint, vocab: { jp: string; read
     .map(w => `${w.jp}(${w.reading}): ${w.meaning}`)
     .join(', ')
 
+  const canonicalBlank = getCanonicalBlank(grammar)
+  const blankRule = canonicalBlank
+    ? `⚠️ REGLA ABSOLUTA sobre el HUECO: el "answer" es SIEMPRE EXACTAMENTE «${canonicalBlank}» en TODAS las frases. "before" = lo anterior a «${canonicalBlank}», "after" = lo posterior. NUNCA pongas otra cosa en el hueco. answer_alts: solo variantes ortográficas del MISMO hueco o [].`
+    : `⚠️ REGLA sobre el HUECO ("answer"): la gramática conjugada del patrón. Para formas て o conjugaciones el answer DEBE incluir esa parte COMPLETA (て, ます…), nunca solo la raíz. Usa siempre la misma parte del patrón como hueco.`
+
   return `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
 El alumno ve la frase con UN HUECO (___) donde falta la gramática, junto con su traducción, y debe completar la frase entera en japonés.
+
+${blankRule}
 
 Vocabulario disponible del currículo escolar japonés (primaria y secundaria): ${sample || 'vocabulario básico N5'}
 
@@ -116,8 +123,9 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 ⚠️ "before" y "after" son ARRAYS de tokens {"t":texto} con furigana: si el texto lleva kanji añade {"t":kanji,"f":lectura en hiragana de ESE kanji}. Usa los KANJI normales (no dejes en kana lo que se escribe con kanji). Cada token con kanji DEBE llevar "f". La kana va en tokens sin "f". Ej. 食べます → {"t":"食","f":"た"},{"t":"べます"}; 学生 → {"t":"学生","f":"がくせい"}. "f" siempre en hiragana.
 
 ⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe tener sentido lógico por sí sola.
-2. El sujeto debe ser claro. Usa contextos cotidianos realistas.
+1. La frase COMPLETA (before + answer + after) debe ser japonés REAL y natural, con sentido lógico. Léela entera antes de aceptarla.
+2. PROHIBIDO el japonés basura (palabras al azar sin orden ni sentido, p.ej. "次です番"): quality 1 y descártala.
+3. El sujeto debe ser claro y el orden correcto (Sujeto → Complementos → Predicado). Usa contextos cotidianos realistas.
 
 ⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji. Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte completa (la て, ます…), NUNCA solo la raíz del verbo. Ej. patrón てみます → answer "しらべてみます" ✓, NO "しらべ" (sin て) ✗.
 
@@ -251,7 +259,7 @@ export async function generatePointRows(
 
   const rows = sentences
     .filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
-    .filter(s => answerFitsPattern(String(s.answer ?? ''), grammar.pattern))
+    .filter(s => answerMatchesBlank(String(s.answer ?? ''), grammar))
     .map((s: any): SentenceRow | null => {
       const before = parseSegments(s.before)
       const after  = parseSegments(s.after)
