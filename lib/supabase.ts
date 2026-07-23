@@ -1043,12 +1043,13 @@ function mapFullVocab(d: Record<string, unknown>): FullVocabEntry {
  * Used by the Glossary view to show the full vocabulary list per grade.
  */
 export async function fetchAllVocabByGrade(grade: number): Promise<FullVocabEntry[]> {
-  const { data, error } = await supabase
-    .from('vocabulary')
-    .select(FULL_VOCAB_COLUMNS)
-    .eq('grade', grade)
-    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
-    .limit(10000)
+  const build = (hideNonWords: boolean) => {
+    let q = supabase.from('vocabulary').select(FULL_VOCAB_COLUMNS).eq('grade', grade)
+    if (hideNonWords) q = q.neq('word_review', 'hidden')  // ocultar kanji sueltos que no son palabra (migración 036)
+    return q.order('sort_order', { ascending: true }).limit(10000)  // curriculum order — matches reviews
+  }
+  let { data, error } = await build(true)
+  if (error && isSchemaUnavailable(error)) ({ data, error } = await build(false))
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
 }
@@ -1077,12 +1078,13 @@ export async function getVocabWordCountsByKanjis(
 
 /** Fetch all vocabulary entries across all grades. Used by the Glossary "All" view. */
 export async function fetchAllVocab(): Promise<FullVocabEntry[]> {
-  const { data, error } = await supabase
-    .from('vocabulary')
-    .select(FULL_VOCAB_COLUMNS)
-    .order('grade', { ascending: true })
-    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
-    .limit(10000)
+  const build = (hideNonWords: boolean) => {
+    let q = supabase.from('vocabulary').select(FULL_VOCAB_COLUMNS)
+    if (hideNonWords) q = q.neq('word_review', 'hidden')  // ocultar kanji sueltos que no son palabra (migración 036)
+    return q.order('grade', { ascending: true }).order('sort_order', { ascending: true }).limit(10000)
+  }
+  let { data, error } = await build(true)
+  if (error && isSchemaUnavailable(error)) ({ data, error } = await build(false))
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
 }
@@ -1099,15 +1101,18 @@ export async function searchVocabGlossary(
   const q = query.trim()
   if (!q) return []
   const like = `%${q}%`
-  let base = supabase
-    .from('vocabulary')
-    .select(FULL_VOCAB_COLUMNS)
-    .or(`word.ilike.${like},kanji.ilike.${like},reading.ilike.${like},meaning_es.ilike.${like},meaning_ca.ilike.${like},meaning_en.ilike.${like}`)
-    .order('grade', { ascending: true })
-    .order('sort_order', { ascending: true })  // curriculum order — matches reviews
-    .limit(500)
-  if (grade > 0) base = base.eq('grade', grade)
-  const { data, error } = await base
+  const build = (hideNonWords: boolean) => {
+    let base = supabase
+      .from('vocabulary')
+      .select(FULL_VOCAB_COLUMNS)
+      .or(`word.ilike.${like},kanji.ilike.${like},reading.ilike.${like},meaning_es.ilike.${like},meaning_ca.ilike.${like},meaning_en.ilike.${like}`)
+    if (hideNonWords) base = base.neq('word_review', 'hidden')  // ocultar kanji sueltos que no son palabra (migración 036)
+    base = base.order('grade', { ascending: true }).order('sort_order', { ascending: true }).limit(500)
+    if (grade > 0) base = base.eq('grade', grade)
+    return base
+  }
+  let { data, error } = await build(true)
+  if (error && isSchemaUnavailable(error)) ({ data, error } = await build(false))
   if (error) throw error
   return (data ?? []).map(mapFullVocab)
 }

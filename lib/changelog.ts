@@ -16,6 +16,17 @@ export interface ChangelogVersion {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    date: '2026-07-23',
+    label: 'Julio 2026',
+    entries: [
+      {
+        type: 'improvement',
+        title: 'Glosario más limpio: fuera los kanji sueltos que no son palabra',
+        description: 'Algunas entradas eran un kanji solo cuya lectura en realidad solo existe con okurigana (p. ej. 休 leído やす, cuando la palabra de verdad es 休む). Ahora un administrador puede escanear el diccionario con IA y esos kanji se ocultan automáticamente: desaparecen del Glosario y se quitan también del pool de repasos de quien los tuviera. Así el Glosario muestra solo palabras que de verdad funcionan por sí solas.',
+      },
+    ],
+  },
+  {
     date: '2026-06-05',
     label: 'Junio 2026',
     entries: [

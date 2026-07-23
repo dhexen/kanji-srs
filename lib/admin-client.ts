@@ -261,6 +261,57 @@ export async function runFillFullWord(opts: { offset?: number; model?: string; g
   return parseAdminResponse<FillFullWordResult>(res)
 }
 
+export interface ScanNonWordsResult {
+  scanned: number
+  hidden: number
+  ok: number
+  fetched: number
+  done: boolean
+  next_offset: number
+}
+
+export interface HiddenNonWord {
+  word: string
+  kanji: string
+  reading: string
+  meaning_es: string
+  grade: number | null
+}
+
+/** Escanea una página de vocabulario y OCULTA automáticamente los kanji sueltos que no son palabra real (Gemini). */
+export async function runScanNonWords(opts: { offset?: number; model?: string; geminiApiKey?: string }): Promise<ScanNonWordsResult> {
+  const res = await fetch('/api/admin/vocab/scan-non-words', {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify(opts),
+  })
+  return parseAdminResponse<ScanNonWordsResult>(res)
+}
+
+/** Lista los kanji sueltos que la IA ha ocultado (para auditar o restaurar). */
+export async function fetchHiddenNonWords(): Promise<HiddenNonWord[]> {
+  const res = await fetch('/api/admin/vocab/scan-non-words', {
+    method: 'GET',
+    headers: await adminAuthHeaders(),
+  })
+  const data = await parseAdminResponse<{ items: HiddenNonWord[] }>(res)
+  return data.items ?? []
+}
+
+/** Fija el estado de revisión de una entrada: 'hidden' la oculta del glosario, 'ok' la restaura. */
+export async function setVocabWordReview(
+  word: string,
+  kanji: string,
+  status: 'hidden' | 'ok' | 'flagged' | 'pending',
+): Promise<{ ok: boolean }> {
+  const res = await fetch('/api/admin/vocab/scan-non-words', {
+    method: 'PATCH',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ word, kanji, status }),
+  })
+  return parseAdminResponse<{ ok: boolean }>(res)
+}
+
 export interface EnrichJlptResult {
   updated: number
   fetched: number

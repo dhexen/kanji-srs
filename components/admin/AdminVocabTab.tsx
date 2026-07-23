@@ -4,6 +4,7 @@ import { showToast } from '@/components/ui/Toast'
 import { searchVocabulary } from '@/lib/supabase'
 import AdminFuriganaReview from './AdminFuriganaReview'
 import AdminFillFullWord from './AdminFillFullWord'
+import AdminNonWordReview from './AdminNonWordReview'
 import {
   deleteVocabWord,
   deleteVocabByGrade,
@@ -243,6 +244,12 @@ export default function AdminVocabTab() {
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🈶 Escritura completa</h3>
         <AdminFillFullWord />
+      </div>
+
+      {/* ── Revisión de kanji sueltos que no son palabra ──────────────────────── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 md:p-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-1">🚫 Kanji sueltos que no son palabra</h3>
+        <AdminNonWordReview />
       </div>
 
       {/* ── Búsqueda y eliminación individual ─────────────────────────────────── */}

@@ -383,6 +383,7 @@ Esta es la herramienta más potente del panel. Usa IA para clasificar el vocabul
 - Importar vocabulario en masa desde un archivo CSV
 - Ver y gestionar los errores reportados por usuarios
 - **Revisar palabras propuestas por alumnos**: el botón "🕐 Pendientes" del Glosario (con un aviso numérico también en "Vocabulario" de la barra lateral) muestra las palabras que los alumnos han propuesto como oficiales. Para cada una puedes **✓ Promover** (pasa a ser oficial para todos, y se añade automáticamente a los repasos de quien ya estudie ese kanji) o **✗ No promover** (queda como palabra personal de quien la propuso)
+- **🚫 Kanji sueltos que no son palabra**: en la pestaña "Vocabulario" del panel de admin, el botón "🔎 Escanear y ocultar kanji sueltos (IA)" revisa con Gemini todas las entradas formadas por un solo kanji y **oculta automáticamente** las que no son una palabra real por sí mismas (p. ej. 休 con lectura やす: la palabra de verdad es 休む). Al ocultarse, desaparecen del Glosario para todos los usuarios y se eliminan del pool de repasos de quien las tuviera. Es **irreversible** (se pierde el progreso SRS de esa palabra). Debajo del botón queda la lista de "Ocultadas por la IA" por si quieres auditar y **Restaurar** alguna que se haya ocultado por error
 
 ### ⚙️ Sistema
 - Configurar los intervalos de tiempo del SRS (por defecto: 4h, 8h, 1d, etc.)
