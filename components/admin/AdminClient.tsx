@@ -7,7 +7,7 @@ import AdminMfaGate from '@/components/ui/AdminMfaGate'
 import AdminVocabTab from './AdminVocabTab'
 import AdminDashboard, { type DrawerKey } from './AdminDashboard'
 import AdminDrawer from './AdminDrawer'
-import GrammarSeedClient from './GrammarSeedClient'
+import GrammarSeedPanel from './GrammarSeedPanel'
 import GrammarRefreshMonitor from './GrammarRefreshMonitor'
 import AdminEnrichJlpt from './AdminEnrichJlpt'
 import AdminGenerateSchemes from './AdminGenerateSchemes'
@@ -1573,7 +1573,7 @@ export default function AdminClient() {
 
       {/* ── DRAWERS: GRAMÁTICA (componentes autónomos) ────────────────── */}
       <AdminDrawer open={drawerTool === 'grammar-seed'} onClose={closeDrawer} title="Frases de gramática" icon="🌱">
-        <GrammarSeedClient />
+        <GrammarSeedPanel />
       </AdminDrawer>
       <AdminDrawer open={drawerTool === 'grammar-refresh'} onClose={closeDrawer} title="Renovación de frases" icon="🔄">
         <GrammarRefreshMonitor />

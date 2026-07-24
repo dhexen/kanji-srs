@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import GrammarSeedClient from '@/components/admin/GrammarSeedClient'
+import GrammarSeedPanel from '@/components/admin/GrammarSeedPanel'
 import AdminEnrichJlpt from '@/components/admin/AdminEnrichJlpt'
 import AdminGenerateSchemes from '@/components/admin/AdminGenerateSchemes'
 
@@ -15,13 +15,7 @@ export default function GrammarSeedPage() {
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <Suspense fallback={<div className="p-8 text-slate-400">Cargando…</div>}>
-            <GrammarSeedClient />
-          </Suspense>
-        </div>
-        <h2 className="text-lg font-semibold text-purple-800 mt-8 mb-3">🧪 Sandbox de test (Gramàtica TEST)</h2>
-        <div className="bg-white rounded-xl border border-purple-200 shadow-sm">
-          <Suspense fallback={<div className="p-8 text-slate-400">Cargando…</div>}>
-            <GrammarSeedClient target="test" />
+            <GrammarSeedPanel />
           </Suspense>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
