@@ -102,7 +102,16 @@
       "Bash(git commit *)",
       "WebFetch(domain:claude.ai)",
       "Bash(git --no-pager diff --stat components/grammar-test/GrammarTestExamples.tsx)",
-      "Bash(grep -n 'return \\(\\\\s*$\\\\|<div className=\"space-y-3\">' /home/dhexen/Documentos/proyecto/kanji-srs/components/grammar-test/GrammarTestExamples.tsx)"
+      "Bash(grep -n 'return \\(\\\\s*$\\\\|<div className=\"space-y-3\">' /home/dhexen/Documentos/proyecto/kanji-srs/components/grammar-test/GrammarTestExamples.tsx)",
+      "Bash(grep -iA40 \"create table\")",
+      "Bash(grep -iA2 -B2 \"migrat\\\\|supabase\")",
+      "Bash(awk '/id: .mnn1-01-1./{f=1} f{print NR\": \"$0} f&&/^  \\\\},/{c++; if\\(c>=1\\) exit}' lib/grammar-mnn1.ts)",
+      "Bash(python3 -m http.server 8792)",
+      "Bash(google-chrome --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=800,820 --virtual-time-budget=1500 --screenshot=meaning1.png \"http://localhost:8792/meaning.html?w=0&cat=1\")",
+      "Bash(python3 -)",
+      "Bash(git apply *)",
+      "Bash(xargs -I{} echo \"maybeSnapshot en staged: {} \\(debe ser 0\\)\")",
+      "Bash(pkill -f \"http.server 879\")"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",

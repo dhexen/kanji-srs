@@ -7,7 +7,7 @@ import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
 import type { GrammarSrsStat, GrammarScheme } from '@/lib/grammar-test-srs'
 import { getSrsLevelLabel } from '@/lib/grammar-test-srs'
-import { fetchGrammarScheme, fetchGrammarSentences } from '@/lib/grammar-test-db'
+import { fetchGrammarScheme, fetchGrammarSentences, updateGrammarSentence, deleteGrammarSentenceById } from '@/lib/grammar-test-db'
 import GrammarExamples from './GrammarTestExamples'
 import GrammarPractice from './GrammarTestPractice'
 import GrammarSentenceExamples from '@/components/grammar/GrammarSentenceExamples'
@@ -425,7 +425,14 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
             activeVocab={activeVocab}
             canEdit={canEdit}
           />
-          <GrammarSentenceExamples grammarId={grammar.id} lang={lang} fetcher={fetchGrammarSentences} />
+          <GrammarSentenceExamples
+            grammarId={grammar.id}
+            lang={lang}
+            fetcher={fetchGrammarSentences}
+            canEdit={canEdit}
+            onUpdate={updateGrammarSentence}
+            onDelete={deleteGrammarSentenceById}
+          />
         </div>
       </Reveal>
 
