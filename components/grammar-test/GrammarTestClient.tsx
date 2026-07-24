@@ -563,6 +563,11 @@ export default function GrammarClient() {
   const [hideKnown, setHideKnown] = useState(true)
   const [showOnlyStudying, setShowOnlyStudying] = useState(false)
   const [view, setView] = useState<View>({ kind: 'list' })
+  // Layout of the list screen: 'panel' (dashboard landing), 'lessons' (left-rail
+  // navigator per book), 'index' (dense searchable list). See design mockup.
+  const [listMode, setListMode] = useState<'panel' | 'lessons' | 'index'>('panel')
+  const [activeBook, setActiveBook] = useState<BookKey>('mnn1')
+  const [activeLesson, setActiveLesson] = useState<number | null>(null)
   const [sessionToken, setSessionToken] = useState('')
   const [loadingKnown, setLoadingKnown] = useState(true)
   const [srsStats, setSrsStats] = useState<Map<string, GrammarSrsStat>>(new Map())
@@ -670,6 +675,39 @@ export default function GrammarClient() {
     )
   }, [filtered])
 
+  // Per-book aggregate progress for the Panel (dashboard) cards.
+  const bookAgg = useMemo(() => {
+    const now = Date.now()
+    return BOOKS.map(b => {
+      const pts = ALL_GRAMMAR_POINTS.filter(p => p.book === b.key)
+      let known = 0, learning = 0, due = 0
+      for (const p of pts) {
+        if (knownIds.has(p.id)) { known++; continue }
+        const stat = srsStats.get(p.id)
+        if (stat) { learning++; if (stat.next_review <= now) due++ }
+      }
+      return { ...b, total: pts.length, known, learning, due }
+    })
+  }, [knownIds, srsStats])
+
+  // Lessons of the active book for the "Lecciones" navigator (left rail).
+  const bookLessons = useMemo(() => {
+    const pts = ALL_GRAMMAR_POINTS.filter(p => p.book === activeBook)
+    const map = new Map<number, GrammarPointWithBook[]>()
+    for (const p of pts) {
+      if (!map.has(p.lesson)) map.set(p.lesson, [])
+      map.get(p.lesson)!.push(p)
+    }
+    return Array.from(map.entries())
+      .map(([lesson, points]) => ({ lesson, points }))
+      .sort((a, b) => a.lesson - b.lesson)
+  }, [activeBook])
+
+  const currentLessonEntry = useMemo(() => {
+    if (bookLessons.length === 0) return null
+    return bookLessons.find(l => l.lesson === activeLesson) ?? bookLessons[0]
+  }, [bookLessons, activeLesson])
+
   // Lessons of grammars the user is studying (in SRS or known), grouped by
   // book+lesson — candidates for the free review.
   const studyingLessons = useMemo(() => {
@@ -735,7 +773,6 @@ export default function GrammarClient() {
   }
 
   const activeVocab = state.db.filter(i => i.status === 'active')
-  const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
   const effectiveRole = state.simulatedRole ?? state.role
   const canEdit = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
@@ -846,9 +883,19 @@ export default function GrammarClient() {
 
   // ── Main list view ────────────────────────────────────────────────────────
 
-  const subtitleText = currentBookInfo
-    ? `${currentBookInfo.subtitle} · ${t(lang, 'grammar_n_points').replace('{n}', String(totalInBook))}`
-    : `${t(lang, 'grammar_all_books')} · ${t(lang, 'grammar_n_points').replace('{n}', String(totalInBook))}`
+  const ui = {
+    panel:      lang === 'en' ? 'Panel'     : lang === 'ca' ? 'Tauler'   : 'Panel',
+    lessons:    lang === 'en' ? 'Lessons'   : lang === 'ca' ? 'Lliçons'  : 'Lecciones',
+    search:     lang === 'en' ? 'Search'    : lang === 'ca' ? 'Cercar'   : 'Buscar',
+    mastered:   lang === 'en' ? 'mastered'  : lang === 'ca' ? 'dominats' : 'dominados',
+    inProgress: lang === 'en' ? 'in progress' : lang === 'ca' ? 'en curs' : 'en curso',
+    due:        lang === 'en' ? 'to review' : lang === 'ca' ? 'per repassar' : 'por repasar',
+    points:     lang === 'en' ? 'points'    : lang === 'ca' ? 'punts'    : 'puntos',
+    explore:    lang === 'en' ? 'Pick a book to explore its lessons'
+              : lang === 'ca' ? 'Tria un llibre per explorar-ne les lliçons'
+              :                 'Elige un libro para explorar sus lecciones',
+  }
+  const openBook = (bk: BookKey) => { setActiveBook(bk); setActiveLesson(null); setListMode('lessons') }
 
   return (
     <div className="space-y-4">
@@ -878,8 +925,29 @@ export default function GrammarClient() {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t(lang, 'grammar_title')}</h1>
           <SectionToggle section={section} onChange={setSection} />
         </div>
-        <p className="text-sm text-slate-500 mt-0.5">{subtitleText}</p>
+        <p className="text-sm text-slate-500 mt-0.5">{t(lang, 'grammar_all_books')} · {t(lang, 'grammar_n_points').replace('{n}', String(ALL_GRAMMAR_POINTS.length))}</p>
       </div>
+
+      {/* Mode switcher: Panel / Lecciones / Buscar */}
+      <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+        {([['panel', '🏠', ui.panel], ['lessons', '🗂️', ui.lessons], ['index', '🔍', ui.search]] as const).map(([m, icon, label]) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setListMode(m)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              listMode === m
+                ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            {icon} {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════════════════ PANEL (dashboard landing) ══════════════════════ */}
+      {listMode === 'panel' && (<>
 
       {/* ── Grammar SRS Review banner ─────────────────────────────────────── */}
       {state.user && (
@@ -991,6 +1059,143 @@ export default function GrammarClient() {
           </div>
         </div>
       )}
+
+      {/* Book progress cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {bookAgg.map(b => {
+          const pct = b.total ? Math.round((b.known / b.total) * 100) : 0
+          return (
+            <button
+              key={b.key}
+              type="button"
+              onClick={() => openBook(b.key)}
+              className="text-left rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-sm transition"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{b.label}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{b.subtitle} · {b.total} {ui.points}</p>
+                </div>
+                <div
+                  className="relative shrink-0 w-12 h-12 rounded-full grid place-items-center"
+                  style={{ background: `conic-gradient(#34d399 ${pct}%, rgba(148,163,184,.25) 0)` }}
+                >
+                  <div className="absolute inset-[3px] rounded-full bg-white dark:bg-slate-800" />
+                  <span className="relative text-[11px] font-bold tabular-nums text-slate-700 dark:text-slate-200">{pct}%</span>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="text-[11px] text-slate-400">
+                  <b className="block text-base font-bold text-slate-700 dark:text-slate-200 tabular-nums">{b.known}</b>{ui.mastered}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  <b className="block text-base font-bold text-amber-600 dark:text-amber-400 tabular-nums">{b.learning}</b>{ui.inProgress}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  <b className="block text-base font-bold text-rose-500 tabular-nums">{b.due}</b>{ui.due}
+                </div>
+              </div>
+              <div className="flex h-1.5 rounded-full overflow-hidden mt-3 bg-slate-100 dark:bg-slate-700">
+                <i className="bg-emerald-400" style={{ width: `${b.total ? (b.known / b.total) * 100 : 0}%` }} />
+                <i className="bg-amber-400" style={{ width: `${b.total ? (b.learning / b.total) * 100 : 0}%` }} />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-slate-400 text-center pt-1">{ui.explore}</p>
+
+      </>)}
+
+      {/* ══════════════════════ LESSONS (left-rail navigator) ══════════════════════ */}
+      {listMode === 'lessons' && (
+        <div>
+          {/* Book pills */}
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+            {BOOKS.map(b => (
+              <button
+                key={b.key}
+                type="button"
+                onClick={() => { setActiveBook(b.key); setActiveLesson(null) }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  activeBook === b.key
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
+            {/* Left rail: lessons */}
+            <nav className="md:sticky md:top-4 md:self-start rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 md:max-h-[72vh] overflow-y-auto custom-scroll space-y-0.5">
+              {bookLessons.map(l => {
+                const known = l.points.filter(p => knownIds.has(p.id)).length
+                const pct = Math.round((known / l.points.length) * 100)
+                const active = currentLessonEntry?.lesson === l.lesson
+                return (
+                  <button
+                    key={l.lesson}
+                    type="button"
+                    onClick={() => setActiveLesson(l.lesson)}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition ${
+                      active
+                        ? 'bg-indigo-50 dark:bg-indigo-900/30 ring-1 ring-indigo-200 dark:ring-indigo-700'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <span className="w-8 shrink-0 text-[11px] font-bold text-indigo-500 dark:text-indigo-400 tabular-nums">L{l.lesson}</span>
+                    <span className="flex-1 min-w-0 h-1 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden">
+                      <i className="block h-full bg-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
+                    </span>
+                    <span className="shrink-0 text-[10px] text-slate-400 tabular-nums">{known}/{l.points.length}</span>
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Main: selected lesson points */}
+            <div>
+              {currentLessonEntry ? (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      {t(lang, 'grammar_lesson').replace('{n}', String(currentLessonEntry.lesson))}
+                    </h2>
+                    <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                    <span className="text-xs text-slate-400 tabular-nums">
+                      {currentLessonEntry.points.filter(g => knownIds.has(g.id)).length}/{currentLessonEntry.points.length} {ui.mastered}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {currentLessonEntry.points.map(g => (
+                      <div key={g.id} id={`grammar-${g.id}`}>
+                        <GrammarCard
+                          grammar={g}
+                          known={knownIds.has(g.id)}
+                          srsStat={srsStats.get(g.id)}
+                          onToggleKnown={toggleKnown}
+                          onAddToSrs={handleAddToSrs}
+                          onSelect={g => setView({ kind: 'detail', grammar: g })}
+                          lang={lang}
+                          showBook={false}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12 text-slate-400">{t(lang, 'grammar_no_results')}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════ INDEX (dense searchable list) ══════════════════════ */}
+      {listMode === 'index' && (<>
 
       {/* Book selector */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -1154,6 +1359,8 @@ export default function GrammarClient() {
           ))}
         </div>
       )}
+
+      </>)}
     </div>
   )
 }
