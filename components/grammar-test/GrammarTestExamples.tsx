@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import type { GrammarPoint, GrammarRole } from '@/lib/grammar-test-mnn1'
+import type { GrammarPoint, GrammarRole, StructurePart } from '@/lib/grammar-test-mnn1'
 import { ROLE_COLORS } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
@@ -277,6 +277,24 @@ function castSentences(rows: { id?: string; jp: unknown[]; translation: unknown[
   }))
 }
 
+// Deriva la "firma" gramatical desde la estructura del punto:
+//  • fixedList: las piezas fijas (no-slot) en orden → lo que el alumno debe reconocer
+//    (p.ej. は + です · て + も + いい + ですか · じゃ + ありません)
+//  • checkLiteral: la última tirada CONTIGUA de piezas fijas en kana (sin kanji).
+//    Sirve para verificar en runtime que la frase realmente contiene la gramática.
+//    Es null cuando esa parte lleva kanji o no existe (conjugación variable).
+function grammarSignature(structure: StructurePart[]): { fixedList: string[]; checkLiteral: string | null } {
+  const fixedList = structure.filter(p => !p.isSlot).map(p => p.text)
+  let run: string[] = []
+  for (const p of structure) {
+    if (!p.isSlot) run.push(p.text)
+    else run = []
+  }
+  const literal = run.join('')
+  const hasKanji = /[一-龯]/.test(literal)
+  return { fixedList, checkLiteral: literal && !hasKanji ? literal : null }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -349,32 +367,51 @@ export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken
       ? `Vocabulario disponible:\n- Del currículo escolar japonés: ${schoolSample || 'palabras básicas N5'}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
       : `Vocabulario disponible (usa el mayor número posible): ${schoolSample || 'palabras básicas N5'}`
 
-    const prompt = `Eres un profesor de japonés experto. Genera EXACTAMENTE 5 frases cortas en japonés que usen el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
+    // Firma gramatical (piezas fijas + literal verificable) y frase de referencia curada
+    const { fixedList, checkLiteral } = grammarSignature(grammar.structure)
+    const grammarPieces = fixedList.length ? fixedList.join(' + ') : grammar.pattern
+    const goldJp = grammar.example.map(tk => `${tk.text}${tk.furigana ? `(${tk.furigana})` : ''}`).join('')
+
+    const prompt = `Eres un profesor de japonés NATIVO y experto en didáctica (nivel JLPT ${grammar.jlpt}).
+Genera EXACTAMENTE 5 frases de ejemplo, naturales y correctas, que enseñen este punto gramatical:
+
+• Patrón: "${grammar.pattern}"  (${grammar.name_es})
+• Significado: ${grammar.explanation_es}
+• La gramática que se estudia son estas piezas fijas: ${grammarPieces}. Deben aparecer TODAS, en ese orden, en cada frase.
+
+FRASE DE REFERENCIA (una frase correcta de este punto; imita su naturalidad y nivel): ${goldJp}
 
 ${vocabSection}
 
-Reglas:
-- Cada frase debe ilustrar claramente el patrón "${grammar.pattern}"
-- Frases cortas y claras, nivel JLPT ${grammar.jlpt}
-- La traducción debe estar en ${targetLang}
-- Asigna un "role" a cada token según su función gramatical. Roles disponibles: ${VALID_ROLES.join(', ')}
-- Marca con role "key" la parte que corresponde exactamente al patrón gramatical estudiado
-- Para el japonés incluye furigana de los kanjis
-- Los tokens de traducción deben alinearse con los japoneses en color (mismo role = mismo color)
+REGLAS DE CALIDAD (obligatorias):
+1. Cada frase debe ser japonés natural que un nativo diría de verdad. PROHIBIDO encadenar palabras sueltas sin sentido (ejemplos de lo que NO debes hacer: «次です番», «学生は本です犬»).
+2. Cada frase debe usar el patrón "${grammar.pattern}" correctamente y contener las piezas fijas ${grammarPieces}.
+3. Frases cortas y variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
+4. Prioriza el vocabulario de la lista; puedes añadir partículas o palabras muy básicas si hacen falta para que la frase sea natural.
+5. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
+Si una frase no te convence, descártala y escribe otra mejor. Mejor 5 frases perfectas que 5 forzadas.
+
+FORMATO DE TOKENS:
+- Asigna a cada token un "role" de esta lista: ${VALID_ROLES.join(', ')}
+- Marca con role "key" EXACTAMENTE los tokens que forman la gramática estudiada (${grammarPieces}); a las palabras de contenido dales su role semántico (verb, noun, object, time, location…).
+- Incluye furigana en todos los kanji.
+- Los tokens de traducción deben usar el mismo role que su equivalente japonés (mismo role = mismo color).
+- Añade "quality": entero 1-5 con tu valoración honesta de lo natural y correcta que es la frase (5 = perfecta y nativa). Sé estricto; si sería <4, reescríbela antes de enviarla.
 
 Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 {
   "sentences": [
     {
+      "quality": 5,
       "jp": [
         {"text": "私", "furigana": "わたし", "role": "topic"},
-        {"text": "は", "role": "topic"},
+        {"text": "は", "role": "key"},
         {"text": "学生", "furigana": "がくせい", "role": "noun"},
-        {"text": "です", "role": "copula"}
+        {"text": "です", "role": "key"}
       ],
       "translation": [
         {"text": "Yo", "role": "topic"},
-        {"text": "soy", "role": "copula"},
+        {"text": "soy", "role": "key"},
         {"text": "estudiante", "role": "noun"}
       ]
     }
@@ -399,7 +436,21 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
       const parsed = JSON.parse(clean)
       if (!parsed.sentences?.length) throw new Error('La IA no generó frases. Inténtalo de nuevo.')
 
-      const newSentences = castSentences(parsed.sentences)
+      // Control de calidad: descarta malformadas, auto-valoración baja y las que
+      // no contienen realmente la gramática (cuando es verificable literalmente).
+      const rows = (parsed.sentences as any[]).filter(s => {
+        if (!Array.isArray(s.jp) || !s.jp.length) return false
+        if (!Array.isArray(s.translation) || !s.translation.length) return false
+        if (typeof s.quality === 'number' && s.quality < 4) return false
+        if (checkLiteral) {
+          const joined = s.jp.map((t: any) => String(t?.text ?? '')).join('')
+          if (!joined.includes(checkLiteral)) return false
+        }
+        return true
+      })
+      if (!rows.length) throw new Error('Las frases generadas no pasaron el control de calidad. Inténtalo de nuevo.')
+
+      const newSentences = castSentences(rows)
 
       // Save to DB (insert + trim to MAX_POOL) then reload
       setSaving(true)
