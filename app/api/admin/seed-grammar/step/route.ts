@@ -8,7 +8,7 @@ import { MNN2_GRAMMAR_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '@/lib/grammar-bunpro'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
-import { TARGET, generatePointRows } from '@/lib/grammar-seed-core'
+import { TARGET, generatePointRows, generateExampleRows, EXAMPLES_TARGET } from '@/lib/grammar-seed-core'
 
 const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
@@ -135,10 +135,35 @@ export async function POST(req: NextRequest) {
 
     await service.from('grammar_seed_errors').delete().eq('grammar_id', next.id)
 
+    // 9. Frases de EJEMPLO compartidas (solo test): en la misma tirada sembramos
+    // hasta EXAMPLES_TARGET ejemplos coloreados por punto. Best-effort: si falla
+    // NO rompe la generación del pool de práctica.
+    let examplesAdded = 0
+    if (target === 'test') {
+      try {
+        const { count: exCount } = await service
+          .from('grammar_examples_test')
+          .select('*', { count: 'exact', head: true })
+          .eq('grammar_id', next.id)
+          .eq('is_private', false)
+        const need = EXAMPLES_TARGET - (exCount ?? 0)
+        if (need > 0) {
+          const examples = await generateExampleRows(next, vocab, apiKey, need)
+          if (examples.length > 0) {
+            const { error: exErr } = await service.from('grammar_examples_test').insert(
+              examples.map(e => ({ user_id: adminId, grammar_id: next.id, jp: e.jp, translation: e.translation })),
+            )
+            if (!exErr) examplesAdded = examples.length
+          }
+        }
+      } catch { /* ejemplos son secundarios: nunca bloquean el flujo */ }
+    }
+
     return NextResponse.json({
       status: 'done',
       grammar_id: next.id,
       sentences_added: result.rows.length,
+      examples_added: examplesAdded,
       new_count: currentCount + result.rows.length,
       model_used: result.usedModel,
       stats: result.stats,

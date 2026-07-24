@@ -346,3 +346,107 @@ export async function generatePointRows(
 
   return { ok: true, rows: verified, usedModel, stats }
 }
+
+// ── Frases de EJEMPLO (frases enteras con colores, sin hueco) ────────────────
+// A diferencia del pool de práctica (rellenar huecos), un ejemplo es la frase
+// COMPLETA con cada token etiquetado por función gramatical (role), para verla
+// coloreada. Se siembran en grammar_examples_test junto al pool de práctica.
+export const EXAMPLES_TARGET = 5
+
+const EXAMPLE_ROLES = [
+  'topic', 'subject', 'object', 'location', 'direction', 'time',
+  'verb', 'key', 'copula', 'particle', 'noun', 'adjective', 'conjunction', 'auxiliary',
+]
+
+interface ExampleToken { text: string; furigana?: string; role: string }
+export interface ExampleRow { jp: ExampleToken[]; translation: ExampleToken[] }
+
+function parseExampleTokens(raw: unknown, withFurigana: boolean): ExampleToken[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((x: any): ExampleToken | null => {
+      const text = typeof x?.text === 'string' ? x.text : ''
+      if (!text) return null
+      const role = EXAMPLE_ROLES.includes(x?.role) ? String(x.role) : 'noun'
+      const f = withFurigana && x?.furigana != null && String(x.furigana).trim() ? String(x.furigana).trim() : undefined
+      return f ? { text, furigana: f, role } : { text, role }
+    })
+    .filter((t): t is ExampleToken => t !== null)
+}
+
+/**
+ * Generate up to `count` full colour-coded example sentences for one grammar
+ * point. Robust by design: on any failure returns []. No DB access. Traducción
+ * en español (el pool compartido es único; el proyecto es español-first).
+ */
+export async function generateExampleRows(
+  grammar: GrammarPoint,
+  vocab: { jp: string; reading: string; meaning: string }[],
+  apiKey: string,
+  count: number,
+): Promise<ExampleRow[]> {
+  if (count <= 0) return []
+  const sample = [...vocab].sort(() => Math.random() - 0.5).slice(0, 15)
+    .map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+
+  const prompt = `Eres un profesor de japonés experto. Genera EXACTAMENTE ${count} frases cortas en japonés que usen el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
+
+Vocabulario disponible (úsalo cuando encaje): ${sample || 'palabras básicas N5'}
+
+Reglas:
+- Cada frase debe ilustrar CLARAMENTE el patrón "${grammar.pattern}" y ser japonés natural con sentido real.
+- Frases cortas y sencillas, nivel JLPT ${grammar.jlpt}. Lo único nuevo debe ser la gramática.
+- La frase es COMPLETA (no dejes huecos). Traducción al ESPAÑOL.
+- Asigna un "role" a cada token según su función. Roles: ${EXAMPLE_ROLES.join(', ')}
+- Marca con role "key" la parte que corresponde EXACTAMENTE al patrón estudiado.
+- Incluye furigana (hiragana) de CADA kanji en el token japonés.
+- Los tokens de traducción se alinean en color con los japoneses (mismo role = mismo color).
+
+Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
+{
+  "sentences": [
+    {
+      "jp": [
+        {"text": "私", "furigana": "わたし", "role": "topic"},
+        {"text": "は", "role": "topic"},
+        {"text": "学生", "furigana": "がくせい", "role": "noun"},
+        {"text": "です", "role": "copula"}
+      ],
+      "translation": [
+        {"text": "Yo", "role": "topic"},
+        {"text": "soy", "role": "copula"},
+        {"text": "estudiante", "role": "noun"}
+      ]
+    }
+  ]
+}`
+
+  let data: any = null
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+      )
+      data = await res.json()
+      if (res.ok) break
+      if (res.status !== 503 && res.status !== 404) return []  // real error → give up (examples are best-effort)
+    } catch { return [] }
+  }
+
+  const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  let sentences: any[] = []
+  try {
+    sentences = JSON.parse(rawText.replace(/```json|```/g, '').trim()).sentences ?? []
+  } catch { return [] }
+
+  return sentences
+    .map((s: any): ExampleRow | null => {
+      const jp = parseExampleTokens(s?.jp, true)
+      const translation = parseExampleTokens(s?.translation, false)
+      if (jp.length === 0) return null
+      return { jp, translation }
+    })
+    .filter((r): r is ExampleRow => r !== null)
+    .slice(0, count)
+}

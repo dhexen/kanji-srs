@@ -202,6 +202,79 @@ export async function validateGrammarSentence(id: string, validated: boolean): P
   } catch (e) { console.warn('[test] validateGrammarSentence:', e) }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pool COMPARTIDO de frases de EJEMPLO (con colores) → grammar_examples_test
+// (migración 044). Igual que el pool de práctica pero para frases enteras: el
+// admin las siembra públicas y TODOS las ven sin clave. La RLS restringe a
+// públicas + propias privadas, así que las queries NO filtran por user_id.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHARED_EXAMPLES_MAX = 10
+
+export async function fetchSharedGrammarExamples(grammarId: string): Promise<UserGrammarExample[]> {
+  try {
+    await requireUser()
+    const { data, error } = await supabase
+      .from('grammar_examples_test')
+      .select('id, grammar_id, jp, translation')
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+    if (error) { console.warn('[test] fetchSharedGrammarExamples:', error.message); return [] }
+    return (data ?? []) as UserGrammarExample[]
+  } catch { return [] }
+}
+
+export async function saveSharedGrammarExamples(
+  grammarId: string,
+  sentences: { jp: unknown[]; translation: unknown[] }[],
+): Promise<void> {
+  if (!sentences.length) return
+  try {
+    const user = await requireUser()
+    const rows = sentences.map(s => ({ user_id: user.id, grammar_id: grammarId, jp: s.jp, translation: s.translation }))
+    const { error: insertErr } = await supabase.from('grammar_examples_test').insert(rows)
+    if (insertErr) { console.warn('[test] saveSharedGrammarExamples insert:', insertErr.message); return }
+    const { count, error: countErr } = await supabase
+      .from('grammar_examples_test')
+      .select('*', { count: 'exact', head: true })
+      .eq('grammar_id', grammarId)
+      .eq('is_private', false)
+    if (countErr || count === null || count <= SHARED_EXAMPLES_MAX) return
+    const excess = count - SHARED_EXAMPLES_MAX
+    const { data: oldest } = await supabase
+      .from('grammar_examples_test')
+      .select('id')
+      .eq('grammar_id', grammarId)
+      .eq('is_private', false)
+      .eq('validated', false)
+      .order('created_at', { ascending: true })
+      .limit(excess)
+    if (!oldest?.length) return
+    await supabase.from('grammar_examples_test').delete().in('id', oldest.map(r => r.id as string))
+  } catch (e) { console.warn('[test] saveSharedGrammarExamples:', e) }
+}
+
+export async function updateSharedGrammarExample(id: string, jp: unknown[], translation: unknown[]): Promise<void> {
+  try {
+    await requireUser()
+    const { error } = await supabase
+      .from('grammar_examples_test')
+      .update({ jp, translation })
+      .eq('id', id)
+    if (error) console.warn('[test] updateSharedGrammarExample:', error.message)
+  } catch (e) { console.warn('[test] updateSharedGrammarExample:', e) }
+}
+
+export async function deleteSharedGrammarExample(id: string): Promise<void> {
+  try {
+    await requireUser()
+    const { error } = await supabase
+      .from('grammar_examples_test')
+      .delete()
+      .eq('id', id)
+    if (error) console.warn('[test] deleteSharedGrammarExample:', error.message)
+  } catch (e) { console.warn('[test] deleteSharedGrammarExample:', e) }
+}
+
 // Comunidad / reportes: sin sentido en el sandbox → no-op.
 export async function fetchUserSharedSentences(_grammarId: string): Promise<UserSharedSentence[]> {
   return []

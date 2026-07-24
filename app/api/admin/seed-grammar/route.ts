@@ -111,6 +111,8 @@ export async function POST(req: NextRequest) {
         // Las validadas por un profesor son permanentes. Los ejemplos propios son
         // personales, así que solo se borran los del admin actual.
         await service.from('grammar_sentences_test').delete().eq('is_private', false).eq('validated', false)
+        // Pool compartido de ejemplos coloreados (no validados) + ejemplos propios.
+        await service.from('grammar_examples_test').delete().eq('is_private', false).eq('validated', false)
         await service.from('user_grammar_examples_test').delete().eq('user_id', adminId)
       } else {
         // Regenerate the pool from scratch, but NEVER delete teacher-validated

@@ -7,10 +7,12 @@ import { getMeaning } from '@/lib/i18n'
 import GeminiApiTutorial from '@/components/grammar/GeminiApiTutorial'
 import { useStore } from '@/lib/store'
 import {
-  fetchUserGrammarExamples,
-  saveUserGrammarExamples,
-  updateUserGrammarExample,
-  deleteUserGrammarExample,
+  // Pool COMPARTIDO/público de ejemplos (migración 044): el admin los siembra y
+  // todos los ven sin clave. Reapuntamos por alias sin tocar el cuerpo.
+  fetchSharedGrammarExamples as fetchUserGrammarExamples,
+  saveSharedGrammarExamples as saveUserGrammarExamples,
+  updateSharedGrammarExample as updateUserGrammarExample,
+  deleteSharedGrammarExample as deleteUserGrammarExample,
   fetchWaniKaniVocabSample,
 } from '@/lib/grammar-test-db'
 

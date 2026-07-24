@@ -178,7 +178,8 @@ export default function GrammarSeedClient({ target = 'prod' }: { target?: 'prod'
         updateGrammar(result.grammar_id, { count: result.new_count, error: null, is_permanent: false })
         const s = result.stats
         const detail = s ? ` (${s.generated}→${s.kept}${s.droppedBlank ? `, ${s.droppedBlank} hueco≠«${s.expectedBlank ?? ''}»` : ''}${s.droppedFormat ? `, ${s.droppedFormat} formato` : ''})` : ''
-        setStatusMsg(`✓ ${result.grammar_id}: +${result.sentences_added} frases${detail}`)
+        const ex = result.examples_added ? ` · +${result.examples_added} ejemplos` : ''
+        setStatusMsg(`✓ ${result.grammar_id}: +${result.sentences_added} frases${detail}${ex}`)
         setCurrentId(null)
         startWaitCountdown(STEP_DELAY_MS)
         await sleep(STEP_DELAY_MS)
