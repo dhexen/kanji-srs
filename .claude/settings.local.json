@@ -101,7 +101,8 @@
       "Bash(node --experimental-strip-types /tmp/claude-1000/-home-dhexen-Documentos-proyecto-kanji-srs/90fcbc71-b425-488c-957a-77f396b5b5d2/scratchpad/audit.ts)",
       "Bash(git commit *)",
       "WebFetch(domain:claude.ai)",
-      "Bash(git --no-pager diff --stat components/grammar-test/GrammarTestExamples.tsx)"
+      "Bash(git --no-pager diff --stat components/grammar-test/GrammarTestExamples.tsx)",
+      "Bash(grep -n 'return \\(\\\\s*$\\\\|<div className=\"space-y-3\">' /home/dhexen/Documentos/proyecto/kanji-srs/components/grammar-test/GrammarTestExamples.tsx)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
