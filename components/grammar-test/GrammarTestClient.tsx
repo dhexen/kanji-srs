@@ -2,10 +2,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useStore } from '@/lib/store'
-import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
-import type { GrammarPoint } from '@/lib/grammar-mnn1'
-import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
-import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
+import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-test-mnn1'
+import type { GrammarPoint } from '@/lib/grammar-test-mnn1'
+import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-test-mnn2'
+import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-test-mnnc1'
 import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts } from '@/lib/grammar-test-db'
 import { supabase } from '@/lib/grammar-test-db'
 import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS } from '@/lib/grammar-test-generate'
@@ -16,7 +16,7 @@ import GrammarReviewSession from './GrammarTestReviewSession'
 // SANDBOX: la sección JLPT no forma parte de la copia de test (tiene su propia
 // persistencia). Se deja fuera para no filtrar datos a producción.
 import { t } from '@/lib/i18n'
-import { type GrammarSrsStat, getGrammarForecast, formatNextReview, getSrsLevelLabel, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-srs'
+import { type GrammarSrsStat, getGrammarForecast, formatNextReview, getSrsLevelLabel, GRAMMAR_SRS_INTERVALS } from '@/lib/grammar-test-srs'
 
 type BookKey = 'mnn1' | 'mnn2' | 'mnnc1'
 type BookFilter = 'all' | BookKey

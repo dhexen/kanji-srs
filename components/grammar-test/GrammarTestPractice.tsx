@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { toHiragana } from 'wanakana'
-import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import type { GrammarPoint } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
 import {
@@ -13,7 +13,7 @@ import {
   getSrsLevelLabel,
   getAnswerRegister,
   answerMatchesBlank,
-} from '@/lib/grammar-srs'
+} from '@/lib/grammar-test-srs'
 import {
   supabase,
   fetchGrammarSentences,

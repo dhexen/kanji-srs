@@ -15,7 +15,7 @@
 // de @/lib/supabase; así el sandbox queda garantizado sin efectos en usuarios.
 // =============================================================================
 import { supabase } from '@/lib/supabase'
-import type { GrammarSentence, GrammarSrsStat } from '@/lib/grammar-srs'
+import type { GrammarSentence, GrammarSrsStat } from '@/lib/grammar-test-srs'
 import type { UserGrammarExample, UserSharedSentence } from '@/lib/supabase'
 
 // Lecturas inocuas / cliente crudo: reutilizamos las reales sin cambios.

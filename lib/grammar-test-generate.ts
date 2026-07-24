@@ -2,11 +2,11 @@
 // the single-grammar practice view and the SRS review selection screen can
 // generate sentences without duplicating the (large) prompt.
 
-import type { GrammarPoint } from '@/lib/grammar-mnn1'
+import type { GrammarPoint } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
 import { getMeaning } from '@/lib/i18n'
-import type { GrammarSentence, FuriganaSegment } from '@/lib/grammar-srs'
-import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
+import type { GrammarSentence, FuriganaSegment } from '@/lib/grammar-test-srs'
+import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-test-srs'
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
 
