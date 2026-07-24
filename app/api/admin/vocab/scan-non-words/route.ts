@@ -147,8 +147,9 @@ export async function POST(request: NextRequest) {
       scanned++
       if (status === 'hidden') {
         hidden++
-        // Sacar también la palabra del pool SRS de todos los usuarios.
-        await service.from('user_vocab_progress').delete().eq('jp', c.word)
+        // NO se borra del pool SRS: las palabras 'hidden' se filtran en la
+        // lectura del pool (fetchUserVocab), así que ocultar es reversible y no
+        // destruye el progreso de ningún usuario.
       } else {
         okCount++
       }
@@ -196,16 +197,9 @@ export async function PATCH(request: NextRequest) {
       .eq('kanji', kanji)
     if (error) throw new AdminApiError(error.message, 500)
 
-    // Al ocultar, sacar también la palabra del pool SRS de todos los usuarios
-    // (mismo comportamiento que el borrado de admin). No es recuperable: si más
-    // tarde se marca como válida, el progreso perdido no se restaura.
-    if (status === 'hidden') {
-      const { error: progressErr } = await service
-        .from('user_vocab_progress')
-        .delete()
-        .eq('jp', word)
-      if (progressErr) throw new AdminApiError(progressErr.message, 500)
-    }
+    // Ocultar es NO destructivo: las palabras 'hidden' se filtran al leer el
+    // pool (fetchUserVocab). Si más tarde se marca como válida, reaparece con
+    // el progreso intacto. No se borra nada de user_vocab_progress.
 
     return NextResponse.json({ ok: true })
   } catch (e) {

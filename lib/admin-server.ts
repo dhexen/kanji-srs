@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { MODE_CONFIG, migrateItem, type VocabItem } from './srs'
-import { vocabItemToRow, UPSERT_CHUNK_SIZE } from './progress'
+import { vocabItemToRow, rowToVocabItem, UPSERT_CHUNK_SIZE, type VocabProgressRow } from './progress'
 
 export class AdminApiError extends Error {
   status: number
@@ -456,6 +456,144 @@ export async function restoreUserSnapshot(
   })
 
   return { word_count: vocab.length }
+}
+
+// ---------------------------------------------------------------------------
+// Copia legacy de vocabulario (srs_progress.vocab_db) — respaldo que sobrevive
+// aunque user_vocab_progress se haya vaciado. Restauración NO destructiva.
+// ---------------------------------------------------------------------------
+
+export async function getLegacyVocabBackup(service: SupabaseClient, userId: string) {
+  const { data, error } = await service
+    .from('srs_progress')
+    .select('vocab_db, updated_at')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw new AdminApiError(error.message, 500)
+  const vocab = Array.isArray(data?.vocab_db) ? (data!.vocab_db as VocabItem[]) : []
+  if (vocab.length === 0) return null
+  return { word_count: vocab.length, updated_at: data!.updated_at as string }
+}
+
+/** Reconstruye user_vocab_progress desde el blob legacy vocab_db (upsert, sin
+ *  borrar). Toma antes un snapshot de seguridad del estado actual. */
+export async function restoreUserVocabLegacy(service: SupabaseClient, userId: string) {
+  const { data, error } = await service
+    .from('srs_progress')
+    .select('vocab_db')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw new AdminApiError(error.message, 500)
+  const vocab = Array.isArray(data?.vocab_db) ? (data!.vocab_db as VocabItem[]) : []
+  if (vocab.length === 0) throw new AdminApiError('No hay copia legacy (vocab_db) para este usuario', 404)
+
+  // Snapshot de seguridad del estado actual antes de tocar nada.
+  const { data: current } = await service
+    .from('user_vocab_progress').select('*').eq('user_id', userId)
+  await service.from('srs_progress_snapshots').insert({
+    user_id: userId,
+    snapshot: (current || []).map(r => rowToVocabItem(r as VocabProgressRow)),
+    reason: 'pre_legacy_restore',
+  })
+
+  const rows = vocab
+    .filter(v => v && typeof (v as VocabItem).jp === 'string')
+    .map(item => vocabItemToRow(userId, item))
+  for (const part of chunk(rows, UPSERT_CHUNK_SIZE)) {
+    const { error: upErr } = await service
+      .from('user_vocab_progress')
+      .upsert(part, { onConflict: 'user_id,jp' })
+    if (upErr) throw new AdminApiError(upErr.message, 500)
+  }
+  return { word_count: rows.length }
+}
+
+// ---------------------------------------------------------------------------
+// Snapshots de gramática (grammar_progress_snapshots) — 3 tablas en un JSON.
+// ---------------------------------------------------------------------------
+
+interface GrammarSnapshot {
+  known?: string[]
+  srs?: Array<{ grammar_id: string; level: number; next_review: number }>
+  jlpt?: Array<{ point_id: string; status: string }>
+}
+
+export async function listGrammarSnapshots(service: SupabaseClient, userId: string) {
+  const { data, error } = await service
+    .from('grammar_progress_snapshots')
+    .select('id, reason, created_at, snapshot')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+  if (error) {
+    // Tabla aún no migrada — degradar en vez de romper el modal de backups.
+    if ((error as { code?: string }).code === '42P01') return []
+    throw new AdminApiError(error.message, 500)
+  }
+  return (data || []).map(s => {
+    const snap = (s.snapshot || {}) as GrammarSnapshot
+    return {
+      id: s.id as number,
+      reason: s.reason as string,
+      created_at: s.created_at as string,
+      known_count: Array.isArray(snap.known) ? snap.known.length : 0,
+      srs_count: Array.isArray(snap.srs) ? snap.srs.length : 0,
+      jlpt_count: Array.isArray(snap.jlpt) ? snap.jlpt.length : 0,
+    }
+  })
+}
+
+/** Restaura las 3 tablas de gramática desde un snapshot (upsert, sin borrar).
+ *  Toma antes un snapshot de seguridad del estado actual. */
+export async function restoreUserGrammar(service: SupabaseClient, userId: string, snapshotId: number) {
+  const { data: row, error } = await service
+    .from('grammar_progress_snapshots')
+    .select('snapshot')
+    .eq('id', snapshotId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw new AdminApiError(error.message, 500)
+  if (!row?.snapshot) throw new AdminApiError('Snapshot de gramática no encontrado', 404)
+  const snap = row.snapshot as GrammarSnapshot
+
+  // Snapshot de seguridad del estado actual antes de sobrescribir.
+  await snapshotGrammarState(service, userId, 'pre_grammar_restore')
+
+  const known = Array.isArray(snap.known) ? snap.known : []
+  const srs = Array.isArray(snap.srs) ? snap.srs : []
+  const jlpt = Array.isArray(snap.jlpt) ? snap.jlpt : []
+
+  if (known.length > 0) {
+    const rows = known.map(id => ({ user_id: userId, grammar_id: id, known: true, updated_at: new Date().toISOString() }))
+    const { error: e } = await service.from('user_grammar_progress').upsert(rows, { onConflict: 'user_id,grammar_id' })
+    if (e) throw new AdminApiError(`grammar known: ${e.message}`, 500)
+  }
+  if (srs.length > 0) {
+    const rows = srs.map(r => ({ user_id: userId, grammar_id: r.grammar_id, level: r.level, next_review: r.next_review }))
+    const { error: e } = await service.from('grammar_srs_progress').upsert(rows, { onConflict: 'user_id,grammar_id' })
+    if (e) throw new AdminApiError(`grammar srs: ${e.message}`, 500)
+  }
+  if (jlpt.length > 0) {
+    const rows = jlpt.map(r => ({ user_id: userId, point_id: r.point_id, status: r.status, updated_at: new Date().toISOString() }))
+    const { error: e } = await service.from('user_jlpt_progress').upsert(rows, { onConflict: 'user_id,point_id' })
+    if (e) throw new AdminApiError(`jlpt: ${e.message}`, 500)
+  }
+  return { known: known.length, srs: srs.length, jlpt: jlpt.length }
+}
+
+/** Lee las 3 tablas de gramática de un usuario y guarda un snapshot JSON. */
+async function snapshotGrammarState(service: SupabaseClient, userId: string, reason: string) {
+  const [knownRes, srsRes, jlptRes] = await Promise.all([
+    service.from('user_grammar_progress').select('grammar_id').eq('user_id', userId).eq('known', true),
+    service.from('grammar_srs_progress').select('grammar_id, level, next_review').eq('user_id', userId),
+    service.from('user_jlpt_progress').select('point_id, status').eq('user_id', userId),
+  ])
+  const snapshot: GrammarSnapshot = {
+    known: (knownRes.data || []).map((r: { grammar_id: string }) => r.grammar_id),
+    srs: (srsRes.data || []) as GrammarSnapshot['srs'],
+    jlpt: (jlptRes.data || []) as GrammarSnapshot['jlpt'],
+  }
+  await service.from('grammar_progress_snapshots').insert({ user_id: userId, snapshot, reason })
 }
 
 export function adminJsonError(e: unknown) {

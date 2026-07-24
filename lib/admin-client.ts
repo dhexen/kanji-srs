@@ -43,6 +43,21 @@ export interface AdminSnapshotRow {
   word_count: number
 }
 
+export interface AdminGrammarSnapshotRow {
+  id: number
+  reason: string
+  created_at: string
+  known_count: number
+  srs_count: number
+  jlpt_count: number
+}
+
+export interface AdminBackupOverview {
+  snapshots: AdminSnapshotRow[]
+  legacyVocab: { word_count: number; updated_at: string } | null
+  grammarSnapshots: AdminGrammarSnapshotRow[]
+}
+
 export async function fetchAdminUsers(filters: { q?: string; role?: string } = {}): Promise<AdminUserRow[]> {
   const params = new URLSearchParams()
   if (filters.q)    params.set('q',    filters.q)
@@ -79,12 +94,16 @@ export async function updateAdminUserRole(userId: string, role: 'admin' | 'contr
   return parseAdminResponse<{ ok: boolean }>(res)
 }
 
-export async function fetchUserSnapshots(userId: string): Promise<AdminSnapshotRow[]> {
+export async function fetchUserBackups(userId: string): Promise<AdminBackupOverview> {
   const res = await fetch(`/api/admin/users/${userId}/snapshots`, {
     headers: await adminAuthHeaders(),
   })
-  const data = await parseAdminResponse<{ snapshots: AdminSnapshotRow[] }>(res)
-  return data.snapshots
+  const data = await parseAdminResponse<AdminBackupOverview>(res)
+  return {
+    snapshots: data.snapshots ?? [],
+    legacyVocab: data.legacyVocab ?? null,
+    grammarSnapshots: data.grammarSnapshots ?? [],
+  }
 }
 
 export async function restoreUserSnapshot(userId: string, snapshotId: number) {
@@ -94,6 +113,25 @@ export async function restoreUserSnapshot(userId: string, snapshotId: number) {
     body: JSON.stringify({ snapshotId }),
   })
   return parseAdminResponse<{ word_count: number }>(res)
+}
+
+/** Reconstruye el pool de vocabulario desde la copia legacy srs_progress.vocab_db. */
+export async function restoreUserVocabLegacy(userId: string) {
+  const res = await fetch(`/api/admin/users/${userId}/restore-legacy`, {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+  })
+  return parseAdminResponse<{ word_count: number }>(res)
+}
+
+/** Restaura las 3 tablas de gramática desde un snapshot. */
+export async function restoreUserGrammar(userId: string, snapshotId: number) {
+  const res = await fetch(`/api/admin/users/${userId}/restore-grammar`, {
+    method: 'POST',
+    headers: await adminAuthHeaders(),
+    body: JSON.stringify({ snapshotId }),
+  })
+  return parseAdminResponse<{ known: number; srs: number; jlpt: number }>(res)
 }
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import { GRAMMAR_POINTS as MNN1_POINTS, ROLE_COLORS } from '@/lib/grammar-mnn1'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
-import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts } from '@/lib/supabase'
+import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts, maybeSnapshotGrammarDaily } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
 import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS } from '@/lib/grammar-generate'
 import { showToast } from '@/components/ui/Toast'
@@ -591,6 +591,7 @@ export default function GrammarClient() {
     if (!state.user) { setLoadingKnown(false); return }
 
     fetchKnownGrammar().then(ids => { setKnownIds(ids); setLoadingKnown(false) })
+    void maybeSnapshotGrammarDaily()  // copia diaria del progreso de gramática (recuperación)
     fetchAllGrammarSrsStats().then(stats => {
       setSrsStats(new Map(stats.map(s => [s.grammar_id, s])))
     })

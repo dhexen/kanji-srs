@@ -17,8 +17,10 @@ import {
   createAdminUser,
   deleteAdminUser,
   updateAdminUserRole,
-  fetchUserSnapshots,
+  fetchUserBackups,
   restoreUserSnapshot,
+  restoreUserVocabLegacy,
+  restoreUserGrammar,
   fetchAdminConfig,
   saveAdminSrsIntervals,
   fetchImageStats,
@@ -38,6 +40,7 @@ import {
   updateGrammarReportStatus,
   type AdminUserRow,
   type AdminSnapshotRow,
+  type AdminGrammarSnapshotRow,
   type ImageStats,
   type ImageBatchResult,
   type ClassifyStats,
@@ -62,8 +65,11 @@ export default function AdminClient() {
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'user' as 'admin' | 'contributor' | 'user' })
   const [restoreUserId, setRestoreUserId] = useState<string | null>(null)
   const [snapshots, setSnapshots] = useState<AdminSnapshotRow[]>([])
+  const [legacyVocab, setLegacyVocab] = useState<{ word_count: number; updated_at: string } | null>(null)
+  const [grammarSnapshots, setGrammarSnapshots] = useState<AdminGrammarSnapshotRow[]>([])
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<number | null>(null)
+  const [restoringOther, setRestoringOther] = useState(false)
 
   // Image processing
   const [imgStats, setImgStats] = useState<ImageStats | null>(null)
@@ -554,9 +560,14 @@ export default function AdminClient() {
   async function openRestore(userId: string) {
     setRestoreUserId(userId)
     setSnapshots([])
+    setLegacyVocab(null)
+    setGrammarSnapshots([])
     setSnapshotsLoading(true)
     try {
-      setSnapshots(await fetchUserSnapshots(userId))
+      const backups = await fetchUserBackups(userId)
+      setSnapshots(backups.snapshots)
+      setLegacyVocab(backups.legacyVocab)
+      setGrammarSnapshots(backups.grammarSnapshots)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : 'Error cargando backups', 'error')
       setRestoreUserId(null)
@@ -573,6 +584,36 @@ export default function AdminClient() {
       showToast(`Restaurado: ${word_count} palabras`, 'success')
       setRestoreUserId(null)
       await loadUsers()
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Error restaurando', 'error')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  async function handleRestoreLegacy(userId: string) {
+    if (!legacyVocab) return
+    if (!confirm(`¿Reconstruir el pool de vocabulario desde la copia legacy?\n\n${legacyVocab.word_count} palabras (${formatDate(legacyVocab.updated_at)})\n\nSe añaden/actualizan sin borrar lo que ya tenga. Se guarda una copia de seguridad antes.`)) return
+    setRestoringOther(true)
+    try {
+      const { word_count } = await restoreUserVocabLegacy(userId)
+      showToast(`Vocabulario restaurado: ${word_count} palabras`, 'success')
+      setRestoreUserId(null)
+      await loadUsers()
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Error restaurando', 'error')
+    } finally {
+      setRestoringOther(false)
+    }
+  }
+
+  async function handleRestoreGrammar(userId: string, snapshotId: number, label: string) {
+    if (!confirm(`¿Restaurar la gramática a este snapshot?\n\n${label}\n\nSe añade/actualiza sin borrar. Se guarda una copia de seguridad antes.`)) return
+    setRestoringId(snapshotId)
+    try {
+      const r = await restoreUserGrammar(userId, snapshotId)
+      showToast(`Gramática restaurada: ${r.known} conocidos · ${r.srs} SRS · ${r.jlpt} JLPT`, 'success')
+      setRestoreUserId(null)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : 'Error restaurando', 'error')
     } finally {
@@ -1593,27 +1634,75 @@ export default function AdminClient() {
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">Restaurar backup</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{restoreTarget?.email}</p>
-                <p className="text-xs text-slate-400 mt-0.5">Últimos 10 snapshots automáticos</p>
+                <p className="text-xs text-slate-400 mt-0.5">Vocabulario y gramática</p>
               </div>
               <button type="button" onClick={() => setRestoreUserId(null)}
                 className="text-slate-400 hover:text-slate-600 text-xl font-bold leading-none">✕</button>
             </div>
-            <div className="p-5 overflow-y-auto flex-1 space-y-2">
-              {snapshotsLoading ? <p className="text-slate-400 text-sm text-center py-6">Cargando backups…</p>
-                : snapshots.length === 0 ? <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-6 bg-slate-50 dark:bg-slate-800 rounded-xl">Este usuario no tiene backups aún.</p>
-                : snapshots.map(s => (
-                  <div key={s.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{formatDate(s.created_at)}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{s.word_count} palabras · {s.reason}</p>
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+              {snapshotsLoading ? <p className="text-slate-400 text-sm text-center py-6">Cargando backups…</p> : <>
+
+                {/* Copia legacy de vocabulario (vocab_db) — respaldo histórico */}
+                {legacyVocab && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Copia legacy de vocabulario</p>
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-900/20">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{legacyVocab.word_count} palabras</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Guardada {formatDate(legacyVocab.updated_at)} · reconstruye el pool</p>
+                      </div>
+                      <button type="button" disabled={restoringOther || restoringId !== null}
+                        onClick={() => handleRestoreLegacy(restoreUserId)}
+                        className="shrink-0 px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg">
+                        {restoringOther ? '…' : 'Reconstruir'}
+                      </button>
                     </div>
-                    <button type="button" disabled={restoringId !== null}
-                      onClick={() => handleRestore(restoreUserId, s.id, formatDate(s.created_at))}
-                      className="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg">
-                      {restoringId === s.id ? '…' : 'Restaurar'}
-                    </button>
                   </div>
-                ))}
+                )}
+
+                {/* Snapshots de vocabulario */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Snapshots de vocabulario</p>
+                  <div className="space-y-2">
+                    {snapshots.length === 0 ? <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-4 bg-slate-50 dark:bg-slate-800 rounded-xl">Sin snapshots de vocabulario.</p>
+                      : snapshots.map(s => (
+                        <div key={s.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{formatDate(s.created_at)}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{s.word_count} palabras · {s.reason}</p>
+                          </div>
+                          <button type="button" disabled={restoringId !== null || restoringOther}
+                            onClick={() => handleRestore(restoreUserId, s.id, formatDate(s.created_at))}
+                            className="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg">
+                            {restoringId === s.id ? '…' : 'Restaurar'}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Snapshots de gramática */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Snapshots de gramática</p>
+                  <div className="space-y-2">
+                    {grammarSnapshots.length === 0 ? <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-4 bg-slate-50 dark:bg-slate-800 rounded-xl">Sin snapshots de gramática.</p>
+                      : grammarSnapshots.map(s => (
+                        <div key={s.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{formatDate(s.created_at)}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{s.known_count} conocidos · {s.srs_count} SRS · {s.jlpt_count} JLPT · {s.reason}</p>
+                          </div>
+                          <button type="button" disabled={restoringId !== null || restoringOther}
+                            onClick={() => handleRestoreGrammar(restoreUserId, s.id, formatDate(s.created_at))}
+                            className="shrink-0 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg">
+                            {restoringId === s.id ? '…' : 'Restaurar'}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+              </>}
             </div>
           </div>
         </div>

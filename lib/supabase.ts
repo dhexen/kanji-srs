@@ -141,6 +141,7 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
       grade?: number | null
       category?: string | null
       word_type?: string | null
+      word_review?: string | null
     }
     // Deduplicate: vocabulary may have multiple rows per word (one per kanji entry).
     // We only need one row per word for the metadata merge.
@@ -148,7 +149,7 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
     try {
       const { data, error } = await supabase
         .from('vocabulary')
-        .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type')
+        .select('word, kanji, reading, meaning_es, meaning_ca, meaning_en, image_url, grade, category, word_type, word_review')
         .in('word', words)
       if (!error && data) {
         // Keep first row per word
@@ -163,7 +164,12 @@ export async function fetchUserVocab(): Promise<VocabItem[]> {
 
     if (vocabMeta && vocabMeta.length > 0) {
       const sharedMap = new Map(vocabMeta.map(d => [d.word, d]))
-      return items.map(i => {
+      // Filtrar palabras ocultas del glosario (word_review = 'hidden', migración
+      // 036): siguen almacenadas en user_vocab_progress pero no se estudian. Es
+      // el reemplazo NO destructivo del antiguo borrado de scan-non-words.
+      return items
+        .filter(i => sharedMap.get(i.jp)?.word_review !== 'hidden')
+        .map(i => {
         const shared = sharedMap.get(i.jp)
         if (!shared) return i
         return {
@@ -1631,6 +1637,46 @@ export async function submitImageVote(word: string, vote: 1 | -1): Promise<void>
     .from('vocab_image_votes')
     .upsert({ word, user_id: user.id, vote }, { onConflict: 'word,user_id' })
   if (error) throw error
+}
+
+/**
+ * Snapshot diario del progreso de gramática (3 tablas) para recuperación desde
+ * el panel de admin. Se llama al abrir la sección de gramática; crea como máximo
+ * un snapshot al día. Nunca lanza — es best-effort.
+ */
+export async function maybeSnapshotGrammarDaily(): Promise<void> {
+  try {
+    const user = await requireUser()
+    // ¿Ya hay snapshot de hoy?
+    const { data: last } = await supabase
+      .from('grammar_progress_snapshots')
+      .select('created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (last?.created_at) {
+      const lastDay = new Date(last.created_at).toDateString()
+      if (lastDay === new Date().toDateString()) return
+    }
+
+    const [knownRes, srsRes, jlptRes] = await Promise.all([
+      supabase.from('user_grammar_progress').select('grammar_id').eq('user_id', user.id).eq('known', true),
+      supabase.from('grammar_srs_progress').select('grammar_id, level, next_review').eq('user_id', user.id),
+      supabase.from('user_jlpt_progress').select('point_id, status').eq('user_id', user.id),
+    ])
+    const known = (knownRes.data ?? []).map((r: { grammar_id: string }) => r.grammar_id)
+    const srs = srsRes.data ?? []
+    const jlpt = jlptRes.data ?? []
+    // No snapshotear un estado vacío (usuario que aún no ha tocado gramática).
+    if (known.length === 0 && srs.length === 0 && jlpt.length === 0) return
+
+    await supabase.from('grammar_progress_snapshots').insert({
+      user_id: user.id,
+      snapshot: { known, srs, jlpt },
+      reason: 'daily',
+    })
+  } catch { /* best-effort: tabla no migrada, sin sesión, red… */ }
 }
 
 export async function setGrammarKnown(grammarId: string, known: boolean): Promise<void> {
