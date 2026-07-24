@@ -40,7 +40,7 @@ function TokenChip({ role, text, label, small = false }: {
 
 function StructureDisplay({ parts, lang }: { parts: StructurePart[]; lang: Lang }) {
   return (
-    <div className="flex flex-wrap items-end gap-1.5 py-3 px-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div className="flex flex-wrap items-start gap-1.5 py-3 px-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
       {parts.map((p, i) => {
         const label = p.isSlot
           ? (lang === 'ca' ? p.label_ca : lang === 'en' ? p.label_en : p.label_es)
@@ -85,7 +85,7 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
-        <div className="flex flex-wrap items-end gap-1.5 mb-3">
+        <div className="flex flex-wrap items-start gap-1.5 mb-3">
           {tokens.map((tk, i) => (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
               <span className="text-[10px] text-slate-400 dark:text-slate-500 min-h-[14px]">
