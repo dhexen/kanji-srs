@@ -435,21 +435,22 @@ FRASE DE REFERENCIA (una frase correcta de este punto; imita su naturalidad y ni
 ${vocabSection}
 
 REGLAS DE CALIDAD (obligatorias):
-1. Cada frase debe ser japonés natural que un nativo diría de verdad. PROHIBIDO encadenar palabras sueltas sin sentido (ejemplos de lo que NO debes hacer: «次です番», «学生は本です犬»).
-2. Cada frase debe usar el patrón "${grammar.pattern}" correctamente y contener las piezas fijas ${grammarPieces}.
-3. INPUT COMPRENSIBLE: el ÚNICO elemento nuevo de la frase debe ser la gramática estudiada. Todo lo demás debe ser vocabulario simple y muy frecuente que el alumno reconozca al instante; debe poder entender ~90% de la frase de un vistazo.
-4. Usa como MÁXIMO 1-2 palabras de contenido por frase (aparte de la gramática y las partículas). Frases cortas.
-5. La PALETA de vocabulario es OPCIONAL: prioriza esas palabras cuando encajen con naturalidad, pero NUNCA metas una palabra a la fuerza ni sacrifiques la naturalidad por usarlas. Si ninguna encaja, usa vocabulario básico N5 apropiado. No intentes usar muchas palabras de la paleta: el objetivo es una frase natural, no cubrir la lista.
-6. Frases variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
-7. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
-Si una frase no te convence, descártala y escribe otra mejor. Mejor 5 frases perfectas que 5 forzadas.
+1. Cada frase debe ser japonés natural y correcto: algo que un nativo diría de verdad, con intención comunicativa real.
+2. Cada frase debe tener SENTIDO REAL. No basta con que sea gramaticalmente válida: debe describir una situación o afirmación coherente y verdadera, como las de un libro de texto. Antes de aceptar cada frase, pregúntate si su significado es plausible en el mundo real; si es absurda, falsa o nadie la diría con una intención concreta, descártala.
+3. Cada frase debe usar el patrón "${grammar.pattern}" correctamente y contener las piezas fijas ${grammarPieces}.
+4. INPUT COMPRENSIBLE: el ÚNICO elemento nuevo de la frase debe ser la gramática estudiada. Todo lo demás debe ser vocabulario simple y muy frecuente que el alumno reconozca al instante; debe poder entender ~90% de la frase de un vistazo.
+5. Usa como MÁXIMO 1-2 palabras de contenido por frase (aparte de la gramática y las partículas). Frases cortas.
+6. La PALETA de vocabulario es OPCIONAL: prioriza esas palabras cuando encajen con naturalidad y sentido, pero NUNCA fuerces una palabra ni sacrifiques la naturalidad, el sentido o la verdad por usarlas. Si ninguna encaja, usa vocabulario básico N5. El objetivo es una frase natural y verdadera, no cubrir la lista.
+7. Frases variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
+8. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
+Descarta y reescribe cualquier frase que no sea natural, correcta y con sentido real. Mejor 5 frases perfectas que 5 forzadas.
 
 FORMATO DE TOKENS:
 - Asigna a cada token un "role" de esta lista: ${VALID_ROLES.join(', ')}
 - Marca con role "key" EXACTAMENTE los tokens que forman la gramática estudiada (${grammarPieces}); a las palabras de contenido dales su role semántico (verb, noun, object, time, location…).
 - Incluye furigana en todos los kanji.
 - Los tokens de traducción deben usar el mismo role que su equivalente japonés (mismo role = mismo color).
-- Añade "quality": entero 1-5 con tu valoración honesta de lo natural y correcta que es la frase (5 = perfecta y nativa). Sé estricto; si sería <4, reescríbela antes de enviarla.
+- Añade "quality": entero 1-5 con tu valoración honesta de lo natural, correcta y con sentido real que es la frase (5 = perfecta, nativa y con un significado plausible y verdadero). Sé estricto; si sería <4, reescríbela antes de enviarla.
 
 Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 {
