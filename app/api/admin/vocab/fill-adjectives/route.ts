@@ -19,6 +19,7 @@ export const dynamic = 'force-dynamic'
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError } from '@/lib/admin-server'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 interface VocabRow {
   word:       string
@@ -37,21 +38,9 @@ interface GeminiAdj {
 }
 
 async function callGemini(prompt: string, apiKey: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0 },
-    }),
-  })
-  if (!res.ok) {
-    const d = await res.json().catch(() => ({}))
-    throw new Error(`Gemini ${res.status}: ${(d as any)?.error?.message ?? res.statusText}`)
-  }
-  const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const result = await callGeminiText({ apiKey, prompt, temperature: 0 })
+  if (!result.ok) throw new Error(`Gemini: ${result.error}`)
+  return result.text ?? ''
 }
 
 function parseJson<T>(text: string): T[] {

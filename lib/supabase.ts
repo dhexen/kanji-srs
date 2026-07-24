@@ -348,7 +348,7 @@ export async function fetchUserSettings(): Promise<{
       if (!legacy) return null
       return {
         gemini_api_key: legacy.gemini_api_key ?? '',
-        gemini_model: 'gemini-2.5-flash',
+        gemini_model: 'gemini-3.6-flash',
         pexels_api_key: '',
         wanikani_api_key: '',
         wanikani_min_srs_stage: 5,
@@ -378,7 +378,7 @@ export async function fetchUserSettings(): Promise<{
 /**
  * Read the user's selected Gemini model. Kept SEPARATE (and tolerant of a
  * missing column) so an unapplied migration 023 never breaks settings loading.
- * Defaults to 'gemini-2.5-flash'.
+ * Defaults to 'gemini-3.6-flash'.
  */
 async function fetchGeminiModel(userId: string): Promise<string> {
   try {
@@ -387,10 +387,10 @@ async function fetchGeminiModel(userId: string): Promise<string> {
       .select('gemini_model')
       .eq('user_id', userId)
       .maybeSingle()
-    if (error || !data) return 'gemini-2.5-flash'
-    return (data as { gemini_model?: string | null }).gemini_model || 'gemini-2.5-flash'
+    if (error || !data) return 'gemini-3.6-flash'
+    return (data as { gemini_model?: string | null }).gemini_model || 'gemini-3.6-flash'
   } catch {
-    return 'gemini-2.5-flash'
+    return 'gemini-3.6-flash'
   }
 }
 

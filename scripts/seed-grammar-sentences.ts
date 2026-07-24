@@ -173,7 +173,7 @@ async function callGeminiViaApp(prompt: string): Promise<any[]> {
       'Content-Type': 'application/json',
       'X-Seed-Secret': SEED_SECRET,
     },
-    body: JSON.stringify({ prompt, model: 'gemini-2.5-flash', userApiKey: GEMINI_KEY }),
+    body: JSON.stringify({ prompt, model: 'gemini-3.6-flash', userApiKey: GEMINI_KEY }),
   })
 
   if (!res.ok) {

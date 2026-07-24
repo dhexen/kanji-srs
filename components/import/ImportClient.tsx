@@ -18,10 +18,13 @@ const GRADES = [
 ]
 
 const MODELS = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recomendado)' },
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-  { value: 'gemini-1.5-pro',   label: 'Gemini 1.5 Pro (Máxima precisión)' },
+  { value: 'gemini-3.6-flash',      label: 'Gemini 3.6 Flash (Recomendado)' },
+  { value: 'gemini-3.5-flash',      label: 'Gemini 3.5 Flash' },
+  { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash Lite' },
+  { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash' },
+  { value: 'gemini-1.5-flash',      label: 'Gemini 1.5 Flash' },
+  { value: 'gemini-1.5-pro',        label: 'Gemini 1.5 Pro (Máxima precisión)' },
 ]
 
 export default function ImportClient() {
@@ -30,7 +33,7 @@ export default function ImportClient() {
     try { return localStorage.getItem('kanji_srs_gemini_api_key') || '' } catch { return '' }
   })
   const effectiveKey = apiKey || state.geminiApiKey
-  const [model, setModel] = useState('gemini-2.5-flash')
+  const [model, setModel] = useState('gemini-3.6-flash')
   const [grade, setGrade] = useState(GRADES[0].value)
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)

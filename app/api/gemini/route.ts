@@ -2,8 +2,14 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 const ALLOWED_MODELS = new Set([
+  // Nuevos (prioridad en la cadena de fallback)
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  // Existentes
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
   'gemini-3.1-flash-lite-preview',
@@ -62,7 +68,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Body inválido.' }, { status: 400 })
   }
-  const { prompt, model = 'gemini-2.5-flash', userApiKey } = body
+  const { prompt, model = 'gemini-3.6-flash', userApiKey } = body
 
   if (typeof prompt !== 'string' || prompt.length === 0 || prompt.length > MAX_PROMPT_CHARS) {
     return NextResponse.json({ error: `El prompt debe tener entre 1 y ${MAX_PROMPT_CHARS} caracteres.` }, { status: 400 })
@@ -81,30 +87,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Has alcanzado el límite de solicitudes (10/hora). Añade tu propia API Key de Gemini para uso ilimitado.' }, { status: 429 })
   }
 
-  // 4. Llamada a Gemini
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-  let res: Response
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    })
-  } catch (e: any) {
-    return NextResponse.json({ error: `Error de red: ${e.message}` }, { status: 500 })
+  // 4. Llamada a Gemini con fallback: lidera el modelo pedido y, si no está
+  //    disponible o falla, recorre el resto de la cadena (nuevos → antiguos).
+  const result = await callGeminiText({ apiKey, prompt, preferred: model })
+  if (!result.ok) {
+    const status = result.status && result.status >= 400 ? result.status : 500
+    return NextResponse.json({ error: result.error || 'Gemini no generó contenido. Inténtalo de nuevo.' }, { status })
   }
 
-  const data = await res.json()
-  if (!res.ok) {
-    const msg = data?.error?.message || `Error ${res.status} de la API de Gemini`
-    return NextResponse.json({ error: msg }, { status: res.status })
-  }
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) {
-    const reason = data.candidates?.[0]?.finishReason || 'desconocido'
-    return NextResponse.json({ error: `Gemini no generó contenido (motivo: ${reason}). Inténtalo de nuevo.` }, { status: 500 })
-  }
-
-  return NextResponse.json({ text })
+  return NextResponse.json({ text: result.text, model: result.model })
 }

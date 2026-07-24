@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError } from '@/lib/admin-server'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,28 +25,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No hay clave configurada', status: null })
     }
 
-    const model = 'gemini-3.1-flash-lite-preview'
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'Di "ok" en una palabra.' }] }] }),
-      },
-    )
-
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null
-    const errMsg = data.error?.message ?? null
+    // Recorre la cadena de fallback (nuevos primero) y reporta el que responde.
+    const result = await callGeminiText({ apiKey, prompt: 'Di "ok" en una palabra.' })
 
     return NextResponse.json({
-      ok: res.ok,
-      status: res.status,
-      model,
+      ok: result.ok,
+      status: result.status ?? (result.ok ? 200 : null),
+      model: result.model ?? null,
       key_hint: `…${apiKey.slice(-8)}`,
-      response_text: text,
-      error: errMsg,
-      raw: res.ok ? undefined : data,
+      response_text: result.ok ? result.text : null,
+      error: result.ok ? null : result.error,
     })
   } catch (e) {
     return adminJsonError(e)

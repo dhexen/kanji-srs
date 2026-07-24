@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminJsonError, AdminApiError, recordToolRun } from '@/lib/admin-server'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 const DEFAULT_BATCH = 50
 
@@ -57,23 +58,9 @@ Respond ONLY with a valid JSON array, no markdown, no extra text:
 Words:
 ${wordList}`
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0 },
-    }),
-  })
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(`Gemini ${res.status}: ${(data as any)?.error?.message ?? res.statusText}`)
-  }
-
-  const data = await res.json()
-  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const result = await callGeminiText({ apiKey, prompt, temperature: 0 })
+  if (!result.ok) throw new Error(`Gemini: ${result.error}`)
+  const text = result.text ?? ''
   if (!text) throw new Error('Gemini devolvió respuesta vacía')
 
   const clean = text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '')

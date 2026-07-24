@@ -94,7 +94,7 @@ export interface GenerateGrammarOptions {
   lang: Lang
   geminiKey: string
   sessionToken: string
-  /** Gemini model to use (defaults to gemini-2.5-flash on the server if omitted). */
+  /** Gemini model to use (server lidera con gemini-3.6-flash y hace fallback si se omite). */
   model?: string
   /** Fallback vocabulary (the user's active words) if the school sample is empty. */
   activeVocab: SimpleVocab[]

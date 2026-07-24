@@ -343,7 +343,7 @@ Añade palabras buscando por kanji o importando desde un archivo CSV.
 
 #### ⚙️ Configuración
 - **API Key de Gemini** — Para generar frases de gramática sin límite de uso (obtenla gratis en aistudio.google.com)
-- **Modelo de Gemini** — Elige entre **Gemini 2.5 Flash** y **Gemini 3.1 Flash Lite**. Si un modelo se queda sin cuota, cambia al otro para seguir generando lecturas y frases
+- **Modelo de Gemini** — Elige entre los modelos más nuevos primero: **Gemini 3.6 Flash**, **3.5 Flash**, **3.5 Flash Lite**, además de los anteriores (3.1 Flash Lite, 2.5 Flash). Aunque un modelo se quede sin cuota o esté saturado, la app **prueba automáticamente el siguiente de la lista**, así que la generación no se detiene; tu elección solo marca cuál se intenta primero
 - **API Key de WaniKani** — Para sincronizar tu vocabulario de WaniKani
 - **Idioma de la interfaz** — Español, Catalán, Inglés o Japonés
 - **Oraciones compartidas** — Activa/desactiva ver las frases que comparte la comunidad

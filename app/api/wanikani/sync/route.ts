@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 const WK_BASE = 'https://api.wanikani.com/v2'
 const WK_REVISION = '20170710'
@@ -93,17 +94,10 @@ Return ONLY valid JSON, no backticks, no extra text:
 Words:
 ${wordList}`
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
-      },
-    )
-    if (!res.ok) continue
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    // Cadena con fallback: lidera el modelo del usuario, luego el resto.
+    const gres = await callGeminiText({ apiKey: geminiKey, preferred: model, prompt, temperature: 0 })
+    if (!gres.ok) continue
+    const text = gres.text ?? ''
     try {
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed = JSON.parse(clean)
@@ -153,7 +147,7 @@ export async function POST(req: NextRequest) {
   }
   const minStage: number = settings?.wanikani_min_srs_stage ?? 5
   const geminiKey: string = settings?.gemini_api_key?.trim() || process.env.GEMINI_API_KEY || ''
-  const geminiModel: string = (settings?.gemini_model as string)?.trim() || 'gemini-2.5-flash'
+  const geminiModel: string = (settings?.gemini_model as string)?.trim() || 'gemini-3.6-flash'
 
   try {
     // Fetch subjects (vocabulary only)

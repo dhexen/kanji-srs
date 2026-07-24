@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 const VALID_WORD_TYPES = new Set([
   'noun', 'verb_transitive', 'verb_intransitive', 'verb',
@@ -53,35 +54,12 @@ Return ONLY valid JSON, no backticks, no extra text:
 Words:
 ${wordList}`
 
-  // Retry transient failures (network errors, 429/5xx) a few times before giving
-  // up; permanent errors (bad key, quota) fail fast.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-  const MAX_ATTEMPTS = 3
-  let text = ''
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let res: Response
-    try {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }),
-      })
-    } catch (e) {
-      if (attempt === MAX_ATTEMPTS) throw e
-      await new Promise(r => setTimeout(r, 800 * attempt))
-      continue
-    }
-    if (res.ok) {
-      const data = await res.json()
-      text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-      break
-    }
-    const data = await res.json().catch(() => ({})) as { error?: { message?: string } }
-    const msg = data?.error?.message ?? `Gemini API error ${res.status}`
-    const transient = res.status === 429 || res.status >= 500
-    if (!transient || attempt === MAX_ATTEMPTS) throw new Error(msg)
-    await new Promise(r => setTimeout(r, 800 * attempt))
-  }
+  // Cadena con fallback: lidera el modelo elegido por el usuario y, si no está
+  // disponible o falla, pasa a los siguientes (nuevos primero). Si toda la
+  // cadena falla, se lanza el último error.
+  const gres = await callGeminiText({ apiKey, preferred: model, prompt, temperature: 0 })
+  if (!gres.ok) throw new Error(gres.error ?? 'Gemini API error')
+  const text = gres.text ?? ''
 
   try {
     const clean = text.replace(/```json|```/g, '').trim()
@@ -133,7 +111,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: 'No hay API Key de Gemini configurada.' }, { status: 400 })
   }
-  const model = (settings?.gemini_model as string)?.trim() || 'gemini-2.5-flash'
+  const model = (settings?.gemini_model as string)?.trim() || 'gemini-3.6-flash'
 
   try {
     // How many still need classification (for progress reporting)

@@ -124,7 +124,7 @@ function appReducer(state: State, action: Action): State {
     case 'APPLY_RESULT': {
       return { ...state, db: state.db.map(i => i.jp !== action.payload.jp ? i : applyResult(i, action.payload.mode, action.payload.wrongCount)) }
     }
-    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', geminiModel: 'gemini-2.5-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
+    case 'RESET': return { ...state, db: [], contextTexts: [], geminiApiKey: '', geminiModel: 'gemini-3.6-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true }
     default: return state
   }
 }
@@ -231,7 +231,7 @@ const StoreContext = createContext<StoreContextType | null>(null)
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, {
     db: [], user: null, role: 'user' as 'admin' | 'contributor' | 'user', simulatedRole: null, syncing: false, loaded: false,
-    geminiApiKey: '', geminiModel: 'gemini-2.5-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
+    geminiApiKey: '', geminiModel: 'gemini-3.6-flash', pexelsApiKey: '', waniKaniApiKey: '', showSharedSentences: true, contextTexts: [], lang: 'es',
     progression: DEFAULT_PROGRESSION, pendingLevelUp: null,
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     pendingWrites: 0,

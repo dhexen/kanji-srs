@@ -61,7 +61,7 @@ const filePath = args.find(a => !a.startsWith('--')) ?? 'kanji_vocabulary.txt'
 const gradeArg = args.find(a => a.startsWith('--grade='))?.split('=')[1]
             ?? args[args.indexOf('--grade') + 1]
 const GRADE = gradeArg ? parseInt(gradeArg, 10) : 3
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-3.6-flash'
 const TRANSLATE_BATCH = 40  // words per Gemini call
 
 // ---------------------------------------------------------------------------

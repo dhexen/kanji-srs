@@ -5,6 +5,8 @@
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { FuriganaSegment } from '@/lib/grammar-srs'
 import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
+import { GEMINI_FALLBACK_CHAIN } from '@/lib/gemini-models'
+import { callGeminiText } from '@/lib/gemini-fetch'
 
 export const GENERATE_SIZE = 38
 export const QUALITY_MIN = 4
@@ -12,18 +14,16 @@ export const TARGET = 25         // sentences kept per point when filling
 export const REFRESH_BATCH = 25  // new sentences added per weekly refresh
 export const MAX_POOL = 100      // rolling cap; oldest are trimmed beyond this
 
-// Fallback chain for generation: flash-LITE first (cheaper, higher free daily
-// quota), then a quality flash as last resort. The loop advances to the next
-// model on overload (503) or a retired model (404). Real per-model limits live
-// in Google AI Studio (the docs no longer publish fixed numbers).
-// Valid model IDs per https://ai.google.dev/gemini-api/docs/rate-limits
-// (gemini-3.1-flash-preview was retired by Google → removed).
-export const MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
+// Cadena de fallback para la generación: los modelos NUEVOS van delante; el
+// bucle avanza al siguiente ante saturación (503) o modelo retirado (404).
+// IDs verificados contra la API (2026-07): gemini-2.5-flash-lite quedó retirado
+// y se ha eliminado. Se importa la cadena central para no duplicar la lista.
+export const MODELS = GEMINI_FALLBACK_CHAIN
 
-// A higher-quality model used to VERIFY the lite-generated candidates: it
-// confirms each sentence is correct/natural, uses the pattern, has accurate
-// furigana (it may correct readings) and a good translation.
-export const VERIFY_MODEL = 'gemini-2.5-flash'
+// La VERIFICACIÓN de las candidatas (confirma que la frase es correcta/natural,
+// usa el patrón, furigana correcta y buena traducción) usa la misma cadena de
+// fallback (nuevos primero) vía callGeminiText; si ninguno responde, se
+// conservan las candidatas sin verificar.
 
 export interface SentenceRow {
   grammar_id: string
@@ -198,16 +198,11 @@ Reglas:
 Frases:
 ${JSON.stringify(items)}`
 
-  let text = ''
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${VERIFY_MODEL}:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0 } }) },
-    )
-    if (!res.ok) return rows  // quota/overload/etc → keep unverified candidates
-    const data = await res.json()
-    text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  } catch { return rows }
+  // Verificación con fallback (nuevos modelos primero). Si ninguno responde
+  // (cuota/saturación/red), se conservan las candidatas sin verificar.
+  const vres = await callGeminiText({ apiKey, prompt, temperature: 0, models: MODELS })
+  if (!vres.ok) return rows
+  const text = vres.text ?? ''
 
   let verdicts: any[]
   try {

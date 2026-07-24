@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Julio 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Modelos de Gemini más nuevos (3.6, 3.5) con cambio automático',
+        description: 'La app ahora usa los modelos de IA más recientes de Gemini (3.6 Flash, 3.5 Flash y 3.5 Flash Lite), que van por delante de los anteriores. En Configuración puedes elegir cuál se intenta primero, pero ya no tienes que preocuparte por la cuota: si un modelo está saturado o sin acceso, la app pasa sola al siguiente de la lista al generar frases, lecturas, clasificar vocabulario o importar. Todo en Gemini se beneficia del cambio.',
+      },
+      {
         type: 'fix',
         title: 'Tus palabras ya no desaparecen del pool',
         description: 'Cuando se limpiaban del glosario kanji sueltos que no son palabra de verdad, esas entradas también se borraban del pool de repaso de todos los usuarios y el progreso se perdía sin vuelta atrás. Ahora ocultar una palabra es reversible: se deja de mostrar en el repaso pero tu progreso se conserva, y si más tarde se marca como válida, reaparece intacta.',
