@@ -10,6 +10,7 @@ import {
   fetchUserGrammarExamples,
   saveUserGrammarExamples,
   updateUserGrammarExample,
+  deleteUserGrammarExample,
   fetchWaniKaniVocabSample,
 } from '@/lib/grammar-test-db'
 
@@ -46,11 +47,13 @@ function AiSentenceCard({
   lang,
   canEdit,
   onUpdate,
+  onDelete,
 }: {
   sentence: AiSentence
   lang: Lang
   canEdit?: boolean
   onUpdate?: (id: string, jp: AiToken[], translation: AiToken[]) => Promise<void>
+  onDelete?: (id: string) => Promise<void>
 }) {
   const [showTranslation, setShowTranslation] = useState(false)
   const [showFurigana, setShowFurigana]       = useState(false)
@@ -59,6 +62,22 @@ function AiSentenceCard({
   const [editTranslation, setEditTranslation] = useState('')
   const [saving, setSaving]                   = useState(false)
   const [saveError, setSaveError]             = useState('')
+  const [deleting, setDeleting]               = useState(false)
+
+  async function handleDelete() {
+    if (!onDelete || !sentence.id) return
+    const msg =
+      lang === 'en' ? 'Delete this sentence permanently? This cannot be undone.' :
+      lang === 'ca' ? 'Eliminar aquesta frase per sempre? No es pot desfer.' :
+      '¿Eliminar esta frase para siempre? No se puede deshacer.'
+    if (!confirm(msg)) return
+    setDeleting(true)
+    try {
+      await onDelete(sentence.id)
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   const furiganaLabel =
     lang === 'en' ? (showFurigana ? 'Hide furigana' : 'Show furigana') :
@@ -185,10 +204,10 @@ function AiSentenceCard({
 
   // ── Normal view ───────────────────────────────────────────────────────────
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-      {/* Edit button (admin/contributor only) */}
+    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+      {/* Edit / delete buttons (admin/contributor only) */}
       {canEdit && sentence.id && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-1.5">
           <button
             onClick={startEdit}
             title={lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
@@ -199,19 +218,37 @@ function AiSentenceCard({
             </svg>
             {lang === 'en' ? 'Edit' : lang === 'ca' ? 'Editar' : 'Editar'}
           </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            title={lang === 'en' ? 'Delete permanently' : lang === 'ca' ? 'Eliminar per sempre' : 'Eliminar para siempre'}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-700 disabled:opacity-50 transition"
+          >
+            {deleting ? (
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            )}
+            {lang === 'en' ? 'Delete' : lang === 'ca' ? 'Eliminar' : 'Eliminar'}
+          </button>
         </div>
       )}
 
       {/* Japanese tokens */}
-      <div className="flex flex-wrap items-end gap-1.5">
+      <div className="flex flex-wrap items-end gap-1">
         {sentence.jp.map((t, i) => {
           const c = ROLE_COLORS[t.role] ?? ROLE_COLORS['noun']
           return (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 min-h-[14px]">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 min-h-[13px] leading-none">
                 {showFurigana ? (t.furigana || '') : ''}
               </span>
-              <span className={`${c.bg} ${c.text} border ${c.border} font-bold rounded-md px-2 py-0.5 text-xl whitespace-nowrap`}>
+              <span className={`${c.bg} ${c.text} border ${c.border} font-bold rounded px-1.5 py-0.5 text-base whitespace-nowrap`}>
                 {t.text}
               </span>
             </div>
@@ -221,11 +258,11 @@ function AiSentenceCard({
 
       {/* Translation tokens */}
       {showTranslation && sentence.translation.length > 0 && (
-        <div className="flex flex-wrap items-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-700">
+        <div className="flex flex-wrap items-end gap-1 pt-1.5 border-t border-slate-100 dark:border-slate-700">
           {sentence.translation.map((t, i) => {
             const c = ROLE_COLORS[t.role] ?? ROLE_COLORS['noun']
             return (
-              <span key={i} className={`${c.bg} ${c.text} border ${c.border} font-medium rounded-md px-2 py-0.5 text-sm whitespace-nowrap`}>
+              <span key={i} className={`${c.bg} ${c.text} border ${c.border} font-medium rounded px-1.5 py-0.5 text-xs whitespace-nowrap`}>
                 {t.text}
               </span>
             )
@@ -283,6 +320,13 @@ function castSentences(rows: { id?: string; jp: unknown[]; translation: unknown[
 //  • checkLiteral: la última tirada CONTIGUA de piezas fijas en kana (sin kanji).
 //    Sirve para verificar en runtime que la frase realmente contiene la gramática.
 //    Es null cuando esa parte lleva kanji o no existe (conjugación variable).
+// Heurística de "dificultad" de una palabra sin datos de nivel JLPT: cuenta
+// kanji (pesan más) y longitud. Menor = más básica → se prioriza en la paleta.
+function vocabComplexity(jp: string): number {
+  const kanji = (jp.match(/[一-龯]/g) || []).length
+  return kanji * 2 + jp.length
+}
+
 function grammarSignature(structure: StructurePart[]): { fixedList: string[]; checkLiteral: string | null } {
   const fixedList = structure.filter(p => !p.isSlot).map(p => p.text)
   let run: string[] = []
@@ -352,20 +396,30 @@ export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken
     setGenLoading(true)
     setError('')
 
-    // Base vocabulary from the student's active words
+    // Paleta de vocabulario: palabras que el alumno YA conoce. Es una paleta
+    // OPCIONAL (no una cuota que rellenar), sesgada hacia las palabras más
+    // simples (menos kanji, más cortas) con algo de azar para variar. Damos una
+    // paleta amplia para que la IA tenga margen de elegir combinaciones naturales.
     const schoolSample = [...activeVocab]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, useWkVocab && wkVocab.length > 0 ? 10 : 15)
-      .map(w => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
+      .map(w => ({ w, s: vocabComplexity(w.jp) + Math.random() * 4 }))
+      .sort((a, b) => a.s - b.s)
+      .slice(0, useWkVocab && wkVocab.length > 0 ? 18 : 28)
+      .map(({ w }) => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
       .join(', ')
 
     const wkSample = useWkVocab && wkVocab.length > 0
-      ? [...wkVocab].sort(() => Math.random() - 0.5).slice(0, 10).map(w => `${w.jp}(${w.reading}): ${w.meaning}`).join(', ')
+      ? [...wkVocab]
+          .map(w => ({ w, s: vocabComplexity(w.jp) + Math.random() * 4 }))
+          .sort((a, b) => a.s - b.s)
+          .slice(0, 12)
+          .map(({ w }) => `${w.jp}(${w.reading}): ${w.meaning}`)
+          .join(', ')
       : ''
 
+    const paletaIntro = 'PALETA DE VOCABULARIO (palabras que el alumno YA conoce; úsalas cuando encajen con naturalidad, NUNCA las fuerces)'
     const vocabSection = wkSample
-      ? `Vocabulario disponible:\n- Del currículo escolar japonés: ${schoolSample || 'palabras básicas N5'}\n- Vocabulario WaniKani del alumno (ya adquirido): ${wkSample}`
-      : `Vocabulario disponible (usa el mayor número posible): ${schoolSample || 'palabras básicas N5'}`
+      ? `${paletaIntro}:\n- Del currículo escolar japonés: ${schoolSample || 'palabras básicas N5'}\n- De WaniKani (ya adquiridas): ${wkSample}`
+      : `${paletaIntro}: ${schoolSample || 'palabras básicas N5'}`
 
     // Firma gramatical (piezas fijas + literal verificable) y frase de referencia curada
     const { fixedList, checkLiteral } = grammarSignature(grammar.structure)
@@ -386,9 +440,11 @@ ${vocabSection}
 REGLAS DE CALIDAD (obligatorias):
 1. Cada frase debe ser japonés natural que un nativo diría de verdad. PROHIBIDO encadenar palabras sueltas sin sentido (ejemplos de lo que NO debes hacer: «次です番», «学生は本です犬»).
 2. Cada frase debe usar el patrón "${grammar.pattern}" correctamente y contener las piezas fijas ${grammarPieces}.
-3. Frases cortas y variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
-4. Prioriza el vocabulario de la lista; puedes añadir partículas o palabras muy básicas si hacen falta para que la frase sea natural.
-5. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
+3. INPUT COMPRENSIBLE: el ÚNICO elemento nuevo de la frase debe ser la gramática estudiada. Todo lo demás debe ser vocabulario simple y muy frecuente que el alumno reconozca al instante; debe poder entender ~90% de la frase de un vistazo.
+4. Usa como MÁXIMO 1-2 palabras de contenido por frase (aparte de la gramática y las partículas). Frases cortas.
+5. La PALETA de vocabulario es OPCIONAL: prioriza esas palabras cuando encajen con naturalidad, pero NUNCA metas una palabra a la fuerza ni sacrifiques la naturalidad por usarlas. Si ninguna encaja, usa vocabulario básico N5 apropiado. No intentes usar muchas palabras de la paleta: el objetivo es una frase natural, no cubrir la lista.
+6. Frases variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
+7. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
 Si una frase no te convence, descártala y escribe otra mejor. Mejor 5 frases perfectas que 5 forzadas.
 
 FORMATO DE TOKENS:
@@ -471,6 +527,12 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
     setSentences(prev => prev.map(s =>
       s.id === id ? { ...s, jp, translation } : s
     ))
+  }
+
+  // ── Handle permanent delete (admin/contributor only) ──────────────────────
+  async function handleDelete(id: string) {
+    await deleteUserGrammarExample(id)
+    setSentences(prev => prev.filter(s => s.id !== id))
   }
 
   // ── Labels ────────────────────────────────────────────────────────────────
@@ -588,6 +650,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
           lang={lang}
           canEdit={canEdit}
           onUpdate={handleUpdate}
+          onDelete={handleDelete}
         />
       ))}
     </div>

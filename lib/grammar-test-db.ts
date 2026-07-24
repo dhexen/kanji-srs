@@ -216,6 +216,18 @@ export async function updateUserGrammarExample(id: string, jp: unknown[], transl
   } catch (e) { console.warn('[test] updateUserGrammarExample:', e) }
 }
 
+export async function deleteUserGrammarExample(id: string): Promise<void> {
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('user_grammar_examples_test')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) console.warn('[test] deleteUserGrammarExample:', error.message)
+  } catch (e) { console.warn('[test] deleteUserGrammarExample:', e) }
+}
+
 export async function saveUserGrammarExamples(
   grammarId: string,
   sentences: { jp: unknown[]; translation: unknown[] }[],

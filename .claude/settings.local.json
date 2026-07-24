@@ -87,7 +87,21 @@
       "WebFetch(domain:ai.google.dev)",
       "Bash(perl -0pi -e 's/\\\\bdata\\\\.validated\\\\b/validated/g; s/\\\\bdata\\\\.runs\\\\b/runs/g; s/\\\\bdata\\\\.errors\\\\b/errs/g; s/\\\\bdata\\\\.next_up\\\\b/nextUp/g; s/\\\\bdata\\\\.state\\\\b/st/g; s/\\\\bdata\\\\.total_points\\\\b/totalPoints/g; s/\\\\bdata\\\\.nightly_target\\\\b/nightlyTarget/g; s/\\\\bdata\\\\.total_sentences\\\\b/totalSentences/g' components/admin/GrammarRefreshMonitor.tsx)",
       "Bash(grep -n \"^  \\)$\\\\|^}$\\\\|^function \\\\|^  return \\(\\\\|^const \\\\|^export \" components/admin/AdminClient.tsx)",
-      "Bash(grep -n \"from\\('\\\\|\\\\.from\\(\\\\`\\\\|status\\\\|count\" app/api/admin/image-reports/route.ts)"
+      "Bash(grep -n \"from\\('\\\\|\\\\.from\\(\\\\`\\\\|status\\\\|count\" app/api/admin/image-reports/route.ts)",
+      "Bash(npx tsx --eval ' *)",
+      "Bash(env)",
+      "Bash(npx esbuild *)",
+      "Bash(python3 -m http.server 8791)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8791/index.html)",
+      "Bash(curl -s -o /dev/null -w \"harness.js HTTP %{http_code}\\\\n\" http://localhost:8791/harness.js)",
+      "Bash(google-chrome --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=800,900 --virtual-time-budget=2000 --screenshot=shot_taberu.png \"http://localhost:8791/index.html?w=1&act=wrong\")",
+      "Bash(google-chrome --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=800,900 --virtual-time-budget=2000 --screenshot=shot_gakko.png \"http://localhost:8791/index.html?w=9\")",
+      "Bash(pkill -f \"http.server 8791\")",
+      "Bash(grep -E \"^\\(tsx|ts-node\\)$\")",
+      "Bash(node --experimental-strip-types /tmp/claude-1000/-home-dhexen-Documentos-proyecto-kanji-srs/90fcbc71-b425-488c-957a-77f396b5b5d2/scratchpad/audit.ts)",
+      "Bash(git commit *)",
+      "WebFetch(domain:claude.ai)",
+      "Bash(git --no-pager diff --stat components/grammar-test/GrammarTestExamples.tsx)"
     ],
     "additionalDirectories": [
       "\\mnt\\c\\Users\\dhexe\\Documents\\Proyectos\\academia-japonesa",
