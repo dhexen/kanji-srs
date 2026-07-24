@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     const countMap = new Map<string, number>()
     let from = 0
     while (true) {
-      let q = service.from(table).select('grammar_id')
-      q = target === 'test' ? q.eq('user_id', adminId) : q.eq('is_private', false)
+      // Pool compartido: en prod y en test contamos las públicas (is_private=false).
+      const q = service.from(table).select('grammar_id').eq('is_private', false)
       const { data } = await q.range(from, from + 999)
       if (!data?.length) break
       for (const row of data) {

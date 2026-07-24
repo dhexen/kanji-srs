@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
     const countMap = new Map<string, number>()
     let from = 0
     while (true) {
-      let q = service.from(table).select('grammar_id')
-      q = target === 'test' ? q.eq('user_id', adminId) : q.eq('is_private', false)
+      // Pool compartido: en prod y en test contamos las públicas (is_private=false).
+      const q = service.from(table).select('grammar_id').eq('is_private', false)
       const { data } = await q.range(from, from + 999)
       if (!data?.length) break
       for (const row of data) {
@@ -106,9 +106,11 @@ export async function POST(req: NextRequest) {
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     } else if (action === 'wipe_sentences') {
       if (target === 'test') {
-        // Sandbox: borra TODO lo generado del admin — repasos (no validados) Y
-        // ejemplos propios — para regenerarlo desde cero.
-        await service.from('grammar_sentences_test').delete().eq('user_id', adminId).eq('validated', false)
+        // Sandbox: pool compartido → borra TODAS las frases públicas no validadas
+        // (de cualquier admin) para regenerarlo desde cero, como en producción.
+        // Las validadas por un profesor son permanentes. Los ejemplos propios son
+        // personales, así que solo se borran los del admin actual.
+        await service.from('grammar_sentences_test').delete().eq('is_private', false).eq('validated', false)
         await service.from('user_grammar_examples_test').delete().eq('user_id', adminId)
       } else {
         // Regenerate the pool from scratch, but NEVER delete teacher-validated

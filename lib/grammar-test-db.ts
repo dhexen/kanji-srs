@@ -30,10 +30,12 @@ async function requireUser() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pool de frases de repaso PERSISTENTE → grammar_sentences_test (migración 042).
-// Espeja el mapeo de columnas de la tabla real grammar_sentences, pero cada fila
-// pertenece al admin (user_id) y la RLS solo-admin la aísla de producción. El
-// generador admin (service role, ruta /step) escribe aquí con el mismo user_id.
+// Pool de frases de repaso PERSISTENTE y COMPARTIDO → grammar_sentences_test
+// (migraciones 042/043). Espeja grammar_sentences: las frases sembradas son
+// públicas (is_private=false) y TODOS los admins las ven — igual que en prod, para
+// que nadie necesite su propia API key. La RLS (043) restringe a públicas + las
+// privadas propias, así que las queries del pool NO filtran por user_id. El
+// generador admin (service role, ruta /step) las inserta con is_private=false.
 // ─────────────────────────────────────────────────────────────────────────────
 const KANJI_RE = /[一-鿿㐀-䶿]/
 const parseSegs = (v: unknown) => Array.isArray(v)
@@ -43,11 +45,10 @@ const parseSegs = (v: unknown) => Array.isArray(v)
 
 export async function fetchGrammarSentences(grammarId: string): Promise<GrammarSentence[]> {
   try {
-    const user = await requireUser()
+    await requireUser()
     const { data, error } = await supabase
       .from('grammar_sentences_test')
       .select('*')
-      .eq('user_id', user.id)
       .eq('grammar_id', grammarId)
       .order('created_at', { ascending: true })
     if (error) { console.warn('[test] fetchGrammarSentences:', error.message); return [] }
@@ -114,11 +115,10 @@ export async function saveGrammarSentences(
 
 export async function deleteGrammarSentences(grammarId: string): Promise<void> {
   try {
-    const user = await requireUser()
+    await requireUser()
     const { error } = await supabase
       .from('grammar_sentences_test')
       .delete()
-      .eq('user_id', user.id)
       .eq('grammar_id', grammarId)
     if (error) console.warn('[test] deleteGrammarSentences:', error.message)
   } catch (e) { console.warn('[test] deleteGrammarSentences:', e) }
@@ -126,18 +126,16 @@ export async function deleteGrammarSentences(grammarId: string): Promise<void> {
 
 export async function trimGrammarSentencesPool(grammarId: string, maxSize: number): Promise<void> {
   try {
-    const user = await requireUser()
+    await requireUser()
     const { count, error: countErr } = await supabase
       .from('grammar_sentences_test')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
       .eq('grammar_id', grammarId)
     if (countErr || count === null || count <= maxSize) return
     const excess = count - maxSize
     const { data, error: fetchErr } = await supabase
       .from('grammar_sentences_test')
       .select('id')
-      .eq('user_id', user.id)
       .eq('grammar_id', grammarId)
       .eq('validated', false)
       .order('created_at', { ascending: true })
@@ -151,11 +149,10 @@ export async function fetchGrammarSentenceCounts(ids: string[]): Promise<Map<str
   const out = new Map<string, number>()
   if (ids.length === 0) return out
   try {
-    const user = await requireUser()
+    await requireUser()
     const { data, error } = await supabase
       .from('grammar_sentences_test')
       .select('grammar_id')
-      .eq('user_id', user.id)
       .in('grammar_id', ids)
     if (error) { console.warn('[test] fetchGrammarSentenceCounts:', error.message); return out }
     for (const row of data ?? []) {
@@ -171,24 +168,22 @@ export async function updateGrammarSentence(
   patch: Partial<Omit<GrammarSentence, 'id' | 'grammar_id'>>,
 ): Promise<void> {
   try {
-    const user = await requireUser()
+    await requireUser()
     const { error } = await supabase
       .from('grammar_sentences_test')
       .update(patch)
       .eq('id', id)
-      .eq('user_id', user.id)
     if (error) console.warn('[test] updateGrammarSentence:', error.message)
   } catch (e) { console.warn('[test] updateGrammarSentence:', e) }
 }
 
 export async function deleteGrammarSentenceById(id: string): Promise<void> {
   try {
-    const user = await requireUser()
+    await requireUser()
     const { error } = await supabase
       .from('grammar_sentences_test')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id)
     if (error) console.warn('[test] deleteGrammarSentenceById:', error.message)
   } catch (e) { console.warn('[test] deleteGrammarSentenceById:', e) }
 }
@@ -203,7 +198,6 @@ export async function validateGrammarSentence(id: string, validated: boolean): P
       .from('grammar_sentences_test')
       .update(patch)
       .eq('id', id)
-      .eq('user_id', user.id)
     if (error) console.warn('[test] validateGrammarSentence:', error.message)
   } catch (e) { console.warn('[test] validateGrammarSentence:', e) }
 }
