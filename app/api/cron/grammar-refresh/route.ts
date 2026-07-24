@@ -32,6 +32,13 @@ export async function GET(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
 
   const service = createServiceClient()
+
+  // Interruptor desde el panel admin: si el cron está desactivado, no hace nada.
+  const { data: refresh } = await service.from('grammar_refresh').select('enabled').eq('id', 1).maybeSingle()
+  if (refresh && refresh.enabled === false) {
+    return NextResponse.json({ ok: true, disabled: true, processed_this_call: 0, sentences_added: 0 })
+  }
+
   // Automatic runs keep the nightly ~1/7 cap (spread over the week). Only manual
   // runs ignore it.
   const summary = await runRefreshBatch(service, apiKey, 'cron')

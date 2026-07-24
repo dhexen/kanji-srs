@@ -19,11 +19,14 @@ const TARGET = 25
 export async function GET(req: NextRequest) {
   try {
     const { adminId, service } = await requireAdmin(req)
+    const target: 'prod' | 'test' = req.nextUrl.searchParams.get('target') === 'test' ? 'test' : 'prod'
+    const table = target === 'test' ? 'grammar_sentences_test' : 'grammar_sentences'
 
-    const [jobRes, errorRes, progressRes] = await Promise.all([
+    const [jobRes, errorRes, progressRes, refreshRes] = await Promise.all([
       service.from('grammar_seed_job').select('running, started_at, stopped_at').eq('id', 1).single(),
       service.from('grammar_seed_errors').select('grammar_id, error_msg, is_permanent, updated_at'),
       service.from('user_settings').select('gemini_api_key').eq('user_id', adminId).maybeSingle(),
+      service.from('grammar_refresh').select('enabled').eq('id', 1).maybeSingle(),
     ])
 
     // user_settings is the primary store; srs_progress is legacy fallback
@@ -42,11 +45,9 @@ export async function GET(req: NextRequest) {
     const countMap = new Map<string, number>()
     let from = 0
     while (true) {
-      const { data } = await service
-        .from('grammar_sentences')
-        .select('grammar_id')
-        .eq('is_private', false)
-        .range(from, from + 999)
+      let q = service.from(table).select('grammar_id')
+      q = target === 'test' ? q.eq('user_id', adminId) : q.eq('is_private', false)
+      const { data } = await q.range(from, from + 999)
       if (!data?.length) break
       for (const row of data) {
         countMap.set(row.grammar_id, (countMap.get(row.grammar_id) ?? 0) + 1)
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
       running: jobRes.data?.running ?? false,
       started_at: jobRes.data?.started_at ?? null,
       key_hint: keyHint,
+      cron_enabled: refreshRes.data?.enabled ?? true,
       grammars,
       total: ALL_GRAMMAR.length,
       done: grammars.filter(g => g.count >= TARGET).length,
@@ -85,7 +87,7 @@ export async function POST(req: NextRequest) {
   try {
     const { service, adminId } = await requireAdmin(req)
     void recordToolRun(service, 'grammar-seed', adminId)
-    const { action } = await req.json()
+    const { action, target, enabled } = await req.json()
 
     if (action === 'start') {
       await service.from('grammar_seed_job').upsert(
@@ -103,10 +105,23 @@ export async function POST(req: NextRequest) {
     } else if (action === 'clear_all_errors') {
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
     } else if (action === 'wipe_sentences') {
-      // Regenerate the pool from scratch, but NEVER delete teacher-validated
-      // sentences — those are permanent (only unvalidated ones are wiped).
-      await service.from('grammar_sentences').delete().eq('validated', false)
+      if (target === 'test') {
+        // Sandbox: borra TODO lo generado del admin — repasos (no validados) Y
+        // ejemplos propios — para regenerarlo desde cero.
+        await service.from('grammar_sentences_test').delete().eq('user_id', adminId).eq('validated', false)
+        await service.from('user_grammar_examples_test').delete().eq('user_id', adminId)
+      } else {
+        // Regenerate the pool from scratch, but NEVER delete teacher-validated
+        // sentences — those are permanent (only unvalidated ones are wiped).
+        await service.from('grammar_sentences').delete().eq('validated', false)
+      }
       await service.from('grammar_seed_errors').delete().neq('grammar_id', '')
+    } else if (action === 'toggle_cron') {
+      // Enciende/apaga el cron nocturno de refresco de frases (grammar_refresh).
+      await service.from('grammar_refresh').upsert(
+        { id: 1, enabled: enabled !== false },
+        { onConflict: 'id' },
+      )
     }
 
     return NextResponse.json({ ok: true })

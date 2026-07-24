@@ -17,6 +17,7 @@ interface JobState {
   running: boolean
   started_at: string | null
   key_hint: string
+  cron_enabled: boolean
   grammars: GrammarRow[]
   total: number
   done: number
@@ -49,7 +50,8 @@ function saveDailyStats(counts: Record<string, number>) {
   try { localStorage.setItem(todayKey(), JSON.stringify(counts)) } catch {}
 }
 
-export default function GrammarSeedClient() {
+export default function GrammarSeedClient({ target = 'prod' }: { target?: 'prod' | 'test' }) {
+  const isTest = target === 'test'
   const [state, setState] = useState<JobState | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentId, setCurrentId] = useState<string | null>(null)
@@ -72,7 +74,7 @@ export default function GrammarSeedClient() {
 
   const fetchState = useCallback(async () => {
     const token = await getToken()
-    const res = await fetch('/api/admin/seed-grammar', {
+    const res = await fetch(`/api/admin/seed-grammar${isTest ? '?target=test' : ''}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return
@@ -135,6 +137,7 @@ export default function GrammarSeedClient() {
         const res = await fetch('/api/admin/seed-grammar/step', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target }),
         })
         result = await res.json()
       } catch (e: any) {
@@ -270,14 +273,29 @@ export default function GrammarSeedClient() {
   }
 
   async function handleWipeSentences() {
-    if (!confirm('¿Borrar las frases generadas para regenerarlas desde cero? Las frases VALIDADAS por profesor se conservan (nunca se borran). No se puede deshacer.')) return
+    const msg = isTest
+      ? '¿Borrar TODO lo generado en TEST (repasos + ejemplos) para regenerarlo desde cero? Las frases VALIDADAS se conservan. No se puede deshacer.'
+      : '¿Borrar las frases generadas para regenerarlas desde cero? Las frases VALIDADAS por profesor se conservan (nunca se borran). No se puede deshacer.'
+    if (!confirm(msg)) return
     const token = await getToken()
     await fetch('/api/admin/seed-grammar', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'wipe_sentences' }),
+      body: JSON.stringify({ action: 'wipe_sentences', target }),
     })
     await fetchState()
+  }
+
+  async function handleToggleCron() {
+    const next = !(state?.cron_enabled ?? true)
+    if (!next && !confirm('¿Desactivar el cron nocturno? Dejará de generar frases nuevas cada noche hasta que lo reactives.')) return
+    const token = await getToken()
+    await fetch('/api/admin/seed-grammar', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_cron', enabled: next }),
+    })
+    setState(prev => prev ? { ...prev, cron_enabled: next } : prev)
   }
 
   if (loading) return <div className="p-8 text-slate-500">Cargando…</div>
@@ -289,6 +307,11 @@ export default function GrammarSeedClient() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {isTest && (
+        <div className="text-sm rounded px-3 py-2 border border-purple-300 bg-purple-50 text-purple-800">
+          🧪 <span className="font-semibold">Modo TEST</span> — genera y borra frases en el sandbox <span className="font-mono">grammar_sentences_test</span> (aislado de producción). El generador y el prompt son los mismos que producción.
+        </div>
+      )}
       {/* Key indicator */}
       <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-3 py-1.5 font-mono">
         🔑 Clave activa: <span className={state.key_hint.startsWith('sin') ? 'text-red-600 font-semibold' : 'text-slate-700 font-semibold'}>{state.key_hint}</span>
@@ -361,13 +384,20 @@ export default function GrammarSeedClient() {
               Reintentar permanentes ({permErrors})
             </button>
           )}
+          <button
+            onClick={handleToggleCron}
+            className={`px-3 py-1.5 text-sm rounded border ${state.cron_enabled ? 'border-slate-300 text-slate-600 hover:bg-slate-50' : 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+            title="Activa/desactiva el cron nocturno que genera frases cada noche"
+          >
+            {state.cron_enabled ? '🌙 Cron nocturno: ON' : '🌙 Cron nocturno: OFF'}
+          </button>
           {!state.running && (
             <button
               onClick={handleWipeSentences}
               className="px-3 py-1.5 text-sm rounded border border-red-300 text-red-700 hover:bg-red-50"
-              title="Borra todas las frases para regenerarlas desde cero"
+              title={isTest ? 'Borra en TEST todos los repasos y ejemplos para regenerarlos desde cero' : 'Borra todas las frases para regenerarlas desde cero'}
             >
-              🗑 Borrar y regenerar todo
+              {isTest ? '🗑 Borrar todo (repasos + ejemplos)' : '🗑 Borrar y regenerar todo'}
             </button>
           )}
           {state.running ? (

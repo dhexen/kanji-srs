@@ -30,12 +30,55 @@ async function requireUser() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pool de frases EN MEMORIA (por grammar_id). Vacío al cargar; se pierde al recargar.
+// Pool de frases de repaso PERSISTENTE → grammar_sentences_test (migración 042).
+// Espeja el mapeo de columnas de la tabla real grammar_sentences, pero cada fila
+// pertenece al admin (user_id) y la RLS solo-admin la aísla de producción. El
+// generador admin (service role, ruta /step) escribe aquí con el mismo user_id.
 // ─────────────────────────────────────────────────────────────────────────────
-const memPool = new Map<string, GrammarSentence[]>()
+const KANJI_RE = /[一-鿿㐀-䶿]/
+const parseSegs = (v: unknown) => Array.isArray(v)
+  ? (v as unknown[]).filter(x => x && typeof (x as { t?: unknown }).t === 'string')
+      .map(x => { const o = x as { t: string; f?: unknown }; return o.f ? { t: o.t, f: String(o.f) } : { t: o.t } })
+  : []
 
 export async function fetchGrammarSentences(grammarId: string): Promise<GrammarSentence[]> {
-  return (memPool.get(grammarId) ?? []).map(s => ({ ...s }))
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('grammar_sentences_test')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+      .order('created_at', { ascending: true })
+    if (error) { console.warn('[test] fetchGrammarSentences:', error.message); return [] }
+    return (data ?? [])
+      .map(r => ({
+        id: r.id,
+        grammar_id: r.grammar_id,
+        sentence_before: r.sentence_before ?? '',
+        sentence_before_reading: r.sentence_before_reading ?? '',
+        sentence_before_segments: parseSegs(r.sentence_before_segments),
+        sentence_before_alts: Array.isArray(r.sentence_before_alts) ? r.sentence_before_alts : [],
+        sentence_before_reading_alts: Array.isArray(r.sentence_before_reading_alts) ? r.sentence_before_reading_alts : [],
+        sentence_after: r.sentence_after ?? '',
+        sentence_after_reading: r.sentence_after_reading ?? '',
+        sentence_after_segments: parseSegs(r.sentence_after_segments),
+        answer: r.answer ?? '',
+        answer_hint: Array.isArray(r.answer_hint)
+          ? (r.answer_hint as unknown[]).filter(x => x && typeof (x as { w?: unknown }).w === 'string')
+              .map(x => { const o = x as { w: string; r?: unknown }; return o.r ? { w: o.w, r: String(o.r) } : { w: o.w } })
+          : [],
+        answer_alts: Array.isArray(r.answer_alts) ? r.answer_alts : [],
+        translation_es: r.translation_es ?? '',
+        translation_ca: r.translation_ca ?? '',
+        translation_en: r.translation_en ?? '',
+        validated: r.validated ?? false,
+        validated_by: r.validated_by ?? undefined,
+        is_private: r.is_private ?? false,
+      }))
+      .filter(s => !KANJI_RE.test(s.answer))
+      .sort((a, b) => (b.validated ? 1 : 0) - (a.validated ? 1 : 0))
+  } catch { return [] }
 }
 
 export async function saveGrammarSentences(
@@ -44,25 +87,82 @@ export async function saveGrammarSentences(
   _opts?: { isPrivate?: boolean; userId?: string },
 ): Promise<void> {
   if (sentences.length === 0) return
-  const list = memPool.get(grammarId) ?? []
-  for (const s of sentences) {
-    list.push({ ...(s as GrammarSentence), id: crypto.randomUUID(), grammar_id: grammarId })
-  }
-  memPool.set(grammarId, list)
+  try {
+    const user = await requireUser()
+    const rows = sentences.map(s => ({
+      user_id: user.id,
+      grammar_id: grammarId,
+      sentence_before: s.sentence_before,
+      sentence_before_reading: s.sentence_before_reading,
+      sentence_before_segments: s.sentence_before_segments ?? [],
+      sentence_before_alts: s.sentence_before_alts ?? [],
+      sentence_before_reading_alts: s.sentence_before_reading_alts ?? [],
+      sentence_after: s.sentence_after,
+      sentence_after_reading: s.sentence_after_reading,
+      sentence_after_segments: s.sentence_after_segments ?? [],
+      answer: s.answer,
+      answer_alts: s.answer_alts,
+      answer_hint: s.answer_hint ?? [],
+      translation_es: s.translation_es,
+      translation_ca: s.translation_ca,
+      translation_en: s.translation_en,
+    }))
+    const { error } = await supabase.from('grammar_sentences_test').insert(rows)
+    if (error) console.warn('[test] saveGrammarSentences:', error.message)
+  } catch (e) { console.warn('[test] saveGrammarSentences:', e) }
 }
 
 export async function deleteGrammarSentences(grammarId: string): Promise<void> {
-  memPool.delete(grammarId)
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('grammar_sentences_test')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+    if (error) console.warn('[test] deleteGrammarSentences:', error.message)
+  } catch (e) { console.warn('[test] deleteGrammarSentences:', e) }
 }
 
-export async function trimGrammarSentencesPool(grammarId: string, max: number): Promise<void> {
-  const list = memPool.get(grammarId)
-  if (list && list.length > max) memPool.set(grammarId, list.slice(list.length - max))
+export async function trimGrammarSentencesPool(grammarId: string, maxSize: number): Promise<void> {
+  try {
+    const user = await requireUser()
+    const { count, error: countErr } = await supabase
+      .from('grammar_sentences_test')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+    if (countErr || count === null || count <= maxSize) return
+    const excess = count - maxSize
+    const { data, error: fetchErr } = await supabase
+      .from('grammar_sentences_test')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('grammar_id', grammarId)
+      .eq('validated', false)
+      .order('created_at', { ascending: true })
+      .limit(excess)
+    if (fetchErr || !data?.length) return
+    await supabase.from('grammar_sentences_test').delete().in('id', data.map(r => r.id as string))
+  } catch (e) { console.warn('[test] trimGrammarSentencesPool:', e) }
 }
 
 export async function fetchGrammarSentenceCounts(ids: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>()
-  for (const id of ids) out.set(id, (memPool.get(id) ?? []).length)
+  if (ids.length === 0) return out
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('grammar_sentences_test')
+      .select('grammar_id')
+      .eq('user_id', user.id)
+      .in('grammar_id', ids)
+    if (error) { console.warn('[test] fetchGrammarSentenceCounts:', error.message); return out }
+    for (const row of data ?? []) {
+      const id = String((row as { grammar_id: string }).grammar_id)
+      out.set(id, (out.get(id) ?? 0) + 1)
+    }
+  } catch { /* tabla puede no existir aún */ }
   return out
 }
 
@@ -70,21 +170,42 @@ export async function updateGrammarSentence(
   id: string,
   patch: Partial<Omit<GrammarSentence, 'id' | 'grammar_id'>>,
 ): Promise<void> {
-  for (const list of memPool.values()) {
-    const s = list.find(x => x.id === id)
-    if (s) { Object.assign(s, patch); return }
-  }
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('grammar_sentences_test')
+      .update(patch)
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) console.warn('[test] updateGrammarSentence:', error.message)
+  } catch (e) { console.warn('[test] updateGrammarSentence:', e) }
 }
 
 export async function deleteGrammarSentenceById(id: string): Promise<void> {
-  for (const [gid, list] of memPool.entries()) {
-    const next = list.filter(x => x.id !== id)
-    if (next.length !== list.length) { memPool.set(gid, next); return }
-  }
+  try {
+    const user = await requireUser()
+    const { error } = await supabase
+      .from('grammar_sentences_test')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) console.warn('[test] deleteGrammarSentenceById:', error.message)
+  } catch (e) { console.warn('[test] deleteGrammarSentenceById:', e) }
 }
 
 export async function validateGrammarSentence(id: string, validated: boolean): Promise<void> {
-  await updateGrammarSentence(id, { validated })
+  try {
+    const user = await requireUser()
+    const patch = validated
+      ? { validated: true, validated_by: user.id }
+      : { validated: false, validated_by: null }
+    const { error } = await supabase
+      .from('grammar_sentences_test')
+      .update(patch)
+      .eq('id', id)
+      .eq('user_id', user.id)
+    if (error) console.warn('[test] validateGrammarSentence:', error.message)
+  } catch (e) { console.warn('[test] validateGrammarSentence:', e) }
 }
 
 // Comunidad / reportes: sin sentido en el sandbox → no-op.

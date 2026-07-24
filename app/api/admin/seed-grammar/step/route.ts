@@ -20,6 +20,10 @@ const ALL_GRAMMAR: GrammarPoint[] = [
 export async function POST(req: NextRequest) {
   try {
     const { adminId, service } = await requireAdmin(req)
+    // 'test' → escribe/lee grammar_sentences_test (sandbox, filtrado por adminId).
+    const body = await req.json().catch(() => ({}))
+    const target: 'prod' | 'test' = body?.target === 'test' ? 'test' : 'prod'
+    const table = target === 'test' ? 'grammar_sentences_test' : 'grammar_sentences'
 
     // 1. Check if job is still running
     const { data: job } = await service
@@ -36,11 +40,9 @@ export async function POST(req: NextRequest) {
     const countMap = new Map<string, number>()
     let from = 0
     while (true) {
-      const { data } = await service
-        .from('grammar_sentences')
-        .select('grammar_id')
-        .eq('is_private', false)
-        .range(from, from + 999)
+      let q = service.from(table).select('grammar_id')
+      q = target === 'test' ? q.eq('user_id', adminId) : q.eq('is_private', false)
+      const { data } = await q.range(from, from + 999)
       if (!data?.length) break
       for (const row of data) {
         countMap.set(row.grammar_id, (countMap.get(row.grammar_id) ?? 0) + 1)
@@ -121,7 +123,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Insert and clear any prior error
-    const { error: insertError } = await service.from('grammar_sentences').insert(result.rows)
+    const insertRows = target === 'test'
+      ? result.rows.map(r => ({ ...r, user_id: adminId }))
+      : result.rows
+    const { error: insertError } = await service.from(table).insert(insertRows)
     if (insertError) {
       await upsertError(service, next.id, `Insert error: ${insertError.message}`, false)
       return NextResponse.json({ status: 'retry', grammar_id: next.id, error: insertError.message, retry_after_ms: 5_000 })

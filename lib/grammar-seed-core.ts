@@ -122,10 +122,11 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 
 ⚠️ "before" y "after" son ARRAYS de tokens {"t":texto} con furigana: si el texto lleva kanji añade {"t":kanji,"f":lectura en hiragana de ESE kanji}. Usa los KANJI normales (no dejes en kana lo que se escribe con kanji). Cada token con kanji DEBE llevar "f". La kana va en tokens sin "f". Ej. 食べます → {"t":"食","f":"た"},{"t":"べます"}; 学生 → {"t":"学生","f":"がくせい"}. "f" siempre en hiragana.
 
-⚠️ REGLAS CRÍTICAS sobre la frase japonesa:
-1. La frase COMPLETA (before + answer + after) debe ser japonés REAL y natural, con sentido lógico. Léela entera antes de aceptarla.
-2. PROHIBIDO el japonés basura (palabras al azar sin orden ni sentido, p.ej. "次です番"): quality 1 y descártala.
-3. El sujeto debe ser claro y el orden correcto (Sujeto → Complementos → Predicado). Usa contextos cotidianos realistas.
+⚠️ REGLAS DE CALIDAD (aplican a cualquier gramática, sin excepciones):
+1. Cada frase debe ser japonés natural y nativo, con una intención comunicativa real: algo que una persona diría de verdad en una situación concreta.
+2. Cada frase debe tener SENTIDO REAL. Antes de aceptar una frase, pregúntate si su significado es plausible en el mundo real; si es absurda, falsa o nadie la diría con una intención concreta, descártala (quality 1).
+3. INPUT COMPRENSIBLE: lo ÚNICO nuevo o difícil de la frase debe ser la propia gramática. El resto (vocabulario, contexto) debe ser sencillo y que el alumno ya conozca, para que entienda la frase de un vistazo y vea cómo funciona el patrón.
+4. Usa como máximo 1–2 palabras de contenido por frase; el foco es el patrón, no acumular vocabulario. Sujeto claro y orden correcto (Sujeto → Complementos → Predicado), contextos cotidianos.
 
 ⚠️ REGLA CRÍTICA sobre "answer": solo el marcador gramatical (partículas, cópulas, conjugaciones). NUNCA kanji. Para patrones con forma て o conjugaciones, el answer DEBE incluir esa parte completa (la て, ます…), NUNCA solo la raíz del verbo. Ej. patrón てみます → answer "しらべてみます" ✓, NO "しらべ" (sin て) ✗.
 
