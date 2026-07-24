@@ -1,6 +1,6 @@
 'use client'
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { GrammarPoint, ExampleToken, StructurePart } from '@/lib/grammar-test-mnn1'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
@@ -70,9 +70,6 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-          {t(lang, 'gp_example')}
-        </span>
         <button
           onClick={() => setShowFurigana(v => !v)}
           className="text-[10px] px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
@@ -121,6 +118,104 @@ function ExampleDisplay({ tokens, lang }: { tokens: ExampleToken[]; lang: Lang }
   )
 }
 
+// Etiquetas de sección (el glifo japonés es constante; el rótulo se traduce)
+const SECTION_LABELS = {
+  meaning:   { es: 'Significado', ca: 'Significat', en: 'Meaning',       ja: '意味' },
+  formation: { es: 'Formación',   ca: 'Formació',   en: 'Formation',     ja: '形' },
+  example:   { es: 'Ejemplo',     ca: 'Exemple',    en: 'Example',       ja: '例' },
+  note:      { es: 'Nota',        ca: 'Nota',       en: 'Note',          ja: '注意' },
+  more:      { es: 'Más ejemplos',ca: 'Més exemples',en: 'More examples',ja: '練習例' },
+} as const
+function sectionLabel(key: keyof typeof SECTION_LABELS, lang: Lang) {
+  return SECTION_LABELS[key][lang] ?? SECTION_LABELS[key].es
+}
+
+// Cabecera numerada de sección: nº + glifo japonés + rótulo
+function Eyebrow({ n, jp, label }: { n: number; jp: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-3">
+      <span className="grid place-items-center w-5 h-5 rounded-md bg-indigo-600 dark:bg-indigo-500 text-white dark:text-slate-900 text-[11px] font-extrabold tabular-nums">
+        {n}
+      </span>
+      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{jp}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-400 dark:text-slate-500">{label}</span>
+    </div>
+  )
+}
+
+// Envoltorio de reveal al hacer scroll (respeta prefers-reduced-motion)
+function Reveal({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(true); return }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { setShown(true); io.disconnect() } })
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-500 ease-out ${shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} ${className}`}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Barra compacta de estructura que se fija bajo la cabecera global al pasar la
+// sección «Formación», para reconocer el patrón en las frases sin perderlo de vista.
+function StickyStructureBar({ parts, structureRef, label }: {
+  parts: StructurePart[]
+  structureRef: React.RefObject<HTMLDivElement | null>
+  label: string
+}) {
+  const [show, setShow] = useState(false)
+  const [top, setTop] = useState(56)
+  useEffect(() => {
+    const header = document.querySelector('header')
+    const h = header ? Math.round(header.getBoundingClientRect().height) : 56
+    setTop(h)
+    const onScroll = () => {
+      const el = structureRef.current
+      if (!el) return
+      setShow(el.getBoundingClientRect().bottom < h + 6)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [structureRef])
+  return (
+    <div
+      style={{ top }}
+      aria-hidden={!show}
+      className={`sticky z-30 overflow-hidden transition-all duration-300 ease-out ${show ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+    >
+      <div className="flex items-center gap-2.5 px-3 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-x-auto">
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">形 · {label}</span>
+        <div className="flex items-center gap-1.5">
+          {parts.map((p, i) => (
+            <span
+              key={i}
+              className={`${ROLE_COLORS[p.role].bg} ${ROLE_COLORS[p.role].text} border ${ROLE_COLORS[p.role].border} font-bold rounded-md px-2 py-0.5 text-sm whitespace-nowrap`}
+            >
+              {p.text}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   grammar: GrammarPoint
   lang: Lang
@@ -141,6 +236,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
   const [practiceMode, setPracticeMode] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [scheme, setScheme] = useState<GrammarScheme | null>(null)
+  const structureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -280,45 +376,58 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
         </svg>
       </button>
 
-      {/* Structure visualization */}
-      <div>
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-          {t(lang, 'gp_structure')}
-        </p>
-        <StructureDisplay parts={grammar.structure} lang={lang} />
-      </div>
+      {/* Barra compacta de estructura: se fija bajo la cabecera al pasar «Formación» */}
+      <StickyStructureBar parts={grammar.structure} structureRef={structureRef} label={sectionLabel('formation', lang)} />
 
-      {/* Explanation */}
-      <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4">
-        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
-      </div>
-
-      {/* Conjugation / usage scheme */}
-      {scheme && <GrammarSchemeView scheme={scheme} lang={lang} />}
-
-      {/* Built-in example */}
-      <ExampleDisplay tokens={grammar.example} lang={lang} />
-
-      {/* Tip */}
-      {tip && (
-        <div className="flex gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-          <span className="text-xl shrink-0">💡</span>
-          <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{tip}</p>
+      {/* 1 · Significado — la explicación va primero (convención pedagógica) */}
+      <Reveal>
+        <Eyebrow n={1} jp="意味" label={sectionLabel('meaning', lang)} />
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation}</p>
         </div>
+      </Reveal>
+
+      {/* 2 · Formación — estructura + esquema de conjugación */}
+      <Reveal>
+        <Eyebrow n={2} jp="形" label={sectionLabel('formation', lang)} />
+        <div ref={structureRef}>
+          <StructureDisplay parts={grammar.structure} lang={lang} />
+        </div>
+        {scheme && <div className="mt-3"><GrammarSchemeView scheme={scheme} lang={lang} /></div>}
+      </Reveal>
+
+      {/* 3 · Ejemplo */}
+      <Reveal>
+        <Eyebrow n={3} jp="例" label={sectionLabel('example', lang)} />
+        <ExampleDisplay tokens={grammar.example} lang={lang} />
+      </Reveal>
+
+      {/* 4 · Nota */}
+      {tip && (
+        <Reveal>
+          <Eyebrow n={4} jp="注意" label={sectionLabel('note', lang)} />
+          <div className="flex gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <span className="text-xl shrink-0">💡</span>
+            <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">{tip}</p>
+          </div>
+        </Reveal>
       )}
 
-      {/* AI-generated examples */}
-      <GrammarExamples
-        grammar={grammar}
-        lang={lang}
-        geminiKey={geminiKey}
-        sessionToken={sessionToken}
-        activeVocab={activeVocab}
-        canEdit={canEdit}
-      />
-
-      {/* Seeded practice sentences as read-only examples */}
-      <GrammarSentenceExamples grammarId={grammar.id} lang={lang} />
+      {/* 5 · Más ejemplos — IA + banco de frases */}
+      <Reveal>
+        <Eyebrow n={5} jp="練習例" label={sectionLabel('more', lang)} />
+        <div className="space-y-5">
+          <GrammarExamples
+            grammar={grammar}
+            lang={lang}
+            geminiKey={geminiKey}
+            sessionToken={sessionToken}
+            activeVocab={activeVocab}
+            canEdit={canEdit}
+          />
+          <GrammarSentenceExamples grammarId={grammar.id} lang={lang} />
+        </div>
+      </Reveal>
 
       {/* Remove from SRS — shown only when in SRS, at the bottom to avoid accidental taps */}
       {srsStat && onRemoveFromSrs && (
