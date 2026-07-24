@@ -45,8 +45,21 @@ export interface SentenceRow {
   private_user_id: string | null
 }
 
+// Desglose de por qué se descartan candidatas — para hacer observable el
+// "No valid sentences" en el panel admin.
+export interface GenStats {
+  generated: number       // frases devueltas por Gemini (parseadas)
+  droppedQuality: number  // quality < QUALITY_MIN
+  droppedBlank: number    // el hueco no coincide con el hueco canónico
+  droppedFormat: number   // before/after no eran arrays de tokens válidos
+  droppedVerify: number   // rechazadas por la pasada de verificación
+  kept: number            // frases finales
+  expectedBlank: string | null  // hueco canónico esperado (null = variable)
+  blankSamples: string[]  // ejemplos de huecos rechazados
+}
+
 export type GenResult =
-  | { ok: true; rows: SentenceRow[]; usedModel: string }
+  | { ok: true; rows: SentenceRow[]; usedModel: string; stats: GenStats }
   | { ok: false; usedModel: string; error: string; permanent: boolean; retryAfterMs: number }
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
@@ -258,9 +271,12 @@ export async function generatePointRows(
     return { ok: false, usedModel, error: 'Error al parsear respuesta de Gemini', permanent: false, retryAfterMs: 5_000 }
   }
 
-  const rows = sentences
-    .filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
-    .filter(s => answerMatchesBlank(String(s.answer ?? ''), grammar))
+  // Filtrado por etapas, contando descartes para el desglose diagnóstico.
+  const qPass = sentences.filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
+  const bFail = qPass.filter(s => !answerMatchesBlank(String(s.answer ?? ''), grammar))
+  const bPass = qPass.filter(s => answerMatchesBlank(String(s.answer ?? ''), grammar))
+
+  const built = bPass
     .map((s: any): SentenceRow | null => {
       const before = parseSegments(s.before)
       const after  = parseSegments(s.after)
@@ -286,12 +302,24 @@ export async function generatePointRows(
       }
     })
     .filter((r): r is SentenceRow => r !== null)
-    .slice(0, Math.max(0, keep))
+
+  const rows = built.slice(0, Math.max(0, keep))
 
   // Optional quality verification pass (lite generates → flash confirms/corrects).
   const verified = (opts?.verify !== false && rows.length > 0)
     ? await verifyRows(rows, grammar, apiKey)
     : rows
 
-  return { ok: true, rows: verified, usedModel }
+  const stats: GenStats = {
+    generated:      sentences.length,
+    droppedQuality: sentences.length - qPass.length,
+    droppedBlank:   qPass.length - bPass.length,
+    droppedFormat:  bPass.length - built.length,
+    droppedVerify:  rows.length - verified.length,
+    kept:           verified.length,
+    expectedBlank:  getCanonicalBlank(grammar),
+    blankSamples:   [...new Set(bFail.map(s => String(s.answer ?? '')))].filter(Boolean).slice(0, 5),
+  }
+
+  return { ok: true, rows: verified, usedModel, stats }
 }

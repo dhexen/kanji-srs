@@ -118,8 +118,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (result.rows.length === 0) {
-      await upsertError(service, next.id, 'Ninguna frase pasó los filtros (calidad/furigana)', false)
-      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: 'No valid sentences', retry_after_ms: 5_000 })
+      const reason = formatStats(result.stats)
+      await upsertError(service, next.id, reason, false)
+      return NextResponse.json({ status: 'retry', grammar_id: next.id, error: reason, stats: result.stats, retry_after_ms: 5_000 })
     }
 
     // 8. Insert and clear any prior error
@@ -140,10 +141,26 @@ export async function POST(req: NextRequest) {
       sentences_added: result.rows.length,
       new_count: currentCount + result.rows.length,
       model_used: result.usedModel,
+      stats: result.stats,
     })
   } catch (e) {
     return adminJsonError(e)
   }
+}
+
+// Desglose legible de por qué un lote quedó vacío (o con pocas frases).
+function formatStats(s?: import('@/lib/grammar-seed-core').GenStats): string {
+  if (!s) return 'Ninguna frase pasó los filtros'
+  const parts: string[] = []
+  if (s.droppedQuality) parts.push(`${s.droppedQuality} calidad<4`)
+  if (s.droppedBlank) {
+    const blank = s.expectedBlank ? `≠«${s.expectedBlank}»` : ''
+    const ej = s.blankSamples.length ? ` (ej: ${s.blankSamples.join(', ')})` : ''
+    parts.push(`${s.droppedBlank} hueco${blank}${ej}`)
+  }
+  if (s.droppedFormat) parts.push(`${s.droppedFormat} formato roto`)
+  if (s.droppedVerify) parts.push(`${s.droppedVerify} verificación`)
+  return `${s.generated} generadas → ${s.kept} válidas` + (parts.length ? ` · descartes: ${parts.join(', ')}` : '')
 }
 
 async function upsertError(service: any, grammarId: string, msg: string, isPermanent: boolean) {
