@@ -10,9 +10,12 @@ const INITIAL_SHOW = 5
 interface Props {
   grammarId: string
   lang: Lang
+  // Fuente de las frases. Por defecto lee el pool de producción; el sandbox de
+  // test pasa su propio fetcher (grammar_sentences_test) para no leer prod.
+  fetcher?: (grammarId: string) => Promise<GrammarSentence[]>
 }
 
-export default function GrammarSentenceExamples({ grammarId, lang }: Props) {
+export default function GrammarSentenceExamples({ grammarId, lang, fetcher }: Props) {
   const [sentences, setSentences] = useState<GrammarSentence[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -20,17 +23,21 @@ export default function GrammarSentenceExamples({ grammarId, lang }: Props) {
   const [showFurigana, setShowFurigana] = useState(false)
 
   useEffect(() => {
-    supabase
-      .from('grammar_sentences')
-      .select('*')
-      .eq('grammar_id', grammarId)
-      .eq('is_private', false)
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
-        setSentences((data ?? []) as GrammarSentence[])
-        setLoading(false)
-      })
-  }, [grammarId])
+    let cancelled = false
+    const run = fetcher
+      ? fetcher(grammarId)
+      : supabase
+          .from('grammar_sentences')
+          .select('*')
+          .eq('grammar_id', grammarId)
+          .eq('is_private', false)
+          .order('created_at', { ascending: true })
+          .then(({ data }) => (data ?? []) as GrammarSentence[])
+    Promise.resolve(run)
+      .then(rows => { if (!cancelled) { setSentences(rows); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [grammarId, fetcher])
 
   if (loading || sentences.length === 0) return null
 
