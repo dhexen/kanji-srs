@@ -35,6 +35,11 @@ export const CHANGELOG: ChangelogVersion[] = [
         description: 'En las preguntas de lectura con opción múltiple, las opciones falsas ya no se descartan de un vistazo. Cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese つき y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき). Además nunca aparece una opción que sea un trozo de la respuesta correcta. Ahora hay que fijarse de verdad.',
       },
       {
+        type: 'improvement',
+        title: 'Significado múltiple: opciones coherentes con el kanji',
+        description: 'En las preguntas de significado, los significados incorrectos ahora son de otras palabras que comparten el kanji que ves en pantalla. Por ejemplo, para 目つき (mirada) las opciones son cosas relacionadas con 目 (ojo): mirada, índice (目次), colirio (目薬), objetivo (目的). Así no puedes descartar por temática ("eso no tiene que ver con ojos") y tienes que conocer de verdad la palabra.',
+      },
+      {
         type: 'new',
         title: 'Ranking semanal en tu Perfil',
         description: 'En Perfil → Estadísticas encontrarás un podio con las palabras que más gente ha subido de nivel SRS en los últimos 7 días. Es anónimo (no se ven nombres) y te muestra tu propio puesto y en qué porcentaje del grupo estás. Haz repasos durante la semana para escalar posiciones.',

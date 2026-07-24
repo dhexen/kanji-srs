@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useStore } from '@/lib/store'
 import { useHelp } from '@/lib/help-context'
 import { ReviewMode, VocabItem, MODE_CONFIG, getPendingCount, getModeLevelAndDue, getReviewForecast, getHourlyForecast } from '@/lib/srs'
-import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress, fetchReadingDistractorPool, ReadingDistractorCandidate } from '@/lib/supabase'
+import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaProgress, fetchDistractorPool, DistractorCandidate } from '@/lib/supabase'
 import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
@@ -80,7 +80,7 @@ export default function ReviewClient() {
   const [isPractice, setIsPractice] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
-  const [distractorPool, setDistractorPool] = useState<ReadingDistractorCandidate[]>([])
+  const [distractorPool, setDistractorPool] = useState<DistractorCandidate[]>([])
   const [grammarDue, setGrammarDue] = useState(0)
   const [kanaLearnedCount, setKanaLearnedCount] = useState(0)
 
@@ -231,7 +231,7 @@ export default function ReviewClient() {
       if (allWords.length > 0) {
         const [metaMap, pool] = await Promise.all([
           fetchVocabMeta(allWords),
-          kanjis.length > 0 ? fetchReadingDistractorPool(kanjis) : Promise.resolve([]),
+          kanjis.length > 0 ? fetchDistractorPool(kanjis) : Promise.resolve([]),
         ])
         setDistractorPool(pool)
         if (metaMap.size > 0) {
@@ -269,7 +269,7 @@ export default function ReviewClient() {
       })
       const kanjis = uniqueKanjiChars(newItems.map(i => i.jp))
       if (kanjis.length > 0) {
-        fetchReadingDistractorPool(kanjis).then(setDistractorPool).catch(() => {})
+        fetchDistractorPool(kanjis).then(setDistractorPool).catch(() => {})
       }
       wrongCountsRef.current.clear()
       completedRef.current.clear()

@@ -4,7 +4,7 @@ import { toHiragana } from 'wanakana'
 import { useStore } from '@/lib/store'
 import { VocabItem, ReviewMode, MODE_CONFIG, getModeLevelAndDue, getMeaningForLang, VocabWordType, SRS_MAX_LEVEL } from '@/lib/srs'
 import { t, getStageName } from '@/lib/i18n'
-import { submitImageVote, submitVocabReport, type ReadingDistractorCandidate } from '@/lib/supabase'
+import { submitImageVote, submitVocabReport, type DistractorCandidate } from '@/lib/supabase'
 import { upgradeVocabImage } from '@/lib/image'
 import { buildFurigana } from '@/lib/furigana'
 import { generateFakeReading, generateFakeReadingSegmented, moraCount, type ReadingSegment } from '@/lib/reading-mutate'
@@ -19,7 +19,9 @@ interface Props {
   /** Extra real candidates (any grade, global catalog) sharing a kanji with the
    *  session's words — enriches "Lectura múltiple" distractors beyond the
    *  user's own vocab. Optional so other callers don't need to supply it. */
-  distractorPool?: ReadingDistractorCandidate[]
+  /** Extra real candidates (any grade) sharing a kanji with the session's words,
+   *  carrying both reading and meaning — enriches distractors for both modes. */
+  distractorPool?: DistractorCandidate[]
   index: number
   total: number
   isPractice: boolean
@@ -165,26 +167,38 @@ export default function QuestionCard({ sessionItem, allItems, distractorPool = [
 
     const targetKanji = new Set(kanjiChars(item.jp))
 
-    // Score every candidate by how confusable it is with the target.
+    // Score every candidate by how confusable it is with the target. Sharing a
+    // kanji with the target is the dominant signal for BOTH questions, because
+    // the learner sees the target's kanji:
+    //  · reading → real alternate readings of that kanji.
+    //  · meaning → meanings coherent with the visible kanji. For 目つき you see
+    //    目 (eye), so plausible wrong meanings are other 目 words (colirio,
+    //    objetivo, señal…) — you can't discard them the way an unrelated "nueve"
+    //    or "perro" is discarded on sight. Same category/type only break ties.
     const score = (w: VocabItem): number => {
       let sharedKanji = 0
       for (const c of new Set(kanjiChars(w.jp))) if (targetKanji.has(c)) sharedKanji++
+      const sameType = w.word_type && item.word_type && w.word_type === item.word_type
+      if (field === 'meaning') {
+        const sameCategory = w.category && item.category && w.category === item.category ? 3 : 0
+        return sharedKanji * 10 + sameCategory + (sameType ? 2 : 0)
+      }
       const rSim = readingSimilarity(item.reading, w.reading)
-      const typeBonus = w.word_type && item.word_type && w.word_type === item.word_type ? 1 : 0
-      return sharedKanji * 10 + rSim + typeBonus
+      return sharedKanji * 10 + rSim + (sameType ? 1 : 0)
     }
 
-    // "Lectura múltiple" gets a much richer candidate pool: every official
-    // word (any grade) sharing a kanji with the target, not just the user's
-    // own vocab — real alternate readings of a shared kanji are far more
-    // confusing than an unrelated random word. "meaning" is untouched.
-    const pool: VocabItem[] = field === 'reading'
-      ? [...allItems, ...distractorPool.map((d): VocabItem => ({
-          kanji: d.kanji, jp: d.jp, reading: d.reading, meaning: '',
-          srsLevel: 0, due: 0, status: 'locked',
-          word_type: (d.word_type ?? undefined) as VocabItem['word_type'],
-        }))]
-      : allItems
+    // Both modes get a much richer candidate pool than the user's own vocab:
+    // every official word (any grade) sharing a kanji with the target, carrying
+    // both its reading and meaning so it serves reading and meaning questions
+    // alike — real alternate readings / kanji-coherent meanings are far more
+    // confusing than an unrelated random word.
+    const pool: VocabItem[] = [...allItems, ...distractorPool.map((d): VocabItem => ({
+      kanji: d.kanji, jp: d.jp, reading: d.reading,
+      meaning: d.meaning, meaning_ca: d.meaning_ca ?? undefined, meaning_en: d.meaning_en ?? undefined,
+      srsLevel: 0, due: 0, status: 'locked',
+      category: (d.category ?? undefined) as VocabItem['category'],
+      word_type: (d.word_type ?? undefined) as VocabItem['word_type'],
+    }))]
 
     // Dedupe candidate option texts (keep the highest-scoring word per text).
     const byText = new Map<string, { text: string; score: number }>()
@@ -552,7 +566,7 @@ export default function QuestionCard({ sessionItem, allItems, distractorPool = [
               onClick={() => setReportOpen(true)}
               className="text-xs text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
             >
-              🚩 Reportar error en esta palabra
+              Reportar error en esta palabra
             </button>
           )}
           {reportSent && (
@@ -616,7 +630,7 @@ export default function QuestionCard({ sessionItem, allItems, distractorPool = [
 
       {answerState !== 'waiting' && (
         <button onClick={goNext} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-md">
-          {t(lang, 'review_next')} <span className="opacity-60 text-sm font-normal ml-1">↵</span>
+          {t(lang, 'review_next')}
         </button>
       )}
     </div>

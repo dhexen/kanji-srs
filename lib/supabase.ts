@@ -1389,29 +1389,45 @@ export async function fetchVocabImageUrls(words: string[]): Promise<Map<string, 
  * @param includeNonOfficial – if false (default) only official words are returned.
  *   Pass true to also include community-added unofficial words.
  */
-export interface ReadingDistractorCandidate {
+export interface DistractorCandidate {
   jp: string
   kanji: string
   reading: string
   word_type: string | null
+  category: string | null
+  meaning: string
+  meaning_ca: string | null
+  meaning_en: string | null
 }
 
 /**
- * All official words (any grade) that contain any of `kanjiChars` — used to
- * build a richer multiple-choice distractor pool than the user's own vocab
- * alone (QuestionCard's "Lectura múltiple" mode). Real alternate readings of
- * a shared kanji are far more confusing than an unrelated random word.
+ * All official words (any grade) that contain any of `kanjiChars` — a richer
+ * multiple-choice distractor pool than the user's own vocab alone. Sharing a
+ * kanji is the key signal for BOTH questions:
+ *  · reading  → real alternate readings of the shared kanji.
+ *  · meaning  → meanings that are coherent with the visible kanji (目 → colirio,
+ *    objetivo, señal…), which the learner can't discard on sight the way an
+ *    unrelated "nueve" or "perro" would go.
  */
-export async function fetchReadingDistractorPool(kanjiChars: string[]): Promise<ReadingDistractorCandidate[]> {
+export async function fetchDistractorPool(kanjiChars: string[]): Promise<DistractorCandidate[]> {
   const kanjis = [...new Set(kanjiChars)].filter(Boolean)
   if (kanjis.length === 0) return []
   const { data, error } = await supabase
     .from('vocabulary')
-    .select('word, kanji, reading, word_type')
+    .select('word, kanji, reading, word_type, category, meaning_es, meaning_ca, meaning_en')
     .in('kanji', kanjis)
     .eq('is_official', true)
   if (error) return []
-  return (data ?? []).map(r => ({ jp: r.word, kanji: r.kanji, reading: r.reading, word_type: r.word_type ?? null }))
+  return (data ?? []).map(r => ({
+    jp: r.word,
+    kanji: r.kanji,
+    reading: r.reading,
+    word_type: r.word_type ?? null,
+    category: r.category ?? null,
+    meaning: r.meaning_es,
+    meaning_ca: r.meaning_ca ?? null,
+    meaning_en: r.meaning_en ?? null,
+  }))
 }
 
 export async function getVocabularyByKanjis(

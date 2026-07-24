@@ -96,7 +96,10 @@ La app te puede preguntar cada palabra de 5 formas diferentes:
 4. **Escritura de kanji** — Ves el significado y escribes el kanji en papel (la app te pregunta si lo has hecho bien)
 5. **Inverso** — Ves el kanji y su significado, y escribes todo en papel
 
-En los modos de opción múltiple, las opciones incorrectas no son aleatorias: son palabras parecidas a la correcta (que comparten un kanji, suenan de forma similar o son del mismo tipo), para que elegir bien suponga un reto y no puedas descartarlas a simple vista. En las preguntas de **lectura**, cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese kana visible y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき); además nunca aparece una opción que sea un simple trozo de la respuesta correcta.
+En los modos de opción múltiple, las opciones incorrectas no son aleatorias: son palabras parecidas a la correcta, para que elegir bien suponga un reto y no puedas descartarlas a simple vista.
+
+- En las preguntas de **lectura**, cuando la palabra muestra kana a la vista (p. ej. 目つき), todas las opciones conservan ese kana visible y tienen la misma longitud, variando solo la lectura del kanji (めつき / みつき / もつき); además nunca aparece una opción que sea un simple trozo de la respuesta correcta.
+- En las preguntas de **significado**, los significados incorrectos son de otras palabras que comparten el kanji que ves en pantalla, así que todos "encajan" con lo que lees. Por ejemplo, para 目つき (mirada) las opciones son cosas relacionadas con 目 (ojo): mirada, índice (目次), colirio (目薬), objetivo (目的). No puedes descartar por temática; hay que conocer la palabra.
 
 #### Botón "Ya me lo sé"
 
@@ -370,7 +373,11 @@ Es la única vista del área de administración:
 - Ver todos los usuarios registrados, sus roles y número de palabras
 - Crear nuevos usuarios
 - Cambiar el rol de un usuario (usuario, colaborador, administrador)
-- Ver y restaurar copias de seguridad de cualquier usuario
+- Ver y restaurar copias de seguridad de cualquier usuario. El botón **💾 Backup** de cada usuario abre un panel con tres orígenes de restauración:
+  - **Copia legacy de vocabulario**: reconstruye el pool de repaso desde el respaldo histórico (`vocab_db`). Útil si el pool se quedó vacío. Añade/actualiza sin borrar lo que el usuario ya tenga.
+  - **Snapshots de vocabulario**: las copias automáticas del pool (últimas 10).
+  - **Snapshots de gramática**: copias del progreso de gramática (conocidos + SRS + JLPT), creadas automáticamente una vez al día cuando el usuario abre la sección de Gramática.
+  - Toda restauración guarda antes una copia de seguridad del estado actual, así que nunca se pierde nada.
 - Eliminar cuentas
 
 ### ✨ Clasificación
