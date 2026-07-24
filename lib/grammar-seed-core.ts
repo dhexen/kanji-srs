@@ -56,6 +56,7 @@ export interface GenStats {
   kept: number            // frases finales
   expectedBlank: string | null  // hueco canónico esperado (null = variable)
   blankSamples: string[]  // ejemplos de huecos rechazados
+  formatSample?: string   // muestra del before/after que rompió el formato (si lo hubo)
 }
 
 export type GenResult =
@@ -63,13 +64,23 @@ export type GenResult =
   | { ok: false; usedModel: string; error: string; permanent: boolean; retryAfterMs: number }
 
 // ── Furigana segment helpers ────────────────────────────────────────────────
+// Devuelve [] para un segmento VACÍO legítimo (p.ej. "after" cuando el hueco va
+// al final de la frase: 〜です / 〜ます / 〜か). Devuelve null SOLO cuando el
+// formato es realmente inválido (un número, un booleano, un objeto suelto): eso
+// sí es "formato roto". Tolerante con derivas del modelo lite: acepta tokens que
+// vengan como string suelto o con claves alternativas (text/furigana/reading).
 function parseSegments(raw: unknown): FuriganaSegment[] | null {
-  if (!Array.isArray(raw)) return null
+  if (raw == null || raw === '') return []                 // vacío legítimo → []
+  if (typeof raw === 'string') return raw.trim() ? [{ t: raw.trim() }] : []
+  if (!Array.isArray(raw)) return null                     // número/bool/objeto → formato inválido
   const segs: FuriganaSegment[] = []
   for (const x of raw) {
-    const t = x && typeof (x as { t?: unknown }).t === 'string' ? String((x as { t: string }).t) : ''
+    if (typeof x === 'string') { if (x.trim()) segs.push({ t: x }); continue }
+    if (!x || typeof x !== 'object') continue
+    const o = x as { t?: unknown; text?: unknown; f?: unknown; furigana?: unknown; reading?: unknown }
+    const t = typeof o.t === 'string' ? o.t : typeof o.text === 'string' ? o.text : ''
     if (!t) continue
-    const fRaw = (x as { f?: unknown }).f
+    const fRaw = o.f ?? o.furigana ?? o.reading
     const f = fRaw != null && String(fRaw).trim() ? String(fRaw).trim() : undefined
     // Lenient: a kanji token without a reading is kept WITHOUT furigana (renders
     // plain) instead of discarding the whole sentence. The flash verify pass
@@ -77,7 +88,7 @@ function parseSegments(raw: unknown): FuriganaSegment[] | null {
     // occasionally forgets one reading.
     segs.push(f ? { t, f } : { t })
   }
-  return segs.length ? segs : null
+  return segs                                              // puede ser [] (válido)
 }
 const segText = (segs: FuriganaSegment[]) => segs.map(s => s.t).join('')
 const segReading = (segs: FuriganaSegment[]) => segs.map(s => s.f ?? s.t).join('')
@@ -105,8 +116,14 @@ export function buildSeedPrompt(grammar: GrammarPoint, vocab: { jp: string; read
 
   const canonicalBlank = getCanonicalBlank(grammar)
   const blankRule = canonicalBlank
-    ? `⚠️ REGLA ABSOLUTA sobre el HUECO: el "answer" es SIEMPRE EXACTAMENTE «${canonicalBlank}» en TODAS las frases. "before" = lo anterior a «${canonicalBlank}», "after" = lo posterior. NUNCA pongas otra cosa en el hueco. answer_alts: solo variantes ortográficas del MISMO hueco o [].`
-    : `⚠️ REGLA sobre el HUECO ("answer"): la gramática conjugada del patrón. Para formas て o conjugaciones el answer DEBE incluir esa parte COMPLETA (て, ます…), nunca solo la raíz. Usa siempre la misma parte del patrón como hueco.`
+    ? `⚠️ REGLA ABSOLUTA sobre el HUECO: el "answer" es SIEMPRE EXACTAMENTE «${canonicalBlank}» en TODAS las frases. "before" = lo anterior a «${canonicalBlank}», "after" = lo posterior. NUNCA pongas otra cosa en el hueco. answer_alts: solo variantes ortográficas del MISMO hueco o [].
+
+⚠️ COLOCACIÓN NATURAL DEL HUECO (crítico): «${canonicalBlank}» debe ir en su posición NATURAL dentro de la frase; JAMÁS lo metas a la fuerza en medio para cumplir la regla. Reconstruye mentalmente before+«${canonicalBlank}»+after y léela: tiene que sonar como japonés perfectamente natural, o la frase NO vale (quality 1). Si «${canonicalBlank}» es de FINAL de frase (です, ます, か, ません, でした…), lo normal es que "after" quede VACÍO ([]).
+   MAL ✗: before=「彼女はその」 answer=「です」 after=「会の人」 → «彼女はそのです会の人» es AGRAMATICAL (です en medio).
+   MAL ✗: before=「兄の名前」 answer=「です」 after=「健一」 → «兄の名前です健一» es AGRAMATICAL.
+   BIEN ✓: before=「彼女はその会の人」 answer=「です」 after=[] → «彼女はその会の人です».
+   BIEN ✓: before=「兄の名前は健一」 answer=「です」 after=[] → «兄の名前は健一です».`
+    : `⚠️ REGLA sobre el HUECO ("answer"): la gramática conjugada del patrón. Para formas て o conjugaciones el answer DEBE incluir esa parte COMPLETA (て, ます…), nunca solo la raíz. Usa siempre la misma parte del patrón como hueco. La frase reconstruida before+answer+after debe ser japonés natural.`
 
   return `Eres un profesor de japonés experto (nivel nativo). Genera exactamente ${GENERATE_SIZE} frases de práctica para el patrón gramatical "${grammar.pattern}" (${grammar.name_es}).
 
@@ -167,7 +184,7 @@ async function verifyRows(rows: SentenceRow[], grammar: GrammarPoint, apiKey: st
   const prompt = `Eres un profesor de japonés MUY estricto. Revisa estas frases candidatas para el patrón "${grammar.pattern}" (${grammar.name_es}). Cada frase es before + answer + after; los segmentos son tokens {"t":texto,"f":lectura en hiragana del kanji}.
 
 Para CADA frase comprueba:
-1. La frase completa (before+answer+after) es gramaticalmente correcta y natural.
+1. Reconstruye la frase completa concatenando before+answer+after y léela: debe ser japonés gramaticalmente correcto y natural. RECHAZA (keep=false) si el hueco (answer) está en una posición IMPOSIBLE o antinatural. Error típico a rechazar: una cópula/terminación de final de frase metida EN MEDIO, p.ej. «兄の名前です健一» o «彼女はそのです会の人» (el «です» debería ir al final: «兄の名前は健一です»).
 2. Usa CORRECTAMENTE el patrón "${grammar.pattern}".
 3. La lectura "f" de cada kanji es CORRECTA y está PRESENTE (cada token con kanji debe tener su "f").
 4. La traducción al español (es) es correcta y natural.
@@ -276,11 +293,16 @@ export async function generatePointRows(
   const bFail = qPass.filter(s => !answerMatchesBlank(String(s.answer ?? ''), grammar))
   const bPass = qPass.filter(s => answerMatchesBlank(String(s.answer ?? ''), grammar))
 
+  let formatSample = ''
   const built = bPass
     .map((s: any): SentenceRow | null => {
       const before = parseSegments(s.before)
       const after  = parseSegments(s.after)
-      if (before === null || after === null) return null
+      // null = formato realmente inválido; ambos vacíos = frase degenerada (solo hueco).
+      if (before === null || after === null || (before.length === 0 && after.length === 0)) {
+        if (!formatSample) formatSample = JSON.stringify({ before: s.before, after: s.after }).slice(0, 300)
+        return null
+      }
       return {
         grammar_id:                   grammar.id,
         sentence_before:              segText(before),
@@ -319,6 +341,7 @@ export async function generatePointRows(
     kept:           verified.length,
     expectedBlank:  getCanonicalBlank(grammar),
     blankSamples:   [...new Set(bFail.map(s => String(s.answer ?? '')))].filter(Boolean).slice(0, 5),
+    formatSample:   formatSample || undefined,
   }
 
   return { ok: true, rows: verified, usedModel, stats }
