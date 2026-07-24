@@ -120,22 +120,22 @@ function AiSentenceCard({
       'Cancelar'
 
     return (
-      <div className="bg-amber-50 rounded-xl border border-amber-300 p-4 space-y-3">
+      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-300 dark:border-amber-800 p-4 space-y-3">
         {/* Edit header */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-amber-800">✏️{' '}
+          <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">✏️{' '}
             {lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
           </span>
         </div>
 
         {/* JP input */}
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-600">{jpLabel}</label>
+          <label className="text-xs font-medium text-slate-600 dark:text-slate-300">{jpLabel}</label>
           <input
             type="text"
             value={editJp}
             onChange={e => setEditJp(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-400 focus:outline-none text-base font-bold text-slate-800 bg-white"
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none text-base font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900"
             dir="ltr"
             lang="ja"
           />
@@ -143,17 +143,17 @@ function AiSentenceCard({
 
         {/* Translation input */}
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-600">{trLabel}</label>
+          <label className="text-xs font-medium text-slate-600 dark:text-slate-300">{trLabel}</label>
           <input
             type="text"
             value={editTranslation}
             onChange={e => setEditTranslation(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-400 focus:outline-none text-sm text-slate-800 bg-white"
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 focus:border-indigo-400 dark:focus:border-indigo-400 focus:outline-none text-sm text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900"
           />
         </div>
 
         {saveError && (
-          <p className="text-xs text-red-600">{saveError}</p>
+          <p className="text-xs text-red-600 dark:text-red-400">{saveError}</p>
         )}
 
         {/* Action buttons */}
@@ -174,7 +174,7 @@ function AiSentenceCard({
           <button
             onClick={() => setEditing(false)}
             disabled={saving}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold transition"
           >
             {cancelLabel}
           </button>
@@ -185,14 +185,14 @@ function AiSentenceCard({
 
   // ── Normal view ───────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
       {/* Edit button (admin/contributor only) */}
       {canEdit && sentence.id && (
         <div className="flex justify-end">
           <button
             onClick={startEdit}
             title={lang === 'en' ? 'Edit sentence' : lang === 'ca' ? 'Editar frase' : 'Editar frase'}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition"
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 transition"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -208,7 +208,7 @@ function AiSentenceCard({
           const c = ROLE_COLORS[t.role] ?? ROLE_COLORS['noun']
           return (
             <div key={i} className="inline-flex flex-col items-center gap-0.5">
-              <span className="text-[10px] text-slate-400 min-h-[14px]">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 min-h-[14px]">
                 {showFurigana ? (t.furigana || '') : ''}
               </span>
               <span className={`${c.bg} ${c.text} border ${c.border} font-bold rounded-md px-2 py-0.5 text-xl whitespace-nowrap`}>
@@ -221,7 +221,7 @@ function AiSentenceCard({
 
       {/* Translation tokens */}
       {showTranslation && sentence.translation.length > 0 && (
-        <div className="flex flex-wrap items-end gap-1.5 pt-2 border-t border-slate-100">
+        <div className="flex flex-wrap items-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-700">
           {sentence.translation.map((t, i) => {
             const c = ROLE_COLORS[t.role] ?? ROLE_COLORS['noun']
             return (
@@ -237,14 +237,14 @@ function AiSentenceCard({
       <div className="flex items-center gap-3">
         <button
           onClick={() => setShowFurigana(v => !v)}
-          className="text-[10px] text-slate-400 hover:text-slate-600 transition"
+          className="text-[10px] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition"
         >
           {furiganaLabel}
         </button>
-        <span className="text-slate-200 text-[10px]">|</span>
+        <span className="text-slate-200 dark:text-slate-600 text-[10px]">|</span>
         <button
           onClick={() => setShowTranslation(v => !v)}
-          className="text-[10px] text-slate-400 hover:text-slate-600 transition"
+          className="text-[10px] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition"
         >
           {translationLabel}
         </button>
@@ -547,7 +547,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
@@ -569,8 +569,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
 
       {/* Empty state with API key */}
       {!dbLoading && !hasSaved && !genLoading && geminiKey && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {lang === 'en'
               ? 'Generate 5 example sentences with colour-coded grammar roles.'
               : lang === 'ca'
