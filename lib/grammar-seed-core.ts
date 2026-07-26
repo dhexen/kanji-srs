@@ -5,7 +5,7 @@
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import type { FuriganaSegment } from '@/lib/grammar-srs'
 import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
-import { GEMINI_FALLBACK_CHAIN } from '@/lib/gemini-models'
+import { GEMINI_LITE_CHAIN, GEMINI_FLASH_CHAIN } from '@/lib/gemini-models'
 import { callGeminiText } from '@/lib/gemini-fetch'
 
 export const GENERATE_SIZE = 38
@@ -14,11 +14,17 @@ export const TARGET = 25         // sentences kept per point when filling
 export const REFRESH_BATCH = 25  // new sentences added per weekly refresh
 export const MAX_POOL = 100      // rolling cap; oldest are trimmed beyond this
 
-// Cadena de fallback para la generación: los modelos NUEVOS van delante; el
-// bucle avanza al siguiente ante saturación (503) o modelo retirado (404).
-// IDs verificados contra la API (2026-07): gemini-2.5-flash-lite quedó retirado
-// y se ha eliminado. Se importa la cadena central para no duplicar la lista.
-export const MODELS = GEMINI_FALLBACK_CHAIN
+// Cadena de modelos POR DEFECTO para GENERAR frases de gramática: LITE primero
+// (cuota alta), para no agotar la cuota de los flash en la generación
+// normal/interactiva. El cron nocturno sobrescribe con la cadena FLASH (mejor
+// calidad) vía `opts.models`. El bucle avanza al siguiente modelo ante
+// saturación (503) o modelo retirado (404).
+export const MODELS = GEMINI_LITE_CHAIN
+
+// Cadena para la VERIFICACIÓN/corrección de las candidatas: FLASH primero (mejor
+// calidad de revisión), aunque la generación haya sido con lite. Así la
+// generación manual es barata (lite) pero cada frase la revisa un flash.
+export const VERIFY_MODELS = GEMINI_FLASH_CHAIN
 
 // La VERIFICACIÓN de las candidatas (confirma que la frase es correcta/natural,
 // usa el patrón, furigana correcta y buena traducción) usa la misma cadena de
@@ -178,7 +184,7 @@ Genera exactamente ${GENERATE_SIZE} frases distintas.`
  * Corrections are only applied when the corrected segments keep the SAME text
  * (only the reading `f` may change), so the verifier can't rewrite sentences.
  */
-async function verifyRows(rows: SentenceRow[], grammar: GrammarPoint, apiKey: string): Promise<SentenceRow[]> {
+async function verifyRows(rows: SentenceRow[], grammar: GrammarPoint, apiKey: string, models: string[] = VERIFY_MODELS): Promise<SentenceRow[]> {
   if (rows.length === 0) return rows
   const items = rows.map((r, i) => ({ i, before: r.sentence_before_segments, answer: r.answer, after: r.sentence_after_segments, es: r.translation_es }))
   const prompt = `Eres un profesor de japonés MUY estricto. Revisa estas frases candidatas para el patrón "${grammar.pattern}" (${grammar.name_es}). Cada frase es before + answer + after; los segmentos son tokens {"t":texto,"f":lectura en hiragana del kanji}.
@@ -200,7 +206,7 @@ ${JSON.stringify(items)}`
 
   // Verificación con fallback (nuevos modelos primero). Si ninguno responde
   // (cuota/saturación/red), se conservan las candidatas sin verificar.
-  const vres = await callGeminiText({ apiKey, prompt, temperature: 0, models: MODELS })
+  const vres = await callGeminiText({ apiKey, prompt, temperature: 0, models })
   if (!vres.ok) return rows
   const text = vres.text ?? ''
 
@@ -246,14 +252,16 @@ export async function generatePointRows(
   vocab: { jp: string; reading: string; meaning: string }[],
   apiKey: string,
   keep: number,
-  opts?: { verify?: boolean },
+  opts?: { verify?: boolean; models?: string[]; verifyModels?: string[] },
 ): Promise<GenResult> {
+  const models = opts?.models ?? MODELS               // generación (default lite)
+  const verifyModels = opts?.verifyModels ?? VERIFY_MODELS  // revisión (default flash)
   const prompt = buildSeedPrompt(grammar, vocab)
   let res!: Response
   let data: any = null
   let usedModel = ''
 
-  for (const model of MODELS) {
+  for (const model of models) {
     try {
       res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -324,7 +332,7 @@ export async function generatePointRows(
 
   // Optional quality verification pass (lite generates → flash confirms/corrects).
   const verified = (opts?.verify !== false && rows.length > 0)
-    ? await verifyRows(rows, grammar, apiKey)
+    ? await verifyRows(rows, grammar, apiKey, verifyModels)
     : rows
 
   const stats: GenStats = {
@@ -379,6 +387,7 @@ export async function generateExampleRows(
   vocab: { jp: string; reading: string; meaning: string }[],
   apiKey: string,
   count: number,
+  models: string[] = MODELS,
 ): Promise<ExampleRow[]> {
   if (count <= 0) return []
   const sample = [...vocab].sort(() => Math.random() - 0.5).slice(0, 15)
@@ -417,7 +426,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
 }`
 
   let data: any = null
-  for (const model of MODELS) {
+  for (const model of models) {
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

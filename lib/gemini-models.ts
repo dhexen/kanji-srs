@@ -20,8 +20,31 @@ export type GeminiModel = typeof GEMINI_MODELS[number]['value']
 export const DEFAULT_GEMINI_MODEL: GeminiModel = 'gemini-3.6-flash'
 
 // Cadena de fallback (server): se recorre en orden hasta que un modelo responde.
-// Es exactamente el orden de GEMINI_MODELS.
+// Es exactamente el orden de GEMINI_MODELS (flash primero). Es el default general
+// para tareas puntuales (clasificar, imágenes, WaniKani, /api/gemini…).
 export const GEMINI_FALLBACK_CHAIN: string[] = GEMINI_MODELS.map(m => m.value)
+
+// Cadena "LITE primero" — modelos ligeros al frente (cuota diaria mucho mayor,
+// más baratos). Se usa en la generación NORMAL de frases de gramática, que se
+// dispara con frecuencia, para no agotar la cuota (más escasa) de los flash.
+export const GEMINI_LITE_CHAIN: string[] = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+]
+
+// Cadena "FLASH primero" — modelos flash al frente (mejor calidad de generación,
+// pero cuota diaria menor). Se usa en el CRON nocturno de refresco, que corre
+// una vez al día y puede permitirse la mejor calidad.
+export const GEMINI_FLASH_CHAIN: string[] = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+]
 
 /** Normalize an arbitrary string to a valid model value, falling back to the default. */
 export function normalizeGeminiModel(model: string | null | undefined): GeminiModel {

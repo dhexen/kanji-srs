@@ -8,6 +8,7 @@ import { MNN_C1_GRAMMAR_POINTS } from '@/lib/grammar-mnnc1'
 import { BUNPRO_GRAMMAR, bunproToGrammarPoint } from '@/lib/grammar-bunpro'
 import type { GrammarPoint } from '@/lib/grammar-mnn1'
 import { generatePointRows, REFRESH_BATCH, MAX_POOL } from '@/lib/grammar-seed-core'
+import { GEMINI_FLASH_CHAIN } from '@/lib/gemini-models'
 
 export const ALL_GRAMMAR: GrammarPoint[] = [
   ...GRAMMAR_POINTS,
@@ -98,7 +99,9 @@ export async function runRefreshBatch(
     const grammar = BY_ID.get(id)
     if (!grammar) { queue.shift(); continue }
 
-    const result = await generatePointRows(grammar, vocab, apiKey, REFRESH_BATCH)
+    // El cron prioriza los FLASH (mejor calidad); si están saturados/sin cuota,
+    // el fallback baja a los lite.
+    const result = await generatePointRows(grammar, vocab, apiKey, REFRESH_BATCH, { models: GEMINI_FLASH_CHAIN })
     if (!result.ok) {
       if (!result.permanent) { stopped = 'gemini_throttled'; error = result.error; break }
       // permanent → record per-point and skip
