@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Julio 2026',
     entries: [
       {
+        type: 'fix',
+        title: 'Se acabó el "Error al parsear respuesta de Gemini" al generar frases',
+        description: 'Al generar frases de gramática a veces saltaba el error "Error al parsear respuesta de Gemini" y la generación se quedaba atascada en ciertos puntos. Los modelos Flash más nuevos "piensan" antes de responder, y ese pensamiento agotaba el presupuesto de la respuesta dejándola vacía. Ahora el presupuesto es mucho mayor, la respuesta se interpreta de forma más tolerante y, si aún falla, se pasa solo al siguiente modelo. La generación vuelve a completar todos los puntos sin bloquearse.',
+      },
+      {
         type: 'new',
         title: 'Modelos de Gemini más nuevos (3.6, 3.5) con cambio automático',
         description: 'La app ahora usa los modelos de IA más recientes de Gemini (3.6 Flash, 3.5 Flash y 3.5 Flash Lite), que van por delante de los anteriores. En Configuración puedes elegir cuál se intenta primero, pero ya no tienes que preocuparte por la cuota: si un modelo está saturado o sin acceso, la app pasa sola al siguiente de la lista al generar frases, lecturas, clasificar vocabulario o importar. Todo en Gemini se beneficia del cambio.',
