@@ -289,10 +289,15 @@ export async function generatePointRows(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          // Modo JSON: Gemini devuelve JSON puro (sin prosa ni fences) y con un
-          // presupuesto de salida amplio para que no trunque el objeto → evita el
-          // "Error al parsear respuesta de Gemini".
-          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
+          // Modo JSON: Gemini devuelve JSON puro (sin prosa ni fences). El tope
+          // de salida es GRANDE a propósito: los flash 3.x son modelos "thinking"
+          // y los tokens de pensamiento (no deterministas: varían miles entre
+          // llamadas) cuentan DENTRO de maxOutputTokens. Con un tope bajo (p.ej.
+          // 8192) el pensamiento se lo come y no queda salida → texto vacío →
+          // "Error al parsear respuesta de Gemini" (intermitente, y fijo en los
+          // puntos más pesados). 32768 deja margen de sobra (peor caso ~10k) y
+          // no cuesta más: solo se pagan los tokens realmente generados.
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 32768 },
         }) },
       )
       data = await res.json()
@@ -462,7 +467,9 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
+          // Tope alto: los flash 3.x son "thinking" y el pensamiento cuenta
+          // dentro de maxOutputTokens (ver nota en generatePointRows).
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 32768 },
         }) },
       )
       data = await res.json()

@@ -43,8 +43,13 @@ export async function callGeminiText(opts: GeminiCallOpts): Promise<GeminiCallRe
     : (opts.preferred ? buildGeminiChain(opts.preferred) : GEMINI_FALLBACK_CHAIN)
 
   const parts = opts.parts ?? [{ text: opts.prompt ?? '' }]
-  const generationConfig = opts.generationConfig
-    ?? (opts.temperature != null ? { temperature: opts.temperature } : undefined)
+  // Tope de salida ALTO por defecto: los flash 3.x son modelos "thinking" y sus
+  // tokens de pensamiento (no deterministas) cuentan dentro de maxOutputTokens;
+  // con un tope bajo el pensamiento se come la salida y devuelve texto vacío
+  // (que aquí se trata como "sin contenido" y salta de modelo, o falla). El
+  // llamante puede sobrescribirlo pasando maxOutputTokens en generationConfig.
+  const baseCfg = opts.generationConfig ?? (opts.temperature != null ? { temperature: opts.temperature } : {})
+  const generationConfig: Record<string, unknown> = { maxOutputTokens: 32768, ...baseCfg }
 
   let last: GeminiCallResult = { ok: false, error: 'No se intentó ningún modelo' }
 
