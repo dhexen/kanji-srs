@@ -8,6 +8,28 @@ import { getCanonicalBlank, answerMatchesBlank } from '@/lib/grammar-srs'
 import { GEMINI_LITE_CHAIN, GEMINI_FLASH_CHAIN } from '@/lib/gemini-models'
 import { callGeminiText } from '@/lib/gemini-fetch'
 
+// Parseo tolerante de la respuesta de Gemini. Aunque pidamos JSON puro
+// (responseMimeType), algún modelo puede colar prosa, fences ```json``` o cerrar
+// mal el objeto. Intenta: (1) parse directo tras quitar fences; (2) extraer el
+// primer bloque {...} balanceado; (3) extraer un array [...] suelto. Devuelve el
+// array de frases o null si no se pudo recuperar nada.
+export function parseGeminiSentences(rawText: string): any[] | null {
+  const cleaned = rawText.replace(/```json|```/gi, '').trim()
+  const tryParse = (s: string): any[] | null => {
+    try {
+      const v = JSON.parse(s)
+      if (Array.isArray(v)) return v
+      if (Array.isArray(v?.sentences)) return v.sentences
+      return null
+    } catch { return null }
+  }
+  return (
+    tryParse(cleaned) ??
+    tryParse(cleaned.match(/\{[\s\S]*\}/)?.[0] ?? '') ??
+    tryParse(cleaned.match(/\[[\s\S]*\]/)?.[0] ?? '')
+  )
+}
+
 export const GENERATE_SIZE = 38
 export const QUALITY_MIN = 4
 export const TARGET = 25         // sentences kept per point when filling
@@ -265,7 +287,13 @@ export async function generatePointRows(
     try {
       res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          // Modo JSON: Gemini devuelve JSON puro (sin prosa ni fences) y con un
+          // presupuesto de salida amplio para que no trunque el objeto → evita el
+          // "Error al parsear respuesta de Gemini".
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
+        }) },
       )
       data = await res.json()
       usedModel = model
@@ -284,12 +312,14 @@ export async function generatePointRows(
   }
 
   const rawText: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  let sentences: any[] = []
-  try {
-    sentences = JSON.parse(rawText.replace(/```json|```/g, '').trim()).sentences ?? []
-  } catch {
+  const parsed = parseGeminiSentences(rawText)
+  if (parsed === null) {
+    // Ni el modo JSON ni la extracción tolerante recuperaron nada. Salida
+    // vacía (finishReason SAFETY) o basura irrecuperable → reintento no
+    // permanente (el bucle superior probará otro modelo/otra pasada).
     return { ok: false, usedModel, error: 'Error al parsear respuesta de Gemini', permanent: false, retryAfterMs: 5_000 }
   }
+  const sentences: any[] = parsed
 
   // Filtrado por etapas, contando descartes para el desglose diagnóstico.
   const qPass = sentences.filter(s => (Number(s.quality) || 5) >= QUALITY_MIN)
@@ -430,7 +460,10 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
+        }) },
       )
       data = await res.json()
       if (res.ok) break
@@ -439,10 +472,7 @@ Responde ÚNICAMENTE con este JSON (sin backticks ni texto extra):
   }
 
   const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  let sentences: any[] = []
-  try {
-    sentences = JSON.parse(rawText.replace(/```json|```/g, '').trim()).sentences ?? []
-  } catch { return [] }
+  const sentences = parseGeminiSentences(rawText) ?? []
 
   return sentences
     .map((s: any): ExampleRow | null => {
