@@ -4,6 +4,8 @@ import { StoreProvider } from '@/lib/store'
 import Toast from '@/components/ui/Toast'
 import AuthShell from '@/components/ui/AuthShell'
 import InstallPWA from '@/components/ui/InstallPWA'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: '栞',
@@ -47,6 +49,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </AuthShell>
           <InstallPWA />
         </StoreProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
