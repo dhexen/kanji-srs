@@ -1,11 +1,13 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
-  NIVEL_PILL, explicacionPropia, fetchCatalogoFicha,
+  NIVEL_PILL, enlazaFichas, explicacionPropia, fetchCatalogoFicha,
   type CatalogExample, type CatalogTopic, type Jlpt,
 } from '@/lib/catalogo'
 import CatalogoUso from './CatalogoUso'
+import { ListaCatalogo } from './CatalogoShell'
 import CatalogoExplicacionIA from './CatalogoExplicacionIA'
 import { Borrosa, Ejes, Escribe, Piezas, piezasEs, type Como, type Dir } from './Practicar'
 
@@ -82,7 +84,24 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
   const [como, setComo] = useState<Como>('tapado')
 
   // Sin el reclamo de la web; null si no queda explicación de verdad.
-  const explicacion = useMemo(() => explicacionPropia(topic.explicacion_html), [topic.explicacion_html])
+  const propia = useMemo(() => explicacionPropia(topic.explicacion_html), [topic.explicacion_html])
+
+  // Las otras gramáticas que cita («ve la lección sobre ば (ba)»), enlazadas.
+  const lista = useContext(ListaCatalogo)
+  const explicacion = useMemo(
+    () => (propia && lista ? enlazaFichas(propia, lista, topic.id) : propia),
+    [propia, lista, topic.id],
+  )
+
+  // Los enlaces van dentro del HTML, así que no son <Link>: se navega a mano
+  // para no recargar la página (salvo Ctrl/Cmd+clic, que abre pestaña nueva).
+  const router = useRouter()
+  const abreFicha = (e: MouseEvent<HTMLDivElement>) => {
+    const a = (e.target as HTMLElement).closest('a[data-ficha]')
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return
+    e.preventDefault()
+    router.push(a.getAttribute('href')!)
+  }
 
   return (
     <div className="space-y-4">
@@ -127,7 +146,7 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
           {explicacion ? (
             // El HTML lo dejó limpio el script de Hellotalk que baja las fichas:
             // lista de etiquetas permitidas y sin atributos (solo unas clases).
-            <div className="catalogo-expl" dangerouslySetInnerHTML={{ __html: explicacion }} />
+            <div className="catalogo-expl" onClick={abreFicha} dangerouslySetInnerHTML={{ __html: explicacion }} />
           ) : (
             <CatalogoExplicacionIA topic={topic} />
           )}

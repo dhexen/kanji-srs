@@ -53,6 +53,7 @@ body { font-family: 'Noto Sans JP', sans-serif; }
 .catalogo-expl ol { @apply list-decimal pl-5 space-y-1; }
 .catalogo-expl h2, .catalogo-expl h3 { @apply text-base font-bold text-slate-800 dark:text-slate-100; }
 .catalogo-expl h4, .catalogo-expl h5 { @apply text-sm font-bold text-slate-800 dark:text-slate-100; }
+.catalogo-expl a[data-ficha] { @apply text-violet-600 dark:text-violet-400 underline decoration-dotted underline-offset-2 hover:decoration-solid; }
 .catalogo-expl .color { @apply font-bold text-violet-600 dark:text-violet-400; }
 .catalogo-expl .ex-block { @apply flex flex-col gap-0.5 border-l-2 border-violet-200 dark:border-violet-800 pl-3 py-0.5; }
 .catalogo-expl .ex-block .jp, .catalogo-expl .ex-block .ja { @apply text-base text-slate-800 dark:text-slate-100; }

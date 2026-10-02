@@ -2,7 +2,7 @@
 //
 // Copiado del proyecto Hellotalk (sección «Catálogo»). Es de solo mirar y
 // practicar: no entra en el SRS, ni en el calendario, ni en las estadísticas.
-// Los datos viven en catalog_topics / catalog_examples (migración 029) y se
+// Los datos viven en catalog_topics / catalog_examples (migración 045) y se
 // copian con scripts/copiar-catalogo.mjs. De momento solo lo ve el admin.
 
 import { supabase } from './supabase'
@@ -121,6 +121,64 @@ export function explicacionPropia(html: string | null | undefined): string | nul
   const resto = html.replace(RECLAMO, '').trim()
   const pelado = resto.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   return pelado.length >= MINIMO ? resto : null
+}
+
+// ── Enlaces a otras fichas ───────────────────────────────────────────────────
+//
+// La web original enlazaba otras lecciones («ve la lección sobre がる (garu)»),
+// pero al bajar las fichas los enlaces se perdieron y solo queda el texto. Se
+// rehacen al pintar: cada «japonés (romaji)» que coincide con otra ficha del
+// catálogo, por las dos cosas, pasa a ser un enlace a ella.
+
+const soloJa = (s: string) => s.replace(/[^\u3040-\u30ff\u3400-\u9fff]/g, '')
+const soloLatin = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
+
+/** Las formas en que se puede nombrar una ficha: «ては / では» → ては, では, ては/では. */
+function variantes(x: string | null, quitar: RegExp, limpia: (s: string) => string): string[] {
+  if (!x) return []
+  const base = x.replace(quitar, '')
+  return [base, ...base.split(/[・/／;；,、&＆]| - /)].map(limpia).filter(v => v.length > 0)
+}
+
+const REFERENCIA =
+  /([\u3040-\u30ff\u3400-\u9fff][\u3040-\u30ff\u3400-\u9fff～〜~・ー「」/／]*)\s*[(（]\s*([A-Za-z][A-Za-z~～\s/・'’.-]*?)\s*[)）]/g
+
+/**
+ * Devuelve el HTML con las referencias a otras fichas convertidas en
+ * <a data-ficha href="/catalogo/…">. Solo toca el texto, nunca dentro de una
+ * etiqueta, y no enlaza la propia ficha. Si una referencia encaja con varias
+ * fichas, se queda con la del nivel JLPT que se cite justo antes; si no hay,
+ * no la enlaza.
+ */
+export function enlazaFichas(html: string, lista: CatalogoItem[], actualId: string): string {
+  const fichas = lista
+    .filter(f => f.id !== actualId)
+    .map(f => ({
+      f,
+      ja: variantes(f.name, /[（(][^）)]*[）)]/g, soloJa),
+      ro: variantes(f.romaji, /[（(][^）)]*[）)]/g, soloLatin),
+    }))
+
+  return html
+    .split(/(<[^>]+>)/)
+    .map(trozo => {
+      if (trozo.startsWith('<')) return trozo
+      return trozo.replace(REFERENCIA, (todo, ja: string, ro: string, pos: number) => {
+        const j = soloJa(ja)
+        const r = soloLatin(ro)
+        if (!j || !r) return todo
+        let cand = fichas.filter(x => x.ja.includes(j) && x.ro.some(v => v === r || v.startsWith(r)))
+        if (cand.length > 1) {
+          const nivel = trozo.slice(Math.max(0, pos - 40), pos).match(/N[1-5]/g)?.pop()
+          const delNivel = nivel ? cand.filter(x => x.f.jlpt === nivel) : []
+          cand = delNivel.length ? delNivel : cand.filter(x => x.ro.includes(r))
+        }
+        if (cand.length !== 1) return todo
+        const f = cand[0].f
+        return `<a data-ficha href="${urlDeFicha(f)}" title="${f.jlpt} · ${f.name}">${todo}</a>`
+      })
+    })
+    .join('')
 }
 
 // ── Lecturas ─────────────────────────────────────────────────────────────────

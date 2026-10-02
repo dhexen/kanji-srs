@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useEffect, useMemo, useState } from 'react'
 import { useSelectedLayoutSegment } from 'next/navigation'
 import { fetchCatalogoLista, type CatalogoItem, type Jlpt } from '@/lib/catalogo'
 import CatalogoRail from './CatalogoRail'
@@ -10,6 +10,9 @@ import CatalogoRail from './CatalogoRail'
 //
 // En el móvil no caben las dos: con una ficha abierta se ve solo la ficha (con
 // un enlace para volver a la lista).
+
+/** La lista entera, para que la ficha pueda enlazar las otras que cita. */
+export const ListaCatalogo = createContext<CatalogoItem[] | null>(null)
 
 export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children: React.ReactNode }) {
   const [lista, setLista] = useState<CatalogoItem[] | null>(null)
@@ -67,7 +70,9 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
               </div>
             )}
           </div>
-          <div className="min-w-0">{children}</div>
+          <div className="min-w-0">
+            <ListaCatalogo.Provider value={lista}>{children}</ListaCatalogo.Provider>
+          </div>
         </div>
       )}
     </div>
