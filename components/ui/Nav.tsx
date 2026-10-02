@@ -31,12 +31,14 @@ function NavItem({
   pathname: string
   onNavigate?: () => void
 }) {
-  const active = pathname === href
+  const here = pathname === href
+  // Una subpágina (/catalogo/n3/…) también marca su sección.
+  const active = here || pathname.startsWith(href + '/')
   return (
     <div>
       <Link
         href={href}
-        onClick={active ? onNavigate : undefined}
+        onClick={here ? onNavigate : undefined}
         {...(tutorialId ? { 'data-tutorial-id': tutorialId } : {})}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
           active
@@ -235,6 +237,12 @@ function NavInner() {
         {effectiveRole === 'admin' && (
           <NavItem
             href="/grammar-test" icon="🧪" label="Gramàtica TEST" isAdmin
+            badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
+          />
+        )}
+        {effectiveRole === 'admin' && (
+          <NavItem
+            href="/catalogo" icon="🗂️" label="Catálogo" isAdmin
             badge={0} progress={null} pathname={pathname} onNavigate={refreshData}
           />
         )}
