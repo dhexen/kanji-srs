@@ -16,6 +16,22 @@ export interface ChangelogVersion {
 
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    date: '2026-10-02',
+    label: 'Octubre 2026',
+    entries: [
+      {
+        type: 'improvement',
+        title: 'La web aprovecha todo el ancho de la pantalla',
+        description: 'Las secciones ya no se quedan en una columna estrecha en el centro: el contenido se adapta al ancho de tu pantalla, así que en monitores grandes se ve más información de un vistazo.',
+      },
+      {
+        type: 'improvement',
+        title: 'El botón "Siguiente" siempre a mano en el móvil',
+        description: 'Al repasar vocabulario o gramática, después de responder el botón "Siguiente" se queda pegado a la parte de abajo de la pantalla. Ya no hay que hacer scroll para pasar a la siguiente pregunta.',
+      },
+    ],
+  },
+  {
     date: '2026-07-24',
     label: 'Julio 2026',
     entries: [

@@ -628,8 +628,10 @@ export default function QuestionCard({ sessionItem, allItems, distractorPool = [
         </div>
       )}
 
+      {/* Pegado al borde inferior: en el móvil la respuesta + escritura completa
+          empujan el botón fuera de la pantalla, y así no hay que hacer scroll. */}
       {answerState !== 'waiting' && (
-        <button onClick={goNext} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-md">
+        <button onClick={goNext} className="sticky bottom-3 z-20 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-lg">
           {t(lang, 'review_next')}
         </button>
       )}

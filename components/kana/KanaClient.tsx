@@ -60,7 +60,7 @@ export default function KanaClient() {
   }, [learned])
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+    <div className="space-y-5">
       {/* Back to dashboard */}
       <Link href="/review" className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
         ← Dashboard

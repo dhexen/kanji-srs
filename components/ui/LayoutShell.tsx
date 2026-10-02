@@ -15,7 +15,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       ].join(' ')}
     >
       <Header />
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-12">
+      <main className="flex-1 w-full px-4 lg:px-8 py-6 pb-12">
         {children}
       </main>
     </div>

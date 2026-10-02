@@ -852,7 +852,7 @@ export default function GrammarReviewSession({
               free ? (ws !== null || seenRef.current.length <= 1) : isCorrect
             )
             return (
-              <button onClick={next} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-sm">
+              <button onClick={next} className="sticky bottom-3 z-20 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-lg">
                 {willFinish ? `🏁 ${t(lang, 'gp_see_results')}` : `${t(lang, 'gp_next')} →`}
               </button>
             )
