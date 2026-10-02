@@ -8,8 +8,6 @@ import { MNN2_GRAMMAR_POINTS as MNN2_POINTS } from '@/lib/grammar-mnn2'
 import { MNN_C1_GRAMMAR_POINTS as MNNC1_POINTS } from '@/lib/grammar-mnnc1'
 import { fetchKnownGrammar, setGrammarKnown, fetchAllGrammarSrsStats, saveGrammarSrsResult, markGrammarAsStudying, removeGrammarFromSrs, fetchGrammarSentenceCounts, maybeSnapshotGrammarDaily } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
-import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS } from '@/lib/grammar-generate'
-import { showToast } from '@/components/ui/Toast'
 import GrammarDetail from './GrammarDetail'
 import GrammarPractice from './GrammarPractice'
 import GrammarReviewSession from './GrammarReviewSession'
@@ -194,38 +192,21 @@ function QueueSelect({
   candidates,
   lang,
   srsStats,
-  geminiKey,
-  geminiModel,
-  sessionToken,
-  activeVocab,
-  hasWaniKani,
   onStart,
   onCancel,
 }: {
   candidates: GrammarPointWithBook[]
   lang: string
   srsStats: Map<string, GrammarSrsStat>
-  geminiKey: string
-  geminiModel: string
-  sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
-  hasWaniKani: boolean
   onStart: (queue: GrammarPointWithBook[], opts: { showShared: boolean }) => void
   onCancel: () => void
 }) {
   const now = Date.now()
   // All candidates selected by default
   const [selected, setSelected] = useState<Set<string>>(new Set(candidates.map(g => g.id)))
-  const [useWk, setUseWk] = useState(() => {
-    try { return localStorage.getItem('gp_use_wk_vocab') === 'true' } catch { return false }
-  })
   const [showShared, setShowShared] = useState(true)
   const [counts, setCounts] = useState<Map<string, number>>(new Map())
   const [countsLoading, setCountsLoading] = useState(true)
-  const [generatingId, setGeneratingId] = useState<string | null>(null)
-  const [genAttempt, setGenAttempt] = useState<{ n: number; max: number } | null>(null)
-  // Persistent dismissable error (e.g. out of quota) shown at the top of the screen
-  const [genErrorMsg, setGenErrorMsg] = useState('')
 
   useEffect(() => {
     fetchGrammarSentenceCounts(candidates.map(g => g.id))
@@ -241,41 +222,6 @@ function QueueSelect({
     })
   }
 
-  async function handleGenerate(g: GrammarPointWithBook) {
-    if (!sessionToken) { showToast(t(lang as any, 'gp_need_login'), 'error'); return }
-    setGeneratingId(g.id)
-    setGenAttempt({ n: 1, max: DEFAULT_GEN_MAX_ATTEMPTS })
-    try {
-      const { kept } = await generateGrammarSentences({
-        grammar: g, lang: lang as any, geminiKey, sessionToken, model: geminiModel, activeVocab,
-        useWkVocab: useWk && hasWaniKani,
-        onAttempt: (n, max) => setGenAttempt({ n, max }),
-      })
-      const fresh = await fetchGrammarSentenceCounts([g.id])
-      setCounts(prev => new Map(prev).set(g.id, fresh.get(g.id) ?? 0))
-      showToast(`✓ ${kept} ${lang === 'en' ? 'sentences generated' : lang === 'ca' ? 'frases generades' : 'frases generadas'}`, 'success')
-    } catch (e: any) {
-      const kind = e instanceof GrammarGenerateError ? e.kind : 'transient'
-      if (kind === 'quota') {
-        setGenErrorMsg(lang === 'en'
-          ? 'No Gemini quota left. Add your own API key in your profile, or try again later.'
-          : lang === 'ca'
-            ? 'Sense quota de Gemini. Afegeix la teva pròpia API key al perfil, o prova-ho més tard.'
-            : 'Sin cuota de Gemini disponible. Añade tu propia API key en tu perfil, o inténtalo más tarde.')
-      } else if (kind === 'no_sentences') {
-        showToast(t(lang as any, 'gp_no_sentences'), 'error')
-      } else { // exhausted / auth / transient
-        setGenErrorMsg(lang === 'en'
-          ? `"${g.pattern}": the API is saturated and did not respond after ${DEFAULT_GEN_MAX_ATTEMPTS} attempts. Try again in a moment.`
-          : lang === 'ca'
-            ? `"${g.pattern}": l'API està saturada i no ha respost després de ${DEFAULT_GEN_MAX_ATTEMPTS} intents. Torna-ho a provar d'aquí una estona.`
-            : `"${g.pattern}": la API está saturada y no respondió tras ${DEFAULT_GEN_MAX_ATTEMPTS} intentos. Inténtalo de nuevo en un momento.`)
-      }
-    } finally {
-      setGeneratingId(null)
-      setGenAttempt(null)
-    }
-  }
 
   const queue = candidates.filter(g => selected.has(g.id))
 
@@ -290,14 +236,6 @@ function QueueSelect({
         </svg>
         {t(lang as any, 'gp_back')}
       </button>
-
-      {/* Persistent dismissable generation error (quota / saturated API) */}
-      {genErrorMsg && (
-        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
-          <span className="flex-1 leading-relaxed">{genErrorMsg}</span>
-          <button onClick={() => setGenErrorMsg('')} aria-label="Cerrar" className="shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 font-bold leading-none text-base">✕</button>
-        </div>
-      )}
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
@@ -314,21 +252,8 @@ function QueueSelect({
         </div>
       </div>
 
-      {/* Global generation/review options */}
+      {/* Review options */}
       <div className="flex flex-wrap gap-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3">
-        {hasWaniKani && (
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={useWk}
-              onChange={e => { setUseWk(e.target.checked); try { localStorage.setItem('gp_use_wk_vocab', String(e.target.checked)) } catch { /* incognito */ } }}
-              className="w-3.5 h-3.5 rounded accent-pink-500"
-            />
-            <span className="text-xs text-slate-600 dark:text-slate-400">
-              {lang === 'en' ? 'Use WaniKani vocabulary (when generating)' : lang === 'ca' ? 'Usar vocabulari WaniKani (en generar)' : 'Usar vocabulario WaniKani (al generar)'}
-            </span>
-          </label>
-        )}
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={showShared} onChange={e => setShowShared(e.target.checked)} className="w-3.5 h-3.5 rounded accent-violet-500" />
           <span className="text-xs text-slate-600 dark:text-slate-400">
@@ -344,7 +269,6 @@ function QueueSelect({
           const isSelected = selected.has(g.id)
           const name = lang === 'ca' ? g.name_ca : lang === 'en' ? g.name_en : g.name_es
           const count = counts.get(g.id) ?? 0
-          const isGenerating = generatingId === g.id
           return (
             <div
               key={g.id}
@@ -381,7 +305,7 @@ function QueueSelect({
                 </div>
               </div>
 
-              {/* Right: sentence count + generate */}
+              {/* Right: sentence count */}
               <div className="shrink-0 flex items-center gap-2">
                 <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-full ${
                   count === 0
@@ -390,24 +314,6 @@ function QueueSelect({
                 }`}>
                   {countsLoading ? '…' : `${count} ${lang === 'en' ? 'sent.' : 'fr.'}`}
                 </span>
-                <button
-                  onClick={() => handleGenerate(g)}
-                  disabled={isGenerating || !sessionToken}
-                  title={lang === 'en' ? 'Generate more sentences' : lang === 'ca' ? 'Generar més frases' : 'Generar más frases'}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-40 transition"
-                >
-                  {isGenerating ? (
-                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
-                    </svg>
-                  ) : '✨'}
-                  <span className="hidden sm:inline">
-                    {isGenerating && genAttempt && genAttempt.n > 1
-                      ? `${genAttempt.n}/${genAttempt.max}`
-                      : (lang === 'en' ? 'Generate' : lang === 'ca' ? 'Generar' : 'Generar')}
-                  </span>
-                </button>
               </div>
             </div>
           )
@@ -734,7 +640,6 @@ export default function GrammarClient() {
     setGrammarLoadMoreDismissed(true)
   }
 
-  const activeVocab = state.db.filter(i => i.status === 'active')
   const currentBookInfo = bookFilter !== 'all' ? BOOKS.find(b => b.key === bookFilter) : null
   const effectiveRole = state.simulatedRole ?? state.role
   const canEdit = effectiveRole === 'admin' || effectiveRole === 'contributor'
@@ -767,9 +672,7 @@ export default function GrammarClient() {
       <GrammarDetail
         grammar={view.grammar}
         lang={lang}
-        geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
-        activeVocab={activeVocab}
         onBack={() => { setScrollToId(view.grammar.id); setView({ kind: 'list' }) }}
         canEdit={canEdit}
         srsStat={srsStats.get(view.grammar.id) ?? null}
@@ -787,9 +690,7 @@ export default function GrammarClient() {
       <GrammarPractice
         grammar={view.grammar}
         lang={lang}
-        geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
-        activeVocab={activeVocab}
         showSharedSentences={state.showSharedSentences}
         onBack={() => setView({ kind: 'list' })}
         onSrsUpdate={handleSrsUpdate}
@@ -831,11 +732,6 @@ export default function GrammarClient() {
         candidates={view.candidates}
         lang={lang}
         srsStats={srsStats}
-        geminiKey={state.geminiApiKey}
-        geminiModel={state.geminiModel}
-        sessionToken={sessionToken}
-        activeVocab={activeVocab}
-        hasWaniKani={Boolean(state.waniKaniApiKey)}
         onStart={(queue, opts) => setView({ kind: 'srs_queue', queue, showShared: opts.showShared })}
         onCancel={() => setView({ kind: 'list' })}
       />

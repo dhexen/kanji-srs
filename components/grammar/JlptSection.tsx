@@ -222,7 +222,6 @@ export default function JlptSection() {
     Object.fromEntries(BUNPRO_JLPT_LEVELS.map(l => [l, BUNPRO_GRAMMAR.filter(g => g.jlpt === l).length])),
   [])
 
-  const activeVocab = state.db.filter(i => i.status === 'active')
   const knownCount = useMemo(() => [...progress.values()].filter(s => s === 'known').length, [progress])
 
   function updateProgress(id: string, status: JlptStatus | null) {
@@ -250,9 +249,7 @@ export default function JlptSection() {
       <GrammarPractice
         grammar={bunproToGrammarPoint(view.point)}
         lang={lang}
-        geminiKey={state.geminiApiKey}
         sessionToken={sessionToken}
-        activeVocab={activeVocab}
         ephemeral
         onBack={() => setView({ kind: 'detail', point: view.point })}
         canEdit={canEdit}

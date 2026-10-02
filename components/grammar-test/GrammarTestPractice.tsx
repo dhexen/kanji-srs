@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toHiragana } from 'wanakana'
 import type { GrammarPoint } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
@@ -17,7 +17,6 @@ import {
 import {
   supabase,
   fetchGrammarSentences,
-  deleteGrammarSentences,
   fetchGrammarSrsStat,
   saveGrammarSrsResult,
   fetchSchoolVocabSample,
@@ -30,11 +29,9 @@ import {
   submitGrammarReport,
 } from '@/lib/grammar-test-db'
 import { useStore } from '@/lib/store'
-import GeminiApiTutorial from '@/components/grammar/GeminiApiTutorial'
 import { grammarXpForSession } from '@/lib/progression'
 import XpToast from '@/components/progression/XpToast'
 import { RubyText } from '@/components/grammar/RubyText'
-import { generateGrammarSentences, GrammarGenerateError, DEFAULT_GEN_MAX_ATTEMPTS, TARGET_POOL, MAX_POOL } from '@/lib/grammar-test-generate'
 
 // How many sentences to show per practice session
 const SESSION_SIZE = 5
@@ -47,13 +44,9 @@ type SchoolVocabItem = {
   meaning_ca: string | null
   meaning_en: string | null
 }
-// Minimum sentences needed to start; generate more if below this
-const MIN_POOL = 5
-// TARGET_POOL and MAX_POOL are imported from lib/grammar-generate (single source of truth)
 
 type Phase =
   | 'loading'      // fetching from DB
-  | 'generating'   // calling Gemini
   | 'ready'        // loaded, not started
   | 'asking'       // showing a blank question
   | 'answered'     // showing result for current question
@@ -62,9 +55,7 @@ type Phase =
 interface Props {
   grammar: GrammarPoint
   lang: Lang
-  geminiKey: string
   sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   showSharedSentences?: boolean
   /** How many sentences to show per session. Defaults to SESSION_SIZE (5). Pass 1 for SRS queue mode. */
   sessionSize?: number
@@ -99,22 +90,6 @@ function LevelDots({ level, max = 7 }: { level: number; max?: number }) {
           }`}
         />
       ))}
-    </div>
-  )
-}
-
-/** Dismissable error banner (persists until the user closes it with the ✕). */
-function GenErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  return (
-    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
-      <span className="flex-1 leading-relaxed">{message}</span>
-      <button
-        onClick={onDismiss}
-        aria-label="Cerrar"
-        className="shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 font-bold leading-none text-base"
-      >
-        ✕
-      </button>
     </div>
   )
 }
@@ -157,9 +132,7 @@ function detectTopic(translation: string): string {
 export default function GrammarPractice({
   grammar,
   lang,
-  geminiKey,
   sessionToken,
-  activeVocab,
   showSharedSentences: showSharedProp = true,
   sessionSize: sessionSizeProp,
   onBack,
@@ -179,21 +152,13 @@ export default function GrammarPractice({
   const [isCorrect, setIsCorrect]           = useState(false)
   const [showFurigana, setShowFurigana]     = useState(false)
   const [sessionResults, setSessionResults] = useState<boolean[]>([])
-  const [genError, setGenError]             = useState('')
-  // Generation retry progress: { n, max } while attempting, null otherwise
-  const [genAttempt, setGenAttempt]         = useState<{ n: number; max: number } | null>(null)
   const [newSrsStat, setNewSrsStat]         = useState<GrammarSrsStat | null>(null)
   const [xpGained, setXpGained]             = useState<number | null>(null)
   const [xpToastKey, setXpToastKey]         = useState(0)
-  // Stats from last generation: how many Gemini produced vs how many passed quality check
-  const [lastGenStats, setLastGenStats]     = useState<{ generated: number; kept: number } | null>(null)
-  // School vocabulary (primaria + secundaria) used as the vocabulary source for AI prompts
+  // School vocabulary (primaria + secundaria), to tag the words of a shared sentence
   const [schoolVocab, setSchoolVocab]       = useState<SchoolVocabItem[]>([])
   // WaniKani vocabulary (user's acquired vocab, loaded on mount if key is configured)
   const [wkVocab, setWkVocab]               = useState<{ jp: string; reading: string; meaning: string }[]>([])
-  const [useWkVocab, setUseWkVocab]         = useState(() => {
-    try { return localStorage.getItem('gp_use_wk_vocab') === 'true' } catch { return false }
-  })
   // Shared community sentences
   const [sharedSentences, setSharedSentences] = useState<GrammarSentence[]>([])
   const [showShared, setShowShared]           = useState(showSharedProp)
@@ -284,9 +249,9 @@ export default function GrammarPractice({
     fetchSchoolVocabSample(40).then(setSchoolVocab).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fetch WaniKani vocabulary sample if enabled ───────────────────────────
+  // ── Fetch WaniKani vocabulary sample, same purpose ────────────────────────
   useEffect(() => {
-    if (!hasWaniKani || !useWkVocab) return
+    if (!hasWaniKani) return
     fetchWaniKaniVocabSample(40).then(items => {
       setWkVocab(items.map(w => ({
         jp: w.word,
@@ -297,7 +262,7 @@ export default function GrammarPractice({
           (w.meaning_es ?? w.meaning_en),
       })))
     }).catch(() => {})
-  }, [hasWaniKani, useWkVocab, lang]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasWaniKani, lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch user-shared sentences for this grammar point ────────────────────
   useEffect(() => {
@@ -339,64 +304,6 @@ export default function GrammarPractice({
     }
     setPhase('ready')
   }
-
-  // ── Sentence generation (delegated to lib/grammar-generate) ────────────────
-  const generate = useCallback(async () => {
-    if (!sessionToken) { setGenError(t(lang, 'gp_need_login')); return }
-
-    setPhase('generating')
-    setGenError('')
-    setGenAttempt({ n: 1, max: DEFAULT_GEN_MAX_ATTEMPTS })
-    try {
-      const { generated, kept } = await generateGrammarSentences({
-        grammar,
-        lang,
-        geminiKey,
-        sessionToken,
-        model: state.geminiModel,
-        activeVocab,
-        useWkVocab: useWkVocab && wkVocab.length > 0,
-        onAttempt: (n, max) => setGenAttempt({ n, max }),
-      })
-      setLastGenStats({ generated, kept })
-      const updatedPool = await fetchGrammarSentences(grammar.id)
-      setSentences(updatedPool)
-      setPhase('ready')
-    } catch (e: unknown) {
-      const kind = e instanceof GrammarGenerateError ? e.kind : 'transient'
-      const msg  = e instanceof Error ? e.message : ''
-      let display: string
-      if (kind === 'quota') {
-        display = lang === 'en'
-          ? 'No Gemini quota left. Add your own API key in your profile, or try again later.'
-          : lang === 'ca'
-            ? 'Sense quota de Gemini. Afegeix la teva pròpia API key al perfil, o prova-ho més tard.'
-            : 'Sin cuota de Gemini disponible. Añade tu propia API key en tu perfil, o inténtalo más tarde.'
-      } else if (kind === 'auth') {
-        display = msg || t(lang, 'gp_gen_error')
-      } else if (kind === 'no_sentences') {
-        display = t(lang, 'gp_no_sentences')
-      } else { // exhausted / transient
-        display = lang === 'en'
-          ? `The API is saturated and did not respond after ${DEFAULT_GEN_MAX_ATTEMPTS} attempts. Try again in a moment.`
-          : lang === 'ca'
-            ? `L'API està saturada i no ha respost després de ${DEFAULT_GEN_MAX_ATTEMPTS} intents. Torna-ho a provar d'aquí una estona.`
-            : `La API está saturada y no respondió tras ${DEFAULT_GEN_MAX_ATTEMPTS} intentos. Inténtalo de nuevo en un momento.`
-      }
-      setGenError(display)
-      setPhase('ready')
-    } finally {
-      setGenAttempt(null)
-    }
-  }, [grammar, lang, geminiKey, sessionToken, activeVocab, useWkVocab, wkVocab]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Delete current pool then generate fresh sentences
-  const regenerate = useCallback(async () => {
-    setSentences([])
-    setLastGenStats(null)
-    await deleteGrammarSentences(grammar.id)
-    await generate()
-  }, [grammar.id, generate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sentence editor helpers ───────────────────────────────────────────────
   function padTo4(arr: string[]): string[] {
@@ -505,7 +412,7 @@ export default function GrammarPractice({
     // Note: practising a grammar does NOT add it to the SRS queue — that's done
     // explicitly via the "📚 Añadir a repasos" button. Practice here is pure drill.
 
-    // Merge auto-generated pool with community shared sentences (if enabled)
+    // Merge the sentence pool with community shared sentences (if enabled)
     const merged: GrammarSentence[] = showShared && sharedSentences.length > 0
       ? [...sentences, ...sharedSentences.filter(sh => !sentences.some(s => s.sentence_before === sh.sentence_before && s.answer === sh.answer))]
       : sentences
@@ -657,16 +564,6 @@ export default function GrammarPractice({
     ? <XpToast key={xpToastKey} xp={xpGained} type="grammar" />
     : null
 
-  // ── Render: Generating ────────────────────────────────────────────────────
-  if (phase === 'generating') {
-    const attemptMsg = genAttempt && genAttempt.n > 1
-      ? (lang === 'en' ? `The API is busy — retrying (${genAttempt.n}/${genAttempt.max})…`
-         : lang === 'ca' ? `L'API està ocupada — reintentant (${genAttempt.n}/${genAttempt.max})…`
-         : `La API está ocupada — reintentando (${genAttempt.n}/${genAttempt.max})…`)
-      : t(lang, 'gp_generating')
-    return <SpinnerScreen msg={attemptMsg} />
-  }
-
   // ── Render: Session Complete ──────────────────────────────────────────────
   if (phase === 'complete') {
     const allResults   = sessionResults
@@ -773,42 +670,15 @@ export default function GrammarPractice({
   }
 
   // ── Render: Ready (no sentences yet) ─────────────────────────────────────
-  if (phase === 'ready' && sentences.length < MIN_POOL) {
+  if (phase === 'ready' && sentences.length === 0) {
     return (
       <div className="space-y-5">
         <BackHeader onBack={onBack} label={`🏋️ ${t(lang, 'gp_practice')}: ${grammar.pattern}`} />
 
-        {/* If no API key: show interactive tutorial */}
-        {!geminiKey ? (
-          <GeminiApiTutorial lang={lang} />
-        ) : (
-          <>
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center space-y-3">
-              <p className="text-4xl">📝</p>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-200">{t(lang, 'gp_no_sentences')}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{t(lang, 'gp_generate_hint')}</p>
-              <p className="text-xs text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl px-3 py-2">
-                🌐 {t(lang, 'gp_pool_shared_info')}
-              </p>
-              {!sessionToken && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                  💡 {t(lang, 'gp_need_login')}
-                </p>
-              )}
-              {genError && (
-                <GenErrorBanner message={genError} onDismiss={() => setGenError('')} />
-              )}
-            </div>
-
-            <button
-              onClick={generate}
-              disabled={!sessionToken}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition shadow-sm"
-            >
-              ✨ {t(lang, 'gp_generate_btn').replace('{n}', String(TARGET_POOL))}
-            </button>
-          </>
-        )}
+        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center space-y-3">
+          <p className="text-4xl">📝</p>
+          <p className="text-base font-semibold text-slate-700 dark:text-slate-200">{t(lang, 'gp_no_sentences')}</p>
+        </div>
 
         <button onClick={onBack} className="w-full py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm transition">
           ← {t(lang, 'gp_back_detail')}
@@ -855,7 +725,7 @@ export default function GrammarPractice({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                📦 {t(lang, 'gp_pool_count').replace('{n}', `${sentences.length} / ${MAX_POOL}`)}
+                📦 {t(lang, 'gp_pool_count').replace('{n}', String(sentences.length))}
               </span>
               <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 text-indigo-500 dark:text-indigo-400 rounded-full px-2 py-0.5">
                 🌐 {t(lang, 'gp_pool_shared')}
@@ -866,33 +736,7 @@ export default function GrammarPractice({
                 </span>
               )}
             </div>
-            {sessionToken && (
-              <button
-                onClick={generate}
-                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
-                title={sentences.length >= MAX_POOL ? t(lang, 'gp_gen_more_replace') : undefined}
-              >
-                {sentences.length >= MAX_POOL ? '🔄' : '+'} {t(lang, 'gp_gen_more')}
-              </button>
-            )}
           </div>
-
-          {/* WaniKani toggle */}
-          {hasWaniKani && (
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useWkVocab}
-                onChange={e => {
-                  const v = e.target.checked
-                  setUseWkVocab(v)
-                  try { localStorage.setItem('gp_use_wk_vocab', String(v)) } catch { /* incognito */ }
-                }}
-                className="w-3.5 h-3.5 rounded accent-pink-500"
-              />
-              <span className="text-xs text-slate-600 dark:text-slate-400">{t(lang, 'gp_wk_toggle')}</span>
-            </label>
-          )}
 
           {/* Shared sentences toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -904,31 +748,7 @@ export default function GrammarPractice({
             />
             <span className="text-xs text-slate-600 dark:text-slate-400">{t(lang, 'gp_show_shared')}</span>
           </label>
-
-          {/* Quality filter badge — shown when the last generation discarded some sentences */}
-          {lastGenStats && lastGenStats.kept < lastGenStats.generated && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-              <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-full px-2 py-0.5">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {t(lang, 'gp_quality_checked')}
-              </span>
-              <span className="text-slate-400 dark:text-slate-500">
-                {lastGenStats.kept}/{lastGenStats.generated} {t(lang, 'gp_quality_kept')}
-              </span>
-            </div>
-          )}
         </div>
-
-        {genError && (
-          <GenErrorBanner message={genError} onDismiss={() => setGenError('')} />
-        )}
-
-        {/* API Key tutorial — shown when the user has no key but there are already sentences in the pool */}
-        {!geminiKey && (
-          <GeminiApiTutorial lang={lang} compact />
-        )}
 
         {/* Start button */}
         <button

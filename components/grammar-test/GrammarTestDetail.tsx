@@ -219,9 +219,7 @@ function StickyStructureBar({ parts, structureRef, label }: {
 interface Props {
   grammar: GrammarPoint
   lang: Lang
-  geminiKey: string
   sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   onBack: () => void
   canEdit?: boolean
   srsStat?: GrammarSrsStat | null
@@ -232,7 +230,7 @@ interface Props {
   onNavigate?: (g: GrammarPoint) => void
 }
 
-export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, activeVocab, onBack, canEdit, srsStat, onAddToSrs, onRemoveFromSrs, prevGrammar, nextGrammar, onNavigate }: Props) {
+export default function GrammarDetail({ grammar, lang, sessionToken, onBack, canEdit, srsStat, onAddToSrs, onRemoveFromSrs, prevGrammar, nextGrammar, onNavigate }: Props) {
   const [practiceMode, setPracticeMode] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [scheme, setScheme] = useState<GrammarScheme | null>(null)
@@ -251,9 +249,7 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
       <GrammarPractice
         grammar={grammar}
         lang={lang}
-        geminiKey={geminiKey}
         sessionToken={sessionToken}
-        activeVocab={activeVocab}
         onBack={() => setPracticeMode(false)}
         canEdit={canEdit}
       />
@@ -420,9 +416,6 @@ export default function GrammarDetail({ grammar, lang, geminiKey, sessionToken, 
           <GrammarExamples
             grammar={grammar}
             lang={lang}
-            geminiKey={geminiKey}
-            sessionToken={sessionToken}
-            activeVocab={activeVocab}
             canEdit={canEdit}
           />
           <GrammarSentenceExamples

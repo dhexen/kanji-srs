@@ -1,22 +1,15 @@
 'use client'
 import { useState, useEffect } from 'react'
-import type { GrammarPoint, GrammarRole, StructurePart } from '@/lib/grammar-test-mnn1'
+import type { GrammarPoint, GrammarRole } from '@/lib/grammar-test-mnn1'
 import { ROLE_COLORS } from '@/lib/grammar-test-mnn1'
 import type { Lang } from '@/lib/i18n'
-import { getMeaning } from '@/lib/i18n'
-import GeminiApiTutorial from '@/components/grammar/GeminiApiTutorial'
-import { useStore } from '@/lib/store'
 import {
   // Pool COMPARTIDO/público de ejemplos (migración 044): el admin los siembra y
   // todos los ven sin clave. Reapuntamos por alias sin tocar el cuerpo.
   fetchSharedGrammarExamples as fetchUserGrammarExamples,
-  saveSharedGrammarExamples as saveUserGrammarExamples,
   updateSharedGrammarExample as updateUserGrammarExample,
   deleteSharedGrammarExample as deleteUserGrammarExample,
-  fetchWaniKaniVocabSample,
 } from '@/lib/grammar-test-db'
-
-const MAX_POOL = 10
 
 interface AiToken {
   text: string
@@ -34,9 +27,6 @@ interface AiSentence {
 interface Props {
   grammar: GrammarPoint
   lang: Lang
-  geminiKey: string
-  sessionToken: string
-  activeVocab: { jp: string; reading: string; meaning: string; meaning_ca?: string; meaning_en?: string }[]
   canEdit?: boolean
 }
 
@@ -313,48 +303,13 @@ function castSentences(rows: { id?: string; jp: unknown[]; translation: unknown[
   }))
 }
 
-// Deriva la "firma" gramatical desde la estructura del punto:
-//  • fixedList: las piezas fijas (no-slot) en orden → lo que el alumno debe reconocer
-//    (p.ej. は + です · て + も + いい + ですか · じゃ + ありません)
-//  • checkLiteral: la última tirada CONTIGUA de piezas fijas en kana (sin kanji).
-//    Sirve para verificar en runtime que la frase realmente contiene la gramática.
-//    Es null cuando esa parte lleva kanji o no existe (conjugación variable).
-// Heurística de "dificultad" de una palabra sin datos de nivel JLPT: cuenta
-// kanji (pesan más) y longitud. Menor = más básica → se prioriza en la paleta.
-function vocabComplexity(jp: string): number {
-  const kanji = (jp.match(/[一-龯]/g) || []).length
-  return kanji * 2 + jp.length
-}
-
-function grammarSignature(structure: StructurePart[]): { fixedList: string[]; checkLiteral: string | null } {
-  const fixedList = structure.filter(p => !p.isSlot).map(p => p.text)
-  let run: string[] = []
-  for (const p of structure) {
-    if (!p.isSlot) run.push(p.text)
-    else run = []
-  }
-  const literal = run.join('')
-  const hasKanji = /[一-龯]/.test(literal)
-  return { fixedList, checkLiteral: literal && !hasKanji ? literal : null }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken, activeVocab, canEdit }: Props) {
-  const { state } = useStore()
-  const hasWaniKani = Boolean(state.waniKaniApiKey)
-
+export default function GrammarExamples({ grammar, lang, canEdit }: Props) {
   const [sentences, setSentences]   = useState<AiSentence[]>([])
   const [dbLoading, setDbLoading]   = useState(true)   // initial DB fetch
-  const [genLoading, setGenLoading] = useState(false)  // AI generation
-  const [saving, setSaving]         = useState(false)  // saving to DB
-  const [error, setError]           = useState('')
-  const [useWkVocab, setUseWkVocab] = useState(() => {
-    try { return localStorage.getItem('ge_use_wk_vocab') === 'true' } catch { return false }
-  })
-  const [wkVocab, setWkVocab] = useState<{ jp: string; reading: string; meaning: string }[]>([])
 
   const hasSaved = sentences.length > 0
 
@@ -364,162 +319,6 @@ export default function GrammarExamples({ grammar, lang, geminiKey, sessionToken
       .then(rows => setSentences(castSentences(rows)))
       .finally(() => setDbLoading(false))
   }, [grammar.id])
-
-  // ── Fetch WaniKani vocabulary when toggle is on ───────────────────────────
-  useEffect(() => {
-    if (!hasWaniKani || !useWkVocab) return
-    fetchWaniKaniVocabSample(40).then(items => {
-      setWkVocab(items.map(w => ({
-        jp: w.word,
-        reading: w.reading,
-        meaning:
-          lang === 'ca' ? (w.meaning_ca ?? w.meaning_en) :
-          lang === 'en' ? w.meaning_en :
-          (w.meaning_es ?? w.meaning_en),
-      })))
-    }).catch(() => {})
-  }, [hasWaniKani, useWkVocab, lang]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Generate ──────────────────────────────────────────────────────────────
-  const targetLang =
-    lang === 'ca' ? 'catalán' :
-    lang === 'en' ? 'inglés' :
-    'español'
-
-  async function generate() {
-    if (!geminiKey && !sessionToken) {
-      setError('Necesitas una API Key de Gemini para generar ejemplos.')
-      return
-    }
-
-    setGenLoading(true)
-    setError('')
-
-    // Paleta de vocabulario: palabras que el alumno YA conoce. Es una paleta
-    // OPCIONAL (no una cuota que rellenar), sesgada hacia las palabras más
-    // simples (menos kanji, más cortas) con algo de azar para variar. Damos una
-    // paleta amplia para que la IA tenga margen de elegir combinaciones naturales.
-    const schoolSample = [...activeVocab]
-      .map(w => ({ w, s: vocabComplexity(w.jp) + Math.random() * 4 }))
-      .sort((a, b) => a.s - b.s)
-      .slice(0, useWkVocab && wkVocab.length > 0 ? 18 : 28)
-      .map(({ w }) => `${w.jp}(${w.reading}): ${getMeaning(w, lang)}`)
-      .join(', ')
-
-    const wkSample = useWkVocab && wkVocab.length > 0
-      ? [...wkVocab]
-          .map(w => ({ w, s: vocabComplexity(w.jp) + Math.random() * 4 }))
-          .sort((a, b) => a.s - b.s)
-          .slice(0, 12)
-          .map(({ w }) => `${w.jp}(${w.reading}): ${w.meaning}`)
-          .join(', ')
-      : ''
-
-    const paletaIntro = 'PALETA DE VOCABULARIO (palabras que el alumno YA conoce; úsalas cuando encajen con naturalidad, NUNCA las fuerces)'
-    const vocabSection = wkSample
-      ? `${paletaIntro}:\n- Del currículo escolar japonés: ${schoolSample || 'palabras básicas N5'}\n- De WaniKani (ya adquiridas): ${wkSample}`
-      : `${paletaIntro}: ${schoolSample || 'palabras básicas N5'}`
-
-    // Firma gramatical (piezas fijas + literal verificable) y frase de referencia curada
-    const { fixedList, checkLiteral } = grammarSignature(grammar.structure)
-    const grammarPieces = fixedList.length ? fixedList.join(' + ') : grammar.pattern
-    const goldJp = grammar.example.map(tk => `${tk.text}${tk.furigana ? `(${tk.furigana})` : ''}`).join('')
-
-    const prompt = `Eres un profesor de japonés NATIVO y experto en didáctica (nivel JLPT ${grammar.jlpt}).
-Genera EXACTAMENTE 5 frases de ejemplo, naturales y correctas, que enseñen este punto gramatical:
-
-• Patrón: "${grammar.pattern}"  (${grammar.name_es})
-• Significado: ${grammar.explanation_es}
-• La gramática que se estudia son estas piezas fijas: ${grammarPieces}. Deben aparecer TODAS, en ese orden, en cada frase.
-
-FRASE DE REFERENCIA (una frase correcta de este punto; imita su naturalidad y nivel): ${goldJp}
-
-${vocabSection}
-
-REGLAS DE CALIDAD (obligatorias):
-1. Cada frase debe ser japonés natural y correcto: algo que un nativo diría de verdad, con intención comunicativa real.
-2. Cada frase debe tener SENTIDO REAL. No basta con que sea gramaticalmente válida: debe describir una situación o afirmación coherente y verdadera, como las de un libro de texto. Antes de aceptar cada frase, pregúntate si su significado es plausible en el mundo real; si es absurda, falsa o nadie la diría con una intención concreta, descártala.
-3. Cada frase debe usar el patrón "${grammar.pattern}" correctamente y contener las piezas fijas ${grammarPieces}.
-4. INPUT COMPRENSIBLE: el ÚNICO elemento nuevo de la frase debe ser la gramática estudiada. Todo lo demás debe ser vocabulario simple y muy frecuente que el alumno reconozca al instante; debe poder entender ~90% de la frase de un vistazo.
-5. Usa como MÁXIMO 1-2 palabras de contenido por frase (aparte de la gramática y las partículas). Frases cortas.
-6. La PALETA de vocabulario es OPCIONAL: prioriza esas palabras cuando encajen con naturalidad y sentido, pero NUNCA fuerces una palabra ni sacrifiques la naturalidad, el sentido o la verdad por usarlas. Si ninguna encaja, usa vocabulario básico N5. El objetivo es una frase natural y verdadera, no cubrir la lista.
-7. Frases variadas entre sí (distinto sujeto y contexto), nivel ${grammar.jlpt}.
-8. La traducción debe estar en ${targetLang} y ser natural (no palabra por palabra).
-Descarta y reescribe cualquier frase que no sea natural, correcta y con sentido real. Mejor 5 frases perfectas que 5 forzadas.
-
-FORMATO DE TOKENS:
-- Asigna a cada token un "role" de esta lista: ${VALID_ROLES.join(', ')}
-- Marca con role "key" EXACTAMENTE los tokens que forman la gramática estudiada (${grammarPieces}); a las palabras de contenido dales su role semántico (verb, noun, object, time, location…).
-- Incluye furigana en todos los kanji.
-- Los tokens de traducción deben usar el mismo role que su equivalente japonés (mismo role = mismo color).
-- Añade "quality": entero 1-5 con tu valoración honesta de lo natural, correcta y con sentido real que es la frase (5 = perfecta, nativa y con un significado plausible y verdadero). Sé estricto; si sería <4, reescríbela antes de enviarla.
-
-Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
-{
-  "sentences": [
-    {
-      "quality": 5,
-      "jp": [
-        {"text": "私", "furigana": "わたし", "role": "topic"},
-        {"text": "は", "role": "key"},
-        {"text": "学生", "furigana": "がくせい", "role": "noun"},
-        {"text": "です", "role": "key"}
-      ],
-      "translation": [
-        {"text": "Yo", "role": "topic"},
-        {"text": "soy", "role": "key"},
-        {"text": "estudiante", "role": "noun"}
-      ]
-    }
-  ]
-}`
-
-    try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify({ prompt, model: state.geminiModel, userApiKey: geminiKey }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || `Error ${res.status}`)
-      }
-      const data  = await res.json()
-      const clean = data.text.replace(/```json|```/g, '').trim()
-      const parsed = JSON.parse(clean)
-      if (!parsed.sentences?.length) throw new Error('La IA no generó frases. Inténtalo de nuevo.')
-
-      // Control de calidad: descarta malformadas, auto-valoración baja y las que
-      // no contienen realmente la gramática (cuando es verificable literalmente).
-      const rows = (parsed.sentences as any[]).filter(s => {
-        if (!Array.isArray(s.jp) || !s.jp.length) return false
-        if (!Array.isArray(s.translation) || !s.translation.length) return false
-        if (typeof s.quality === 'number' && s.quality < 4) return false
-        if (checkLiteral) {
-          const joined = s.jp.map((t: any) => String(t?.text ?? '')).join('')
-          if (!joined.includes(checkLiteral)) return false
-        }
-        return true
-      })
-      if (!rows.length) throw new Error('Las frases generadas no pasaron el control de calidad. Inténtalo de nuevo.')
-
-      const newSentences = castSentences(rows)
-
-      // Save to DB (insert + trim to MAX_POOL) then reload
-      setSaving(true)
-      await saveUserGrammarExamples(grammar.id, newSentences)
-      const fresh = await fetchUserGrammarExamples(grammar.id)
-      setSentences(castSentences(fresh))
-    } catch (e: any) {
-      setError(e.message || 'Error al generar ejemplos.')
-    } finally {
-      setGenLoading(false)
-      setSaving(false)
-    }
-  }
 
   // ── Handle inline edit update ─────────────────────────────────────────────
   async function handleUpdate(id: string, jp: AiToken[], translation: AiToken[]) {
@@ -536,23 +335,15 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
   }
 
   // ── Labels ────────────────────────────────────────────────────────────────
-  const genLabel =
-    genLoading ? (
-      lang === 'en' ? 'Generating…' : lang === 'ca' ? 'Generant…' : 'Generando…'
-    ) : saving ? (
-      lang === 'en' ? 'Saving…' : lang === 'ca' ? 'Desant…' : 'Guardando…'
-    ) : hasSaved ? (
-      lang === 'en' ? '🔄 Generate more' : lang === 'ca' ? '🔄 Generar més' : '🔄 Generar más'
-    ) : (
-      lang === 'en' ? '✨ Generate examples' : lang === 'ca' ? '✨ Generar exemples' : '✨ Generar ejemplos'
-    )
-
   const poolLabel =
-    lang === 'en' ? `${sentences.length}/${MAX_POOL} saved` :
-    lang === 'ca' ? `${sentences.length}/${MAX_POOL} desades` :
-    `${sentences.length}/${MAX_POOL} guardadas`
+    lang === 'en' ? `${sentences.length} saved` :
+    lang === 'ca' ? `${sentences.length} desades` :
+    `${sentences.length} guardadas`
 
   // ── Render ────────────────────────────────────────────────────────────────
+  // Ya no se generan frases nuevas: solo se enseñan las que estaban guardadas.
+  if (!dbLoading && !hasSaved) return null
+
   return (
     <div className="space-y-2">
       {/* Header */}
@@ -568,51 +359,8 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
           {hasSaved && (
             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{poolLabel}</p>
           )}
-          {/* WaniKani toggle */}
-          {hasWaniKani && (
-            <label className="flex items-center gap-1.5 mt-1 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useWkVocab}
-                onChange={e => {
-                  const v = e.target.checked
-                  setUseWkVocab(v)
-                  try { localStorage.setItem('ge_use_wk_vocab', String(v)) } catch { /* incognito */ }
-                }}
-                className="w-3 h-3 rounded accent-pink-500"
-              />
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {lang === 'en' ? 'Use WaniKani vocabulary' : lang === 'ca' ? 'Usar vocabulari WaniKani' : 'Usar vocabulario WaniKani'}
-              </span>
-              {useWkVocab && wkVocab.length > 0 && (
-                <span className="text-[10px] bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-800 rounded-full px-1.5 py-0.5">
-                  {wkVocab.length} palabras
-                </span>
-              )}
-            </label>
-          )}
         </div>
-        <button
-          onClick={generate}
-          disabled={genLoading || saving}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-medium transition"
-        >
-          {(genLoading || saving) && (
-            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
-            </svg>
-          )}
-          {genLabel}
-        </button>
       </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-400">
-          {error}
-        </div>
-      )}
 
       {/* Initial DB load spinner */}
       {dbLoading && (
@@ -621,24 +369,6 @@ Responde ÚNICAMENTE con este JSON (sin backticks, sin texto extra):
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
           </svg>
-        </div>
-      )}
-
-      {/* No API key tutorial */}
-      {!dbLoading && !hasSaved && !genLoading && !geminiKey && (
-        <GeminiApiTutorial lang={lang} compact />
-      )}
-
-      {/* Empty state with API key */}
-      {!dbLoading && !hasSaved && !genLoading && geminiKey && (
-        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {lang === 'en'
-              ? 'Generate 5 example sentences with colour-coded grammar roles.'
-              : lang === 'ca'
-              ? 'Genera 5 frases d\'exemple amb colors que marquen cada funció gramatical.'
-              : 'Genera 5 frases de ejemplo con colores que marcan cada función gramatical.'}
-          </p>
         </div>
       )}
 
