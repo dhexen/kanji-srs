@@ -8,6 +8,9 @@ import { fetchVocabMeta, fetchAllGrammarSrsStats, fetchKnownGrammar, fetchKanaPr
 import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
+import DashboardGrid from '@/components/dashboard/DashboardGrid'
+import { SummaryCard, XpCard, JlptCard, RankingCard, KanaCard } from '@/components/dashboard/ExtraCards'
+import type { CardId } from '@/lib/dashboard'
 import QuestionCard from './QuestionCard'
 import SessionComplete from './SessionComplete'
 import LessonSession from './LessonSession'
@@ -92,7 +95,9 @@ export default function ReviewClient() {
   const [lessonItems, setLessonItems] = useState<VocabItem[]>([])
   const [distractorPool, setDistractorPool] = useState<DistractorCandidate[]>([])
   const [grammarDue, setGrammarDue] = useState(0)
-  const [kanaLearnedCount, setKanaLearnedCount] = useState(0)
+  const [kanaLearned, setKanaLearned] = useState<Set<string>>(() => new Set())
+  const kanaLearnedCount = kanaLearned.size
+  const [editingDash, setEditingDash] = useState(false)
 
   // Pending grammar reviews (for the section tile badge)
   useEffect(() => {
@@ -112,9 +117,9 @@ export default function ReviewClient() {
 
   // Kana progress (to know whether a beginner still needs the kana nudge)
   useEffect(() => {
-    if (!state.user) { setKanaLearnedCount(0); return }
+    if (!state.user) { setKanaLearned(new Set()); return }
     let cancelled = false
-    fetchKanaProgress().then(set => { if (!cancelled) setKanaLearnedCount(set.size) }).catch(() => {})
+    fetchKanaProgress().then(set => { if (!cancelled) setKanaLearned(set) }).catch(() => {})
     return () => { cancelled = true }
   }, [state.user, phase])
 
@@ -431,6 +436,230 @@ export default function ReviewClient() {
       },
     ].filter(tile => isStaff || (tile.id !== 'grammar' && tile.id !== 'context'))
 
+    // Cada tarjeta del dashboard, ya montada; DashboardGrid decide dónde va.
+    const cards: Record<CardId, React.ReactNode> = {
+      today: (
+      <>
+        {/* ── Repasos de hoy ───────────────────────────────────────── */}
+        <div data-tutorial-id="forecast-card" className="min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
+                {t(lang, 'header_today')}
+              </p>
+              <p className="text-5xl font-bold tabular-nums leading-none mt-1 text-violet-700 dark:text-violet-300">
+                {pendingCount}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => start(false)}
+                disabled={pendingCount === 0 || activeWords.length === 0 || isStarting}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
+              >
+                {isStarting
+                  ? '⏳'
+                  : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      {strip(t(lang, 'review_start'))}
+                    </>
+                  )}
+              </button>
+              {/* Free review: all active words, random, no SRS pressure */}
+              <button
+                onClick={() => start(true)}
+                disabled={activeWords.length === 0 || selectedModes.length === 0 || isStarting}
+                title={({ es: 'Repasa todo tu vocabulario activo sin afectar a los niveles', en: 'Review all your active vocabulary without affecting levels', ca: 'Repassa tot el teu vocabulari actiu sense afectar els nivells', ja: 'レベルに影響せず全語彙を復習' } as Record<string, string>)[lang]}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-white dark:bg-slate-700 border border-violet-200 dark:border-slate-600 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed font-semibold rounded-xl text-xs transition active:scale-95"
+              >
+                🎲 {({ es: 'Repaso libre', en: 'Free review', ca: 'Repàs lliure', ja: '自由復習' } as Record<string, string>)[lang] ?? 'Repaso libre'}
+              </button>
+            </div>
+          </div>
+
+          {/* Hourly timeline */}
+          {hourlyForecast.length > 0 && (
+            <div className="overflow-x-auto no-scrollbar mt-4 -mx-1 px-1">
+              <div className="flex gap-1.5 min-w-max pb-0.5">
+                {hourlyForecast.map(h => (
+                  <div
+                    key={h.hour}
+                    className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
+                      h.isCurrent
+                        ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-200/80 dark:border-violet-700/40 shadow-sm'
+                        : 'bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40'
+                    }`}
+                  >
+                    <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      {h.label}
+                    </span>
+                    <span className={`tabular-nums font-bold text-sm mt-0.5 ${h.isCurrent ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                      +{h.due}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    ),
+      forecast: (
+      <>
+        <div className="min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+          {/* Weekly forecast */}
+          {futureDays.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide mb-2">
+                {t(lang, 'header_forecast')}
+              </p>
+              {/* Una celda por día, todas del mismo ancho y repartidas por toda la
+                  tarjeta. Los nuevos de ese día van en una segunda línea para
+                  que quepa en el móvil. */}
+              <div className="grid grid-flow-col auto-cols-fr gap-1.5">
+                {futureDays.map(day => {
+                  const carried = day.cumulative - day.newDue
+                  const hasCarried = carried > 0
+                  const hasNew = day.newDue > 0
+                  const isEmpty = day.cumulative === 0
+                  return (
+                    <div key={day.date.toISOString()} className="flex flex-col items-center py-2 rounded-xl bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40 min-w-0">
+                      <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium capitalize truncate max-w-full">{day.dayLabel}</span>
+                      <span className="text-lg sm:text-xl font-bold tabular-nums mt-0.5 leading-tight">
+                        {isEmpty ? (
+                          <span className="text-slate-300 dark:text-slate-600">—</span>
+                        ) : hasCarried ? (
+                          <span className="text-violet-600 dark:text-violet-400">{carried}</span>
+                        ) : (
+                          <span className="text-violet-600 dark:text-violet-400">+{day.newDue}</span>
+                        )}
+                      </span>
+                      <span className="text-[10px] font-semibold tabular-nums leading-tight text-violet-400 dark:text-violet-500 h-3">
+                        {hasCarried && hasNew ? `+${day.newDue}` : ''}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    ),
+      modes: (
+      <>
+        {/* ── Selector de modos (pills en fila) ─────────────────────── */}
+        <div data-tutorial-id="mode-selector" className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+            {t(lang, 'review_subtitle')}
+          </p>
+          {/* Rejilla: todos los botones del mismo ancho y alto, rellenando la fila */}
+          <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
+            {modes.map(([id, cfg]) => {
+              const active = selectedModes.includes(id)
+              const due = pendingPerMode[id] ?? 0
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSelectedModes(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  )}
+                  className={`relative h-full px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
+                    active
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
+                  }`}
+                >
+                  <span className="block text-xs font-semibold leading-tight pr-6">{t(lang, cfg.label_key)}</span>
+                  <span className={`block text-[10px] leading-tight mt-0.5 ${active ? 'text-violet-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {t(lang, cfg.desc_key)}
+                  </span>
+                  {due > 0 && (
+                    <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                      active ? 'bg-white/30 text-white' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {due > 99 ? '99+' : due}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {selectedModes.length === 0 && (
+            <p className="text-[11px] text-rose-500 dark:text-rose-400 mt-2">
+              ⚠ {t(lang, 'review_no_modes_selected')}
+            </p>
+          )}
+        </div>
+      </>
+    ),
+      sections: (
+      <>
+          {/* Seccions */}
+          <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">{sectionsLabel}</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 2xl:grid-cols-3 gap-2">
+              {SECTIONS.map(tile => (
+                <Link
+                  key={tile.id}
+                  href={tile.href}
+                  {...(tile.id === 'kana' ? { 'data-tutorial-id': 'kana-tile' } : {})}
+                  className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
+                >
+                  {tile.badge > 0 && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold tabular-nums">
+                      {tile.badge > 99 ? '99+' : tile.badge}
+                    </span>
+                  )}
+                  <span className={tile.color}>{tile.icon}</span>
+                  <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+      </>
+    ),
+      quickAdd: <div className="min-w-0"><QuickAddPanel onAdded={onNewWordsAdded} /></div>,
+      stages: (
+      <>
+          {/* Niveles: palabras activas por etapa SRS */}
+          <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-baseline justify-between gap-2">
+              {({ es: 'Niveles de tus palabras', en: 'Your word levels', ca: 'Nivells de les teves paraules', ja: '単語のレベル' } as Record<string, string>)[lang] ?? 'Niveles de tus palabras'}
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 tabular-nums">{activeWords.length}</span>
+            </h3>
+            <ul className="space-y-2">
+              {STAGE_GROUPS.map((g, i) => {
+                const n = stageCounts[i]
+                const pct = activeWords.length ? (n / activeWords.length) * 100 : 0
+                return (
+                  <li key={g.min}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
+                        <span className={`w-2 h-2 rounded-full ${g.dot}`} />
+                        {g.label[lang] ?? g.label.es}
+                      </span>
+                      <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200">{n}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div className={`h-full rounded-full ${g.dot}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+      </>
+    ),
+      summary: <SummaryCard active={activeWords.length} mastered={masteredCount} dueToday={forecast[0]?.newDue ?? 0} toLearn={activeWords.length - masteredCount} />,
+      xp: <XpCard />,
+      jlpt: <JlptCard mastered={masteredCount} />,
+      ranking: <RankingCard />,
+      kana: <KanaCard learned={kanaLearned} />,
+    }
+
     return (
       <div className="space-y-4">
 
@@ -442,6 +671,16 @@ export default function ReviewClient() {
             </h1>
             <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5 capitalize">{todayStr}</p>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+          {!editingDash && (
+            <button
+              type="button"
+              onClick={() => setEditingDash(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:border-violet-300 hover:text-violet-600 dark:hover:text-violet-400 transition"
+            >
+              ✏️ {({ es: 'Personalizar', en: 'Customize', ca: 'Personalitzar', ja: 'カスタマイズ' } as Record<string, string>)[lang] ?? 'Personalizar'}
+            </button>
+          )}
           <button
             type="button"
             title={{ es: 'Ayuda', en: 'Help', ca: 'Ajuda', ja: 'ヘルプ' }[lang] ?? 'Ayuda'}
@@ -450,6 +689,7 @@ export default function ReviewClient() {
           >
             ?
           </button>
+          </div>
         </div>
 
         {/* ── Beginner welcome: guide brand-new users to the kana section ── */}
@@ -514,218 +754,7 @@ export default function ReviewClient() {
           </div>
         )}
 
-        {/* ── Rejilla: en pantallas anchas (xl) las tarjetas van por parejas,
-             en 12 columnas; por debajo, una sola columna. Al ser grid, las
-             tarjetas nunca se solapan: como mucho bajan de fila. ──────────── */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-
-        {/* ── Forecast card ─────────────────────────────────────────── */}
-        <div data-tutorial-id="forecast-card" className="xl:col-span-7 min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
-                {t(lang, 'header_today')}
-              </p>
-              <p className="text-5xl font-bold tabular-nums leading-none mt-1 text-violet-700 dark:text-violet-300">
-                {pendingCount}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <button
-                onClick={() => start(false)}
-                disabled={pendingCount === 0 || activeWords.length === 0 || isStarting}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow-sm active:scale-95"
-              >
-                {isStarting
-                  ? '⏳'
-                  : (
-                    <>
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      {strip(t(lang, 'review_start'))}
-                    </>
-                  )}
-              </button>
-              {/* Free review: all active words, random, no SRS pressure */}
-              <button
-                onClick={() => start(true)}
-                disabled={activeWords.length === 0 || selectedModes.length === 0 || isStarting}
-                title={({ es: 'Repasa todo tu vocabulario activo sin afectar a los niveles', en: 'Review all your active vocabulary without affecting levels', ca: 'Repassa tot el teu vocabulari actiu sense afectar els nivells', ja: 'レベルに影響せず全語彙を復習' } as Record<string, string>)[lang]}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-white dark:bg-slate-700 border border-violet-200 dark:border-slate-600 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed font-semibold rounded-xl text-xs transition active:scale-95"
-              >
-                🎲 {({ es: 'Repaso libre', en: 'Free review', ca: 'Repàs lliure', ja: '自由復習' } as Record<string, string>)[lang] ?? 'Repaso libre'}
-              </button>
-            </div>
-          </div>
-
-          {/* Hourly timeline */}
-          {hourlyForecast.length > 0 && (
-            <div className="overflow-x-auto no-scrollbar mt-4 -mx-1 px-1">
-              <div className="flex gap-1.5 min-w-max pb-0.5">
-                {hourlyForecast.map(h => (
-                  <div
-                    key={h.hour}
-                    className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
-                      h.isCurrent
-                        ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-200/80 dark:border-violet-700/40 shadow-sm'
-                        : 'bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40'
-                    }`}
-                  >
-                    <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                      {h.label}
-                    </span>
-                    <span className={`tabular-nums font-bold text-sm mt-0.5 ${h.isCurrent ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                      +{h.due}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Weekly forecast */}
-          {futureDays.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-violet-100/80 dark:border-slate-700">
-              <p className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide mb-2">
-                {t(lang, 'header_forecast')}
-              </p>
-              {/* Una celda por día, todas del mismo ancho y repartidas por toda la
-                  tarjeta. Los nuevos de ese día van en una segunda línea para
-                  que quepa en el móvil. */}
-              <div className="grid grid-flow-col auto-cols-fr gap-1.5">
-                {futureDays.map(day => {
-                  const carried = day.cumulative - day.newDue
-                  const hasCarried = carried > 0
-                  const hasNew = day.newDue > 0
-                  const isEmpty = day.cumulative === 0
-                  return (
-                    <div key={day.date.toISOString()} className="flex flex-col items-center py-2 rounded-xl bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40 min-w-0">
-                      <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium capitalize truncate max-w-full">{day.dayLabel}</span>
-                      <span className="text-lg sm:text-xl font-bold tabular-nums mt-0.5 leading-tight">
-                        {isEmpty ? (
-                          <span className="text-slate-300 dark:text-slate-600">—</span>
-                        ) : hasCarried ? (
-                          <span className="text-violet-600 dark:text-violet-400">{carried}</span>
-                        ) : (
-                          <span className="text-violet-600 dark:text-violet-400">+{day.newDue}</span>
-                        )}
-                      </span>
-                      <span className="text-[10px] font-semibold tabular-nums leading-tight text-violet-400 dark:text-violet-500 h-3">
-                        {hasCarried && hasNew ? `+${day.newDue}` : ''}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Selector de modos (pills en fila) ─────────────────────── */}
-        <div data-tutorial-id="mode-selector" className="xl:col-span-5 min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
-            {t(lang, 'review_subtitle')}
-          </p>
-          {/* Rejilla: todos los botones del mismo ancho y alto, rellenando la fila */}
-          <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
-            {modes.map(([id, cfg]) => {
-              const active = selectedModes.includes(id)
-              const due = pendingPerMode[id] ?? 0
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSelectedModes(prev =>
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                  )}
-                  className={`relative h-full px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
-                    active
-                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                      : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
-                  }`}
-                >
-                  <span className="block text-xs font-semibold leading-tight pr-6">{t(lang, cfg.label_key)}</span>
-                  <span className={`block text-[10px] leading-tight mt-0.5 ${active ? 'text-violet-200' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {t(lang, cfg.desc_key)}
-                  </span>
-                  {due > 0 && (
-                    <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                      active ? 'bg-white/30 text-white' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {due > 99 ? '99+' : due}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-          {selectedModes.length === 0 && (
-            <p className="text-[11px] text-rose-500 dark:text-rose-400 mt-2">
-              ⚠ {t(lang, 'review_no_modes_selected')}
-            </p>
-          )}
-        </div>
-
-        {/* ── Seccions + Nous Kanjis ─────────────────────────────────── */}
-        <div className="xl:col-span-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
-
-          {/* Seccions */}
-          <div className="xl:col-span-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">{sectionsLabel}</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 2xl:grid-cols-3 gap-2">
-              {SECTIONS.map(tile => (
-                <Link
-                  key={tile.id}
-                  href={tile.href}
-                  {...(tile.id === 'kana' ? { 'data-tutorial-id': 'kana-tile' } : {})}
-                  className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all ${tile.bg}`}
-                >
-                  {tile.badge > 0 && (
-                    <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold tabular-nums">
-                      {tile.badge > 99 ? '99+' : tile.badge}
-                    </span>
-                  )}
-                  <span className={tile.color}>{tile.icon}</span>
-                  <span className={`text-xs font-semibold ${tile.color}`}>{tile.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Nous Kanjis */}
-          <div className="xl:col-span-5 min-w-0">
-            <QuickAddPanel onAdded={onNewWordsAdded} />
-          </div>
-
-          {/* Niveles: palabras activas por etapa SRS */}
-          <div className="md:col-span-2 xl:col-span-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-baseline justify-between gap-2">
-              {({ es: 'Niveles de tus palabras', en: 'Your word levels', ca: 'Nivells de les teves paraules', ja: '単語のレベル' } as Record<string, string>)[lang] ?? 'Niveles de tus palabras'}
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 tabular-nums">{activeWords.length}</span>
-            </h3>
-            <ul className="space-y-2">
-              {STAGE_GROUPS.map((g, i) => {
-                const n = stageCounts[i]
-                const pct = activeWords.length ? (n / activeWords.length) * 100 : 0
-                return (
-                  <li key={g.min}>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
-                        <span className={`w-2 h-2 rounded-full ${g.dot}`} />
-                        {g.label[lang] ?? g.label.es}
-                      </span>
-                      <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200">{n}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                      <div className={`h-full rounded-full ${g.dot}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </div>
-
-        </div>
+        <DashboardGrid cards={cards} editing={editingDash} onDoneEditing={() => setEditingDash(false)} />
       </div>
     )
   }

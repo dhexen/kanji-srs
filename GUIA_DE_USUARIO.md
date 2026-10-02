@@ -70,6 +70,17 @@ En la parte izquierda de la pantalla hay un menú con todas las secciones. Para 
 
 Esta es la sección más importante de la aplicación. Aquí repassas el vocabulario que ya tienes añadido. La app te dice exactamente cuántas palabras tienes pendientes de repasar hoy.
 
+#### Personalizar el dashboard
+
+Pulsa **✏️ Personalizar** (arriba a la derecha) para organizar el dashboard a tu gusto:
+
+- Cada fila puede tener **1, 2, 3 o 4 tarjetas**, y puedes añadir tantas filas como quieras (**＋ Nueva fila**).
+- Mueve filas con **↑ ↓** y bórralas con **🗑**. Mueve cada tarjeta con las flechas y quítala con **✕**.
+- En un hueco vacío, **＋ Añadir tarjeta** abre la lista de tarjetas: repasos de hoy, próximos días, modos de repaso, secciones, añadir kanjis, niveles de tus palabras, resumen en cifras, nivel y XP, vocabulario JLPT, ranking semanal y progreso de kana. Cada tarjeta solo puede estar una vez.
+- **Guardar** lo conserva en tu cuenta (lo verás igual en cualquier dispositivo). **Restablecer** vuelve al diseño original.
+
+En el móvil las tarjetas se apilan en una columna y en tablet como mucho van de dos en dos; el número de columnas que elijas se aplica en pantallas grandes.
+
 #### ¿Cómo funciona?
 
 Cada palabra que aprendes sube de nivel cuando la aciertas y baja cuando la fallas. Hay 9 niveles:

@@ -20,6 +20,11 @@ export const CHANGELOG: ChangelogVersion[] = [
     label: 'Octubre 2026',
     entries: [
       {
+        type: 'new',
+        title: 'Dashboard personalizable',
+        description: 'Con el botón "✏️ Personalizar" del dashboard puedes organizarlo a tu gusto: filas de 1, 2, 3 o 4 tarjetas, tantas filas como quieras, y mover, quitar o añadir tarjetas. Hay tarjetas nuevas: resumen en cifras, nivel y XP, vocabulario JLPT, ranking semanal y progreso de kana. El diseño se guarda en tu cuenta.',
+      },
+      {
         type: 'improvement',
         title: 'La web aprovecha todo el ancho de la pantalla',
         description: 'Las secciones ya no se quedan en una columna estrecha en el centro: el contenido se adapta al ancho de tu pantalla, así que en monitores grandes se ve más información de un vistazo.',

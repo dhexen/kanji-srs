@@ -394,6 +394,35 @@ async function fetchGeminiModel(userId: string): Promise<string> {
   }
 }
 
+/**
+ * El diseño del dashboard (migración 046). Aparte, como gemini_model, para que
+ * una columna sin crear nunca rompa la carga: en ese caso devuelve null y se
+ * usa el diseño por defecto.
+ */
+export async function fetchDashboardLayout(): Promise<unknown | null> {
+  try {
+    const user = await requireUser()
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('dashboard_layout')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (error || !data) return null
+    return (data as { dashboard_layout?: unknown }).dashboard_layout ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Guarda el diseño del dashboard; null vuelve al de por defecto. */
+export async function saveDashboardLayout(layout: unknown | null) {
+  const userId = await ensureUserSettingsRow()
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, dashboard_layout: layout, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
 export async function saveGeminiModel(model: string) {
   try {
     const userId = await ensureUserSettingsRow()

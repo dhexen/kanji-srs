@@ -93,6 +93,7 @@ function HelpReview() {
       </Tip>
       <Tip>El botón <strong>🎲 Repaso libre</strong> repasa al azar todo tu vocabulario activo sin presión: no cuenta para el nivel de las palabras.</Tip>
       <Tip>Si dominas casi todas tus palabras y te quedan pocos repasos al día, verás una tarjeta 🌱 que te sugiere añadir vocabulario nuevo. Puedes descartarla.</Tip>
+      <Tip>Con <strong>✏️ Personalizar</strong> organizas el dashboard a tu gusto: filas de 1 a 4 tarjetas, tantas filas como quieras, y tarjetas extra como el resumen en cifras, tu nivel y XP, el vocabulario JLPT, el ranking semanal o el progreso de kana. Pulsa <strong>Guardar</strong> para conservarlo en tu cuenta.</Tip>
     </div>
   )
 }

@@ -14,7 +14,7 @@ const MEDALS = ['🥇', '🥈', '🥉']
  * Anonymous weekly ranking for students: podium (counts only, no names) plus
  * their own position. Names are never shown here — only the admin panel sees them.
  */
-export default function RankingWidget() {
+export default function RankingWidget({ showEmpty = false }: { showEmpty?: boolean } = {}) {
   const [data, setData] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -37,8 +37,18 @@ export default function RankingWidget() {
     return () => { alive = false }
   }, [])
 
-  if (loading) return null
-  if (!data || data.total === 0) return null
+  // En el dashboard la tarjeta no puede desaparecer: muestra un aviso en su lugar.
+  if (loading || !data || data.total === 0) {
+    if (!showEmpty) return null
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">🏆 Ranking semanal</h3>
+        <p className="text-xs text-slate-400 mt-2">
+          {loading ? 'Cargando…' : 'Esta semana aún no hay nadie en el ranking. ¡Haz repasos para estrenarlo!'}
+        </p>
+      </div>
+    )
+  }
 
   const pct = data.you && data.total > 1
     ? Math.round((data.you.rank / data.total) * 100)
