@@ -9,15 +9,34 @@ export const CARD_IDS = [
 export type CardId = (typeof CARD_IDS)[number]
 
 export type Cols = 1 | 2 | 3 | 4
-export type DashRow = { cols: Cols; cards: (CardId | null)[] }
+/**
+ * name: lo que sale en la pestaña de la fila. Las que empiezan por @ son los
+ * nombres de las filas por defecto, que se traducen (ROW_NAMES); el resto es
+ * texto del usuario. Sin nombre, la fila lleva el marco pero no pestaña.
+ */
+export type DashRow = { cols: Cols; cards: (CardId | null)[]; name?: string }
 export type DashLayout = { v: 1; rows: DashRow[] }
 
 export const DEFAULT_LAYOUT: DashLayout = {
   v: 1,
   rows: [
-    { cols: 3, cards: ['today', 'forecast', 'modes'] },
-    { cols: 3, cards: ['sections', 'quickAdd', 'stages'] },
+    { cols: 3, cards: ['today', 'forecast', 'modes'], name: '@hoy' },
+    { cols: 3, cards: ['sections', 'quickAdd', 'stages'], name: '@progreso' },
   ],
+}
+
+export const ROW_NAMES: Record<string, { ja: string; label: L4 }> = {
+  '@hoy': { ja: '今日', label: { es: 'Hoy', en: 'Today', ca: 'Avui', ja: '今日' } },
+  '@progreso': { ja: '進歩', label: { es: 'Tu progreso', en: 'Your progress', ca: 'El teu progrés', ja: '進歩' } },
+}
+
+export const ROW_NAME_MAX = 30
+
+/** El nombre de la fila tal como se escribe al editar (los @ ya traducidos). */
+export function rowLabel(name: string | undefined, lang: string): string {
+  if (!name) return ''
+  const fijo = ROW_NAMES[name]
+  return fijo ? pick4(fijo.label, lang) : name
 }
 
 type L4 = { es: string; en: string; ca: string; ja: string }
@@ -103,7 +122,8 @@ export function sanitizeLayout(x: unknown): DashLayout | null {
       const c = raw[i]
       if (esCard(c) && !vistas.has(c)) { vistas.add(c); cards.push(c) } else cards.push(null)
     }
-    rows.push({ cols: cols as Cols, cards })
+    const name = (r as DashRow).name
+    rows.push({ cols: cols as Cols, cards, ...(typeof name === 'string' && name.trim() ? { name: name.trim().slice(0, ROW_NAME_MAX) } : {}) })
   }
   return rows.length ? { v: 1, rows } : null
 }
@@ -112,7 +132,7 @@ export function sanitizeLayout(x: unknown): DashLayout | null {
 export function setRowCols(row: DashRow, cols: Cols): DashRow {
   const cards = row.cards.slice(0, cols)
   while (cards.length < cols) cards.push(null)
-  return { cols, cards }
+  return { ...row, cols, cards }
 }
 
 export function usedCards(layout: DashLayout): Set<CardId> {

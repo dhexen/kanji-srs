@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store'
 import { fetchDashboardLayout, saveDashboardLayout } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import {
-  CARD_INFO, DEFAULT_LAYOUT, ROW_GRID, pick4, sanitizeLayout, setRowCols, usedCards,
+  CARD_INFO, DEFAULT_LAYOUT, ROW_GRID, ROW_NAMES, ROW_NAME_MAX, pick4, rowLabel, sanitizeLayout, setRowCols, usedCards,
   type CardId, type Cols, type DashLayout, type DashRow,
 } from '@/lib/dashboard'
 
@@ -17,6 +17,17 @@ import {
 
 const CACHE_KEY = 'dashboard_layout_v1'
 
+// Cada fila va en un marco de color con su nombre en una pestaña. El color va
+// por posición: la primera violeta, la segunda verde, y así.
+const ROW_COLOR = [
+  { frame: 'border-violet-400 dark:border-violet-500', tab: 'bg-violet-400 dark:bg-violet-500' },
+  { frame: 'border-emerald-400 dark:border-emerald-500', tab: 'bg-emerald-400 dark:bg-emerald-500' },
+  { frame: 'border-sky-400 dark:border-sky-500', tab: 'bg-sky-400 dark:bg-sky-500' },
+  { frame: 'border-amber-400 dark:border-amber-500', tab: 'bg-amber-400 dark:bg-amber-500' },
+  { frame: 'border-rose-400 dark:border-rose-500', tab: 'bg-rose-400 dark:bg-rose-500' },
+  { frame: 'border-indigo-400 dark:border-indigo-500', tab: 'bg-indigo-400 dark:bg-indigo-500' },
+]
+
 const T = {
   editing: { es: 'Personalizando el dashboard', en: 'Customizing dashboard', ca: 'Personalitzant el dashboard', ja: 'ダッシュボードを編集中' },
   hint: { es: 'En el móvil las tarjetas se apilan; las columnas se aplican en pantallas grandes.', en: 'On mobile cards stack; columns apply on large screens.', ca: 'Al mòbil les targetes s’apilen; les columnes s’apliquen en pantalles grans.', ja: 'スマホでは縦に並び、列は大きな画面で適用されます。' },
@@ -26,6 +37,7 @@ const T = {
   saved: { es: 'Dashboard guardado', en: 'Dashboard saved', ca: 'Dashboard desat', ja: '保存しました' },
   saveError: { es: 'No se ha podido guardar el dashboard', en: 'Could not save the dashboard', ca: "No s'ha pogut desar", ja: '保存できませんでした' },
   row: { es: 'Fila', en: 'Row', ca: 'Fila', ja: '行' },
+  rowName: { es: 'Nombre (opcional)', en: 'Name (optional)', ca: 'Nom (opcional)', ja: '名前（任意）' },
   cols: { es: 'Columnas', en: 'Columns', ca: 'Columnes', ja: '列' },
   addRow: { es: 'Nueva fila', en: 'New row', ca: 'Nova fila', ja: '行を追加' },
   addCard: { es: 'Añadir tarjeta', en: 'Add card', ca: 'Afegir targeta', ja: 'カードを追加' },
@@ -114,6 +126,14 @@ export default function DashboardGrid({
     return rows
   })
 
+  // Si se deja el nombre por defecto tal cual, se guarda la @clave para que
+  // siga traduciéndose.
+  const setRowName = (r: number, texto: string) => editRows(rows => {
+    const fijo = Object.keys(ROW_NAMES).find(k => rowLabel(k, lang) === texto.trim())
+    rows[r] = { ...rows[r], name: fijo ?? (texto || undefined) }
+    return rows
+  })
+
   async function save() {
     setSaving(true)
     try {
@@ -133,6 +153,38 @@ export default function DashboardGrid({
   const libres = (Object.keys(CARD_INFO) as CardId[]).filter(id => !usados.has(id))
 
   const btn = 'px-2 py-1 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:border-violet-300 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-30 disabled:pointer-events-none transition'
+
+  // Un hueco de la fila mientras se edita: botón para añadir o la tarjeta con sus flechas.
+  const editSlot = (row: DashRow, r: number, id: CardId | null, c: number) => {
+    if (!id) {
+      return (
+        <button
+          key={c}
+          type="button"
+          onClick={() => setPicking([r, c])}
+          className="min-h-[8rem] rounded-2xl border-2 border-dashed border-violet-200 dark:border-violet-800/60 text-violet-500 dark:text-violet-400 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
+        >
+          ＋ {tr('addCard')}
+        </button>
+      )
+    }
+    const info = CARD_INFO[id]
+    return (
+      <div key={c} className="min-w-0 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1 text-xs">
+          <span className="font-semibold text-slate-500 dark:text-slate-400 truncate mr-auto">{info.icon} {pick4(info.title, lang)}</span>
+          <button type="button" className={btn} onClick={() => moveCard(r, c, 0, -1)} disabled={c === 0} aria-label="Izquierda">←</button>
+          <button type="button" className={btn} onClick={() => moveCard(r, c, 0, 1)} disabled={c === row.cols - 1} aria-label="Derecha">→</button>
+          <button type="button" className={btn} onClick={() => moveCard(r, c, -1, 0)} disabled={r === 0} aria-label="Arriba">↑</button>
+          <button type="button" className={btn} onClick={() => moveCard(r, c, 1, 0)} disabled={r === shown.rows.length - 1} aria-label="Abajo">↓</button>
+          <button type="button" className={`${btn} hover:!border-rose-300 hover:!text-rose-500`} onClick={() => setCard(r, c, null)} aria-label="Quitar">✕</button>
+        </div>
+        {/* Vista previa: no se puede pulsar mientras se edita */}
+        <div className="flex-1 flex flex-col [&>*]:flex-1 pointer-events-none select-none opacity-80">{cards[id]}</div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="space-y-4">
@@ -160,11 +212,48 @@ export default function DashboardGrid({
       {shown.rows.map((row, r) => {
         // Fuera de edición, una fila sin tarjetas no ocupa sitio.
         if (!editing && row.cards.every(c => c === null)) return null
+
+        const grid = (
+          <div className={`grid gap-4 ${ROW_GRID[row.cols]}`}>
+            {row.cards.map((id, c) => editing ? editSlot(row, r, id, c) : (
+              // Hueco vacío: guarda el sitio solo cuando se ven todas las columnas.
+              !id
+                ? <div key={c} className="hidden xl:block" />
+                : <div key={c} className="min-w-0 flex flex-col [&>*]:flex-1">{cards[id]}</div>
+            ))}
+          </div>
+        )
+
+        if (!editing) {
+          const color = ROW_COLOR[r % ROW_COLOR.length]
+          const fijo = row.name ? ROW_NAMES[row.name] : undefined
+          return (
+            <section key={r} className={`relative ${row.name ? 'pt-7' : ''}`}>
+              {row.name && (
+                <h2 className={`absolute top-0 left-5 max-w-[calc(100%-2.5rem)] truncate px-3 py-1 rounded-t-xl text-xs font-bold text-white ${color.tab}`}>
+                  {fijo && lang !== 'ja' && <span className="kanji-font mr-1.5">{fijo.ja}</span>}
+                  {rowLabel(row.name, lang)}
+                </h2>
+              )}
+              <div className={`rounded-3xl border-2 ${color.frame} p-3 sm:p-4`}>{grid}</div>
+            </section>
+          )
+        }
+
         return (
-          <div key={r} className={editing ? 'rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-3 space-y-3' : ''}>
+          <div key={r} className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-3 space-y-3">
             {editing && (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="font-bold text-slate-500 dark:text-slate-400">{tr('row')} {r + 1}</span>
+                <input
+                  type="text"
+                  value={rowLabel(row.name, lang)}
+                  onChange={e => setRowName(r, e.target.value)}
+                  maxLength={ROW_NAME_MAX}
+                  placeholder={tr('rowName')}
+                  aria-label={tr('rowName')}
+                  className="w-40 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-violet-400"
+                />
                 <span className="text-slate-400 dark:text-slate-500 ml-2">{tr('cols')}</span>
                 <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
                   {([1, 2, 3, 4] as Cols[]).map(n => (
@@ -186,42 +275,7 @@ export default function DashboardGrid({
               </div>
             )}
 
-            <div className={`grid gap-4 ${ROW_GRID[row.cols]}`}>
-              {row.cards.map((id, c) => {
-                if (!editing) {
-                  // Hueco vacío: guarda el sitio solo cuando se ven todas las columnas.
-                  if (!id) return <div key={c} className="hidden xl:block" />
-                  return <div key={c} className="min-w-0 flex flex-col [&>*]:flex-1">{cards[id]}</div>
-                }
-                if (!id) {
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setPicking([r, c])}
-                      className="min-h-[8rem] rounded-2xl border-2 border-dashed border-violet-200 dark:border-violet-800/60 text-violet-500 dark:text-violet-400 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
-                    >
-                      ＋ {tr('addCard')}
-                    </button>
-                  )
-                }
-                const info = CARD_INFO[id]
-                return (
-                  <div key={c} className="min-w-0 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="font-semibold text-slate-500 dark:text-slate-400 truncate mr-auto">{info.icon} {pick4(info.title, lang)}</span>
-                      <button type="button" className={btn} onClick={() => moveCard(r, c, 0, -1)} disabled={c === 0} aria-label="Izquierda">←</button>
-                      <button type="button" className={btn} onClick={() => moveCard(r, c, 0, 1)} disabled={c === row.cols - 1} aria-label="Derecha">→</button>
-                      <button type="button" className={btn} onClick={() => moveCard(r, c, -1, 0)} disabled={r === 0} aria-label="Arriba">↑</button>
-                      <button type="button" className={btn} onClick={() => moveCard(r, c, 1, 0)} disabled={r === shown.rows.length - 1} aria-label="Abajo">↓</button>
-                      <button type="button" className={`${btn} hover:!border-rose-300 hover:!text-rose-500`} onClick={() => setCard(r, c, null)} aria-label="Quitar">✕</button>
-                    </div>
-                    {/* Vista previa: no se puede pulsar mientras se edita */}
-                    <div className="flex-1 flex flex-col [&>*]:flex-1 pointer-events-none select-none opacity-80">{cards[id]}</div>
-                  </div>
-                )
-              })}
-            </div>
+            {grid}
           </div>
         )
       })}
