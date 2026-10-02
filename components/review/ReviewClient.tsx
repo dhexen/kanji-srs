@@ -9,6 +9,7 @@ import { GRAMMAR_SRS_MAX_LEVEL } from '@/lib/grammar-srs'
 import { t } from '@/lib/i18n'
 import QuickAddPanel from './QuickAddPanel'
 import DashboardGrid from '@/components/dashboard/DashboardGrid'
+import DashCard from '@/components/dashboard/DashCard'
 import { SummaryCard, XpCard, JlptCard, RankingCard, KanaCard } from '@/components/dashboard/ExtraCards'
 import type { CardId } from '@/lib/dashboard'
 import QuestionCard from './QuestionCard'
@@ -393,7 +394,6 @@ export default function ReviewClient() {
   }
 
   if (phase === 'select') {
-    const sectionsLabel = ({ es: 'Secciones', ca: 'Seccions', en: 'Sections', ja: 'セクション' } as Record<string, string>)[lang] ?? 'Secciones'
     const effectiveRole = state.simulatedRole ?? state.role
     const isStaff = effectiveRole === 'admin' || effectiveRole === 'contributor'
 
@@ -441,13 +441,10 @@ export default function ReviewClient() {
       today: (
       <>
         {/* ── Repasos de hoy ───────────────────────────────────────── */}
-        <div data-tutorial-id="forecast-card" className="min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+        <DashCard id="today" tutorialId="forecast-card">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
-                {t(lang, 'header_today')}
-              </p>
-              <p className="text-5xl font-bold tabular-nums leading-none mt-1 text-violet-700 dark:text-violet-300">
+              <p className="text-5xl font-bold tabular-nums leading-none text-violet-700 dark:text-violet-300">
                 {pendingCount}
               </p>
             </div>
@@ -488,7 +485,7 @@ export default function ReviewClient() {
                     className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl text-xs min-w-[3rem] transition-all ${
                       h.isCurrent
                         ? 'bg-violet-100 dark:bg-violet-900/30 border border-violet-200/80 dark:border-violet-700/40 shadow-sm'
-                        : 'bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40'
+                        : 'bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-600/40'
                     }`}
                   >
                     <span className={`tabular-nums font-medium ${h.isCurrent ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500'}`}>
@@ -502,18 +499,15 @@ export default function ReviewClient() {
               </div>
             </div>
           )}
-        </div>
+        </DashCard>
       </>
     ),
       forecast: (
       <>
-        <div className="min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+        <DashCard id="forecast">
           {/* Weekly forecast */}
           {futureDays.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide mb-2">
-                {t(lang, 'header_forecast')}
-              </p>
               {/* Una celda por día, todas del mismo ancho y repartidas por toda la
                   tarjeta. Los nuevos de ese día van en una segunda línea para
                   que quepa en el móvil. */}
@@ -524,7 +518,7 @@ export default function ReviewClient() {
                   const hasNew = day.newDue > 0
                   const isEmpty = day.cumulative === 0
                   return (
-                    <div key={day.date.toISOString()} className="flex flex-col items-center py-2 rounded-xl bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40 min-w-0">
+                    <div key={day.date.toISOString()} className="flex flex-col items-center py-2 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-600/40 min-w-0">
                       <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium capitalize truncate max-w-full">{day.dayLabel}</span>
                       <span className="text-lg sm:text-xl font-bold tabular-nums mt-0.5 leading-tight">
                         {isEmpty ? (
@@ -544,16 +538,13 @@ export default function ReviewClient() {
               </div>
             </div>
           )}
-        </div>
+        </DashCard>
       </>
     ),
       modes: (
       <>
         {/* ── Selector de modos (pills en fila) ─────────────────────── */}
-        <div data-tutorial-id="mode-selector" className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-          <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
-            {t(lang, 'review_subtitle')}
-          </p>
+        <DashCard id="modes" tutorialId="mode-selector" sub={t(lang, 'review_subtitle')}>
           {/* Rejilla: todos los botones del mismo ancho y alto, rellenando la fila */}
           <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
             {modes.map(([id, cfg]) => {
@@ -592,14 +583,13 @@ export default function ReviewClient() {
               ⚠ {t(lang, 'review_no_modes_selected')}
             </p>
           )}
-        </div>
+        </DashCard>
       </>
     ),
       sections: (
       <>
           {/* Seccions */}
-          <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">{sectionsLabel}</h3>
+          <DashCard id="sections">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 2xl:grid-cols-3 gap-2">
               {SECTIONS.map(tile => (
                 <Link
@@ -618,18 +608,14 @@ export default function ReviewClient() {
                 </Link>
               ))}
             </div>
-          </div>
+          </DashCard>
       </>
     ),
-      quickAdd: <div className="min-w-0"><QuickAddPanel onAdded={onNewWordsAdded} /></div>,
+      quickAdd: <QuickAddPanel onAdded={onNewWordsAdded} />,
       stages: (
       <>
           {/* Niveles: palabras activas por etapa SRS */}
-          <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-baseline justify-between gap-2">
-              {({ es: 'Niveles de tus palabras', en: 'Your word levels', ca: 'Nivells de les teves paraules', ja: '単語のレベル' } as Record<string, string>)[lang] ?? 'Niveles de tus palabras'}
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 tabular-nums">{activeWords.length}</span>
-            </h3>
+          <DashCard id="stages" right={<span className="text-xs font-semibold text-slate-400 dark:text-slate-500 tabular-nums">{activeWords.length}</span>}>
             <ul className="space-y-2">
               {STAGE_GROUPS.map((g, i) => {
                 const n = stageCounts[i]
@@ -650,7 +636,7 @@ export default function ReviewClient() {
                 )
               })}
             </ul>
-          </div>
+          </DashCard>
       </>
     ),
       summary: <SummaryCard active={activeWords.length} mastered={masteredCount} dueToday={forecast[0]?.newDue ?? 0} toLearn={activeWords.length - masteredCount} />,

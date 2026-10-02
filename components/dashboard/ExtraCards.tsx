@@ -5,23 +5,12 @@ import { xpProgressInLevel, JLPT_COLORS, type JlptEstimate } from '@/lib/progres
 import { HIRAGANA, KATAKANA } from '@/lib/kana-data'
 import RankingWidget from '@/components/stats/RankingWidget'
 import { pick4 } from '@/lib/dashboard'
+import DashCard from './DashCard'
 
-// Tarjetas del dashboard que no dependen del estado del repaso. Todas siguen el
-// mismo marco (CardBox) para que en una fila midan lo mismo.
+// Tarjetas del dashboard que no dependen del estado del repaso. Todas van en el
+// mismo marco (DashCard) que el resto.
 
 type L4 = { es: string; en: string; ca: string; ja: string }
-
-function CardBox({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
-      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-baseline justify-between gap-2">
-        {title}
-        {right}
-      </h3>
-      {children}
-    </div>
-  )
-}
 
 // ── Resumen en cifras (las cuatro casillas de antes) ────────────────────────
 export function SummaryCard({ active, mastered, dueToday, toLearn }: {
@@ -35,7 +24,7 @@ export function SummaryCard({ active, mastered, dueToday, toLearn }: {
     { n: toLearn, label: { es: 'Por aprender', en: 'To learn', ca: 'Per aprendre', ja: '未習得' }, color: 'text-amber-600 dark:text-amber-400' },
   ]
   return (
-    <CardBox title={pick4({ es: 'Resumen en cifras', en: 'Summary', ca: 'Resum en xifres', ja: '数字で見る' }, lang)}>
+    <DashCard id="summary">
       <div className="grid grid-cols-2 gap-2">
         {tiles.map(t => (
           <div key={t.label.es} className="rounded-xl bg-slate-50 dark:bg-slate-700/40 px-3 py-2.5">
@@ -44,7 +33,7 @@ export function SummaryCard({ active, mastered, dueToday, toLearn }: {
           </div>
         ))}
       </div>
-    </CardBox>
+    </DashCard>
   )
 }
 
@@ -58,7 +47,7 @@ export function XpCard() {
     { label: { es: 'Total', en: 'Total', ca: 'Total', ja: '総合' }, level: p.total_level, xp: p.total_xp, bar: 'bg-amber-500' },
   ]
   return (
-    <CardBox title={pick4({ es: 'Nivel y XP', en: 'Level & XP', ca: 'Nivell i XP', ja: 'レベルとXP' }, lang)}>
+    <DashCard id="xp">
       <ul className="space-y-3">
         {filas.map(f => {
           const prog = xpProgressInLevel(f.xp)
@@ -78,7 +67,7 @@ export function XpCard() {
           )
         })}
       </ul>
-    </CardBox>
+    </DashCard>
   )
 }
 
@@ -95,7 +84,7 @@ export function JlptCard({ mastered }: { mastered: number }) {
   const desde = alcanzado?.min ?? 0
   const pct = siguiente ? Math.min(100, ((mastered - desde) / (siguiente.min - desde)) * 100) : 100
   return (
-    <CardBox title={pick4({ es: 'Vocabulario JLPT', en: 'JLPT vocabulary', ca: 'Vocabulari JLPT', ja: 'JLPT語彙' }, lang)}>
+    <DashCard id="jlpt">
       <div className="flex items-center gap-3">
         <span className={`px-3 py-1.5 rounded-xl text-lg font-bold ${alcanzado ? JLPT_COLORS[alcanzado.level] : 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'}`}>
           {alcanzado?.level ?? '—'}
@@ -128,13 +117,17 @@ export function JlptCard({ mastered }: { mastered: number }) {
           ja: '目安：語彙のみで判定しています。',
         }, lang)}
       </p>
-    </CardBox>
+    </DashCard>
   )
 }
 
 // ── Ranking semanal ────────────────────────────────────────────────────────
 export function RankingCard() {
-  return <RankingWidget showEmpty />
+  return (
+    <DashCard id="ranking">
+      <RankingWidget showEmpty bare />
+    </DashCard>
+  )
 }
 
 // ── Progreso de kana ───────────────────────────────────────────────────────
@@ -145,8 +138,8 @@ export function KanaCard({ learned }: { learned: Set<string> }) {
     { label: 'カタカナ', total: KATAKANA.length, n: KATAKANA.filter(k => learned.has(k.kana)).length, bar: 'bg-sky-500' },
   ]
   return (
-    <CardBox
-      title={pick4({ es: 'Progreso de kana', en: 'Kana progress', ca: 'Progrés de kana', ja: '仮名の進捗' }, lang)}
+    <DashCard
+      id="kana"
       right={<Link href="/kana" className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:underline">→</Link>}
     >
       <ul className="space-y-3">
@@ -162,6 +155,6 @@ export function KanaCard({ learned }: { learned: Set<string> }) {
           </li>
         ))}
       </ul>
-    </CardBox>
+    </DashCard>
   )
 }

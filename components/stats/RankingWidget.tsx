@@ -14,7 +14,8 @@ const MEDALS = ['🥇', '🥈', '🥉']
  * Anonymous weekly ranking for students: podium (counts only, no names) plus
  * their own position. Names are never shown here — only the admin panel sees them.
  */
-export default function RankingWidget({ showEmpty = false }: { showEmpty?: boolean } = {}) {
+// `bare`: sin caja ni título, para meterlo dentro de otro marco (el del dashboard).
+export default function RankingWidget({ showEmpty = false, bare = false }: { showEmpty?: boolean; bare?: boolean } = {}) {
   const [data, setData] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,12 +41,16 @@ export default function RankingWidget({ showEmpty = false }: { showEmpty?: boole
   // En el dashboard la tarjeta no puede desaparecer: muestra un aviso en su lugar.
   if (loading || !data || data.total === 0) {
     if (!showEmpty) return null
+    const aviso = (
+      <p className={`text-xs text-slate-400 ${bare ? '' : 'mt-2'}`}>
+        {loading ? 'Cargando…' : 'Esta semana aún no hay nadie en el ranking. ¡Haz repasos para estrenarlo!'}
+      </p>
+    )
+    if (bare) return aviso
     return (
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
         <h3 className="font-bold text-slate-800 dark:text-slate-100">🏆 Ranking semanal</h3>
-        <p className="text-xs text-slate-400 mt-2">
-          {loading ? 'Cargando…' : 'Esta semana aún no hay nadie en el ranking. ¡Haz repasos para estrenarlo!'}
-        </p>
+        {aviso}
       </div>
     )
   }
@@ -55,10 +60,10 @@ export default function RankingWidget({ showEmpty = false }: { showEmpty?: boole
     : null
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-4">
+    <div className={bare ? 'space-y-4' : 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-4'}>
       <div>
-        <h3 className="font-bold text-slate-800 dark:text-slate-100">🏆 Ranking semanal</h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        {!bare && <h3 className="font-bold text-slate-800 dark:text-slate-100">🏆 Ranking semanal</h3>}
+        <p className={`text-xs text-slate-500 dark:text-slate-400 ${bare ? '' : 'mt-0.5'}`}>
           Palabras que subieron de nivel SRS en los últimos 7 días · {data.total} participante{data.total === 1 ? '' : 's'}
         </p>
       </div>

@@ -6,6 +6,7 @@ import { getRandomKanjis, getVocabularyByKanjis, getVocabWordCountsByKanjis } fr
 import { showToast } from '@/components/ui/Toast'
 import { t } from '@/lib/i18n'
 import SkipToGradeModal from './SkipToGradeModal'
+import DashCard from '@/components/dashboard/DashCard'
 
 function activateItem(item: VocabItem, level: number, due: number): VocabItem {
   const perModeLevel = level > 1 ? level : 0
@@ -31,7 +32,6 @@ const GRADE_LABEL: Record<number, Record<string, string>> = {
 
 // Per-language labels
 const L = {
-  title:       { es: 'Nuevos kanjis',             ca: 'Nous kanjis',              en: 'New kanji',          ja: '新しい漢字' },
   searching:   { es: 'Buscando...',               ca: 'Cercant...',               en: 'Searching...',       ja: '検索中...' },
   complete:    { es: '¡Todos los kanjis completados! 🎉', ca: 'Tots els kanjis completats! 🎉', en: 'All kanji completed! 🎉', ja: '全漢字完了！🎉' },
   available:   { es: 'disponibles',               ca: 'disponibles',              en: 'available',          ja: '個利用可能' },
@@ -154,22 +154,12 @@ export default function QuickAddPanel({ onAdded }: Props) {
 
   return (
     <>
-    <div data-tutorial-id="quick-add-panel" className="rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
-
-      {/* Header */}
-      <div className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-3">
-        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-          {lx(L.title)}
-        </p>
-        {nextGrade && !detecting && (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-            {gradeLabel} · {nextKanjis.length} {lx(L.available)}
-          </p>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 bg-white dark:bg-slate-800 p-3 flex flex-col gap-2">
+    <DashCard
+      id="quickAdd"
+      tutorialId="quick-add-panel"
+      sub={nextGrade && !detecting ? `${gradeLabel} · ${nextKanjis.length} ${lx(L.available)}` : undefined}
+    >
+      <div className="flex-1 flex flex-col gap-2">
 
         {detecting ? (
           <div className="flex items-center gap-2 py-3">
@@ -270,7 +260,7 @@ export default function QuickAddPanel({ onAdded }: Props) {
         )}
 
       </div>
-    </div>
+    </DashCard>
 
     {showSkipModal && <SkipToGradeModal onClose={() => setShowSkipModal(false)} />}
     </>
