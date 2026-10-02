@@ -79,7 +79,7 @@ export default function CatalogoFicha({ jlpt, slug }: { jlpt: Jlpt; slug: string
 
 function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[] }) {
   const [dir, setDir] = useState<Dir>('ja-es')
-  const [como, setComo] = useState<Como>('ver')
+  const [como, setComo] = useState<Como>('tapado')
 
   // Sin el reclamo de la web; null si no queda explicación de verdad.
   const explicacion = useMemo(() => explicacionPropia(topic.explicacion_html), [topic.explicacion_html])

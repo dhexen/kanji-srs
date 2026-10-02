@@ -3,7 +3,7 @@
 //
 //   node scripts/copiar-catalogo.mjs
 //
-// Antes hay que correr supabase/migrations/029_catalogo.sql en kanji-srs.
+// Antes hay que correr supabase/migrations/045_catalogo.sql en kanji-srs.
 //
 // De dónde saca las claves:
 //   · Origen  (Hellotalk): ../Hellotalk/.env  — o la ruta de HELLOTALK_ENV.

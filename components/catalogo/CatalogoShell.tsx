@@ -53,7 +53,7 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
         <div className="rounded-xl border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-900/20 p-4 text-sm text-rose-700 dark:text-rose-300">
           No se ha podido cargar el catálogo: {error}
           <p className="text-xs mt-1 opacity-80">
-            ¿Se ha corrido la migración 029_catalogo.sql y copiado los datos con scripts/copiar-catalogo.mjs?
+            ¿Se ha corrido la migración 045_catalogo.sql y copiado los datos con scripts/copiar-catalogo.mjs?
           </p>
         </div>
       ) : (

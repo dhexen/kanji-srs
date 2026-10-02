@@ -1,4 +1,4 @@
--- Migration 029: Catálogo JLPT (sección /catalogo, de momento solo admin).
+-- Migration 045: Catálogo JLPT (sección /catalogo, de momento solo admin).
 --
 -- Copia del catálogo del proyecto Hellotalk: todas las gramáticas del JLPT
 -- (N5→N1, 676 fichas sacadas de guiadejapones) con sus frases de ejemplo.
