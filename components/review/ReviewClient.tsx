@@ -21,6 +21,16 @@ const CANONICAL_MODE_ORDER: ReviewMode[] = ['multi', 'meaning', 'reading', 'kanj
 // localStorage key for persisting the user's last review-mode selection
 const SELECTED_MODES_KEY = 'review_selected_modes'
 
+// Etapas SRS agrupadas como en el tutorial (OnboardingTour), para la tarjeta de niveles.
+const STAGE_GROUPS: { min: number; max: number; dot: string; label: Record<string, string> }[] = [
+  { min: 0, max: 0, dot: 'bg-slate-400',   label: { es: 'Sin estudiar', ca: 'Sense estudiar', en: 'Not studied', ja: '未学習' } },
+  { min: 1, max: 4, dot: 'bg-pink-500',    label: { es: 'Aprendiz', ca: 'Aprenent', en: 'Apprentice', ja: '見習い' } },
+  { min: 5, max: 6, dot: 'bg-violet-500',  label: { es: 'Gurú', ca: 'Gurú', en: 'Guru', ja: 'グル' } },
+  { min: 7, max: 7, dot: 'bg-blue-500',    label: { es: 'Maestro', ca: 'Mestre', en: 'Master', ja: 'マスター' } },
+  { min: 8, max: 8, dot: 'bg-sky-400',     label: { es: 'Iluminado', ca: 'Il·luminat', en: 'Enlightened', ja: '悟り' } },
+  { min: 9, max: 9, dot: 'bg-amber-500',   label: { es: 'Quemado', ca: 'Cremat', en: 'Burned', ja: '燃え尽き' } },
+]
+
 function orderByMode(items: SessionItem[]): SessionItem[] {
   const groups = new Map<ReviewMode, SessionItem[]>(CANONICAL_MODE_ORDER.map(m => [m, []]))
   for (const item of items) groups.get(item.mode)?.push(item)
@@ -152,7 +162,6 @@ export default function ReviewClient() {
 
   const forecast = useMemo(() => getReviewForecast(state.db, lang, 7), [state.db, lang, tick])
   const hourlyForecast = useMemo(() => getHourlyForecast(state.db), [state.db, tick])
-  const todayCount = forecast[0]?.newDue ?? 0
   const futureDays = forecast.slice(1)
 
   const localeTag = lang === 'ja' ? 'ja-JP' : lang === 'ca' ? 'ca-ES' : lang === 'en' ? 'en-GB' : 'es-ES'
@@ -162,6 +171,17 @@ export default function ReviewClient() {
 
   // Personal stats
   const masteredCount = useMemo(() => activeWords.filter(w => w.srsLevel >= 5).length, [activeWords])
+
+  // Palabras activas agrupadas por etapa SRS (Sin estudiar, Aprendiz 1-4, Gurú 5-6…)
+  const stageCounts = useMemo(() => {
+    const counts = STAGE_GROUPS.map(() => 0)
+    for (const w of activeWords) {
+      const lvl = Math.min(Math.max(w.srsLevel ?? 0, 0), 9)
+      const i = STAGE_GROUPS.findIndex(g => lvl >= g.min && lvl <= g.max)
+      if (i >= 0) counts[i]++
+    }
+    return counts
+  }, [activeWords])
 
   // "Load more vocab" suggestion: shown when the learner is keeping up — a good
   // share of active words are Guru+ and the upcoming daily review load is modest.
@@ -494,8 +514,13 @@ export default function ReviewClient() {
           </div>
         )}
 
+        {/* ── Rejilla: en pantallas anchas (xl) las tarjetas van por parejas,
+             en 12 columnas; por debajo, una sola columna. Al ser grid, las
+             tarjetas nunca se solapan: como mucho bajan de fila. ──────────── */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+
         {/* ── Forecast card ─────────────────────────────────────────── */}
-        <div data-tutorial-id="forecast-card" className="bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+        <div data-tutorial-id="forecast-card" className="xl:col-span-7 min-w-0 bg-gradient-to-br from-violet-50 via-pink-50/60 to-rose-50/40 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border border-violet-100/80 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wide">
@@ -563,27 +588,29 @@ export default function ReviewClient() {
               <p className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide mb-2">
                 {t(lang, 'header_forecast')}
               </p>
-              <div className="flex gap-3 flex-wrap">
+              {/* Una celda por día, todas del mismo ancho y repartidas por toda la
+                  tarjeta. Los nuevos de ese día van en una segunda línea para
+                  que quepa en el móvil. */}
+              <div className="grid grid-flow-col auto-cols-fr gap-1.5">
                 {futureDays.map(day => {
                   const carried = day.cumulative - day.newDue
                   const hasCarried = carried > 0
                   const hasNew = day.newDue > 0
                   const isEmpty = day.cumulative === 0
                   return (
-                    <div key={day.date.toISOString()} className="flex flex-col items-center min-w-[2.5rem]">
-                      <span className="text-slate-400 dark:text-slate-500 text-[10px] font-medium capitalize">{day.dayLabel}</span>
-                      <span className="text-xs font-bold tabular-nums mt-0.5 leading-tight">
+                    <div key={day.date.toISOString()} className="flex flex-col items-center py-2 rounded-xl bg-white/60 dark:bg-slate-700/40 border border-violet-100/60 dark:border-slate-600/40 min-w-0">
+                      <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium capitalize truncate max-w-full">{day.dayLabel}</span>
+                      <span className="text-lg sm:text-xl font-bold tabular-nums mt-0.5 leading-tight">
                         {isEmpty ? (
                           <span className="text-slate-300 dark:text-slate-600">—</span>
-                        ) : hasCarried && hasNew ? (
-                          <span className="text-violet-600 dark:text-violet-400">
-                            {carried} <span className="text-violet-400 dark:text-violet-500 font-semibold text-[10px]">(+{day.newDue})</span>
-                          </span>
                         ) : hasCarried ? (
                           <span className="text-violet-600 dark:text-violet-400">{carried}</span>
                         ) : (
                           <span className="text-violet-600 dark:text-violet-400">+{day.newDue}</span>
                         )}
+                      </span>
+                      <span className="text-[10px] font-semibold tabular-nums leading-tight text-violet-400 dark:text-violet-500 h-3">
+                        {hasCarried && hasNew ? `+${day.newDue}` : ''}
                       </span>
                     </div>
                   )
@@ -594,11 +621,12 @@ export default function ReviewClient() {
         </div>
 
         {/* ── Selector de modos (pills en fila) ─────────────────────── */}
-        <div data-tutorial-id="mode-selector" className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+        <div data-tutorial-id="mode-selector" className="xl:col-span-5 min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
           <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
             {t(lang, 'review_subtitle')}
           </p>
-          <div className="flex flex-wrap gap-2">
+          {/* Rejilla: todos los botones del mismo ancho y alto, rellenando la fila */}
+          <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
             {modes.map(([id, cfg]) => {
               const active = selectedModes.includes(id)
               const due = pendingPerMode[id] ?? 0
@@ -609,7 +637,7 @@ export default function ReviewClient() {
                   onClick={() => setSelectedModes(prev =>
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                   )}
-                  className={`relative px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
+                  className={`relative h-full px-3 py-2 rounded-xl border-2 transition-all active:scale-95 text-left ${
                     active
                       ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                       : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400'
@@ -638,12 +666,12 @@ export default function ReviewClient() {
         </div>
 
         {/* ── Seccions + Nous Kanjis ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div className="xl:col-span-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
 
           {/* Seccions */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+          <div className="xl:col-span-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">{sectionsLabel}</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 2xl:grid-cols-3 gap-2">
               {SECTIONS.map(tile => (
                 <Link
                   key={tile.id}
@@ -664,26 +692,40 @@ export default function ReviewClient() {
           </div>
 
           {/* Nous Kanjis */}
-          <QuickAddPanel onAdded={onNewWordsAdded} />
+          <div className="xl:col-span-5 min-w-0">
+            <QuickAddPanel onAdded={onNewWordsAdded} />
+          </div>
+
+          {/* Niveles: palabras activas por etapa SRS */}
+          <div className="md:col-span-2 xl:col-span-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-baseline justify-between gap-2">
+              {({ es: 'Niveles de tus palabras', en: 'Your word levels', ca: 'Nivells de les teves paraules', ja: '単語のレベル' } as Record<string, string>)[lang] ?? 'Niveles de tus palabras'}
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 tabular-nums">{activeWords.length}</span>
+            </h3>
+            <ul className="space-y-2">
+              {STAGE_GROUPS.map((g, i) => {
+                const n = stageCounts[i]
+                const pct = activeWords.length ? (n / activeWords.length) * 100 : 0
+                return (
+                  <li key={g.min}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
+                        <span className={`w-2 h-2 rounded-full ${g.dot}`} />
+                        {g.label[lang] ?? g.label.es}
+                      </span>
+                      <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200">{n}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div className={`h-full rounded-full ${g.dot}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </div>
 
-        {/* ── Dades totals ──────────────────────────────────────────── */}
-        {activeWords.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Palabras activas', value: activeWords.length, color: 'text-violet-600 dark:text-violet-400' },
-              { label: 'Dominadas', value: masteredCount, color: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Programados hoy', value: todayCount, color: 'text-amber-600 dark:text-amber-400' },
-              { label: 'Por aprender', value: activeWords.length - masteredCount, color: 'text-pink-600 dark:text-pink-400' },
-            ].map(s => (
-              <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm text-center">
-                <p className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
+        </div>
       </div>
     )
   }

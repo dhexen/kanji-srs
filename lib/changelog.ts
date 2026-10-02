@@ -26,6 +26,11 @@ export const CHANGELOG: ChangelogVersion[] = [
       },
       {
         type: 'improvement',
+        title: 'Dashboard en dos columnas en pantallas grandes',
+        description: 'En el ordenador, las tarjetas del dashboard se colocan una al lado de la otra: los repasos de hoy junto a la selección de modos, y las secciones junto al panel de añadir kanjis y una nueva tarjeta con cuántas palabras tienes en cada nivel (Aprendiz, Gurú, Maestro…). La previsión de los próximos días es más grande y ocupa todo el ancho, y los botones de modos tienen todos el mismo tamaño. En pantallas más pequeñas y en el móvil las tarjetas se siguen apilando en una columna.',
+      },
+      {
+        type: 'improvement',
         title: 'El botón "Siguiente" siempre a mano en el móvil',
         description: 'Al repasar vocabulario o gramática, después de responder el botón "Siguiente" se queda pegado a la parte de abajo de la pantalla. Ya no hay que hacer scroll para pasar a la siguiente pregunta.',
       },
