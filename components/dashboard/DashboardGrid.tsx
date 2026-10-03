@@ -17,15 +17,15 @@ import {
 
 const CACHE_KEY = 'dashboard_layout_v1'
 
-// Cada fila va en un marco de color con su nombre en una pestaña. El color va
-// por posición: la primera violeta, la segunda verde, y así.
+// El nombre de cada fila lleva una marca de color, por posición: la primera
+// violeta, la segunda verde, y así.
 const ROW_COLOR = [
-  { frame: 'border-violet-400 dark:border-violet-500', tab: 'bg-violet-400 dark:bg-violet-500' },
-  { frame: 'border-emerald-400 dark:border-emerald-500', tab: 'bg-emerald-400 dark:bg-emerald-500' },
-  { frame: 'border-sky-400 dark:border-sky-500', tab: 'bg-sky-400 dark:bg-sky-500' },
-  { frame: 'border-amber-400 dark:border-amber-500', tab: 'bg-amber-400 dark:bg-amber-500' },
-  { frame: 'border-rose-400 dark:border-rose-500', tab: 'bg-rose-400 dark:bg-rose-500' },
-  { frame: 'border-indigo-400 dark:border-indigo-500', tab: 'bg-indigo-400 dark:bg-indigo-500' },
+  'bg-violet-400 dark:bg-violet-500',
+  'bg-emerald-400 dark:bg-emerald-500',
+  'bg-sky-400 dark:bg-sky-500',
+  'bg-amber-400 dark:bg-amber-500',
+  'bg-rose-400 dark:bg-rose-500',
+  'bg-indigo-400 dark:bg-indigo-500',
 ]
 
 const T = {
@@ -228,14 +228,15 @@ export default function DashboardGrid({
           const color = ROW_COLOR[r % ROW_COLOR.length]
           const fijo = row.name ? ROW_NAMES[row.name] : undefined
           return (
-            <section key={r} className={`relative ${row.name ? 'pt-7' : ''}`}>
+            <section key={r} className="space-y-2">
               {row.name && (
-                <h2 className={`absolute top-0 left-5 max-w-[calc(100%-2.5rem)] truncate px-3 py-1 rounded-t-xl text-xs font-bold text-white ${color.tab}`}>
-                  {fijo && lang !== 'ja' && <span className="kanji-font mr-1.5">{fijo.ja}</span>}
+                <h2 className="flex items-center gap-2 px-1 text-sm font-bold text-slate-600 dark:text-slate-300 truncate">
+                  <span className={`w-1.5 h-4 rounded-full shrink-0 ${color}`} />
+                  {fijo && lang !== 'ja' && <span className="kanji-font text-slate-400 dark:text-slate-500">{fijo.ja}</span>}
                   {rowLabel(row.name, lang)}
                 </h2>
               )}
-              <div className={`rounded-3xl border-2 ${color.frame} p-3 sm:p-4`}>{grid}</div>
+              {grid}
             </section>
           )
         }
