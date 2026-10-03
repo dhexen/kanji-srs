@@ -1,7 +1,7 @@
 'use client'
-import { createContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSelectedLayoutSegment } from 'next/navigation'
-import { fetchCatalogoLista, type CatalogoItem, type Jlpt } from '@/lib/catalogo'
+import { fetchCatalogoLista, type CatalogoItem, type CatalogoLeccion, type Jlpt } from '@/lib/catalogo'
 import CatalogoRail from './CatalogoRail'
 
 // El armazón de /catalogo/[nivel]: la lista a la izquierda y la ficha a la
@@ -14,6 +14,9 @@ import CatalogoRail from './CatalogoRail'
 /** La lista entera, para que la ficha pueda enlazar las otras que cita. */
 export const ListaCatalogo = createContext<CatalogoItem[] | null>(null)
 
+/** Para que la ficha, al recolocarse, mueva también la lista sin volver a pedirla. */
+export const CambiaLecciones = createContext<(cambios: ({ id: string } & CatalogoLeccion)[]) => void>(() => {})
+
 export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children: React.ReactNode }) {
   const [lista, setLista] = useState<CatalogoItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +27,11 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
       .then(l => { if (vivo) setLista(l) })
       .catch(e => { if (vivo) setError(e instanceof Error ? e.message : String(e)) })
     return () => { vivo = false }
+  }, [])
+
+  const cambiaLecciones = useCallback((cambios: ({ id: string } & CatalogoLeccion)[]) => {
+    const porId = new Map(cambios.map(c => [c.id, c]))
+    setLista(l => l && l.map(x => ({ ...x, ...porId.get(x.id) })))
   }, [])
 
   // Cuál está abierta, sacado de la URL. Viene escapado (los slugs llevan
@@ -71,7 +79,9 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
             )}
           </div>
           <div className="min-w-0">
-            <ListaCatalogo.Provider value={lista}>{children}</ListaCatalogo.Provider>
+            <ListaCatalogo.Provider value={lista}>
+              <CambiaLecciones.Provider value={cambiaLecciones}>{children}</CambiaLecciones.Provider>
+            </ListaCatalogo.Provider>
           </div>
         </div>
       )}

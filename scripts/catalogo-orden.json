@@ -1,0 +1,5410 @@
+{
+"adjetivos-い-い形容詞": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "8",
+"orden": 1
+},
+"adjetivos-japoneses-な-な形容詞": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "8",
+"orden": 2
+},
+"ちゃいけない-じゃいけない-cha-ikenai-ja-dame": {
+"leccion": "20",
+"tipo": "f",
+"nota": "Forma coloquial de てはいけません (L15); el estilo coloquial empieza en la L20.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"だ-da-です-desu": {
+"leccion": "1",
+"tipo": "p",
+"nota": "です en la L1; だ, con el estilo coloquial, en la L20.",
+"tambien": null,
+"grammar_test": "1",
+"orden": 1
+},
+"だけ-dake": {
+"leccion": "11",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だろう-darou": {
+"leccion": "32",
+"tipo": "p",
+"nota": "Forma llana de でしょう (probabilidad, L32).",
+"tambien": null,
+"grammar_test": "31",
+"orden": 1
+},
+"で-de-particle": {
+"leccion": "5",
+"tipo": "p",
+"nota": "Medio de transporte en la L5; lugar de la acción en la L6; herramienta en la L7.",
+"tambien": null,
+"grammar_test": "5",
+"orden": 1
+},
+"でも-demo": {
+"leccion": "12",
+"tipo": "v",
+"nota": "でも «pero» sale en el vocabulario de la L12.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"でしょう-deshou": {
+"leccion": "21",
+"tipo": "p",
+"nota": "でしょう？ para confirmar en la L21; de probabilidad en la L32.",
+"tambien": null,
+"grammar_test": "31",
+"orden": 1
+},
+"どんな-donna": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"どうして-doushite": {
+"leccion": "9",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"どうやって-douyatte": {
+"leccion": "16",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"が-ga-particula-indicador-sujeto": {
+"leccion": "9",
+"tipo": "p",
+"nota": "が «pero» en la L8; が con あります・わかります・すき en la L9.",
+"tambien": null,
+"grammar_test": "7",
+"orden": 2
+},
+"があります-ga-arimasu-がある-ga-aru": {
+"leccion": "10",
+"tipo": "p",
+"nota": "Con objetos en la L9 (tener); existencia en la L10.",
+"tambien": null,
+"grammar_test": "7",
+"orden": 1
+},
+"がほしい-ga-hoshii-が欲しい": {
+"leccion": "13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"がいます-ga-imasu-がいる-ga-iru": {
+"leccion": "10",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "7",
+"orden": 2
+},
+"方がいい-ほうがいい-hou-ga-ii": {
+"leccion": "32",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "49",
+"orden": 2
+},
+"一番-いちばん-ichiban": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 1
+},
+"一緒に-いっしょに-issho-ni": {
+"leccion": "6",
+"tipo": "v",
+"nota": "いっしょに sale en el vocabulario de la L6.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"いつも-itsumo": {
+"leccion": "6",
+"tipo": "v",
+"nota": "いつも sale en el vocabulario de la L6.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"じゃない-janai-ではない-dewa-nai": {
+"leccion": "1",
+"tipo": "p",
+"nota": "じゃありません en la L1; じゃない, coloquial, en la L20.",
+"tambien": null,
+"grammar_test": "1",
+"orden": 2
+},
+"か-ka-particula-pregunta": {
+"leccion": "1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "1",
+"orden": 3
+},
+"か～か-ka-ka-o": {
+"leccion": "2",
+"tipo": "p",
+"nota": "N1ですか、N2ですか (pregunta de elección).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"から-kara": {
+"leccion": "4",
+"tipo": "p",
+"nota": "から…まで en la L4; から de causa en la L9.",
+"tambien": null,
+"grammar_test": "6",
+"orden": 1
+},
+"方-かた-kata": {
+"leccion": "14",
+"tipo": "v",
+"nota": "～方 sale en el vocabulario de la L14 (読み方).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"けど-kedo": {
+"leccion": "20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"けれども-keredo-mo": {
+"leccion": "20",
+"tipo": "f",
+"nota": "Versión formal de けど (L20).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"まだ-mada": {
+"leccion": "7",
+"tipo": "p",
+"nota": "いいえ、まだです como respuesta a もう～ました (L7).",
+"tambien": null,
+"grammar_test": "13",
+"orden": 1
+},
+"まだ～ていません-mada-te-imasen": {
+"leccion": "31",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "13",
+"orden": 1
+},
+"まで-made": {
+"leccion": "4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "6",
+"orden": 2
+},
+"前に-まえに-mae-ni": {
+"leccion": "18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "22",
+"orden": 1
+},
+"marcador-topico-は-wa": {
+"leccion": "1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "1",
+"orden": 4
+},
+"ませんか-masen-ka": {
+"leccion": "6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ましょう-mashou": {
+"leccion": "6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "12",
+"orden": 2
+},
+"ましょうか-mashouka": {
+"leccion": "14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "12",
+"orden": 1
+},
+"も-mo-particula": {
+"leccion": "1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "1",
+"orden": 5
+},
+"もう-mou": {
+"leccion": "7",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "13",
+"orden": 2
+},
+"なあ-naa-particula-fin-oracion": {
+"leccion": "20",
+"tipo": "f",
+"nota": "Partícula coloquial de final; va con el estilo coloquial (L20).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ないで-naide": {
+"leccion": "34",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "44",
+"orden": 1
+},
+"ないでください-naide-kudasai": {
+"leccion": "17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "21",
+"orden": 1
+},
+"ないといけない-naito-ikenai": {
+"leccion": "21",
+"tipo": "p",
+"nota": "～ないと… sale en la L21.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"なくてもいい-naku-temo-ii": {
+"leccion": "17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "21",
+"orden": 2
+},
+"なくちゃ-ダメ-nakucha-dame": {
+"leccion": "21",
+"tipo": "f",
+"nota": "Coloquial de なくては / ないと (L21).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なくてはいけない-nakute-wa-ikenai": {
+"leccion": "17",
+"tipo": "f",
+"nota": "Variante de なければなりません (L17).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なくてはならない-nakute-wa-naranai": {
+"leccion": "17",
+"tipo": "f",
+"nota": "Variante de なければなりません (L17).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"なる-naru": {
+"leccion": "19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "23",
+"orden": 1
+},
+"んです-ndesu-んだ-nda": {
+"leccion": "26",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "26",
+"orden": 1
+},
+"particula-ね-ne": {
+"leccion": "4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"particula-destino-に-ni": {
+"leccion": "4",
+"tipo": "p",
+"nota": "に de tiempo en la L4; de destino en la L5 (con へ).",
+"tambien": null,
+"grammar_test": "5",
+"orden": 4
+},
+"にいく-ni-iku": {
+"leccion": "13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にする-ni-suru": {
+"leccion": "44",
+"tipo": "p",
+"nota": "Nにします en la L44.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"particula-direcciに-へ-ni-e": {
+"leccion": "5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "5",
+"orden": 2
+},
+"particula-posesiva-の-no": {
+"leccion": "1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "2",
+"orden": 6
+},
+"のです-no-desu-のだ-noda": {
+"leccion": "26",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "26",
+"orden": 2
+},
+"のが下手-のがへた-no-ga-heta": {
+"leccion": "38",
+"tipo": "p",
+"nota": "Nominalizar con の (L38). Con nombres, じょうず/へた ya en la L9.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のが上手-no-ga-jouzu-のがじょうずです": {
+"leccion": "38",
+"tipo": "p",
+"nota": "Nominalizar con の (L38). Con nombres, じょうず/へた ya en la L9.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"のが好き-no-ga-suki-のがすきです": {
+"leccion": "38",
+"tipo": "p",
+"nota": "Nominalizar con の (L38). Con nombres, すき ya en la L9.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"の中でが一番-のなかでがいちばん-no-naka-de-ga-ichiban": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 2
+},
+"ので-node": {
+"leccion": "39",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"御-お-ご-o-go-particula-indicadora-cortesia": {
+"leccion": "6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "40",
+"orden": 3
+},
+"marcador-objeto-を-wot-marker": {
+"leccion": "6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "5",
+"orden": 4
+},
+"をください-o-kudasai": {
+"leccion": "3",
+"tipo": "f",
+"nota": "No sale como punto en las listas consultadas; se pone en la L3, donde se compra en la conversación.",
+"tambien": null,
+"grammar_test": "4",
+"orden": 1
+},
+"しかし-shikashi": {
+"leccion": "19",
+"tipo": "v",
+"nota": "しかし sale en el vocabulario de la L19.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"それから-sore-kara": {
+"leccion": "6",
+"tipo": "v",
+"nota": "それから sale en el vocabulario de la L6.",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"そして-soshite": {
+"leccion": "8",
+"tipo": "p",
+"nota": "Unir adjetivos con そして (L8).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"すぎる-sugiru-過ぎる": {
+"leccion": "44",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "35",
+"orden": 2
+},
+"たことがある-ta-koto-ga-aru": {
+"leccion": "19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "18",
+"orden": 2
+},
+"たい-tai": {
+"leccion": "13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"たり～たりする-tari-tari-suru": {
+"leccion": "19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "18",
+"orden": 3
+},
+"てある-te-aru": {
+"leccion": "30",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "27",
+"orden": 1
+},
+"ている-te-iru": {
+"leccion": "14",
+"tipo": "p",
+"nota": "En curso en la L14; estado en la L15.",
+"tambien": null,
+"grammar_test": "13",
+"orden": 2
+},
+"てから-te-kara": {
+"leccion": "16",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "19",
+"orden": 2
+},
+"てください-te-kudasai": {
+"leccion": "14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "10",
+"orden": 3
+},
+"てはいけない-te-wa-ikenai": {
+"leccion": "15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "10",
+"orden": 1
+},
+"てもいいですか-temo-ii-desu-ka": {
+"leccion": "15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "10",
+"orden": 2
+},
+"particula-と-to": {
+"leccion": "4",
+"tipo": "p",
+"nota": "N1とN2 en la L4; «con alguien» en la L5.",
+"tambien": null,
+"grammar_test": "4",
+"orden": 5
+},
+"時-とき-toki": {
+"leccion": "23",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"とても-totemo": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"つもり-tsumori": {
+"leccion": "31",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"は〜より-です-wa-yori-desu": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 3
+},
+"はどうですか-wa-dou-desu-ka": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"や-ya-particula": {
+"leccion": "10",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"particula-final-よ-yo": {
+"leccion": "5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"より～のほうが-yori-no-hou-ga": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 4
+},
+"間-aida": {
+"leccion": "28",
+"tipo": "f",
+"nota": "No está en el libro; va junto a ながら (L28).",
+"tambien": null,
+"grammar_test": "37",
+"orden": 4
+},
+"間に-aida-ni": {
+"leccion": "28",
+"tipo": "f",
+"nota": "No está en el libro; va junto a ながら (L28).",
+"tambien": null,
+"grammar_test": "37",
+"orden": 5
+},
+"あまり～ない-amarinai": {
+"leccion": "8",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"後で-あとで-ato-de": {
+"leccion": "34",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "20",
+"orden": 1
+},
+"ば-ba-conditional-form": {
+"leccion": "35",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "33",
+"orden": 1
+},
+"場合は-baai-wa": {
+"leccion": "45",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ばかり-bakari": {
+"leccion": "46",
+"tipo": "f",
+"nota": "No está en el libro; va junto a たばかり (L46).",
+"tambien": null,
+"grammar_test": "48",
+"orden": 6
+},
+"だけで-dake-de": {
+"leccion": "27",
+"tipo": "f",
+"nota": "No está en el libro; va junto a しか (L27) y だけ (L11).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"出す-dasu": {
+"leccion": "44",
+"tipo": "f",
+"nota": "Verbo compuesto (Vます＋だす); va con すぎる・やすい (L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"でございます-de-gozaimasu": {
+"leccion": "50",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"でも-demo-significado-something": {
+"leccion": "21",
+"tipo": "p",
+"nota": "～でも飲みませんか (L21).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ではないか-dewa-nai-ka": {
+"leccion": "21",
+"tipo": "f",
+"nota": "No está en el libro; va junto a でしょう？ (L21).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"が必要-ga-hitsuyou": {
+"leccion": "35",
+"tipo": "v",
+"nota": "必要 sale en el vocabulario de la L35.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"がする-ga-suru": {
+"leccion": "47",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"がり-gari": {
+"leccion": "44",
+"tipo": "f",
+"nota": "No está en el libro; va junto a いやがります (vocabulario de la L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 8
+},
+"がる-garu-がっている-gatteiru": {
+"leccion": "44",
+"tipo": "v",
+"nota": "いやがります sale en el vocabulario de la L44.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"ございます-gozaimasu": {
+"leccion": "50",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"始める-hajimeru-始めた": {
+"leccion": "44",
+"tipo": "f",
+"nota": "Verbo compuesto (Vます＋はじめる); va con すぎる・やすい (L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 9
+},
+"はずだ-hazu-da": {
+"leccion": "46",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "31",
+"orden": 1
+},
+"はずがない-hazu-ga-nai": {
+"leccion": "46",
+"tipo": "f",
+"nota": "Negativa de はずです (L46).",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"必要がある-hitsuyou-ga-aru": {
+"leccion": "35",
+"tipo": "v",
+"nota": "必要 sale en el vocabulario de la L35.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"意向形-ikou-kei-volitional-form": {
+"leccion": "31",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"いらっしゃる-irassharu": {
+"leccion": "49",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "40",
+"orden": 1
+},
+"いたします-itashimasu": {
+"leccion": "50",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "40",
+"orden": 3
+},
+"じゃないか-janai-ka": {
+"leccion": "21",
+"tipo": "f",
+"nota": "No está en el libro; va junto a でしょう？ (L21).",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"かどうか-ka-dou-ka": {
+"leccion": "40",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かしら-ka-shira": {
+"leccion": "40",
+"tipo": "f",
+"nota": "No está en el libro; va junto a las preguntas dentro de la frase (L40).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"かい-kai": {
+"leccion": "20",
+"tipo": "f",
+"nota": "Pregunta coloquial; va con el estilo coloquial (L20).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かもしれない-kamo-shirenai": {
+"leccion": "32",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "31",
+"orden": 1
+},
+"かな-kana": {
+"leccion": "40",
+"tipo": "f",
+"nota": "No está en el libro; va junto a las preguntas dentro de la frase (L40).",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"から作る-作られている-kara-tsukuru": {
+"leccion": "37",
+"tipo": "p",
+"nota": "N から つくられます, en la pasiva (L37).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"きっと-kitto": {
+"leccion": "32",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"頃-ころ-ごろ": {
+"leccion": "13",
+"tipo": "v",
+"nota": "～ごろ sale en el vocabulario de la L13.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"こと-koto": {
+"leccion": "18",
+"tipo": "p",
+"nota": "しゅみは～ことです (L18).",
+"tambien": null,
+"grammar_test": "15",
+"orden": 1
+},
+"ことがある-koto-ga-aru": {
+"leccion": "19",
+"tipo": "f",
+"nota": "No está en el libro; va junto a たことがあります (L19).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことができる-koto-ga-dekiru-ことができますか": {
+"leccion": "18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "15",
+"orden": 2
+},
+"ことになる-koto-ni-naru": {
+"leccion": "36",
+"tipo": "f",
+"nota": "En Minna está en Chūkyū I; aquí va junto a ようになる (L36).",
+"tambien": null,
+"grammar_test": "34",
+"orden": 5
+},
+"ことにする-koto-ni-suru": {
+"leccion": "36",
+"tipo": "f",
+"nota": "En Minna está en Chūkyū I; aquí va junto a ようにする (L36).",
+"tambien": null,
+"grammar_test": "34",
+"orden": 6
+},
+"い-adjective-くする-ku-suru": {
+"leccion": "44",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"急に-kyuu-ni": {
+"leccion": "45",
+"tipo": "v",
+"nota": "急に sale en el vocabulario de la L45.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"までに-made-ni": {
+"leccion": "17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"まま-mama": {
+"leccion": "30",
+"tipo": "v",
+"nota": "そのままにします sale en el vocabulario de la L30.",
+"tambien": null,
+"grammar_test": "38",
+"orden": 2
+},
+"または-matawa": {
+"leccion": "10",
+"tipo": "f",
+"nota": "No está en el libro; va junto a や (L10).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"みたいだ-mitai-da": {
+"leccion": "47",
+"tipo": "f",
+"nota": "Coloquial de ようです (L47).",
+"tambien": null,
+"grammar_test": "38",
+"orden": 4
+},
+"みたいな-mitai-na": {
+"leccion": "47",
+"tipo": "f",
+"nota": "Coloquial de ような (L47).",
+"tambien": null,
+"grammar_test": "38",
+"orden": 5
+},
+"みたいに-mitai-ni": {
+"leccion": "44",
+"tipo": "v",
+"nota": "～みたいにしてください sale en el vocabulario de la L44.",
+"tambien": null,
+"grammar_test": "38",
+"orden": 6
+},
+"も-mo-significado-as-many-as": {
+"leccion": "42",
+"tipo": "p",
+"nota": "Cantidad＋も (L42).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"な-na-significado-order-dont-do": {
+"leccion": "33",
+"tipo": "p",
+"nota": "Prohibición con な (L33).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"など-nado": {
+"leccion": "10",
+"tipo": "v",
+"nota": "～や～など sale en el vocabulario de la L10.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ながら-nagara": {
+"leccion": "28",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "19",
+"orden": 1
+},
+"なかなか～ない-nakanaka-nai": {
+"leccion": "18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なければいけない-nakereba-ikenai": {
+"leccion": "17",
+"tipo": "f",
+"nota": "Variante de なければなりません (L17).",
+"tambien": null,
+"grammar_test": "21",
+"orden": 3
+},
+"なければならない-nakereba-naranai": {
+"leccion": "17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "21",
+"orden": 2
+},
+"なら-nara": {
+"leccion": "35",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "33",
+"orden": 2
+},
+"なさい-nasai": {
+"leccion": "33",
+"tipo": "f",
+"nota": "Imperativo suave; va con el imperativo (L33).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なさる-nasaru-なさいます": {
+"leccion": "49",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に気がつく-ni-ki-ga-tsuku": {
+"leccion": "31",
+"tipo": "v",
+"nota": "気が付きます sale en el vocabulario de la L31.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"にみえる-に見える-ni-mieru": {
+"leccion": "47",
+"tipo": "f",
+"nota": "No está en el libro; va junto a ようです (L47).",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"な-adjective-にする-ni-suru": {
+"leccion": "44",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にくい-nikui": {
+"leccion": "44",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "37",
+"orden": 3
+},
+"の中で-no-naka-de": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 1
+},
+"のに-noni-significado-even-though": {
+"leccion": "45",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "32",
+"orden": 2
+},
+"のに-noni-significado-to-do": {
+"leccion": "42",
+"tipo": "p",
+"nota": "～のに de finalidad (L42).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"のは〜だ-nowa-da": {
+"leccion": "38",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"お～ください-o-kudasai": {
+"leccion": "49",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"お～になる-o-ni-naru": {
+"leccion": "49",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "40",
+"orden": 4
+},
+"おきに-oki-ni": {
+"leccion": "11",
+"tipo": "f",
+"nota": "No está en el libro; va junto a «periodo＋に＋～回» (L11).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"終わる-おわる-owaru": {
+"leccion": "44",
+"tipo": "f",
+"nota": "Verbo compuesto (Vます＋おわる); va con すぎる・やすい (L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 10
+},
+"られる-rareru-japanese-potential-form": {
+"leccion": "27",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "29",
+"orden": 1
+},
+"らしい-rashii": {
+"leccion": "47",
+"tipo": "f",
+"nota": "En Minna está en Chūkyū I; aquí va junto a そうです・ようです (L47).",
+"tambien": null,
+"grammar_test": "41",
+"orden": 7
+},
+"さ-sa": {
+"leccion": "40",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"さっき-sakki": {
+"leccion": "34",
+"tipo": "v",
+"nota": "さっき sale en el vocabulario de la L34.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"させられる-saserareru-significado-causative-passive-form": {
+"leccion": "48",
+"tipo": "f",
+"nota": "No está en el libro; va junto a la causativa (L48).",
+"tambien": null,
+"grammar_test": "48",
+"orden": 3
+},
+"させる-saseru-causative-form": {
+"leccion": "48",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "24",
+"orden": 1
+},
+"させてください-sasete-kudasai": {
+"leccion": "48",
+"tipo": "p",
+"nota": "させていただけませんか (L48).",
+"tambien": null,
+"grammar_test": "24",
+"orden": 2
+},
+"さすがに-sasuga-ni": {
+"leccion": "51",
+"tipo": "x",
+"nota": "Sin referencia en el libro.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"し-shi": {
+"leccion": "28",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"そんなに-sonnna-ni": {
+"leccion": "21",
+"tipo": "v",
+"nota": "そんなに sale en el vocabulario de la L21.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"それでも-sore-demo": {
+"leccion": "45",
+"tipo": "v",
+"nota": "それでも sale en el vocabulario de la L45.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"それに-sore-ni": {
+"leccion": "28",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"そうだ-sou-da-i-heard-that": {
+"leccion": "47",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "42",
+"orden": 2
+},
+"そうだ-sou-da-looks-like": {
+"leccion": "43",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "42",
+"orden": 1
+},
+"そうに-そうな-sou-ni-sou-na": {
+"leccion": "43",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "42",
+"orden": 2
+},
+"たばかり-ta-bakari": {
+"leccion": "46",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"たところ-ta-tokoro": {
+"leccion": "46",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "43",
+"orden": 3
+},
+"他動詞-自動詞-verbos-transitivos-intransitivos": {
+"leccion": "29",
+"tipo": "p",
+"nota": "Intransitivos con ています (L29); transitivos con てあります (L30).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"たがる-tagaru": {
+"leccion": "44",
+"tipo": "f",
+"nota": "No está en el libro; va junto a いやがります (L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 11
+},
+"たら-tara": {
+"leccion": "25",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "20",
+"orden": 1
+},
+"たらどう-tara-dou": {
+"leccion": "32",
+"tipo": "f",
+"nota": "Consejo; va junto a ほうがいい (L32).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"たらいいですか-tara-ii-desu-ka": {
+"leccion": "26",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"て-で-te-de-particula-conjuntiva": {
+"leccion": "39",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"てあげる-te-ageru-てあげます-te-agemasu": {
+"leccion": "24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "14",
+"orden": 1
+},
+"て欲しい-てほしい-te-hoshii": {
+"leccion": "41",
+"tipo": "f",
+"nota": "No está en el libro; va con dar y recibir favores (L41).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ていく-te-iku-ていった-te-itta": {
+"leccion": "43",
+"tipo": "f",
+"nota": "Pareja de てきます (L43).",
+"tambien": null,
+"grammar_test": "27",
+"orden": 4
+},
+"ていた-te-ita": {
+"leccion": "14",
+"tipo": "f",
+"nota": "Pasado de ています (L14).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ていただけませんか-te-itadakemasen-ka": {
+"leccion": "26",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "25",
+"orden": 2
+},
+"てくれる-te-kureru-てくれた-te-kureta": {
+"leccion": "24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "14",
+"orden": 2
+},
+"てくる-te-kuru-てきます-te-kimasu": {
+"leccion": "43",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "27",
+"orden": 3
+},
+"てみる-te-miru-てみたい-te-mitai": {
+"leccion": "40",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "17",
+"orden": 3
+},
+"てもらう-te-morau-てもらいたい-te-moraitai": {
+"leccion": "24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "14",
+"orden": 3
+},
+"ておく-te-oku": {
+"leccion": "30",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "17",
+"orden": 1
+},
+"てしまう-te-shimau-ちゃう": {
+"leccion": "29",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "17",
+"orden": 2
+},
+"てすみません-te-sumimasen": {
+"leccion": "39",
+"tipo": "p",
+"nota": "て de causa: おそくなって、すみません (L39).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"てやる-te-yaru": {
+"leccion": "41",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"てよかった-te-yokatta": {
+"leccion": "39",
+"tipo": "f",
+"nota": "て de causa con sentimientos (L39).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ているところ-teiru-tokoro": {
+"leccion": "46",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "43",
+"orden": 4
+},
+"ても-temo": {
+"leccion": "25",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "32",
+"orden": 2
+},
+"と-to-significado-whenever": {
+"leccion": "23",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"と言ってもいい-to-ittemo-ii": {
+"leccion": "51",
+"tipo": "x",
+"nota": "Sin referencia en el libro.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"という-to-iu": {
+"leccion": "33",
+"tipo": "p",
+"nota": "Nは～といういみです (L33).",
+"tambien": null,
+"grammar_test": "35",
+"orden": 2
+},
+"ということ-to-iu-koto": {
+"leccion": "33",
+"tipo": "f",
+"nota": "No está en el libro; va junto a という (L33).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"と言われている-to-iwarete-iru": {
+"leccion": "37",
+"tipo": "f",
+"nota": "Pasiva de 言う; va con la pasiva (L37).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"と聞いた-ときいた-to-kiita": {
+"leccion": "47",
+"tipo": "f",
+"nota": "No está en el libro; va junto a そうです de oídas (L47).",
+"tambien": null,
+"grammar_test": null,
+"orden": 8
+},
+"と思う-to-omou": {
+"leccion": "21",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "16",
+"orden": 2
+},
+"とか～とか-toka-toka": {
+"leccion": "36",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ところ-tokoro": {
+"leccion": "46",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "43",
+"orden": 5
+},
+"続ける-tsuzukeru-続けている": {
+"leccion": "44",
+"tipo": "f",
+"nota": "Verbo compuesto (Vます＋つづける); 続けます sale en el vocabulario de la L31.",
+"tambien": null,
+"grammar_test": null,
+"orden": 12
+},
+"って-tte": {
+"leccion": "33",
+"tipo": "f",
+"nota": "Coloquial de という (L33).",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"受身形-ukemi-japanese-passive-form": {
+"leccion": "37",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "23",
+"orden": 2
+},
+"は〜が～は-wa-ga-wa-significado-but-however": {
+"leccion": "27",
+"tipo": "p",
+"nota": "は de contraste (L27).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"やすい-yasui": {
+"leccion": "44",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "37",
+"orden": 4
+},
+"やっと-yatto": {
+"leccion": "36",
+"tipo": "v",
+"nota": "やっと sale en el vocabulario de la L36.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"より-yori": {
+"leccion": "12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "9",
+"orden": 2
+},
+"予定だ-yotei-da": {
+"leccion": "31",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ようだ-you-da": {
+"leccion": "47",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ように-ような-you-ni-na": {
+"leccion": "47",
+"tipo": "f",
+"nota": "No está en el libro; va junto a ようです (L47).",
+"tambien": null,
+"grammar_test": "38",
+"orden": 9
+},
+"ようになる-you-ni-naru": {
+"leccion": "36",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "25",
+"orden": 2
+},
+"ようにする-you-ni-suru-ようにしている": {
+"leccion": "36",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "25",
+"orden": 3
+},
+"ようと思う-you-to-omou": {
+"leccion": "31",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ぜひ-zehi": {
+"leccion": "18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"全然～ない-zenzen-nai": {
+"leccion": "9",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"づらい-zurai": {
+"leccion": "44",
+"tipo": "f",
+"nota": "No está en el libro; va junto a にくい (L44).",
+"tambien": null,
+"grammar_test": null,
+"orden": 13
+},
+"上げる-ageru": {
+"leccion": "C10",
+"tipo": "f",
+"nota": "Verbo compuesto, como los de la C10 (～出す, ～始める, ～合う…).",
+"tambien": "S3-5-2",
+"grammar_test": null,
+"orden": 3
+},
+"あまり-amari": {
+"leccion": "C24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C12",
+"orden": 1
+},
+"あまりにも-amari-ni-mo": {
+"leccion": "C24",
+"tipo": "f",
+"nota": "Forma intensiva de あまり; va junto a ～あまり（に）.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"合う-あう-au": {
+"leccion": "C10",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ばいい-ba-ii": {
+"leccion": "35",
+"tipo": "p",
+"nota": "La L35 enseña 疑問詞＋ばいいですか («¿qué hago?»).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ばよかった-ba-yokatta": {
+"leccion": "C9",
+"tipo": "f",
+"nota": "Va con ～たら／～ば、…た: lo que habría pasado y no pasó.",
+"tambien": "S3-5-3",
+"grammar_test": null,
+"orden": 4
+},
+"ば～ほど-ba-hodo": {
+"leccion": "C13",
+"tipo": "f",
+"nota": "La C13 enseña ～ほど («cuanto más… más»), la forma corta de ～ば～ほど.",
+"tambien": "S3-4-3",
+"grammar_test": "41",
+"orden": 6
+},
+"ば～のに-ba-noni": {
+"leccion": "C9",
+"tipo": "f",
+"nota": "Va con ～たら／～ば、…た: lo que habría pasado y no pasó.",
+"tambien": "S3-5-3",
+"grammar_test": null,
+"orden": 5
+},
+"ばかりで-bakari-de": {
+"leccion": "C6",
+"tipo": "f",
+"nota": "Va con ～てばかりいる・～ばかり～ている.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ばかりでなく-bakari-denaku": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"べきだ-beki-da": {
+"leccion": "C22",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"べきではない-beki-dewa-nai": {
+"leccion": "C22",
+"tipo": "p",
+"nota": "La forma negativa sale con ～べきだ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"別に～ない-betsu-ni-nai": {
+"leccion": "S3-6-5",
+"tipo": "f",
+"nota": "Va con まったく～ない, めったに～ない, 少しも～ない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ぶりに-buri-ni": {
+"leccion": "48",
+"tipo": "v",
+"nota": "En el vocabulario de la L48: 久しぶり.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"中-chuu-juu": {
+"leccion": "31",
+"tipo": "v",
+"nota": "En el vocabulario de la L31: 世界中.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だけ-dake-significado-as-much-as": {
+"leccion": "C7",
+"tipo": "f",
+"nota": "Va con …だけだ・ただ…だけでいい.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"だけでなく-dake-de-naku": {
+"leccion": "C15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だけど-dakedo": {
+"leccion": "20",
+"tipo": "f",
+"nota": "La L20 enseña けど; だけど es lo mismo al principio de la frase.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だらけ-darake": {
+"leccion": "S2-3-5",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"どんなに～ても-donna-ni-temo": {
+"leccion": "C1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"どうしても-doushitemo": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ふりをする-furi-o-suru": {
+"leccion": "S3-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ふと-futo": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"がち-gachi": {
+"leccion": "S2-1-1",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"がたい-gatai": {
+"leccion": "S2-5-1",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"気味-ぎみ-gimi": {
+"leccion": "S2-1-1",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ごとに-goto-ni": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": "C15",
+"orden": 1
+},
+"程-ほど-hodo": {
+"leccion": "C13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ほど～ない-hodo-nai": {
+"leccion": "C9",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C10",
+"orden": 1
+},
+"一度に-ichido-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"いくら～ても-ikura-temo": {
+"leccion": "C1",
+"tipo": "f",
+"nota": "Va con いつ／どこ／何／だれ／どんなに～ても.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"一方だ-ippou-da": {
+"leccion": "C21",
+"tipo": "f",
+"nota": "La C21 enseña 一方（で） («por otro lado»), no 一方だ («cada vez más»).",
+"tambien": null,
+"grammar_test": "C4",
+"orden": 1
+},
+"一体-いったい-ittai": {
+"leccion": "C18",
+"tipo": "v",
+"nota": "Sale en el diálogo de la C18: あの本の山はいったい何なの！",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"じゃない-janai": {
+"leccion": "C5",
+"tipo": "p",
+"nota": "…んじゃない？",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"か何か-ka-nani-ka": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"かける-kakeru": {
+"leccion": "S3-5-2",
+"tipo": "p",
+"nota": "～かけ",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"から〜にかけて-kara-ni-kakete": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"代わりに-かわりに-kawari-ni": {
+"leccion": "42",
+"tipo": "v",
+"nota": "En el vocabulario de la L42: ～の代わりに.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"た結果-ta-kekka": {
+"leccion": "C10",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"結局は-kekkyoku-wa": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"決して～ない-kesshite-nai": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"切れない-kirenai": {
+"leccion": "C24",
+"tipo": "f",
+"nota": "Va con ～きる.",
+"tambien": "S3-5-2",
+"grammar_test": null,
+"orden": 6
+},
+"きり-kiri": {
+"leccion": "S3-3-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"切る-kiru": {
+"leccion": "C24",
+"tipo": "p",
+"nota": "～きる",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"っけ-kke": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"込む-こむ-komu": {
+"leccion": "C10",
+"tipo": "f",
+"nota": "Verbo compuesto, como los de la C10 (～出す, ～始める, ～合う…).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"こそ-koso": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"こと-koto-significado-must-do": {
+"leccion": "C4",
+"tipo": "f",
+"nota": "Va con …こと・…ということ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ことから-koto-kara": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C2",
+"orden": 1
+},
+"ことになっている-koto-ni-natteiru": {
+"leccion": "C3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことはない-koto-wa-nai": {
+"leccion": "S3-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことは～が-koto-waga": {
+"leccion": "C1",
+"tipo": "f",
+"nota": "La C1 enseña ～ことは／が／を para nominalizar; el ことは～が de concesión no sale.",
+"tambien": "S3-6-2",
+"grammar_test": null,
+"orden": 3
+},
+"くらい-kurai-ぐらい-gurai": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"くせに-kuse-ni": {
+"leccion": "45",
+"tipo": "f",
+"nota": "Como のに (L45), pero con reproche.",
+"tambien": "S3-4-1",
+"grammar_test": null,
+"orden": 1
+},
+"まるで-maru-de": {
+"leccion": "C1",
+"tipo": "f",
+"nota": "Suele ir con ～のようだ (C1).",
+"tambien": "S3-5-5",
+"grammar_test": null,
+"orden": 4
+},
+"まさか-masaka": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"めったに～ない-metta-ni-nai": {
+"leccion": "S3-6-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"も～ば～も-mobamo": {
+"leccion": "35",
+"tipo": "f",
+"nota": "Va con la forma ば (L35).",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"もしかしたら-moshika-shitara-もしかすると": {
+"leccion": "32",
+"tipo": "v",
+"nota": "En el vocabulario de la L32.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"もしも〜たら-moshimo-tara": {
+"leccion": "25",
+"tipo": "f",
+"nota": "La L25 enseña もし con ～たら; もしも es la forma enfática.",
+"tambien": "S3-6-1",
+"grammar_test": "20",
+"orden": 1
+},
+"向け-muke": {
+"leccion": "S2-4-2",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": "C7",
+"orden": 1
+},
+"向き-muki": {
+"leccion": "S2-4-2",
+"tipo": "f",
+"nota": "El 総まとめ lo trata en el N2. Va con ～向け.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"むしろ-mushiro": {
+"leccion": "S3-2-5",
+"tipo": "f",
+"nota": "Va con ～というより.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ながらも-nagara-mo": {
+"leccion": "C13",
+"tipo": "f",
+"nota": "La C13 enseña ～ながら con el sentido de «aunque».",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"ないことはない-nai-koto-wa-nai": {
+"leccion": "S3-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ないと-naito": {
+"leccion": "21",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"なかなか-nakanaka": {
+"leccion": "18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"なんか-nanka-なんと-nante-など-nado": {
+"leccion": "C7",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"直す-なおす-naosu": {
+"leccion": "C10",
+"tipo": "f",
+"nota": "Verbo compuesto, como los de la C10 (～出す, ～始める, ～合う…).",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"なるべく-naru-beku": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"なぜなら-nazenara": {
+"leccion": "S3-4-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"んだって-n-datte-tte": {
+"leccion": "C13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に違いない-ni-chigai-nai": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C17",
+"orden": 2
+},
+"に反して-ni-hanshite": {
+"leccion": "S2-3-6",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": "C3",
+"orden": 1
+},
+"にかけて-ni-kakete": {
+"leccion": "C19",
+"tipo": "f",
+"nota": "Va con ～から～にかけて.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"に関する-に関して-ni-kan-suru-ni-kan-shite": {
+"leccion": "C15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にかわって-ni-kawatte-にかわり-ni-kawari": {
+"leccion": "S3-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に比べて-ni-kurabete": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C4",
+"orden": 3
+},
+"に慣れる-になれる-ni-nareru": {
+"leccion": "36",
+"tipo": "v",
+"nota": "En el vocabulario de la L36: なれます.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"において-ni-oite-における-ni-okeru": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にしたがって-ni-shitagatte": {
+"leccion": "C23",
+"tipo": "f",
+"nota": "Va con ～につれて.",
+"tambien": null,
+"grammar_test": "C5",
+"orden": 4
+},
+"にしても-ni-shite-mo": {
+"leccion": "C22",
+"tipo": "f",
+"nota": "Va con ～としても.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"にしては-ni-shite-wa": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に対して-にたいして-ni-taishite": {
+"leccion": "S3-5-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C11",
+"orden": 1
+},
+"にとって-ni-totte": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C1",
+"orden": 3
+},
+"について-ni-tsuite": {
+"leccion": "21",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "36",
+"orden": 2
+},
+"につれて-ni-tsurete-につれ-ni-tsure": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C15",
+"orden": 1
+},
+"には-ni-wa": {
+"leccion": "42",
+"tipo": "f",
+"nota": "La L42 enseña ～に para expresar finalidad (使います, 役に立ちます).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"によると-によれば-ni-yoru-to-ni-yoreba": {
+"leccion": "47",
+"tipo": "p",
+"nota": "La L47 lo enseña con ～そうです (天気予報によると…).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"によって-による-ni-yotte-ni-yoru": {
+"leccion": "C8",
+"tipo": "p",
+"nota": "También en la C16.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のでしょうか-no-deshou-ka": {
+"leccion": "C5",
+"tipo": "p",
+"nota": "…のだろうか",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"を中心に-o-chuushin-ni": {
+"leccion": "S2-7-4",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"をはじめとする-o-hajime-to-suru": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C18",
+"orden": 2
+},
+"を込めて-をこめて-o-komete": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"を通じて-を通して-o-tsuujite-o-tooshite": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C14",
+"orden": 4
+},
+"おかげで-okage-de": {
+"leccion": "C12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"っぱなし-ppanashi": {
+"leccion": "C12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"っぽい-ppoi": {
+"leccion": "S3-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"さえ-sae-でさえも": {
+"leccion": "C24",
+"tipo": "f",
+"nota": "Va con ～さえ～ば.",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"さえ～ば-sae-ba": {
+"leccion": "C24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"際に-sai-ni": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"真っ最中に-まっさいちゅうに-saichuu-ni": {
+"leccion": "S3-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"さらに-sara-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"さて-sate": {
+"leccion": "S2-8-5",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"せいで-sei-de": {
+"leccion": "C12",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"せいぜい-seizei": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 8
+},
+"しばらく-shibaraku": {
+"leccion": "28",
+"tipo": "v",
+"nota": "En el vocabulario de la L28.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"しかない-shika-nai": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"その為-そのため-sono-tame": {
+"leccion": "C9",
+"tipo": "f",
+"nota": "Va con …ため［に］.",
+"tambien": "S3-4-6",
+"grammar_test": null,
+"orden": 6
+},
+"それとも-soretomo": {
+"leccion": "S3-6-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"そうもない-sou-mo-nai-そうにない-sou-ni-nai": {
+"leccion": "C3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"すでに-sude-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 9
+},
+"即ち-すなわち-sunawachi": {
+"leccion": "C13",
+"tipo": "f",
+"nota": "Va con つまり、～ということだ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 8
+},
+"数量-は-suuryou-wa": {
+"leccion": "42",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"たものだ-ta-mono-da": {
+"leccion": "C18",
+"tipo": "f",
+"nota": "Va con ～ものだ.",
+"tambien": "S3-3-3",
+"grammar_test": "C7",
+"orden": 5
+},
+"たとたん-ta-totan": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"たびに-tabi-ni": {
+"leccion": "C15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ために-tame-ni": {
+"leccion": "C9",
+"tipo": "p",
+"nota": "El «para» ya sale en la L42; la C9 añade el «por, a causa de».",
+"tambien": null,
+"grammar_test": "30",
+"orden": 2
+},
+"確かに-tashika-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 10
+},
+"たて-tate": {
+"leccion": "C13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"たとえ～ても-tatoe-temo": {
+"leccion": "C13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"例えば-たとえば-tatoeba": {
+"leccion": "27",
+"tipo": "v",
+"nota": "En el vocabulario de la L27.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"たって-tatte": {
+"leccion": "C18",
+"tipo": "f",
+"nota": "Va con ～だって.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"てばかりいる-te-bakari-iru": {
+"leccion": "C6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "48",
+"orden": 1
+},
+"てごらん-te-goran": {
+"leccion": "S3-2-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"てはじめて-te-hajimete": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"てからでないと-te-kara-de-nai-to": {
+"leccion": "S2-6-3",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"てしょうがない-te-shou-ga-nai-て仕方がない-shikata-ga-nai": {
+"leccion": "S2-1-4",
+"tipo": "p",
+"nota": "El 総まとめ lo trata en el N2.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"て済む-te-sumu": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"てはいけないから-te-wa-ikenai-kara": {
+"leccion": "15",
+"tipo": "f",
+"nota": "Va con ～てはいけない (L15).",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ている場合じゃない-teiru-baai-janai": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"的-てき-teki": {
+"leccion": "X",
+"tipo": "x",
+"nota": "Sufijo.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"ても始まらない-temo-hajimaranai": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"てもかまわない-temo-kamawanai": {
+"leccion": "C9",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"てもしょうがない・ても仕方がない-temo-shou-ga-nai-temo-shikata-ga-nai": {
+"leccion": "S2-1-4",
+"tipo": "f",
+"nota": "El 総まとめ lo trata en el N2. Va con ～てしょうがない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"と言えば-といえば-to-ieba": {
+"leccion": "C15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"といい-to-ii-たらいい-tara-ii": {
+"leccion": "26",
+"tipo": "f",
+"nota": "Va con ～たらいいですか (L26).",
+"tambien": "S3-5-3",
+"grammar_test": null,
+"orden": 1
+},
+"といっても-to-ittemo": {
+"leccion": "S3-2-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ということだ-to-iu-koto-da-とのことだ-to-no-koto-da": {
+"leccion": "C4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C1",
+"orden": 1
+},
+"というのは-to-iu-nowa": {
+"leccion": "C2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"と言うと-というと-to-iuto": {
+"leccion": "C15",
+"tipo": "f",
+"nota": "Va con ～といえば.",
+"tambien": "S3-2-5",
+"grammar_test": null,
+"orden": 6
+},
+"というより-to-iu-yori": {
+"leccion": "C22",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C11",
+"orden": 3
+},
+"とみえて-miete-とみえる-to-mieru": {
+"leccion": "C16",
+"tipo": "f",
+"nota": "Va con ～とみられる.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"とすれば-としたら-とすると-sureba-shitara-suru-to": {
+"leccion": "C22",
+"tipo": "f",
+"nota": "Va con ～としても.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"と共に-to-tomo-ni": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"途中で-途中に-tochuu-de-tochuu-ni": {
+"leccion": "39",
+"tipo": "v",
+"nota": "En el vocabulario de la L39: 途中で.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ところで-tokoro-de": {
+"leccion": "40",
+"tipo": "v",
+"nota": "En el vocabulario de la L40.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ところが-tokoro-ga": {
+"leccion": "S3-5-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"とおりに-toori-ni": {
+"leccion": "34",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"通す-とおす-toosu": {
+"leccion": "C10",
+"tipo": "f",
+"nota": "Verbo compuesto, como los de la C10 (～出す, ～始める, ～合う…).",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"として-toshite": {
+"leccion": "C11",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"とても～ない-totemo-nai": {
+"leccion": "S3-6-5",
+"tipo": "f",
+"nota": "Va con まったく～ない, 少しも～ない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"とは限らない-towa-kagiranai": {
+"leccion": "C21",
+"tipo": "f",
+"nota": "Va con ～に限らず.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"つい-tsui": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 11
+},
+"ついに-tsui-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 12
+},
+"ついでに-tsuide-ni": {
+"leccion": "S3-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"つまり-tsumari": {
+"leccion": "C13",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"つもりだった-tsumori-datta": {
+"leccion": "C6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"つもりで-tsumori-de": {
+"leccion": "C6",
+"tipo": "f",
+"nota": "Va con ～たつもり・～ているつもり.",
+"tambien": "S3-3-3",
+"grammar_test": null,
+"orden": 4
+},
+"うちに-uchi-ni": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C2",
+"orden": 5
+},
+"上で-うえで-ue-de": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C17",
+"orden": 3
+},
+"上に-ue-ni": {
+"leccion": "S3-6-6",
+"tipo": "f",
+"nota": "Va con その上.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"は別として-wa-betsu-toshite": {
+"leccion": "C19",
+"tipo": "f",
+"nota": "Va con ～はともかく.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"はもちろん-wa-mochiron": {
+"leccion": "S3-5-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C18",
+"orden": 2
+},
+"は～で有名-wa-de-yuumei": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"わけだ-wake-da": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"わけではない-wake-dewa-nai-わけじゃない-wake-janai": {
+"leccion": "C15",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C3",
+"orden": 5
+},
+"わけがない-wake-ga-nai": {
+"leccion": "C10",
+"tipo": "f",
+"nota": "Va con …はずが（は）ない.",
+"tambien": "S3-6-4",
+"grammar_test": null,
+"orden": 7
+},
+"わけにはいかない-wake-niwa-ikanai": {
+"leccion": "C24",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C20",
+"orden": 4
+},
+"割に-わりに-wari-ni": {
+"leccion": "C22",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"わざと-wazato": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 13
+},
+"わざわざ-wazawaza": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 14
+},
+"よりも-yorimo": {
+"leccion": "C11",
+"tipo": "f",
+"nota": "Va con …より…ほうが.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ようがない-you-ga-nai": {
+"leccion": "C22",
+"tipo": "f",
+"nota": "Va con ～（よ）うにも～ない.",
+"tambien": null,
+"grammar_test": "C14",
+"orden": 7
+},
+"ような気がする-you-na-ki-ga-suru": {
+"leccion": "C1",
+"tipo": "f",
+"nota": "Va con ～のようだ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"ように-you-ni-significado-in-order-to": {
+"leccion": "36",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "30",
+"orden": 1
+},
+"ように見える-you-ni-mieru": {
+"leccion": "C1",
+"tipo": "f",
+"nota": "Va con ～のようだ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"ようとしない-you-to-shinai": {
+"leccion": "C5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ようとする-you-to-suru": {
+"leccion": "C5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ずに-zuni": {
+"leccion": "C11",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ずにはいられない-zu-ni-wa-irarenai": {
+"leccion": "C11",
+"tipo": "f",
+"nota": "Va con ～ず［に］.",
+"tambien": null,
+"grammar_test": "C20",
+"orden": 4
+},
+"jlpt-n3-grammar-ずつ-zutsu": {
+"leccion": "42",
+"tipo": "f",
+"nota": "Va con los cuantificadores de la L42 (数量＋は／も).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"あげく-ageku": {
+"leccion": "S2-3-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"あるいは-aruiwa": {
+"leccion": "S2-8-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"n2-ばかり-bakari": {
+"leccion": "S3-2-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ばかりだ-bakari-da": {
+"leccion": "S2-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ばかりか-bakari-ka": {
+"leccion": "S2-5-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C13",
+"orden": 1
+},
+"ばかりに-bakari-ni": {
+"leccion": "S2-5-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ちなみに-chinamini": {
+"leccion": "S2-8-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ちっとも～ない-chitto-monai": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だけあって-dake-atte": {
+"leccion": "S2-5-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"だけましだ-dake-mashi-da": {
+"leccion": "S2-5-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だけに-dake-ni": {
+"leccion": "S2-5-4",
+"tipo": "f",
+"nota": "Va con ～だけあって.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"だけのことはある-dake-no-koto-wa-aru": {
+"leccion": "S2-5-4",
+"tipo": "f",
+"nota": "Va con ～だけあって.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"だけは-dake-wa": {
+"leccion": "C7",
+"tipo": "f",
+"nota": "Va con …だけだ・ただ…だけでいい.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だって-datte": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-8-3",
+"grammar_test": null,
+"orden": 1
+},
+"でしかない-de-shika-nai": {
+"leccion": "C20",
+"tipo": "f",
+"nota": "Va con ～しかない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"どころではない-dokoro-dewa-nai": {
+"leccion": "S2-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"どころか-dokoro-ka": {
+"leccion": "S2-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"どうやら-dou-yara": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"どうせ-douse": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"得ない-えない-enai": {
+"leccion": "C17",
+"tipo": "f",
+"nota": "Va con ～ざるを得ない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"得る-える-うる-eru-uru": {
+"leccion": "C22",
+"tipo": "p",
+"nota": "～うる",
+"tambien": "S2-2-2",
+"grammar_test": null,
+"orden": 1
+},
+"再び-ふたたび-futatabi": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ふうに-fuu-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"がきっかけで-ga-kikkake-de-をきっかけに-o-kikkake-ni": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-7-6",
+"grammar_test": null,
+"orden": 1
+},
+"げ-ge": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-1-1",
+"grammar_test": null,
+"orden": 1
+},
+"逆に-gyaku-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"反面-はんめん-hanmen": {
+"leccion": "S2-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"果たして-はたして-hatashite": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 7
+},
+"一応-ichiou": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 8
+},
+"以外の-igai-no": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 9
+},
+"以上に-いじょうに-ijou-ni": {
+"leccion": "C24",
+"tipo": "f",
+"nota": "La C24 enseña ～以上（は） («ya que»); ～以上に («más de lo que») es otro uso.",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"以上は-ijou-wa": {
+"leccion": "C24",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-6-1",
+"grammar_test": null,
+"orden": 1
+},
+"いきなり-ikinari": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 10
+},
+"一気に-いっきに-ikki-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 11
+},
+"一方で-ippou-de": {
+"leccion": "C21",
+"tipo": "p",
+"nota": "一方（で）",
+"tambien": "S2-3-6",
+"grammar_test": "C4",
+"orden": 1
+},
+"いわゆる-iwayuru": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 12
+},
+"いよいよ-iyoiyo": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 13
+},
+"上-jou": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かのように-ka-no-you-ni": {
+"leccion": "S2-5-5",
+"tipo": "p",
+"nota": "～かのようだ",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かと思ったら-ka-to-omottara": {
+"leccion": "S2-3-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"か～ないかのうちに-ka-nai-ka-no-uchi-ni": {
+"leccion": "S2-2-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かえって-kaette": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 14
+},
+"限り-kagiri": {
+"leccion": "S2-2-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"甲斐がある-かいがある-kai-ga-aru": {
+"leccion": "S2-2-1",
+"tipo": "p",
+"nota": "～かいがあって・～かいもなく",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かねない-kanenai": {
+"leccion": "S2-5-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C12",
+"orden": 1
+},
+"かねる-かねます-kaneru-kanemasu": {
+"leccion": "S2-5-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"から言うと-kara-iu-to": {
+"leccion": "S2-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"からこそ-kara-koso": {
+"leccion": "S2-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C19",
+"orden": 2
+},
+"から見ると-kara-miru-to": {
+"leccion": "S2-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"からには-kara-niwa": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-6-1",
+"grammar_test": null,
+"orden": 2
+},
+"からして-kara-shite": {
+"leccion": "S2-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"からすると-からすれば-kara-suru-to-kara-sureba": {
+"leccion": "S2-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"からといって-kara-to-itte": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-6-3",
+"grammar_test": null,
+"orden": 1
+},
+"っこない-kkonai": {
+"leccion": "S2-5-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ことだ-koto-da": {
+"leccion": "S3-4-4",
+"tipo": "p",
+"nota": "～ことだ（アドバイス）",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことだから-koto-dakara": {
+"leccion": "S2-5-2",
+"tipo": "p",
+"nota": "～のことだから",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことか-koto-ka": {
+"leccion": "S3-4-4",
+"tipo": "p",
+"nota": "どんなに～ことか",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ことなく-koto-naku": {
+"leccion": "S2-5-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C10",
+"orden": 2
+},
+"ことに-koto-ni": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-3-1",
+"grammar_test": null,
+"orden": 2
+},
+"ことにはならない-koto-niwa-naranai": {
+"leccion": "C3",
+"tipo": "f",
+"nota": "Va con …ことになる.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"くせして-kuse-shite": {
+"leccion": "S2-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ならまだしも-nara-madashimo": {
+"leccion": "S2-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"まい-mai": {
+"leccion": "S2-6-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C16",
+"orden": 1
+},
+"ままに-mama-ni": {
+"leccion": "S1-6-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"全く～ない-mattakunai": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 15
+},
+"も構わず-もかまわず-mo-kamawazu": {
+"leccion": "S2-7-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"も当然だ-mo-touzen-da": {
+"leccion": "S2-5-3",
+"tipo": "f",
+"nota": "Va con ～て当然だ.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"もの-mono-もん-mon": {
+"leccion": "C12",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-1-2",
+"grammar_test": null,
+"orden": 1
+},
+"ものだ-ものじゃない-mono-da-mono-janai": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-7-3",
+"grammar_test": "C7",
+"orden": 2
+},
+"ものだから-mono-dakara": {
+"leccion": "C12",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-1-2",
+"grammar_test": null,
+"orden": 2
+},
+"ものではない-mono-dewa-nai": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-7-3",
+"grammar_test": null,
+"orden": 3
+},
+"ものがある-mono-ga-aru": {
+"leccion": "S2-7-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ものか-もんか-mono-ka-mon-ka": {
+"leccion": "S2-7-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ものなら-mono-nara": {
+"leccion": "S2-1-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ものの-monono": {
+"leccion": "S2-1-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C8",
+"orden": 2
+},
+"もっとも-motto-mo": {
+"leccion": "S2-8-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"もう少しで-mou-sukoshi-de": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 16
+},
+"ないではいられない-nai-dewa-irarenai": {
+"leccion": "S2-1-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ないことには～ない-nai-koto-niwanai": {
+"leccion": "S2-5-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"中を-中では-naka-o-naka-dewa": {
+"leccion": "X",
+"tipo": "x",
+"nota": "Sustantivo: 中 como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"なくはない-naku-wa-nai": {
+"leccion": "S2-1-5",
+"tipo": "f",
+"nota": "Va con ～ないこともない.",
+"tambien": "S1-4-6",
+"grammar_test": null,
+"orden": 2
+},
+"なくて済む-nakute-sumu": {
+"leccion": "S1-5-1",
+"tipo": "p",
+"nota": "～ずにすんだ",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"なにも～ない-nanimonai": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 17
+},
+"なお-nao": {
+"leccion": "S2-8-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ねばならない-neba-naranai": {
+"leccion": "S2-1-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"にあたって-ni-atatte": {
+"leccion": "S2-4-6",
+"tipo": "p",
+"nota": "～にあたり",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"にほかならない-ni-hoka-naranai": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-6-5",
+"grammar_test": null,
+"orden": 1
+},
+"に限らず-ni-kagirazu": {
+"leccion": "C21",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-2-3",
+"grammar_test": null,
+"orden": 2
+},
+"に限る-ni-kagiru": {
+"leccion": "S1-3-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に限って-ni-kagitte": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-2-3",
+"grammar_test": null,
+"orden": 1
+},
+"にかかわらず-ni-kakawarazu": {
+"leccion": "S2-7-1",
+"tipo": "p",
+"nota": "～にかかわらず",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に関わる-にかかわる-ni-kakawaru": {
+"leccion": "S2-4-3",
+"tipo": "p",
+"nota": "～にかかわって",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に決まっている-ni-kimatte-iru": {
+"leccion": "S2-6-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に越したことはない-ni-koshita-koto-wa-nai": {
+"leccion": "S1-8-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に応えて-ni-kotaete": {
+"leccion": "S2-4-3",
+"tipo": "p",
+"nota": "～にこたえて",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に加えて-ni-kuwaete": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": "C8",
+"orden": 2
+},
+"に基づいて-ni-motozuite": {
+"leccion": "C21",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-5-6",
+"grammar_test": null,
+"orden": 3
+},
+"に向かって-ni-mukatte": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"に応じて-ni-oujite": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-5-6",
+"grammar_test": null,
+"orden": 2
+},
+"に際して-ni-saishite": {
+"leccion": "S2-5-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に先立ち-ni-sakidachi": {
+"leccion": "S2-4-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にせよ-にしろ-ni-seyo-ni-shiro": {
+"leccion": "S2-7-2",
+"tipo": "f",
+"nota": "Va con ～にしろ～にしろ.",
+"tambien": "S1-2-3",
+"grammar_test": null,
+"orden": 4
+},
+"にしろ～にしろ-にせよ-ni-shiro-ni-shiro-ni-seyo": {
+"leccion": "S2-7-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"にしたら-にすれば-ni-shitara-ni-sureba": {
+"leccion": "S2-2-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"にしても～にしても-ni-shitemoni-shitemo": {
+"leccion": "S2-7-2",
+"tipo": "f",
+"nota": "Mismo sentido que ～にしろ～にしろ.",
+"tambien": "S3-3-2",
+"grammar_test": null,
+"orden": 5
+},
+"に沿って-にそって-ni-sotte": {
+"leccion": "S2-4-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"に相違ない-ni-soui-nai": {
+"leccion": "C18",
+"tipo": "f",
+"nota": "Va con ～に違いない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"に過ぎない-ni-suginai": {
+"leccion": "S2-4-5",
+"tipo": "p",
+"nota": "～にすぎない",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"に伴って-ni-tomonatte": {
+"leccion": "S2-2-6",
+"tipo": "p",
+"nota": "～にともなって",
+"tambien": null,
+"grammar_test": "C5",
+"orden": 1
+},
+"につけて-ni-tsuke-te": {
+"leccion": "S2-7-2",
+"tipo": "p",
+"nota": "～につけ～につけ",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"につき-ni-tsuki": {
+"leccion": "S2-7-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"にわたって-ni-watatte": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-4-6",
+"grammar_test": null,
+"orden": 2
+},
+"にも関わらず-にもかかわらず-nimo-kakawarazu": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-7-1",
+"grammar_test": "C9",
+"orden": 3
+},
+"にて-nite": {
+"leccion": "S2-6-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のももっともだ-no-mo-motto-mo-da": {
+"leccion": "S2-5-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"の下で-のもとで-no-moto-de": {
+"leccion": "C20",
+"tipo": "p",
+"nota": "～のもとで",
+"tambien": "S2-5-6",
+"grammar_test": null,
+"orden": 2
+},
+"の上では-no-ue-de-wa": {
+"leccion": "S2-4-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のみならず-nominarazu": {
+"leccion": "S2-5-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C9",
+"orden": 4
+},
+"ぬ-nu-negative-verb": {
+"leccion": "C24",
+"tipo": "f",
+"nota": "Negación clásica; va con ～ざる～.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"抜きにして-抜きで-nuki-ni-shite-nuki-de": {
+"leccion": "S2-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"抜く-nuku": {
+"leccion": "S2-2-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"を契機に-o-keiki-ni": {
+"leccion": "C23",
+"tipo": "f",
+"nota": "Va con ～をきっかけに.",
+"tambien": "S2-7-6",
+"grammar_test": null,
+"orden": 4
+},
+"をめぐって-o-megutte": {
+"leccion": "S2-6-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"をもとに-o-moto-ni": {
+"leccion": "S2-7-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"を除いて-o-nozoite": {
+"leccion": "X",
+"tipo": "x",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"を問わず-o-towazu": {
+"leccion": "S2-7-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"お～願う-o-negau": {
+"leccion": "50",
+"tipo": "f",
+"nota": "Va con el humilde お～します de la L50.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"おまけに-omake-ni": {
+"leccion": "S2-8-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"恐らく-osoraku": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 18
+},
+"恐れがある-osore-ga-aru": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-7-5",
+"grammar_test": null,
+"orden": 3
+},
+"及び-および-oyobi": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Conjunción: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 19
+},
+"ろくに～ない-roku-ni-nai": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 20
+},
+"幸いなことに-saiwai-na-koto-ni": {
+"leccion": "C23",
+"tipo": "f",
+"nota": "Va con ～ことに.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"せいか-sei-ka": {
+"leccion": "C12",
+"tipo": "f",
+"nota": "Va con …せいで.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"せっかく-sekkaku": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 21
+},
+"せめて-semete": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 22
+},
+"次第-shidai": {
+"leccion": "S2-4-2",
+"tipo": "p",
+"nota": "～次第（すぐに）",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"次第で-shidai-de": {
+"leccion": "S2-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C6",
+"orden": 2
+},
+"次第に-shidai-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 23
+},
+"しかも-shikamo": {
+"leccion": "S2-8-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"その上-sono-ue": {
+"leccion": "S3-6-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"それなのに-sore-na-noni": {
+"leccion": "S2-8-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"それなら-sore-nara": {
+"leccion": "S2-8-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"それにしても-sore-ni-shitemo": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 24
+},
+"そう言えば-sou-ieba": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 25
+},
+"そうすると-sou-suru-to": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 26
+},
+"た末に-ta-sue-ni": {
+"leccion": "C20",
+"tipo": "p",
+"nota": "～の末",
+"tambien": "S2-3-3",
+"grammar_test": null,
+"orden": 3
+},
+"少しも～ない-sukoshi-mo-nai": {
+"leccion": "S3-6-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"少なくとも-sukunaku-tomo": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 27
+},
+"直ちに-ただちに-tadachi-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 28
+},
+"たまえ-tamae": {
+"leccion": "X",
+"tipo": "x",
+"nota": "Imperativo antiguo, de hombre a inferior.",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"てばかりはいられない-te-bakari-wa-irarenai": {
+"leccion": "S2-1-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"てでも-te-demo": {
+"leccion": "S2-2-1",
+"tipo": "f",
+"nota": "Va con ～てまで.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"て以来-te-irai": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-6-1",
+"grammar_test": null,
+"orden": 4
+},
+"ていては-te-ite-wa": {
+"leccion": "S1-2-5",
+"tipo": "f",
+"nota": "Va con ～ては (condición).",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"てこそ-te-koso": {
+"leccion": "S2-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-1-1",
+"grammar_test": null,
+"orden": 3
+},
+"てまで-te-made": {
+"leccion": "S2-2-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"てならない-te-naranai": {
+"leccion": "S2-1-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C16",
+"orden": 1
+},
+"てたまらない-te-tamaranai": {
+"leccion": "S2-1-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C13",
+"orden": 2
+},
+"て当然だ-te-touzen-da": {
+"leccion": "S2-5-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ては-では-tewa-dewa": {
+"leccion": "S1-2-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"てはいられない-tewa-irarenai": {
+"leccion": "S2-1-6",
+"tipo": "f",
+"nota": "Va con ～てばかりはいられない.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"てはならない-tewa-naranai": {
+"leccion": "S2-1-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ては～ては-tewa-tewa": {
+"leccion": "S1-2-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"と同時に-to-douji-ni": {
+"leccion": "C20",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"といった-to-itta": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"というふうに-to-iu-fuu-ni": {
+"leccion": "C15",
+"tipo": "f",
+"nota": "Va con …という.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ということは-to-iu-koto-wa": {
+"leccion": "S2-8-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": "C19",
+"orden": 1
+},
+"というものだ-to-iu-mono-da": {
+"leccion": "S2-7-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"というものではない-to-iu-mono-dewa-nai": {
+"leccion": "S2-7-5",
+"tipo": "p",
+"nota": "～ば～というものでもない",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"と考えられる-to-kangaerareru": {
+"leccion": "C22",
+"tipo": "f",
+"nota": "Va con ～と思われる.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"とかで-toka-de": {
+"leccion": "C21",
+"tipo": "p",
+"nota": "…とか。",
+"tambien": "S2-6-4",
+"grammar_test": null,
+"orden": 4
+},
+"とっくに-tokku-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 29
+},
+"ところだった-tokoro-datta": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ところに-tokoro-ni": {
+"leccion": "S2-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ところを見ると-tokoro-o-miru-to": {
+"leccion": "S2-3-4",
+"tipo": "f",
+"nota": "Va con ～ところに／～ところを.",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"とも-tomo": {
+"leccion": "S1-2-6",
+"tipo": "f",
+"nota": "Va con ～とも～とも.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"としても-toshitemo": {
+"leccion": "C22",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-2-5",
+"grammar_test": null,
+"orden": 2
+},
+"つつ-tsutsu": {
+"leccion": "S2-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"つつある-tsutsu-aru": {
+"leccion": "S2-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"上は-ue-wa": {
+"leccion": "S2-4-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"はもとより-wa-moto-yori": {
+"leccion": "S2-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"はともかく-wa-tomokaku": {
+"leccion": "C19",
+"tipo": "p",
+"nota": null,
+"tambien": "S2-1-3",
+"grammar_test": null,
+"orden": 2
+},
+"わずかに-wazuka-ni": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 30
+},
+"やがて-yagate": {
+"leccion": "W",
+"tipo": "w",
+"nota": "Adverbio: se aprende como vocabulario.",
+"tambien": null,
+"grammar_test": null,
+"orden": 31
+},
+"やら～やら-yara-yara": {
+"leccion": "S2-7-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"よほど-よっぽど-yohodo-yoppodo": {
+"leccion": "C21",
+"tipo": "p",
+"nota": "よほど～でも",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"より-yori-from-time-place": {
+"leccion": "X",
+"tipo": "x",
+"nota": "より «desde», registro formal.",
+"tambien": null,
+"grammar_test": null,
+"orden": 6
+},
+"よりほかない-yori-hoka-nai": {
+"leccion": "S2-6-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ようでは-you-dewa": {
+"leccion": "S1-2-5",
+"tipo": "f",
+"nota": "Va con ～ては (condición negativa).",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ようではないか-you-dewa-nai-ka": {
+"leccion": "S2-5-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ようか～まいか-you-ka-mai-ka": {
+"leccion": "S2-6-4",
+"tipo": "p",
+"nota": "～か～まいか",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"要するに-ようするに-you-suru-ni": {
+"leccion": "S2-8-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ざるを得ない-zaru-o-enai": {
+"leccion": "C17",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-7-6",
+"grammar_test": null,
+"orden": 3
+},
+"ずに済む-zu-ni-sumu": {
+"leccion": "S1-5-1",
+"tipo": "p",
+"nota": "～ずにすんだ",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"xがxなら、yもyだ-x-ga-x-nara-y-mo-y-da": {
+"leccion": "S1-2-4",
+"tipo": "p",
+"nota": "～が～なら、～も～だ",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"あっての-atte-no": {
+"leccion": "S1-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"だの～だの-dano-dano": {
+"leccion": "S1-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"であれ-であろうと-de-are-de-arou": {
+"leccion": "S1-2-2",
+"tipo": "p",
+"nota": "～であれ～であれ",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"であれ～であれ-de-are-de-are": {
+"leccion": "S1-2-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"どんなに～うが-うとも-donna-ni-uga-uto": {
+"leccion": "S1-2-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"が早いか-ga-hayai-ka": {
+"leccion": "S1-3-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"がてら-gatera": {
+"leccion": "S1-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ぐるみ-gurumi": {
+"leccion": "S1-4-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"限りだ-kagiri-da": {
+"leccion": "S1-3-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"からある-kara-aru-からする-kara-suru-からの-kara-no": {
+"leccion": "S1-4-5",
+"tipo": "p",
+"nota": "～からする",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"かたがた-katagata": {
+"leccion": "S1-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"かたわら-katawara": {
+"leccion": "S1-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"こそあれ-koso-are": {
+"leccion": "S1-1-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"こそ～が-koso-ga": {
+"leccion": "S1-1-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"こそすれ-koso-sure": {
+"leccion": "S1-1-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ことなしに-koto-nashi-ni": {
+"leccion": "S1-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ことのないように-koto-no-nai-you-ni": {
+"leccion": "S1-1-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"くらいなら-kurai-nara": {
+"leccion": "S1-1-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"くらいのものだ-ぐらいのものだ-kurai-no-mono-da": {
+"leccion": "C20",
+"tipo": "f",
+"nota": "Va con …くらい.",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"までだ-made-da": {
+"leccion": "S1-3-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"までもない-made-mo-nai": {
+"leccion": "C23",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-3-1",
+"grammar_test": null,
+"orden": 1
+},
+"まみれ-mamire": {
+"leccion": "S1-4-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"も同然だ-mo-douzen-da": {
+"leccion": "S2-5-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ものを-mono-o": {
+"leccion": "S1-4-1",
+"tipo": "p",
+"nota": "～ば～ものを",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"ものとする-mono-to-suru": {
+"leccion": "S1-1-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ものとして-mono-toshite": {
+"leccion": "S1-1-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ないまでも-nai-made-mo": {
+"leccion": "S1-3-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"なくして-nakushite": {
+"leccion": "S1-4-1",
+"tipo": "p",
+"nota": "～なくして～はない",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"並み-nami": {
+"leccion": "S1-4-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ならでは-nara-dewa": {
+"leccion": "S1-4-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"なり-nari": {
+"leccion": "S1-2-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"なりに-なりの-nari-ni-nari-no": {
+"leccion": "S1-2-1",
+"tipo": "p",
+"nota": "～なら～なりに",
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"なりとも-nari-tomo": {
+"leccion": "S1-4-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なり～なり-narinari": {
+"leccion": "S1-2-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"なしに-nashi-ni": {
+"leccion": "S1-4-1",
+"tipo": "p",
+"nota": "～なしに～ない",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"にあって-ni-atte": {
+"leccion": "S1-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"に言わせれば-ni-iwasereba": {
+"leccion": "C21",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-1-4",
+"grammar_test": null,
+"orden": 1
+},
+"に限ったことではない-ni-kagitta-koto-de-wa-nai": {
+"leccion": "S1-3-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"にして-ni-shite": {
+"leccion": "S1-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のやら・ものやら・ことやら-no-yara-mono-yara-koto-yara": {
+"leccion": "S1-2-6",
+"tipo": "p",
+"nota": "（疑問詞）～のやら",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"のやら～のやら-no-yara-no-yara": {
+"leccion": "S1-2-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"を皮切りに-wo-kawakiri-ni": {
+"leccion": "S1-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"そばから-soba-kara": {
+"leccion": "S1-3-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"すら-ですら-de-sura": {
+"leccion": "S1-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"たことにして-ta-koto-ni-shite": {
+"leccion": "S1-1-3",
+"tipo": "p",
+"nota": "～たことにしてください",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"たところで-ta-tokoro-de": {
+"leccion": "C18",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-1-6",
+"grammar_test": null,
+"orden": 1
+},
+"たが最後-taga-saigo": {
+"leccion": "S1-3-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"たら～たで-tara-tade": {
+"leccion": "S1-2-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"たりとも-tari-tomo": {
+"leccion": "S1-4-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"たる-taru": {
+"leccion": "S1-4-2",
+"tipo": "f",
+"nota": "Va con ～ともあろう (教師たる者／教師ともあろう者).",
+"tambien": null,
+"grammar_test": null,
+"orden": 5
+},
+"手前-てまえ-temae": {
+"leccion": "S1-6-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"とあれば-to-areba": {
+"leccion": "S1-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"とあって-to-atte": {
+"leccion": "S1-4-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"とばかりに-to-bakari-ni": {
+"leccion": "S1-6-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"といえども-to-ie-domo": {
+"leccion": "C21",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-3-3",
+"grammar_test": null,
+"orden": 2
+},
+"といい～といい-to-ii-to-ii": {
+"leccion": "S1-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"というか-to-iu-ka": {
+"leccion": "S3-2-5",
+"tipo": "p",
+"nota": "～というより／～というか",
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"というか～というか-to-iu-kato-iu-ka": {
+"leccion": "S1-2-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"というもの-to-iu-mono": {
+"leccion": "S1-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"というところだ-iu-tokoro-da": {
+"leccion": "S1-1-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"というわけだ-to-iu-wake-da-というわけです": {
+"leccion": "C14",
+"tipo": "f",
+"nota": "Va con ～わけだ.",
+"tambien": "S2-3-2",
+"grammar_test": null,
+"orden": 2
+},
+"というわけではない-to-iu-wake-dewa-nai": {
+"leccion": "C15",
+"tipo": "f",
+"nota": "Va con ～わけではない.",
+"tambien": "S2-3-2",
+"grammar_test": null,
+"orden": 1
+},
+"といわず-to-iwazu": {
+"leccion": "S1-2-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"とみられる-to-mirareru": {
+"leccion": "C16",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-1-5",
+"grammar_test": null,
+"orden": 1
+},
+"とみると-to-miru-to": {
+"leccion": "S1-1-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"となると-となれば-to-naru-to-nareba": {
+"leccion": "S1-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"と思いきや-to-omoikiya": {
+"leccion": "S1-3-5",
+"tipo": "p",
+"nota": "～かと思いきや",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"とされる-to-sareru": {
+"leccion": "S1-1-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"としたって-to-shitatte": {
+"leccion": "S1-1-6",
+"tipo": "f",
+"nota": "Va con ～としたところで.",
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"ところを-tokoro-o": {
+"leccion": "S1-1-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ともあろう-tomo-arou": {
+"leccion": "S1-4-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"とも～とも-tomo-tomo": {
+"leccion": "S1-2-6",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ともなく-tomonaku": {
+"leccion": "S1-4-1",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"とは-towa": {
+"leccion": "C14",
+"tipo": "p",
+"nota": null,
+"tambien": "S1-3-3",
+"grammar_test": null,
+"orden": 1
+},
+"とはいえ-towaie": {
+"leccion": "S1-3-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"つ～つ-tsu-tsu": {
+"leccion": "S1-2-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 1
+},
+"うと～うと-うが～うが-uto-uga": {
+"leccion": "S1-2-2",
+"tipo": "p",
+"nota": "～ようが～ようが",
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"を限りに-wo-kagiri-ni": {
+"leccion": "S1-3-2",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"をもって-wo-motte": {
+"leccion": "S1-3-4",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 3
+},
+"や否や-ya-ina-ya": {
+"leccion": "S1-3-5",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+},
+"ようと～まいと-ようが～まいが-you-to-mai-you-ga-mai": {
+"leccion": "S1-2-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 2
+},
+"ずくめ-zukume": {
+"leccion": "S1-4-3",
+"tipo": "p",
+"nota": null,
+"tambien": null,
+"grammar_test": null,
+"orden": 4
+}
+}

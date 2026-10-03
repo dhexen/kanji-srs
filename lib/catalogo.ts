@@ -6,6 +6,7 @@
 // copian con scripts/copiar-catalogo.mjs. De momento solo lo ve el admin.
 
 import { supabase } from './supabase'
+import type { TipoLeccion } from './catalogo-libros'
 
 export const NIVELES = ['N5', 'N4', 'N3', 'N2', 'N1'] as const
 export type Jlpt = (typeof NIVELES)[number]
@@ -64,6 +65,19 @@ export type CatalogTopic = {
   position: number
 }
 
+/**
+ * Dónde se estudia en los libros (migración 047; ver lib/catalogo-libros.ts).
+ * Todo null si la migración no se ha corrido o la ficha aún no está colocada.
+ */
+export type CatalogoLeccion = {
+  leccion: string | null
+  leccion_tipo: TipoLeccion | null
+  leccion_orden: number | null
+  leccion_nota: string | null
+  tambien: string | null
+  grammar_test: string | null
+}
+
 export type CatalogExample = {
   id: string
   position: number
@@ -86,9 +100,13 @@ export type CatalogoItem = {
   romaji: string | null
   gloss_es: string | null
   position: number
-}
+} & CatalogoLeccion
 
 const LIST_COLUMNS = 'id, jlpt, slug, name, romaji, gloss_es, position'
+const LECCION_COLUMNS = 'leccion, leccion_tipo, leccion_orden, leccion_nota, tambien, grammar_test'
+const SIN_LECCION: CatalogoLeccion = {
+  leccion: null, leccion_tipo: null, leccion_orden: null, leccion_nota: null, tambien: null, grammar_test: null,
+}
 const TOPIC_COLUMNS = 'id, jlpt, slug, name, romaji, gloss_es, explicacion_html, uso, source_url, position'
 const EXAMPLE_COLUMNS = 'id, position, text_ja, kana, romaji, text_es, origen, piezas'
 
@@ -185,19 +203,38 @@ export function enlazaFichas(html: string, lista: CatalogoItem[], actualId: stri
 
 /** El catálogo entero (los cinco niveles), para la lista y su buscador. */
 export async function fetchCatalogoLista(): Promise<CatalogoItem[]> {
+  try {
+    return await listaCon(`${LIST_COLUMNS}, ${LECCION_COLUMNS}`)
+  } catch (e) {
+    // Sin la migración 047 no hay columnas de lección: la lista sale igual,
+    // solo que sin colocar en los libros.
+    if (!(e instanceof Error) || !/leccion|tambien|grammar_test/.test(e.message)) throw e
+    return (await listaCon(LIST_COLUMNS)).map(x => ({ ...x, ...SIN_LECCION }))
+  }
+}
+
+async function listaCon(columnas: string): Promise<CatalogoItem[]> {
   const out: CatalogoItem[] = []
   for (let desde = 0; ; desde += PAGINA) {
     const { data, error } = await supabase
       .from('catalog_topics')
-      .select(LIST_COLUMNS)
+      .select(columnas)
       .order('position', { ascending: true })
       .order('id', { ascending: true })
       .range(desde, desde + PAGINA - 1)
     if (error) throw new Error(error.message)
-    out.push(...((data ?? []) as CatalogoItem[]))
+    out.push(...((data ?? []) as unknown as CatalogoItem[]))
     if (!data || data.length < PAGINA) break
   }
   return out
+}
+
+/** Guarda dónde va cada ficha que ha cambiado al recolocar (solo el admin). */
+export async function saveCatalogoLecciones(cambios: ({ id: string } & CatalogoLeccion)[]) {
+  for (const { id, ...leccion } of cambios) {
+    const { error } = await supabase.from('catalog_topics').update(leccion).eq('id', id)
+    if (error) throw new Error(error.message)
+  }
 }
 
 /** Una ficha con sus frases, o null si no existe. */

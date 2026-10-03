@@ -9,6 +9,7 @@ import {
 import CatalogoUso from './CatalogoUso'
 import { ListaCatalogo } from './CatalogoShell'
 import CatalogoExplicacionIA from './CatalogoExplicacionIA'
+import CatalogoLeccion from './CatalogoLeccion'
 import { Borrosa, Ejes, Escribe, Piezas, piezasEs, type Como, type Dir } from './Practicar'
 
 // Una gramática del catálogo: lo que quiere decir, la explicación de la ficha
@@ -138,6 +139,8 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
           </a>
         </div>
       </div>
+
+      <CatalogoLeccion id={topic.id} />
 
       {/* Explicación y «Cómo se usa»: lado a lado cuando hay sitio */}
       <div className={`grid gap-4 items-start ${topic.uso ? 'xl:grid-cols-[minmax(0,1fr)_fit-content(400px)]' : ''}`}>
