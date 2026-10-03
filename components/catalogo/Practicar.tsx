@@ -1,10 +1,10 @@
 'use client'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { diffSides, plain, sameText } from '@/lib/catalogo-diff'
 
 // Las cuatro maneras de practicar una frase del catálogo (copiado de Hellotalk).
-// No guarda nada: ni puntuación, ni racha, ni SRS. Al recargar vuelve a estar
-// todo tapado.
+// En la ficha no guarda nada: al recargar vuelve a estar todo tapado. El
+// repaso SRS (/catalogo/repaso) usa Piezas y Escribe con onResultado.
 //
 // El ejercicio se elige con dos preguntas:
 //   Dirección  日本語 → Español, o al revés.
@@ -112,13 +112,28 @@ const PIEZA =
   'hover:border-violet-400 dark:hover:border-violet-500'
 
 // ── Piezas: montar la frase pulsándolas en orden ─────────────────────────────
-export function Piezas({ piezas, correcta, modo }: { piezas: string[]; correcta: string; modo: 'word' | 'char' }) {
+export function Piezas({
+  piezas, correcta, modo, onResultado,
+}: {
+  piezas: string[]
+  correcta: string
+  modo: 'word' | 'char'
+  /** Se avisa una vez, la primera vez que se completa (para el SRS). */
+  onResultado?: (bien: boolean) => void
+}) {
   // Se barajan una vez: si no, al colocar una pieza las demás se moverían.
   const banco = useMemo(() => baraja(piezas), [piezas])
   const [puestas, setPuestas] = useState<number[]>([])
 
   const completa = puestas.length === banco.length
   const tuya = puestas.map(i => banco[i]).join(modo === 'word' ? ' ' : '')
+
+  const avisado = useRef(false)
+  useEffect(() => {
+    if (!completa || avisado.current || !onResultado) return
+    avisado.current = true
+    onResultado(sameText(tuya, correcta))
+  }, [completa, tuya, correcta, onResultado])
 
   return (
     <>
@@ -156,18 +171,37 @@ export function Piezas({ piezas, correcta, modo }: { piezas: string[]; correcta:
 }
 
 // ── Escribir: la frase entera a mano ─────────────────────────────────────────
-export function Escribe({ correcta, modo, pista }: { correcta: string; modo: 'word' | 'char'; pista: string }) {
+export function Escribe({
+  correcta, modo, pista, otras, onResultado,
+}: {
+  correcta: string
+  modo: 'word' | 'char'
+  pista: string
+  /** Otras formas que también valen (la frase en kana, por ejemplo). */
+  otras?: string[]
+  /** Se avisa una vez, al comprobar la primera vez (para el SRS). */
+  onResultado?: (bien: boolean) => void
+}) {
   const [texto, setTexto] = useState('')
   // Lo comprobado, no lo que estás escribiendo: si no, la corrección iría
   // apareciendo letra a letra y te cantaría la respuesta.
   const [enviado, setEnviado] = useState<string | null>(null)
 
+  const avisado = useRef(false)
   const comprobar = () => {
     const v = texto.trim()
-    if (v) setEnviado(v)
+    if (!v) return
+    setEnviado(v)
+    if (onResultado && !avisado.current) {
+      avisado.current = true
+      onResultado(vale(v))
+    }
   }
 
-  const fallada = enviado !== null && !sameText(enviado, correcta)
+  const vale = (v: string) => sameText(v, correcta) || !!otras?.some(o => o && sameText(v, o))
+  // Se corrige contra la forma con la que casa (si escribiste en kana, la kana).
+  const contra = (enviado !== null && otras?.find(o => o && sameText(enviado, o))) || correcta
+  const fallada = enviado !== null && !vale(enviado)
 
   return (
     <>
@@ -200,7 +234,7 @@ export function Escribe({ correcta, modo, pista }: { correcta: string; modo: 'wo
         </button>
       </div>
 
-      {enviado !== null && <Resultado tuya={enviado} correcta={correcta} modo={modo} />}
+      {enviado !== null && <Resultado tuya={enviado} correcta={contra} modo={modo} />}
       {fallada && <p className="text-[11px] text-slate-400">Corrígela y vuelve a comprobar.</p>}
     </>
   )

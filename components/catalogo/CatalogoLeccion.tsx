@@ -1,108 +1,77 @@
 'use client'
 import { useContext, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { saveCatalogoLecciones, urlDeFicha, type CatalogoItem } from '@/lib/catalogo'
+import { saveCatalogoLecciones, type CatalogoItem } from '@/lib/catalogo'
 import {
   LIBRO_NOMBRE, TEMAS, TIPOS_LECCION, TIPO_LECCION, enLeccion, leccionesDe, libroDe, librosDelNivel,
   nombreGrammarTest, nombreLeccion, ordenaPorLibro, recoloca, type Libro, type TipoLeccion,
 } from '@/lib/catalogo-libros'
 import { CambiaLecciones, ListaCatalogo } from './CatalogoShell'
+import Tarjeta from './Tarjeta'
 
-// En qué lección de los libros se estudia esta gramática, lo que enseña el
-// libro ahí, y la anterior y la siguiente en ese orden. Desde aquí se recoloca:
-// otra lección, otro tipo, otro sitio dentro de la lección (solo el admin, que
-// de momento es el único que ve el catálogo).
+// La gramática en el orden de los libros, metida en la cabecera de la ficha:
+// una etiqueta con la lección y el botón para recolocarla (solo el admin, que
+// de momento es el único que ve el catálogo). El editor se abre debajo de la
+// cabecera.
 
-const CAJA = 'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4'
-const TITULO = 'text-[10px] font-semibold text-slate-400 uppercase tracking-wide'
 const CAMPO =
   'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400'
+const BOTON =
+  'h-7 inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-violet-600 hover:border-violet-300 dark:hover:text-violet-400 transition'
 
-export default function CatalogoLeccion({ id }: { id: string }) {
+function useLeccion(id: string) {
   const lista = useContext(ListaCatalogo)
-  const [editando, setEditando] = useState(false)
-
   const x = lista?.find(y => y.id === id)
   const orden = useMemo(() => (lista && x ? ordenaPorLibro(lista, x.jlpt) : []), [lista, x])
   // Sin la migración 047 (o sin cargar el reparto) no hay nada que enseñar.
   if (!lista || !x || !lista.some(y => y.leccion)) return null
-
   const i = orden.findIndex(y => y.id === x.id)
-  const antes = orden[i - 1]
-  const despues = orden[i + 1]
-  const temas = x.leccion ? TEMAS[x.leccion] : undefined
-  const tipo = x.leccion_tipo ? TIPO_LECCION[x.leccion_tipo] : null
-  const app = nombreGrammarTest(x.grammar_test)
+  return { lista, x, i, total: orden.length }
+}
 
+/** El botón de recolocar, en la cabecera. */
+export function LeccionNav({ onRecolocar, id }: { id: string; onRecolocar: () => void }) {
+  if (!useLeccion(id)) return null
   return (
-    <section className={`${CAJA} space-y-3`}>
-      <div className="flex items-center gap-2">
-        <p className={`${TITULO} flex-1`}>En los libros</p>
-        {!editando && (
-          <button
-            type="button"
-            onClick={() => setEditando(true)}
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-violet-600 hover:border-violet-300 dark:hover:text-violet-400 transition"
-          >
-            Recolocar
-          </button>
-        )}
-      </div>
+    <button type="button" onClick={onRecolocar} className={`${BOTON} shrink-0 px-2 text-[11px] font-semibold`}>
+      Recolocar
+    </button>
+  )
+}
 
-      {editando ? (
-        <Editor x={x} lista={lista} cerrar={() => setEditando(false)} />
-      ) : (
-        <>
-          <div>
-            <p className="font-bold text-slate-800 dark:text-slate-100">
-              {x.leccion ? nombreLeccion(x.leccion).larga : 'Todavía sin colocar'}
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-              {tipo && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tipo.cls}`}>{tipo.txt}</span>}
-              {app && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400">
-                  grammar-test: {app}
-                </span>
-              )}
-              {i >= 0 && (
-                <span className="text-[10px] text-slate-400 tabular-nums">
-                  {i + 1} de {orden.length} del {x.jlpt}
-                </span>
-              )}
-            </div>
-            {x.leccion_nota && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">{x.leccion_nota}</p>}
-            {x.tambien && (
-              <p className="text-xs text-slate-400 mt-0.5">
-                También es un punto del {tambien(x.tambien)}.
-              </p>
-            )}
-          </div>
+/** La lección del libro, como una etiqueta más de la cabecera. */
+export function LeccionPill({ id }: { id: string }) {
+  const l = useLeccion(id)
+  if (!l) return null
+  const { x } = l
+  const tipo = x.leccion_tipo ? TIPO_LECCION[x.leccion_tipo] : null
+  const temas = x.leccion ? TEMAS[x.leccion] : undefined
+  const app = nombreGrammarTest(x.grammar_test)
+  const detalle = [
+    tipo?.txt,
+    x.leccion_nota,
+    x.tambien && `También es un punto del ${tambien(x.tambien)}.`,
+    temas?.length && `El libro enseña aquí: ${temas.join(', ')}`,
+    app && `grammar-test: ${app}`,
+    l.i >= 0 && `${l.i + 1} de ${l.total} del ${x.jlpt}`,
+  ].filter(Boolean).join('\n')
+  return (
+    <span
+      title={detalle}
+      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full cursor-help ${tipo?.cls ?? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}
+    >
+      📖 {x.leccion ? nombreLeccion(x.leccion).larga : 'Sin colocar'}
+    </span>
+  )
+}
 
-          {!!temas?.length && (
-            <div>
-              <p className={`${TITULO} mb-1.5`}>Lo que enseña el libro aquí</p>
-              <div className="flex flex-wrap gap-1">
-                {temas.map(t => (
-                  <span
-                    key={t}
-                    className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[11px] font-medium px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {(antes || despues) && (
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              {antes ? <Vecina y={antes} lado="antes" /> : <span />}
-              {despues && <Vecina y={despues} lado="despues" />}
-            </div>
-          )}
-        </>
-      )}
-    </section>
+/** El editor para recolocar, en su propia caja bajo la cabecera. */
+export function LeccionEditor({ id, cerrar }: { id: string; cerrar: () => void }) {
+  const l = useLeccion(id)
+  if (!l) return null
+  return (
+    <Tarjeta kanji="本" titulo="Recolocar en los libros" className="ring-1 ring-violet-200 dark:ring-violet-800/60">
+      <Editor x={l.x} lista={l.lista} cerrar={cerrar} />
+    </Tarjeta>
   )
 }
 
@@ -110,22 +79,6 @@ export default function CatalogoLeccion({ id }: { id: string }) {
 function tambien(leccion: string) {
   const [libro, resto] = nombreLeccion(leccion).larga.split(' · ')
   return resto ? `${libro}: ${resto.toLowerCase()}` : libro
-}
-
-function Vecina({ y, lado }: { y: CatalogoItem; lado: 'antes' | 'despues' }) {
-  return (
-    <Link
-      href={urlDeFicha(y)}
-      className={`rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 hover:border-violet-300 dark:hover:border-violet-600 transition min-w-0 ${
-        lado === 'despues' ? 'text-right col-start-2' : ''
-      }`}
-    >
-      <span className="block text-[10px] text-slate-400">
-        {lado === 'antes' ? '← Anterior' : 'Siguiente →'} · {nombreLeccion(y.leccion).corta}
-      </span>
-      <span className="block kanji-font text-sm text-slate-700 dark:text-slate-200 truncate">{y.name}</span>
-    </Link>
-  )
 }
 
 function Editor({ x, lista, cerrar }: { x: CatalogoItem; lista: CatalogoItem[]; cerrar: () => void }) {

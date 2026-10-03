@@ -9,15 +9,19 @@ import {
 import CatalogoUso from './CatalogoUso'
 import { ListaCatalogo } from './CatalogoShell'
 import CatalogoExplicacionIA from './CatalogoExplicacionIA'
-import CatalogoLeccion from './CatalogoLeccion'
+import { LeccionEditor, LeccionNav, LeccionPill } from './CatalogoLeccion'
+import { EstadoPill, PoolBotones } from './CatalogoSrs'
+import Tarjeta from './Tarjeta'
 import { Borrosa, Ejes, Escribe, Piezas, piezasEs, type Como, type Dir } from './Practicar'
 
 // Una gramática del catálogo: lo que quiere decir, la explicación de la ficha
 // original (o la de Gemini si no trae), el «Cómo se usa» y las frases de
 // ejemplo con sus cuatro maneras de practicarlas.
 
-const CAJA = 'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4'
-const TITULO = 'text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2'
+const CAJA = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5'
+
+/** El kanji de fondo de la cabecera: el primero del nombre, o su primera letra. */
+const fondoDe = (name: string) => name.match(/[\u3400-\u9fff]/)?.[0] ?? name.trim()[0] ?? '文'
 
 export default function CatalogoFicha({ jlpt, slug }: { jlpt: Jlpt; slug: string }) {
   const [datos, setDatos] = useState<{ topic: CatalogTopic; frases: CatalogExample[] } | null>(null)
@@ -83,6 +87,7 @@ export default function CatalogoFicha({ jlpt, slug }: { jlpt: Jlpt; slug: string
 function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[] }) {
   const [dir, setDir] = useState<Dir>('ja-es')
   const [como, setComo] = useState<Como>('tapado')
+  const [recolocando, setRecolocando] = useState(false)
 
   // Sin el reclamo de la web; null si no queda explicación de verdad.
   const propia = useMemo(() => explicacionPropia(topic.explicacion_html), [topic.explicacion_html])
@@ -107,15 +112,21 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
   return (
     <div className="space-y-4">
       {/* Cabecera */}
-      <div className={CAJA}>
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
+      <Tarjeta kanji={fondoDe(topic.name)}>
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+          <div className="flex-1 min-w-[12rem]">
             <h2 className="kanji-font text-2xl text-slate-800 dark:text-slate-100 leading-snug">{topic.name}</h2>
             {topic.gloss_es && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{topic.gloss_es}</p>}
           </div>
-          <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${NIVEL_PILL[topic.jlpt]}`}>{topic.jlpt}</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <PoolBotones id={topic.id} />
+            <LeccionNav id={topic.id} onRecolocar={() => setRecolocando(r => !r)} />
+            <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${NIVEL_PILL[topic.jlpt]}`}>{topic.jlpt}</span>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-3">
+          <EstadoPill id={topic.id} grande />
+          <LeccionPill id={topic.id} />
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
             {topic.jlpt} · <span className="tabular-nums">#{topic.position}</span>
           </span>
@@ -138,14 +149,13 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
             Ficha original ↗
           </a>
         </div>
-      </div>
+      </Tarjeta>
 
-      <CatalogoLeccion id={topic.id} />
+      {recolocando && <LeccionEditor id={topic.id} cerrar={() => setRecolocando(false)} />}
 
       {/* Explicación y «Cómo se usa»: lado a lado cuando hay sitio */}
       <div className={`grid gap-4 items-start ${topic.uso ? 'xl:grid-cols-[minmax(0,1fr)_fit-content(400px)]' : ''}`}>
-        <section className={CAJA}>
-          <p className={TITULO}>Explicación</p>
+        <Tarjeta kanji="説" titulo="Explicación" color="sky">
           {explicacion ? (
             // El HTML lo dejó limpio el script de Hellotalk que baja las fichas:
             // lista de etiquetas permitidas y sin atributos (solo unas clases).
@@ -153,28 +163,28 @@ function Ficha({ topic, frases }: { topic: CatalogTopic; frases: CatalogExample[
           ) : (
             <CatalogoExplicacionIA topic={topic} />
           )}
-        </section>
+        </Tarjeta>
 
         {topic.uso && (
-          <section className={`${CAJA} xl:min-w-[280px]`}>
-            <p className={TITULO}>Cómo se usa</p>
+          <Tarjeta kanji="使" titulo="Cómo se usa" color="emerald" className="xl:min-w-[280px]">
             <CatalogoUso uso={topic.uso} />
-          </section>
+          </Tarjeta>
         )}
       </div>
 
       {/* Ejemplos y práctica */}
       {!!frases.length && (
-        <section className={`${CAJA} space-y-3`}>
-          <p className={TITULO}>Ejemplos</p>
-          <Ejes dir={dir} setDir={setDir} como={como} setComo={setComo} />
-          <div>
-            {frases.map(f => (
-              // La clave lleva el ejercicio: al cambiar de modo la frase empieza de cero.
-              <Frase key={`${f.id}-${dir}-${como}`} f={f} dir={dir} como={como} />
-            ))}
+        <Tarjeta kanji="例" titulo="Ejemplos" color="amber">
+          <div className="space-y-3">
+            <Ejes dir={dir} setDir={setDir} como={como} setComo={setComo} />
+            <div>
+              {frases.map(f => (
+                // La clave lleva el ejercicio: al cambiar de modo la frase empieza de cero.
+                <Frase key={`${f.id}-${dir}-${como}`} f={f} dir={dir} como={como} />
+              ))}
+            </div>
           </div>
-        </section>
+        </Tarjeta>
       )}
     </div>
   )

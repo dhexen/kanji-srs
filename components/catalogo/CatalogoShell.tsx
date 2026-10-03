@@ -3,6 +3,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSelectedLayoutSegment } from 'next/navigation'
 import { fetchCatalogoLista, type CatalogoItem, type CatalogoLeccion, type Jlpt } from '@/lib/catalogo'
 import CatalogoRail from './CatalogoRail'
+import { PoolProvider } from './CatalogoSrs'
 
 // El armazón de /catalogo/[nivel]: la lista a la izquierda y la ficha a la
 // derecha. Vive en el layout, así que al cambiar de ficha la lista no se vuelve
@@ -47,6 +48,7 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
   }, [segmento])
 
   return (
+    <PoolProvider>
     <div className="space-y-4">
       <div className={abierta ? 'hidden lg:block' : ''}>
         <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -78,7 +80,8 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
               </div>
             )}
           </div>
-          <div className="min-w-0">
+          {/* Sin ficha abierta, en el móvil el panel va encima de la lista. */}
+          <div className={`min-w-0 ${abierta ? '' : 'order-first lg:order-none'}`}>
             <ListaCatalogo.Provider value={lista}>
               <CambiaLecciones.Provider value={cambiaLecciones}>{children}</CambiaLecciones.Provider>
             </ListaCatalogo.Provider>
@@ -86,5 +89,6 @@ export default function CatalogoShell({ jlpt, children }: { jlpt: Jlpt; children
         </div>
       )}
     </div>
+    </PoolProvider>
   )
 }

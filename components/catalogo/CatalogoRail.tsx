@@ -10,6 +10,7 @@ import {
   LIBRO_NOMBRE, comparaLecciones, libroDe, nombreLeccion, porOrden, type Libro, type TipoLeccion,
 } from '@/lib/catalogo-libros'
 import Marca from './Marca'
+import { EstadoPill } from './CatalogoSrs'
 
 // La lista de gramáticas de un nivel, con las pestañas de los cinco niveles
 // arriba y un buscador que cruza los cinco. Cada fila es un enlace: la sección
@@ -178,8 +179,11 @@ export default function CatalogoRail({
             : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:shadow-sm'
         }`}
       >
-        <p className="kanji-font text-[15px] text-slate-800 dark:text-slate-100 leading-snug">
-          <Marca texto={x.name} trozos={ts} />
+        <p className="flex items-start justify-between gap-2">
+          <span className="kanji-font text-[15px] text-slate-800 dark:text-slate-100 leading-snug">
+            <Marca texto={x.name} trozos={ts} />
+          </span>
+          <span className="mt-0.5"><EstadoPill id={x.id} /></span>
         </p>
         {x.gloss_es && (
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug mt-0.5">
