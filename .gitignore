@@ -3,3 +3,4 @@ node_modules/
 .env.local
 .env*.local
 .claude/hooks/.ultima-huella-buena
+.claude/settings.local.json
