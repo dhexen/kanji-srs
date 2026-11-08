@@ -16,7 +16,10 @@ en el mismo cambio.
 - `npm run dev` — servidor local; `npm run build` — build de producción.
 - `npx tsc --noEmit` — comprobar tipos. **No hay tests** ni linter.
 - `scripts/` — sueltos y manuales: `import-vocab.ts`, `ordenar-catalogo.mjs`,
-  `copiar-catalogo.mjs`, `compare-gemini-quality.ts`, `test-gemini-models.sh`.
+  `copiar-catalogo.mjs`, `compare-gemini-quality.ts`, `test-gemini-models.sh`,
+  `wk-descargar.mjs` (copia de solo lectura de WaniKani) y `wk-aplicar.mjs`
+  (escribe sinónimos y notas en español en WaniKani; ensayo en seco salvo
+  `--aplicar`, exige copia previa; necesita `WK_API_KEY`).
 
 ## Dónde está cada cosa
 
