@@ -19,7 +19,9 @@ en el mismo cambio.
   `copiar-catalogo.mjs`, `compare-gemini-quality.ts`, `test-gemini-models.sh`,
   `wk-descargar.mjs` (copia de solo lectura de WaniKani) y `wk-aplicar.mjs`
   (escribe sinónimos y notas en español en WaniKani; ensayo en seco salvo
-  `--aplicar`, exige copia previa; necesita `WK_API_KEY`).
+  `--aplicar`, exige copia previa; necesita `WK_API_KEY`) y `wk-diario.mjs`
+  (rutina diaria en GitHub Actions, `.github/workflows/wk-diario.yml`: traduce con `claude -p` las fichas nuevas de WaniKani sin
+  «[ES]» y las escribe; `--seco` solo lista).
 
 ## Dónde está cada cosa
 
